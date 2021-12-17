@@ -32,7 +32,7 @@ namespace FrameworkEvent
 {
 	enum Type
 	{
-		// DPTF Events
+		// DPTF Events		
 		DptfConnectedStandbyEntry,
 		DptfConnectedStandbyExit,
 		DptfSuspend,
@@ -133,6 +133,11 @@ namespace FrameworkEvent
 		PolicyUserInteractionChanged,
 		PolicyForegroundRatioChanged,
 		PolicySystemModeChanged,
+		PolicyTableObjectChanged,
+		PolicyCollaborationChanged,
+		PolicyThirdPartyGraphicsPowerStateChanged,
+		PolicyAppBroadcastListen,
+		PolicyAppBroadcastSend,
 
 		// App Events
 		DptfAppLoaded,

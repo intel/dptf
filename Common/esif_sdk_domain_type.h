@@ -97,11 +97,12 @@ typedef enum esif_domain_type {
 	ESIF_DOMAIN_TYPE_WWANRFIM = 41,
 	ESIF_DOMAIN_TYPE_IDGFXCORE = 42,
 	ESIF_DOMAIN_TYPE_IDGFX2 = 43,
+	ESIF_DOMAIN_TYPE_NVDGX = 44,
 	ESIF_DOMAIN_TYPE_ALL = 255,
 } esif_domain_type_t;
 
 /* Max Enum Value for Iteration purposes (Excluding ALL) */
-#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_IDGFX2
+#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_NVDGX
 
 static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 {
@@ -143,6 +144,7 @@ static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_WWANRFIM);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_IDGFXCORE);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_IDGFX2);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_NVDGX);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_ALL);
 	}
 	return ESIF_NOT_AVAILABLE;

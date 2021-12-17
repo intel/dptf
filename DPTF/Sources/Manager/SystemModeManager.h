@@ -22,6 +22,7 @@
 #include "OsPowerSchemePersonality.h"
 #include "SystemMode.h"
 #include "DptfManagerInterface.h"
+#include "IgccBroadcastData.h"
 
 class dptf_export SystemModeManagerInterface
 {
@@ -30,7 +31,10 @@ public:
 	virtual void setPolicySystemModeValue(const SystemMode::Type systemMode) = 0;
 	virtual void executeOperatingSystemPowerSliderChanged() = 0;
 	virtual void executeOperatingSystemPowerSchemePersonalityChanged() = 0;
+	virtual void executeOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
+	virtual void registerFrameworkEvents() = 0;
 	virtual void unregisterFrameworkEvents() = 0;
+	virtual void arbitrateAndCreateEventSystemModeChanged()= 0;
 };
 
 class SystemModeManager : public SystemModeManagerInterface
@@ -42,17 +46,20 @@ public:
 	virtual void setPolicySystemModeValue(const SystemMode::Type systemMode) override;
 	virtual void executeOperatingSystemPowerSliderChanged() override;
 	virtual void executeOperatingSystemPowerSchemePersonalityChanged() override;
+	virtual void executeOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override;
+	virtual void registerFrameworkEvents() override;
 	virtual void unregisterFrameworkEvents() override;
+	virtual void arbitrateAndCreateEventSystemModeChanged() override;
 
 private:
 	DptfManagerInterface* m_dptfManager;
 	SystemMode::Type m_policySystemModeValue;
 	SystemMode::Type m_arbitratedValue;
 	Bool m_arbitratedValueChangedSinceLastSet;
-
 	std::bitset<PolicyEvent::Max> m_registeredEvents;
+	OsPowerSource::Type m_powerSource;
 
-	void arbitrateAndCreateEventSystemModeChanged();
+	
 	void arbitrateSystemMode(
 		const OsPowerSlider::Type osPowerSlider,
 		const OsPowerSchemePersonality::Type powerSchemePersonality);

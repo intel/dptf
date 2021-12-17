@@ -147,11 +147,22 @@ static eEsifError EsifSetActionDelegateScas();
 
 #if defined(ESIF_ATTR_OS_WINDOWS)
 
+esif_error_t set_nv_tgp_value_win(EsifDataPtr requestPtr);
+esif_error_t set_nv_power_limit_win(EsifDataPtr requestPtr);
+esif_error_t set_nv_dynamic_boost_state_win(EsifDataPtr requestPtr);
+esif_error_t set_nv_action_state_enable_win();
+esif_error_t set_nv_action_state_disable_win();
 esif_error_t set_display_state_win(EsifDataPtr requestPtr);
 esif_error_t set_screen_autolock_state_win(EsifDataPtr requestPtr);
 esif_error_t set_wake_on_approach_state_win(EsifDataPtr requestPtr);
 esif_error_t set_workstation_lock_win();
 esif_error_t set_app_ratio_period_win(EsifDataPtr requestPtr);
+esif_error_t get_nv_utilization_win(EsifDataPtr responsePtr);
+esif_error_t get_nv_rapl_power_win(EsifDataPtr responsePtr);
+esif_error_t get_nv_rapl_power_limit_win(EsifDataPtr responsePtr);
+esif_error_t get_nv_temperature_win(EsifDataPtr responsePtr);
+esif_error_t get_nv_dynamic_boost_state_win(EsifDataPtr responsePtr);
+esif_error_t get_nv_power_state_win(EsifDataPtr responsePtr);
 esif_error_t get_last_hid_input_time_win(EsifDataPtr responsePtr);
 esif_error_t get_display_required_win(EsifDataPtr responsePtr);
 esif_error_t get_is_ext_mon_connected_win(EsifDataPtr responsePtr);
@@ -162,11 +173,22 @@ esif_error_t EsifSetActionDelegatePowerSchemeEppWin(EsifDataPtr requestPtr);
 esif_error_t EsifSetActionDelegateActivePowerSchemeWin();
 esif_error_t EsifSetActionDelegatePpmParamClearWin();
 
+#define set_nv_tgp_value(reqPtr) set_nv_tgp_value_win(reqPtr)
+#define set_nv_power_limit(reqPtr) set_nv_power_limit_win(reqPtr)
+#define set_nv_dynamic_boost_state(reqPtr) set_nv_dynamic_boost_state_win(reqPtr)
+#define set_nv_action_state_enable() set_nv_action_state_enable_win()
+#define set_nv_action_state_disable() set_nv_action_state_disable_win()
 #define set_display_state(reqPtr) set_display_state_win(reqPtr)
 #define set_screen_autolock_state(reqPtr) set_screen_autolock_state_win(reqPtr)
 #define set_wake_on_approach_state(reqPtr) set_wake_on_approach_state_win(reqPtr)
 #define set_workstation_lock() set_workstation_lock_win()
 #define set_app_ratio_period(reqPtr) set_app_ratio_period_win(reqPtr)
+#define get_nv_utilization(rspPtr) get_nv_utilization_win(rspPtr)
+#define get_nv_rapl_power(rspPtr) get_nv_rapl_power_win(rspPtr)
+#define get_nv_rapl_power_limit(rspPtr) get_nv_rapl_power_limit_win(rspPtr)
+#define get_nv_temperature(rspPtr) get_nv_temperature_win(rspPtr)
+#define get_nv_dynamic_boost_state(rspPtr) get_nv_dynamic_boost_state_win(rspPtr)
+#define get_nv_power_state(rspPtr) get_nv_power_state_win(rspPtr)
 #define get_last_hid_input_time(rspPtr) get_last_hid_input_time_win(rspPtr)
 #define get_display_required(rspPtr) get_display_required_win(rspPtr)
 #define get_is_ext_mon_connected(rspPtr) get_is_ext_mon_connected_win(rspPtr)
@@ -179,11 +201,22 @@ esif_error_t EsifSetActionDelegatePpmParamClearWin();
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 
+#define set_nv_tgp_value(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_power_limit(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_dynamic_boost_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_action_state_enable() (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_action_state_disable() (ESIF_E_NOT_IMPLEMENTED)
 #define set_display_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_screen_autolock_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_wake_on_approach_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_workstation_lock() (ESIF_E_NOT_IMPLEMENTED)
 #define set_app_ratio_period(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_utilization(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_rapl_power(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_rapl_power_limit(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_temperature(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_dynamic_boost_state(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_power_state(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_last_hid_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -290,6 +323,30 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = get_aggregate_display_information(responsePtr);
 		break;
 
+	case 'TUGN': /* NGUT */
+		rc = get_nv_utilization(responsePtr);
+		break;
+
+	case 'PRGN': /* NGRP */
+		rc = get_nv_rapl_power(responsePtr);
+		break;
+
+	case 'LPGN': /* NGPL */
+		rc = get_nv_rapl_power_limit(responsePtr);
+		break;
+
+	case 'PMTN': /* NTMP */
+		rc = get_nv_temperature(responsePtr);
+		break;
+
+	case 'BDGN': /* NGDB */
+		rc = get_nv_dynamic_boost_state(responsePtr);
+		break;
+
+	case 'SPGN': /* NGPS */
+		rc = get_nv_power_state(responsePtr);
+		break;
+
 	case 'SCIG': /* GICS **/
 		rc = EsifGetActionDelegateIsFaceDetectionCapableSensor(responsePtr);
 		break;
@@ -304,6 +361,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		break;
 	}
 exit:
+	ESIF_TRACE_INFO("Exit status = %lu\n", rc);
 	return rc;
 }
 
@@ -485,6 +543,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegatePpmParamClear();
 		break;
 
+	case 'ECCS':    /* SCCE: Set Collaboration Changed Event*/
+		ESIF_TRACE_INFO("Collaboration Changed\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_COLLABORATION_CHANGED);
+		break;
 	case 'SNSS': /* SSNS */
 		rc = set_display_state(requestPtr);
 		break;
@@ -503,6 +565,26 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'SAOW': /* WOAS */
 		rc = set_wake_on_approach_state(requestPtr);
+		break;
+
+	case 'BDSN': /* NSDB */
+		rc = set_nv_dynamic_boost_state(requestPtr);
+		break;
+
+	case 'AESN': /* NSEA */
+		rc = set_nv_action_state_enable();
+		break;
+
+	case 'ADSN': /* NSDA */
+		rc = set_nv_action_state_disable();
+		break;
+
+	case 'LPSN': /* NSPL */
+		rc = set_nv_power_limit(requestPtr);
+		break;
+
+	case 'PGTN': /* NTGP */
+		rc = set_nv_tgp_value(requestPtr);
 		break;
 
 	case 'EMSS': /* SSME */
@@ -526,6 +608,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		break;
 	}
 exit:
+	ESIF_TRACE_INFO("Exit status = %lu\n", rc);
 	return rc;
 }
 

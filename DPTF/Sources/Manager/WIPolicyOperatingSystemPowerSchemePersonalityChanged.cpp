@@ -40,11 +40,12 @@ void WIPolicyOperatingSystemPowerSchemePersonalityChanged::onExecute(void)
 	auto policyManager = getPolicyManager();
 	auto policyIndexes = policyManager->getPolicyIndexes();
 
+	getDptfManager()->getEventCache()->powerSchemePersonality.set(m_powerSchemePersonality);
+
 	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->powerSchemePersonality.set(m_powerSchemePersonality);
 			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemPowerSchemePersonalityChanged(m_powerSchemePersonality);
 		}

@@ -38,6 +38,7 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const PowerControlDynamicCaps& capabilities) override;
+	virtual Power getPowerValue(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
 	virtual void onClearCachedData(void) override;

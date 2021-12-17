@@ -44,6 +44,10 @@ RfProfileDataSet RfProfileDataSet::createRfProfileDataFromDptfBuffer(const DptfB
 	{
 		throw dptf_exception("Received empty Rf Channel Info buffer.");
 	}
+	if ( buffer.size() < sizeof(esif_data_rfprofile))
+	{
+		throw dptf_exception("Received Invalid Rf Channel Info buffer.");
+	}
 
 	UIntN rows = buffer.size() / sizeof(esif_data_rfprofile);
 

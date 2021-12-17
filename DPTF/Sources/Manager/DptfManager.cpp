@@ -62,7 +62,6 @@ DptfManager::DptfManager(void)
 	, m_dptfHomeDirectoryPath(Constants::EmptyString)
 	, m_dptfPolicyDirectoryPath(Constants::EmptyString)
 	, m_dptfReportDirectoryPath(Constants::EmptyString)
-	, m_dptfPolicyLoadNameOnly(false)
 {
 }
 
@@ -81,30 +80,20 @@ void DptfManager::createDptfManager(
 
 	try
 	{
-		// Parse DPTF Home Path. Possible formats:
-		//   homepath = Location of XSL Files, Policy Libraries, and Reports [use full lib path when loading libraries]
-		//   homepath|[#]libpath|logpath = (1) Location of XSL Files (2) Location of Policy Libraries (3) Report/Log Path
-		//   ["#" prefix = do not use full path when loading libraries]
+		// HomePath is a Directory writable by this process, so use for ReportPath too
 		std::string homePath = dptfHomeDirectoryPath;
-		std::string policyPath = dptfHomeDirectoryPath;
 		std::string reportPath = dptfHomeDirectoryPath;
-		std::vector<std::string> dptfPaths = StringParser::split(dptfHomeDirectoryPath, '|');
-		EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 
-		if (dptfPaths.size() > 1)
+		// Determine Policy Path by getting this Library's Full Pathname
+		EsifLibrary dptfLib;
+		dptfLib.load();
+		std::string policyPath = dptfLib.getLibDirectory();
+		dptfLib.unload();
+		if (!policyPath.empty())
 		{
-			homePath = dptfPaths[0];
-			policyPath = dptfPaths[1];
-			if (policyPath[0] == '#')
-			{
-				policyPath.erase(0, 1);
-				m_dptfPolicyLoadNameOnly = true;
-			}
-			if (dptfPaths.size() > 2)
-			{
-				reportPath = dptfPaths[2];
-			}
+			m_dptfPolicyDirectoryPath = policyPath;
 		}
+
 		if (homePath.back() != *ESIF_PATH_SEP)
 		{
 			homePath += ESIF_PATH_SEP;
@@ -122,16 +111,7 @@ void DptfManager::createDptfManager(
 		m_dptfReportDirectoryPath = reportPath;
 		m_dptfEnabled = dptfEnabled;
 
-		// Determine Policy Path by getting this Library's Full Pathname
-		EsifLibrary dptfLib;
-		dptfLib.load();
-		policyPath = dptfLib.getLibDirectory();
-		dptfLib.unload();
-		if (!policyPath.empty())
-		{
-			m_dptfPolicyDirectoryPath = policyPath;
-		}
-
+		EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 		m_eventCache = std::make_shared<EventCache>();
 		m_userPreferredCache = std::make_shared<UserPreferredCache>();
 		m_indexContainer = new IndexContainer();
@@ -161,6 +141,7 @@ void DptfManager::createDptfManager(
 		m_policyManager->createAllPolicies(m_dptfPolicyDirectoryPath);
 
 		registerDptfFrameworkEvents();
+		m_systemModeManager->registerFrameworkEvents();
 
 		m_dptfManagerCreateFinished = true;
 
@@ -265,11 +246,6 @@ std::string DptfManager::getDptfPolicyDirectoryPath(void) const
 std::string DptfManager::getDptfReportDirectoryPath(void) const
 {
 	return m_dptfReportDirectoryPath;
-}
-
-Bool DptfManager::isDptfPolicyLoadNameOnly(void) const
-{
-	return m_dptfPolicyLoadNameOnly;
 }
 
 void DptfManager::shutDown(void)

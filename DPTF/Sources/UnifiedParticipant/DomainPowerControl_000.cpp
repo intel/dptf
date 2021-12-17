@@ -91,6 +91,15 @@ void DomainPowerControl_000::setPowerLimit(
 	throw not_implemented();
 }
 
+void DomainPowerControl_000::setPowerLimitWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throw not_implemented();
+}
+
 void DomainPowerControl_000::setPowerLimitIgnoringCaps(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -109,6 +118,15 @@ TimeSpan DomainPowerControl_000::getPowerLimitTimeWindow(
 }
 
 void DomainPowerControl_000::setPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
+	throw not_implemented();
+}
+
+void DomainPowerControl_000::setPowerLimitTimeWindowWithoutUpdatingEnabled(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	PowerControlType::Type controlType,

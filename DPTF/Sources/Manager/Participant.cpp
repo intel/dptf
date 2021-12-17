@@ -1052,6 +1052,16 @@ void Participant::setPowerLimit(
 	m_domains[domainIndex]->setPowerLimit(policyIndex, controlType, powerLimit);
 }
 
+void Participant::setPowerLimitWithoutUpdatingEnabled(
+	UIntN domainIndex,
+	UIntN policyIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setPowerLimitWithoutUpdatingEnabled(policyIndex, controlType, powerLimit);
+}
+
 void Participant::setPowerLimitIgnoringCaps(
 	UIntN domainIndex,
 	UIntN policyIndex,
@@ -1076,6 +1086,16 @@ void Participant::setPowerLimitTimeWindow(
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setPowerLimitTimeWindow(policyIndex, controlType, timeWindow);
+}
+
+void Participant::setPowerLimitTimeWindowWithoutUpdatingEnabled(
+	UIntN domainIndex,
+	UIntN policyIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setPowerLimitTimeWindowWithoutUpdatingEnabled(policyIndex, controlType, timeWindow);
 }
 
 void Participant::setPowerLimitTimeWindowIgnoringCaps(
@@ -1189,6 +1209,12 @@ Power Participant::getAveragePower(UIntN domainIndex, const PowerControlDynamicC
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getAveragePower(capabilities);
+}
+
+Power Participant::getPowerValue(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerValue();
 }
 
 void Participant::setCalculatedAveragePower(UIntN domainIndex, Power powerValue)
@@ -1445,3 +1471,10 @@ EsifServicesInterface* Participant::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
 }
+
+UInt32 Participant::getSocDgpuPerformanceHintPoints(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getSocDgpuPerformanceHintPoints();
+}
+

@@ -464,7 +464,7 @@ char *EsifData_ToStringMax(
 		case ESIF_DATA_STRING:
 		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
-			if (ptrlen < max_string + 1) {
+			if (ptrlen <= max_string + 1) {
 				esif_ccb_memcpy(result, ptrdata, ptrlen);
 			} else {
 				esif_ccb_memcpy(result, ptrdata, max_string - 2);
@@ -591,9 +591,7 @@ esif_error_t EsifData_FromString (
 		break;
 
    case ESIF_DATA_VOID:
-	   alloc   = 0;
-	   ptrdata = NULL;
-	   ptrlen  = 0;
+	   alloc   = 1;
 	   break;
 
 	case ESIF_DATA_BINARY:
@@ -623,41 +621,53 @@ esif_error_t EsifData_FromString (
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
-		rc = ESIF_OK;
+		rc = ESIF_E_COMMAND_DATA_INVALID;
 
 		// Convert Data
 		switch (type) {
 		case ESIF_DATA_INT8:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
-			*STATIC_CAST(Int8*, buffer) = (Int8)u32data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data) && u32data <= 0xff) {
+				*STATIC_CAST(Int8*, buffer) = (Int8)u32data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_INT16:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
-			*STATIC_CAST(Int16*, buffer) = (Int16)u32data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data) && u32data <= 0xffff) {
+				*STATIC_CAST(Int16*, buffer) = (Int16)u32data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_INT32:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
-			*STATIC_CAST(Int32*, buffer) = (Int32)u32data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data)) {
+				*STATIC_CAST(Int32*, buffer) = (Int32)u32data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_UINT8:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
-			*STATIC_CAST(UInt8*, buffer) = (UInt8)u32data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data) && u32data <= 0xff) {
+				*STATIC_CAST(UInt8*, buffer) = (UInt8)u32data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_UINT16:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
-			*STATIC_CAST(UInt16*, buffer) = (UInt16)u32data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data) && u32data <= 0xffff) {
+				*STATIC_CAST(UInt16*, buffer) = (UInt16)u32data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_UINT32:
 		case ESIF_DATA_POWER:
 		case ESIF_DATA_TIME:
 		case ESIF_DATA_PERCENT:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
-			*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data)) {
+				*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		/*
@@ -668,42 +678,57 @@ esif_error_t EsifData_FromString (
 		{
 			if (ISHEX(str)) {
 				u32 temp = 0;
-				esif_ccb_sscanf(str, "%x", &temp);
-				temp = (temp > MAX_TEMPERATURE ? MAX_TEMPERATURE : temp);
-				u32data = temp * 10;
+				if (esif_ccb_sscanf(str, "%x", &temp)) {
+					temp = (temp > MAX_TEMPERATURE ? MAX_TEMPERATURE : temp);
+					u32data = temp * 10;
+					rc = ESIF_OK;
+				}
 			}
 			else {
 				double temp = 0.0;
-				esif_ccb_sscanf(str,"%lf", &temp);
-				temp = (temp < MIN_TEMPERATURE ? MIN_TEMPERATURE : temp > MAX_TEMPERATURE ? MAX_TEMPERATURE : temp);
-				temp *= 10.0;
-				u32data = (UInt32)temp;
+				if (esif_ccb_sscanf(str,"%lf", &temp)) {
+					temp = (temp < MIN_TEMPERATURE ? MIN_TEMPERATURE : temp > MAX_TEMPERATURE ? MAX_TEMPERATURE : temp);
+					temp *= 10.0;
+					u32data = (UInt32)temp;
+					rc = ESIF_OK;
+				}
 			}
-			esif_convert_temp(ESIF_TEMP_DECIC, NORMALIZE_TEMP_TYPE, &u32data);
 
-			*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
+			if (rc == ESIF_OK) {
+				esif_convert_temp(ESIF_TEMP_DECIC, NORMALIZE_TEMP_TYPE, &u32data);
+				*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
+			}
 			break;
 		}
 		case ESIF_DATA_INT64:
-			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%lld"), &u64data);
-			*STATIC_CAST(Int64*, buffer) = (UInt64)u64data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%llx", "%lld"), &u64data)) {
+				*STATIC_CAST(Int64*, buffer) = (UInt64)u64data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_UINT64:
 		case ESIF_DATA_FREQUENCY:
-			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%llu"), &u64data);
-			*STATIC_CAST(UInt64*, buffer) = (UInt64)u64data;
+			if (esif_ccb_sscanf(str, IFHEX(str, "%llx", "%llu"), &u64data)) {
+				*STATIC_CAST(UInt64*, buffer) = (UInt64)u64data;
+				rc = ESIF_OK;
+			}
 			break;
 
 		case ESIF_DATA_STRING:
 		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
 			esif_ccb_memcpy(buffer, ptrdata, ptrlen);
+			rc = ESIF_OK;
+			break;
+			
+		case ESIF_DATA_VOID:
+			rc = ESIF_OK;
 			break;
 
 		case ESIF_DATA_BINARY:
 		default:
-			// TODO: Convert "0xABCD"
+			// Convert "0xABCD"
 			if (esif_ccb_strnicmp(str, "0x", 2) == 0) {
 				idx = 0;
 				if (ptrlen % 2 == 1) {	// Handle odd-length hex vaules: 0xABC 0xABCDE
@@ -719,6 +744,7 @@ esif_error_t EsifData_FromString (
 			} else {
 				esif_ccb_memcpy(buffer, ptrdata, ptrlen);
 			}
+			rc = ESIF_OK;
 			break;
 		}
 	}

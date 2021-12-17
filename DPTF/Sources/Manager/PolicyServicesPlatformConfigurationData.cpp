@@ -207,26 +207,6 @@ UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIn
 	return hwpfState;
 }
 
-UInt32 PolicyServicesPlatformConfigurationData::getSocWorkload(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-
-	const UInt32 socWorkload = getEsifServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_SOC_WORKLOAD, participantIndex, domainIndex);
-
-	return socWorkload;
-}
-
-UInt32 PolicyServicesPlatformConfigurationData::getSupportEppHint(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-
-	const UInt32 supportEppHint = getEsifServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_SUPPORT_EPP_HINT, participantIndex, domainIndex);
-
-	return supportEppHint;
-}
-
 // TODO: Move it to ConfigTDP domain control
 UInt32 PolicyServicesPlatformConfigurationData::getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex)
 {
@@ -400,6 +380,23 @@ void PolicyServicesPlatformConfigurationData::setIntelligentThermalManagementTab
 	throwIfNotWorkItemThread();
 
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Itmt);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getEnergyPerformanceOptimizerTable()
+{
+	throwIfNotWorkItemThread();
+
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Type::Epot, Constants::EmptyString)
+		.getData();
+}
+
+void PolicyServicesPlatformConfigurationData::setEnergyPerformanceOptimizerTable(DptfBuffer data)
+{
+	throwIfNotWorkItemThread();
+
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Epot);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPowerShareAlgorithmTable()
@@ -647,6 +644,18 @@ void PolicyServicesPlatformConfigurationData::resetIntelligentThermalManagementT
 	}
 }
 
+void PolicyServicesPlatformConfigurationData::resetEnergyPerformanceOptimizerTable()
+{
+	try
+	{
+		getDptfManager()->getDataManager()->deleteTableObjectKeyForNoPersist(TableObjectType::Epot);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
 void PolicyServicesPlatformConfigurationData::resetAllTables(void)
 {
 	resetActiveRelationshipTable();
@@ -657,6 +666,7 @@ void PolicyServicesPlatformConfigurationData::resetAllTables(void)
 	resetPowerShareAlgorithmTable();
 	resetPowerShareAlgorithmTable2();
 	resetIntelligentThermalManagementTable();
+	resetEnergyPerformanceOptimizerTable();
 }
 
 Bool PolicyServicesPlatformConfigurationData::getDisplayRequired(void)
@@ -679,32 +689,20 @@ void PolicyServicesPlatformConfigurationData::setPpmPackage(UInt32 value)
 {
 	throwIfNotWorkItemThread();
 
-	try
-	{
-		getEsifServices()->primitiveExecuteSetAsUInt32(
-			esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
-			value,
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			Constants::Esif::NoInstance);
-	}
-	catch (...)
-	{
-	}
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
 }
 
 void PolicyServicesPlatformConfigurationData::setPpmPackageSettings(PpmPackage::PpmParam param)
 {
 	throwIfNotWorkItemThread();
 
-	try
-	{
-		getEsifServices()->primitiveExecuteSet(
-			SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
-	}
-	catch (...)
-	{
-	}
+	getEsifServices()->primitiveExecuteSet(
+		SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
 }
 
 void PolicyServicesPlatformConfigurationData::setPowerSchemeEpp(UInt32 value)
@@ -748,19 +746,6 @@ void PolicyServicesPlatformConfigurationData::clearPpmPackageSettings()
 	}
 }
 
-UInt32 PolicyServicesPlatformConfigurationData::getAutonomousBatteryLifeManagementState()
-{
-	throwIfNotWorkItemThread();
-
-	const UInt32 autonomousBatteryLifeManagement = getEsifServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_AUTONOMOUS_BATTERY_LIFE_MANAGEMENT_STATE,
-		Constants::Esif::NoParticipant,
-		Constants::Esif::NoDomain,
-		Constants::Esif::NoInstance);
-
-	return autonomousBatteryLifeManagement;
-}
-
 TimeSpan PolicyServicesPlatformConfigurationData::getExpectedBatteryLife()
 {
 	throwIfNotWorkItemThread();
@@ -787,18 +772,12 @@ void PolicyServicesPlatformConfigurationData::setForegroundAppRatioPeriod(UInt32
 {
 	throwIfNotWorkItemThread();
 
-	try
-	{
-		getEsifServices()->primitiveExecuteSetAsUInt32(
-			esif_primitive_type::SET_FOREGROUND_APP_RATIO_PERIOD,
-			value,
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			Constants::Esif::NoInstance);
-	}
-	catch (...)
-	{
-	}
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_FOREGROUND_APP_RATIO_PERIOD,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getDdrfTable(void)
@@ -817,4 +796,43 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getAggregateDisplayInformati
 
 	return getEsifServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_AGGREGATE_DISPLAY_INFORMATION, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getTpgaTable(void)
+{
+	throwIfNotWorkItemThread();
+	
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Type::Tpga, Constants::EmptyString)
+		.getData();
+}
+
+UInt32 PolicyServicesPlatformConfigurationData::getDynamicBoostState(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+
+	const UInt32 dynamicBoostState = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_DYNAMIC_BOOST_STATE, participantIndex, domainIndex);
+
+	return dynamicBoostState;
+}
+
+void PolicyServicesPlatformConfigurationData::setDynamicBoostState(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_DYNAMIC_BOOST_STATE, value, participantIndex, domainIndex);
+}
+
+UInt32 PolicyServicesPlatformConfigurationData::getTpgPowerState(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+
+	return getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_TPG_POWER_STATE, participantIndex, domainIndex);
 }

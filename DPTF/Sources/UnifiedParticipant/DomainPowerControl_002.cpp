@@ -186,8 +186,40 @@ void DomainPowerControl_002::setPowerLimit(
 	PowerControlType::Type controlType,
 	const Power& powerLimit)
 {
+	throwIfTypeInvalidForPowerLimit(controlType);
+	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
+
+	switch (controlType)
+	{
+	case PowerControlType::PL1:
+		m_pl1Limit.set(powerLimit);
+		break;
+	case PowerControlType::PL2:
+		m_pl2Limit.set(powerLimit);
+		break;
+	case PowerControlType::PL4:
+		m_pl4Limit.set(powerLimit);
+		break;
+	default:
+		throw dptf_exception("Invalid Power Control Type.");
+	}
+
+	getParticipantServices()->primitiveExecuteSetAsPower(
+		esif_primitive_type::SET_RAPL_POWER_LIMIT,
+		powerLimit,
+		domainIndex,
+		Constants::Esif::NoPersistInstanceOffset + (UInt8)controlType);
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
+	getParticipantServices()->createEventPowerLimitChanged();
+}
+
+void DomainPowerControl_002::setPowerLimitWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
 	throwIfTypeInvalidForPowerLimit(controlType);
 	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
 
@@ -299,6 +331,15 @@ TimeSpan DomainPowerControl_002::getPowerLimitTimeWindow(
 }
 
 void DomainPowerControl_002::setPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
+	throw dptf_exception("Power Limit Time Window is not supported by " + getName() + ".");
+}
+
+void DomainPowerControl_002::setPowerLimitTimeWindowWithoutUpdatingEnabled(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	PowerControlType::Type controlType,

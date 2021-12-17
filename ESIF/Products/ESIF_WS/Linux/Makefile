@@ -86,8 +86,11 @@ else
 endif
 
 # make BUILD=Debug
+# -s flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
 	CFLAGS   += -g
+else
+	CFLAGS   += -s
 endif
 
 $(info ++++ )

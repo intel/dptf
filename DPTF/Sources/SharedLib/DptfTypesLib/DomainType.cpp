@@ -56,6 +56,7 @@ namespace DomainType
 														{WwanRfim, "WwanRfim"},
 														{IdgfxCore, "IdgfxCore"},
 														{Idgfx2, "Idgfx2"},
+														{Nvdgx, "Nvdgx"},
 														{All, "All"},
 														{Invalid, Constants::NotAvailableString}};
 
@@ -147,6 +148,8 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::IdgfxCore;
 	case ESIF_DOMAIN_TYPE_IDGFX2:
 		return DomainType::Idgfx2;
+	case ESIF_DOMAIN_TYPE_NVDGX:
+		return DomainType::Nvdgx;
 	case ESIF_DOMAIN_TYPE_ALL:
 		return DomainType::All;
 	case ESIF_DOMAIN_TYPE_INVALID:
@@ -232,6 +235,8 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_IDGFXCORE;
 	case DomainType::Idgfx2:
 		return ESIF_DOMAIN_TYPE_IDGFX2;
+	case DomainType::Nvdgx:
+		return ESIF_DOMAIN_TYPE_NVDGX;
 	case DomainType::All:
 		return ESIF_DOMAIN_TYPE_ALL;
 	case DomainType::Invalid:

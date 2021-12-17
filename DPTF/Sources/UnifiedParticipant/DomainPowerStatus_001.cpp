@@ -52,6 +52,11 @@ Power DomainPowerStatus_001::getAveragePower(
 	return averagePower;
 }
 
+Power DomainPowerStatus_001::getPowerValue(UIntN participantIndex, UIntN domainIndex)
+{
+	return getPower(domainIndex);
+}
+
 Power DomainPowerStatus_001::getPower(UIntN domainIndex)
 {
 	Power power = Power::createInvalid();

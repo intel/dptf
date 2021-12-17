@@ -35,5 +35,6 @@ public:
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainPowerStatusBase();
 
+	virtual Power getPowerValue(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue) override;
 };

@@ -999,6 +999,7 @@ static struct dsp_map_s dsp_mapping[] = {
 		{"DGFXCORE","ipf_dgcr"},
 		{"DGFXMEM",	"ipf_dgmm"},
 		{"IDG2",	"ipf_idg2"},
+		{"NVDGX",	"ipf_nvdgx"},
 		/* Deprecated */
 		{"DPTFZ",	"ipf_ietm"},
 		{"DPLY",	"ipf_disp"},
@@ -1109,7 +1110,7 @@ EsifString EsifDspMgr_SelectDsp(
 		ESIF_TRACE_DEBUG("Selected DSP: %s Score: %d of %d\n", dspNamePtr, heaviest, best);
 	}
 	else {
-		ESIF_TRACE_ERROR("No DSP selected for %s. \n", query.participantName);
+		ESIF_TRACE_WARN("No DSP selected for %s. \n", query.participantName);
 	}
 
 	return dspNamePtr;

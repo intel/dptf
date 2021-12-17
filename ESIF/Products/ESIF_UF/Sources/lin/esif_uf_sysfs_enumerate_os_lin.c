@@ -122,8 +122,15 @@ static void createParticipantsFromThermalSysfs(void)
 	esif_guid_t classGuidCpu = ESIF_PARTICIPANT_CPU_CLASS_GUID;
 	esif_guid_t *classGuidPtr = &classGuidPlat;
 
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		if (ESIF_TRUE == g_thermalZonePtr[i].bound) continue;
+	if ( g_thermalZonePtr == NULL ) {
+		ESIF_TRACE_WARN("No ThermalZone detected");
+		return;
+	}
+
+	for (i = 0 ; i < g_zone_count ; i++ ) {
+		if (ESIF_TRUE == g_thermalZonePtr[i].bound) {
+			continue;
+		}
 		for (j = 0; j < sizeof(partInfo) / sizeof(struct participantInfo); j++) {
 			if (0 == esif_ccb_stricmp(g_thermalZonePtr[i].acpiCode, partInfo[j].sysfsType)) {
 				// Found a matching sysfs thermal zone/cooling device
@@ -311,7 +318,7 @@ static int scanPCI(void)
 						}
 						char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
 						/* map to thermal zone (try pkg thermal zone first)*/
-						for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
+						for (thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
 							thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
 							if (esif_ccb_strcmp(tz.acpiCode, ACPI_name)==0) {
 								// Re-initialize the device path to one of the thermal zones
@@ -507,7 +514,7 @@ exit_zone:
 	}
 	closedir(dir);
 
-	g_zone_count = thermal_counter;
+	g_zone_count = thermal_counter ? thermal_counter + 1 : 0 ;
 
 	return 0;
 }
@@ -517,7 +524,7 @@ static Bool match_thermal_zone(const char *matchToName, char *participant_path)
 	int thermal_counter = 0;
 	Bool thermalZoneFound = ESIF_FALSE;
 
-	for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
+	for (thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
 		thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
 		if (esif_ccb_strcmp(tz.acpiCode, matchToName)==0) {
 			thermalZoneFound = ESIF_TRUE;

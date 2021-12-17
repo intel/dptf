@@ -31,6 +31,7 @@ private:
 	DptfRequestResult handleSetOsc(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetApplicationAliveResponse(const PolicyRequest& request);
 	DptfRequestResult handleSetSystemMode(const PolicyRequest& request);
+	DptfRequestResult handleAppBroadcastSend(const PolicyRequest& request);
 
 	void executeOsc(const Guid& guid, UInt32 oscCapabilities);
 	EsifServicesInterface* getEsifServices();

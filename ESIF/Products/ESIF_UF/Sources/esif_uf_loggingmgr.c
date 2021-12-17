@@ -2488,7 +2488,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			}
 			else {
-				esif_ccb_sprintf_concat(dataLength, logString, " %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,",
+				esif_ccb_sprintf_concat(dataLength, logString, " %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,%u,",
 					capabilityPtr->data.managerStatus.osPowerSource,
 					capabilityPtr->data.managerStatus.batteryPercent,
 					capabilityPtr->data.managerStatus.dockMode,
@@ -2507,7 +2507,8 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 					capabilityPtr->data.managerStatus.mixedRealityMode,
 					capabilityPtr->data.managerStatus.platformUserPresence,
 					capabilityPtr->data.managerStatus.foregroundBackgroundRatio,
-					capabilityPtr->data.managerStatus.ppmPackage
+					capabilityPtr->data.managerStatus.ppmPackage,
+					capabilityPtr->data.managerStatus.collaboration
 				);
 			}
 			break;
@@ -2947,6 +2948,14 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			ESIF_TRACE_INFO("Failed to retrieve foreground background ratio event cache data \n");
 		}
 		dataNodePtr->capabilityData.data.managerStatus.foregroundBackgroundRatio = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_COLLABORATION_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve collaboration event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.collaboration = eventData;
+
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:

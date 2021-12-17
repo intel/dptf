@@ -110,7 +110,7 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define MAX_FILE_DECODED_LEN (((MAX_BASE64_ENCODED_LEN / 4) + 3) * 3) // ~33MB
 #define MAX_FILE_ENCODED_LEN ((MAX_FILE_DECODED_LEN * 5) + (((MAX_FILE_DECODED_LEN / 16) + 1) * 2)) // ~169MB
 #define MIN_PARAMETERS_FOR_GET_PRIMITIVE 2
-#define MIN_PARAMETERS_FOR_SET_PRIMITIVE 5
+#define MIN_PARAMETERS_FOR_SET_PRIMITIVE 4
 #define MIN_PARAMETERS_FOR_APP_STATUS 2
 
 /* Participant Creation Defaults */
@@ -3548,8 +3548,9 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 	nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, ESIF_DSP_NAMESPACE, 0, ESIFAUTOLEN);
 	key       = EsifData_CreateAs(ESIF_DATA_STRING, edp_name, 0, ESIFAUTOLEN);
 	value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+	output = shell->outbuf = esif_shell_resize(OUT_BUF_LEN_DEFAULT * 2);
 
-	if (nameSpace == NULL || key == NULL || value == NULL) {
+	if (nameSpace == NULL || key == NULL || value == NULL || output == NULL) {
 		goto exit;
 	}
 	esif_build_path(edp_full_path, sizeof(edp_full_path), ESIF_PATHTYPE_DSP, edp_name, NULL);
@@ -5323,16 +5324,14 @@ static char *esif_shell_cmd_paths(EsifShellCmdPtr shell)
 {
 	char *output = shell->outbuf;
 	char targetFilePath[MAX_PATH] = { 0 };
+	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_HOME, NULL, 0);
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "AppHome path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DV, NULL, 0);
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "Datavault path:\n %s \n\n", targetFilePath);
-	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DPTF, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "DPTF path:\n %s \n\n", targetFilePath);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Datavault path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DLL, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Policy path:\n %s \n\n", targetFilePath);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Library path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DLL_ALT, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Alternate Policy path:\n %s \n\n", targetFilePath);
-	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DATA, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Combined.xsl path:\n %s \n\n", targetFilePath);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Alternate Library path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DATA, NULL, 0);
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "DATA path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DSP, NULL, 0);
@@ -5859,9 +5858,12 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
+
+	if (opt < argc) {
+		dataStr = argv[opt++];
+	}
 	/* Read from a File in BIN directory for setp_bf */
-	dataStr = argv[opt++];
-	if (esif_ccb_strnicmp(suffix, "_b", 2) == 0) {
+	if (dataStr && esif_ccb_strnicmp(suffix, "_b", 2) == 0) {
 		char full_path[MAX_PATH] = { 0 };
 		char *filename = dataStr;
 		int errnum = 0;
@@ -5916,25 +5918,24 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
-	if (primitiveDataType != ESIF_DATA_VOID) {
-		if (NULL == dataPtr->buf_ptr) {
-			goto exit;
-		}
-		/*
-		 * We make a copy of the data for the request because the data can get
-		 * transformed which will result in nonsense values being displayed after
-		 * the primitive is executed
-		 */
-		request.buf_len = dataPtr->buf_len;
-		request.data_len = dataPtr->data_len;
-		request.type = dataPtr->type;
-		request.buf_ptr = esif_ccb_malloc(request.buf_len);
-		if (NULL == request.buf_ptr) {
-			rc = ESIF_E_NO_MEMORY;
-			goto exit;
-		}
-		esif_ccb_memcpy(request.buf_ptr, dataPtr->buf_ptr, request.buf_len);
+	if (NULL == dataPtr->buf_ptr) {
+		goto exit;
 	}
+
+	/*
+	* We make a copy of the data for the request because the data can get
+	* transformed which will result in nonsense values being displayed after
+	* the primitive is executed
+	*/
+	request.buf_len = dataPtr->buf_len;
+	request.data_len = dataPtr->data_len;
+	request.type = dataPtr->type;
+	request.buf_ptr = esif_ccb_malloc(request.buf_len);
+	if (NULL == request.buf_ptr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	esif_ccb_memcpy(request.buf_ptr, dataPtr->buf_ptr, request.buf_len);
 
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s ", esif_primitive_str((enum esif_primitive_type)id));
@@ -8463,7 +8464,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"config open   <@datavault|repo.bin>         Open and Load a DataVault or Repository\n"
 		"config close  <@datavault> [...]            Close DataVault(s)\n"
 		"config drop   <@datavault|repo.bin> [...]   Drop Closed DataVault\n"
-		"config get    [@datavault] [<keyspec>]      Get DataVault Key (or wildcard)\n"
+		"config get    [@datavault] [<keyspec>] [<SHA|SHA1|-|KEYS>] [<maxkey>] [<maxdata>]\n"
+		"                                            Get DataVault Key (or wildcard)\n"
 		"config set    [@datavault] <key> <value> [type] [option ...]\n"
 		"                                            Set DataVault Key/Value/Type\n"
 		"config keys   [@datavault] [<keyspec>]      Enumerate matching Key(s) or wildcard\n"
@@ -8555,14 +8557,15 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"                                        Capability Mask Details:\n"
 		);
 	for (capabilityid = 0; capabilityid < MAX_CAPABILITY_MASK; capabilityid++) {
+		size_t prefix_len = sizeof("ESIF_CAPABILITY_TYPE");
 		if (!esif_ccb_stricmp(esif_capability_type_str(capabilityid), ESIF_NOT_AVAILABLE)) {
 			break;
 		}
-		else if (esif_ccb_strlen(esif_capability_type_str(capabilityid), MAX_PATH) > sizeof("ESIF_CAPABILITY_TYPE")) {
+		else if (esif_ccb_strlen(esif_capability_type_str(capabilityid), prefix_len) >= prefix_len) {
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 		"                                        0x%08X -  %s\n",
 			(1 << capabilityid),
-			esif_capability_type_str(capabilityid) + sizeof("ESIF_CAPABILITY_TYPE")
+			esif_capability_type_str(capabilityid) + prefix_len
 			);
 		}
 	}
@@ -9105,16 +9108,28 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 
 		CMD_OUT("\n");
 	}
-	// config get [@datavault] [<keyspec>] [type]
+	// config get [@datavault] [<keyspec>] [SHA|SHA1|-|KEYS] [<maxkey>] [<maxlen>]
 	else if (esif_ccb_stricmp(subcmd, "get")==0) {
 		char *keyspec = (argc > opt ? argv[opt++] : "*");
 		char *type = (argc > opt ? argv[opt++] : NULL);
-		char *maxlen = (argc > opt ? argv[opt++] : NULL);
-		if (type != NULL && maxlen == NULL && (isdigit(*type) || *type == '-')) {
-			maxlen = type;
+		char *maxkey = (argc > opt ? argv[opt++] : NULL); // 0=default -1=unlimited <len>=width
+		char *maxlen = (argc > opt ? argv[opt++] : NULL); // 0=default -1=unlimited <len>=width
+		Bool iswildcard = (esif_ccb_strpbrk(keyspec, "*?") != NULL);
+		if (type != NULL && (isdigit(*type) || *type == '-')) {
+			maxlen = (iswildcard ? maxkey : type);
+			maxkey = type;
 			type = NULL;
 		}
-		UInt32 max_string = (maxlen ? esif_atoi(maxlen) : 0);
+		else if (!iswildcard || esif_ccb_stricmp((type ? type : ""), "KEYS") == 0 || esif_ccb_stricmp((type ? type : ""), "STRING") == 0) {
+			maxkey = (maxkey ? maxkey : "-1");
+			maxlen = (maxlen ? maxlen : maxkey);
+		}
+		char key_label[] = "Key";
+		char data_label[] = "Value";
+		const UInt32 default_key = 40;
+		const UInt32 default_len = 64;
+		UInt32 max_key = (maxkey && esif_atoi(maxkey) ? esif_atoi(maxkey) : default_key);
+		UInt32 max_string = (maxlen && esif_atoi(maxlen) ? esif_atoi(maxlen) : default_len);
 
 		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
 		data_key    = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
@@ -9122,19 +9137,28 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		if (data_nspace==NULL || data_key==NULL || data_value==NULL) 
 			goto exit;
 
-		// Enumerate matching keys if keyspec contains "*" or "?" [unless STRING output type specified]
-		if (esif_ccb_strpbrk(keyspec, "*?") != NULL && esif_ccb_stricmp((type ? type : ""), "STRING") != 0) {
+		// Enumerate matching keys if keyspec contains "*" or "?" [unless KEYS output type specified]
+		if (iswildcard && esif_ccb_stricmp((type ? type : ""), "KEYS") != 0 && esif_ccb_stricmp((type ? type : ""), "STRING") != 0) {
 			EsifConfigFindContext context = NULL;
 			Bool display_hash = ESIF_FALSE;
+			size_t dashlen = esif_ccb_max((max_key == (UInt32)(-1) ? sizeof(key_label) - 1: max_key), (max_string == (UInt32)(-1) ? sizeof(data_label) - 1 : max_string)) + 1;
+			char *dashbuf = esif_ccb_malloc(dashlen);
+			if (!dashbuf) {
+				goto exit;
+			}
+			esif_ccb_memset(dashbuf, '-', dashlen - 1);
 
 			if (type && esif_ccb_strnicmp(type, "SHA", 3) == 0) {
 				display_hash = ESIF_TRUE;
-				max_string = SHA256_STRING_BYTES;
+				max_string = (type[3] == '1' ? SHA1_STRING_BYTES : SHA256_STRING_BYTES) - 1;
 			}
 			if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
-				CMD_OUT("\nType          Length Flags    Key                                      %s\n"
-					"----------- -------- -------- ---------------------------------------- ----------------------------------------------------------------\n",
-					(display_hash ? "Hash": "Value")
+				CMD_OUT("\nType          Length Flags    %-*.*s %s\n"
+					"----------- -------- -------- %-.*s %.*s\n",
+					max_key, max_key, key_label,
+					(display_hash ? "Hash": data_label),
+					(max_key == (UInt32)(-1) ? sizeof(key_label) - 1 : max_key), dashbuf,
+					(max_string == (UInt32)(-1) ? sizeof(data_label) - 1 : max_string), dashbuf
 				);
 				do {
 					esif_flags_t flags = 0;
@@ -9163,7 +9187,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 							}
 						}
 						else {
-							valuestr = EsifData_ToStringMax(data_value, (max_string ? max_string : 64));
+							valuestr = EsifData_ToStringMax(data_value, max_string);
 							valuelen = esif_ccb_strlen(valuestr, MAX_STRINGLEN) + 1;
 							for (j = 0; valuestr && j < valuelen && valuestr[j]; j++) {
 								if (valuestr[j] == '\r' && valuestr[j + 1] == '\n') {
@@ -9176,11 +9200,13 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 						}
 
 						config_flags_str_t flagstr = config_flags_str(flags);
-						CMD_DEBUG("%-11s %8d %-8.8s %-40.40s %.*s\n"
+						CMD_DEBUG("%-11s %8d %-8.8s %-*.*s %.*s\n"
 							,
 							ltrim(esif_data_type_str(data_value->type), PREFIX_DATA_TYPE),
 							data_value->data_len,
 							(StringPtr)&flagstr,
+							(max_key > 0 ? (max_key == (UInt32)(-1) ? 1 : max_key) : default_key),
+							(max_key > 0 ? max_key : default_key),
 							(char*)data_key->buf_ptr,
 							(valuelen - 1),
 							(valuestr ? valuestr : "")
@@ -9197,6 +9223,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 				if (rc == ESIF_E_ITERATION_DONE)
 					rc = ESIF_OK;
 			}
+			esif_ccb_free(dashbuf);
 		}
 		// Otherwise get the key/value pair [or key list if STRING output type]
 		else {
@@ -9204,7 +9231,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 				// Convert ESIF Data Type to viewable String
 				char *keyvalue = EsifData_ToStringMax(data_value, max_string);
 				if (keyvalue) {
-					if (type && esif_ccb_stricmp(type, "STRING") != 0) {
+					if (type && esif_ccb_stricmp(type, "KEYS") != 0 && esif_ccb_stricmp(type, "STRING") != 0) {
 						switch (data_value->type) {
 						case ESIF_DATA_JSON:
 						{

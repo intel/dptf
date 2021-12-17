@@ -42,6 +42,11 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const Power& powerLimit) = 0;
+	virtual void setPowerLimitWithoutUpdatingEnabled(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit) = 0;
 	virtual void setPowerLimitIgnoringCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -53,6 +58,11 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType) = 0;
 	virtual void setPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow) = 0;
+	virtual void setPowerLimitTimeWindowWithoutUpdatingEnabled(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		PowerControlType::Type controlType,

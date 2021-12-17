@@ -21,6 +21,9 @@
 #include "PolicyManagerInterface.h"
 #include "DataVaultPath.h"
 #include "StringConverter.h"
+#include "WorkItem.h"
+#include "WorkItemQueueManagerInterface.h"
+#include "WIPolicyTableObjectChanged.h"
 using namespace TableObjectType;
 using namespace std;
 
@@ -126,14 +129,22 @@ void DataManager::deleteTableObject(TableObjectType::Type tableType, string uuid
 	if (uuid.empty())
 	{
 		elementPath = StringParser::replaceAll(elementPath, "/UUID", Constants::EmptyString);
+		deleteTableObjectKeyForNoPersist(tableType);
 	}
 	else
 	{
 		elementPath = StringParser::replaceAll(elementPath, "UUID", StringConverter::toLower(uuid));
 	}
 
-	m_dptfManager->getEsifServices()->deleteConfigurationBinary(nameSpace, elementPath);
-	sendTableChangedEvent(tableType, uuid);
+	try
+	{
+		m_dptfManager->getEsifServices()->deleteConfigurationBinary(nameSpace, elementPath);
+		sendTableChangedEvent(tableType, uuid);
+	}
+	catch (const dptf_exception& )
+	{
+		// nothing to do
+	}
 }
 
 void DataManager::deleteAllTableObject(TableObjectType::Type tableType, string uuid)
@@ -289,40 +300,8 @@ map<TableObjectType::Type, TableObject> DataManager::getTableObjectMap()
 
 void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, string uuid)
 {
-	auto policyManager = m_dptfManager->getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
-	{
-		try
-		{
-			auto policy = policyManager->getPolicyPtr(*i);
-			if (policy->getDynamicPolicyUuidString() != StringConverter::toLower(uuid))
-			{
-				continue;
-			}
-
-			switch (tableObjectType)
-			{
-			case TableObjectType::Apat:
-				policy->executePolicyAdaptivePerformanceActionsTableChanged();
-				break;
-			case TableObjectType::Apct:
-				policy->executePolicyAdaptivePerformanceConditionsTableChanged();
-				break;
-			case TableObjectType::Ddrf:
-				policy->executePolicyDdrfTableChanged();
-				break;
-			case TableObjectType::Itmt:
-				policy->executePolicyIntelligentThermalManagementTableChanged();
-				break;
-			default:
-				break;
-			}
-		}
-		catch (...)
-		{
-		}
-	}
+	std::shared_ptr<WorkItem> wi = std::make_shared<WIPolicyTableObjectChanged>(m_dptfManager, tableObjectType, uuid);
+	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 
 void DataManager::loadTableRevisions()
@@ -332,6 +311,8 @@ void DataManager::loadTableRevisions()
 	m_tableRevisions.insert({TableObjectType::Dynamic_Idsp, 1});
 	m_tableRevisions.insert({TableObjectType::Ddrf, 1});
 	m_tableRevisions.insert({TableObjectType::Itmt, 1});
+	m_tableRevisions.insert({TableObjectType::Epot, 1});
+	m_tableRevisions.insert({TableObjectType::Tpga, 1});
 }
 
 void DataManager::loadTableObjectMap()
@@ -438,5 +419,30 @@ void DataManager::loadTableObjectMap()
 		  {{DataVaultType::Override, noPersistPath},
 		   {DataVaultType::Override, dataVaultString},
 		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
+
+	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Epot);
+	noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Epot);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+	m_tableObjectMap.insert(
+		{TableObjectType::Epot,
+		 {TableObjectType::Epot,
+		  {{"fld1", "fld1", ESIF_DATA_STRING},
+		   {"fld2", "fld2", ESIF_DATA_STRING},
+		   {"fld3", "fld3", ESIF_DATA_UINT64},
+		   {"fld4", "fld4", ESIF_DATA_UINT64}},
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
+
+	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Tpga);
+	m_tableObjectMap.insert(
+		{TableObjectType::Tpga,
+		 {TableObjectType::Tpga,
+		  {{"fld1", "fld1", ESIF_DATA_STRING},
+		   {"fld2", "fld2", ESIF_DATA_UINT64}, 
+		   {"fld3", "fld3", ESIF_DATA_UINT64}},
+		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
 		  {{DataVaultType::Override, dataVaultString}}}});
 }

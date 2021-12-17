@@ -30,6 +30,11 @@ DomainPowerStatusBase::~DomainPowerStatusBase()
 {
 }
 
+Power DomainPowerStatusBase::getPowerValue(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 void DomainPowerStatusBase::setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue)
 {
 	throw not_implemented();

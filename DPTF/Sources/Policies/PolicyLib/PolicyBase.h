@@ -100,6 +100,7 @@ public:
 	virtual void onAdaptivePerformanceConditionsTableChanged(void);
 	virtual void onAdaptivePerformanceActionsTableChanged(void);
 	virtual void onDdrfTableChanged(void);
+	virtual void onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData);
 	virtual void onConnectedStandbyEntry(void);
 	virtual void onConnectedStandbyExit(void);
 	virtual void onSuspend(void);
@@ -122,6 +123,7 @@ public:
 	virtual void onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider);
 	virtual void onSystemModeChanged(SystemMode::Type systemMode);
 	virtual void onCoolingModePolicyChanged(CoolingMode::Type coolingMode);
+	virtual void onTpgaTableChanged(void);
 	virtual void onPassiveTableChanged(void);
 	virtual void onSensorOrientationChanged(SensorOrientation::Type sensorOrientation);
 	virtual void onSensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
@@ -142,10 +144,13 @@ public:
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
 	virtual void onPowerShareAlgorithmTable2Changed(void);
 	virtual void onIntelligentThermalManagementTableChanged(void);
+	virtual void onEnergyPerformanceOptimizerTableChanged(void);
 	virtual void onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
 	virtual void onForegroundRatioChanged(UIntN ratio);
+	virtual void onCollaborationChanged(OnOffToggle::Type collaborationstate);
+	virtual void onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff);
 
 	// Implementation of the Policy Interface
 	virtual void create(
@@ -207,6 +212,8 @@ public:
 	virtual void ddrfTableChanged(void) override final;
 	virtual void adaptivePerformanceActionsTableChanged(void) override final;
 	virtual void connectedStandbyEntry(void) override final;
+	virtual void igccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override final;
 	virtual void connectedStandbyExit(void) override final;
 	virtual void suspend(void) override final;
 	virtual void resume(void) override final;
@@ -231,6 +238,7 @@ public:
 	virtual void systemModeChanged(SystemMode::Type powerSlider) override final;
 	virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) override final;
 	virtual void passiveTableChanged(void) override final;
+	virtual void tpgaTableChanged(void) override final;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) override final;
 	virtual void sensorSpatialOrientationChanged(
 		SensorSpatialOrientation::Type sensorSpatialOrientation) override final;
@@ -245,6 +253,7 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) override final;
 	virtual void powerShareAlgorithmTableChanged(void) override final;
 	virtual void intelligentThermalManagementTableChanged(void) override final;
+	virtual void energyPerformanceOptimizerTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) override final;
 	virtual void workloadHintConfigurationChanged(void) override final;
@@ -254,8 +263,8 @@ public:
 	virtual void externalMonitorStateChanged(Bool externalMonitorState) override final;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
 	virtual void foregroundRatioChanged(UIntN ratio) override final;
-
-	virtual void sendPolicyOscRequest() override final;
+	virtual void collaborationChanged(OnOffToggle::Type collaborationstate) override final;
+	virtual void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);

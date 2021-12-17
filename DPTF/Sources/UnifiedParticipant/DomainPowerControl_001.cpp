@@ -90,9 +90,9 @@ PowerControlDynamicCapsSet DomainPowerControl_001::getDynamicCapabilities()
 {
 	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES, ESIF_DATA_BINARY, getDomainIndex());
-	
+
 	auto pl4PowerLimit = Power::createInvalid();
-	try 
+	try
 	{
 		pl4PowerLimit = getPowerLimit(getParticipantIndex(), getDomainIndex(), PowerControlType::PL4);
 	}
@@ -180,16 +180,34 @@ void DomainPowerControl_001::setPowerLimit(
 	PowerControlType::Type controlType,
 	const Power& powerLimit)
 {
-	setAndUpdateEnabled(controlType);
-	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForPowerLimit(controlType);
 	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
 	getParticipantServices()->primitiveExecuteSetAsPower(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
 	PARTICIPANT_LOG_MESSAGE_DEBUG({
 		std::stringstream message;
-		message << "Successfully set RAPL Power Limit of control type " << PowerControlType::ToString(controlType) << " to "
-				<< std::to_string(powerLimit);
+		message << "Successfully set RAPL Power Limit of control type " << PowerControlType::ToString(controlType)
+				<< " to " << std::to_string(powerLimit);
+		return message.str();
+	});
+	setAndUpdateEnabled(controlType);
+	throwIfLimitNotEnabled(controlType);
+}
+
+void DomainPowerControl_001::setPowerLimitWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfTypeInvalidForPowerLimit(controlType);
+	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
+	getParticipantServices()->primitiveExecuteSetAsPower(
+		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
+	PARTICIPANT_LOG_MESSAGE_DEBUG({
+		std::stringstream message;
+		message << "Successfully set RAPL Power Limit of control type " << PowerControlType::ToString(controlType)
+				<< " to " << std::to_string(powerLimit);
 		return message.str();
 	});
 }
@@ -200,11 +218,11 @@ void DomainPowerControl_001::setPowerLimitIgnoringCaps(
 	PowerControlType::Type controlType,
 	const Power& powerLimit)
 {
-	setAndUpdateEnabled(controlType);
-	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForPowerLimit(controlType);
 	getParticipantServices()->primitiveExecuteSetAsPower(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
+	setAndUpdateEnabled(controlType);
+	throwIfLimitNotEnabled(controlType);
 }
 
 TimeSpan DomainPowerControl_001::getPowerLimitTimeWindow(
@@ -224,12 +242,12 @@ void DomainPowerControl_001::setPowerLimitTimeWindow(
 	PowerControlType::Type controlType,
 	const TimeSpan& timeWindow)
 {
-	setAndUpdateEnabled(controlType);
-	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForTimeWindow(controlType);
 	throwIfTimeWindowIsOutsideCapabilityRange(controlType, timeWindow);
 	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
+	setAndUpdateEnabled(controlType);
+	throwIfLimitNotEnabled(controlType);
 }
 
 void DomainPowerControl_001::setPowerLimitTimeWindowIgnoringCaps(
@@ -238,9 +256,21 @@ void DomainPowerControl_001::setPowerLimitTimeWindowIgnoringCaps(
 	PowerControlType::Type controlType,
 	const TimeSpan& timeWindow)
 {
+	throwIfTypeInvalidForTimeWindow(controlType);
+	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
+}
+
+void DomainPowerControl_001::setPowerLimitTimeWindowWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
 	throwIfTypeInvalidForTimeWindow(controlType);
+	throwIfTimeWindowIsOutsideCapabilityRange(controlType, timeWindow);
 	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
 }
@@ -262,12 +292,12 @@ void DomainPowerControl_001::setPowerLimitDutyCycle(
 	PowerControlType::Type controlType,
 	const Percentage& dutyCycle)
 {
-	setAndUpdateEnabled(controlType);
-	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForDutyCycle(controlType);
 	throwIfDutyCycleIsOutsideCapabilityRange(controlType, dutyCycle);
 	getParticipantServices()->primitiveExecuteSetAsPercentage(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, (UInt8)controlType);
+	setAndUpdateEnabled(controlType);
+	throwIfLimitNotEnabled(controlType);
 }
 
 void DomainPowerControl_001::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
@@ -737,8 +767,8 @@ void DomainPowerControl_001::setPowerSharePolicyPower(
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({
 			std::stringstream message;
-			message << "Failed to set Power Share Policy Power for participant index = " + std::to_string(participantIndex) 
-				+ "and domain Index = " + std::to_string(domainIndex);
+			message << "Failed to set Power Share Policy Power for participant index = "
+						   + std::to_string(participantIndex) + "and domain Index = " + std::to_string(domainIndex);
 			return message.str();
 		});
 	}

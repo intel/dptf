@@ -98,7 +98,6 @@ UInt64 DomainRfProfileStatus_001::getDvfsPoints(UIntN participantIndex, UIntN do
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get DVFS Data Rate Info. "; });
 	}
-
 	return numberOfDvfsPoints;
 }
 

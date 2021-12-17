@@ -29,6 +29,29 @@
 * Kernel/User Agnostic
 */
 
+#if defined(__GNUC__) && (__GNUC__ >= 11)
+#if defined(__STDC_LIB_EXT1__)
+#define esif_ccb_strnlen(str, siz)	strnlen_s(str, siz)
+#else
+/* Compiler-Safe strnlen that only checks within given buffer length and allows NULL strings */
+static ESIF_INLINE size_t esif_ccb_strnlen(
+	const char *str,
+	size_t siz
+)
+{
+	size_t len = 0;
+	if (str) {
+		while (len < siz && str[len]) {
+			len++;
+		}
+	}
+	return len;
+}
+#endif
+#else
+#define esif_ccb_strnlen(str, siz)	strnlen(str, siz)
+#endif
+
 /* Safe strcpy that always null terminates target and truncates src if necessary */
 static ESIF_INLINE char *esif_ccb_strcpy(
 	char *dst,
@@ -37,7 +60,7 @@ static ESIF_INLINE char *esif_ccb_strcpy(
 	)
 {
 	if (siz) {
-		size_t len = strnlen(src, siz);
+		size_t len = esif_ccb_strnlen(src, siz);
 		if (len >= siz) {
 			len = siz - 1;
 		}
@@ -55,7 +78,7 @@ static ESIF_INLINE char *esif_ccb_strcat(
 	)
 {
 	if (siz) {
-		size_t len = strnlen(dst, siz);
+		size_t len = esif_ccb_strnlen(dst, siz);
 		if (len >= siz) {
 			dst[siz - 1] = 0;
 		}
@@ -72,7 +95,7 @@ static ESIF_INLINE size_t esif_ccb_strlen(
 	size_t siz
 	)
 {
-	return (str ? strnlen(str, siz) : 0);
+	return (str ? esif_ccb_strnlen(str, siz) : 0);
 }
 
 /* Return sprintf result string length not including null terminator, possibly truncated */

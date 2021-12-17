@@ -37,6 +37,7 @@ public:
 
 	PowerStatus getStatus();
 	Power getAveragePower(const PowerControlDynamicCaps& capabilities);
+	Power getPowerValue();
 	virtual Bool supportsProperty() override;
 
 protected:

@@ -54,9 +54,11 @@ void PolicyBase::create(
 	try
 	{
 		onCreate();
+		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), true);
 	}
 	catch (...)
 	{
+		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), false);
 		m_enabled = false;
 		throw;
 	}
@@ -563,6 +565,13 @@ void PolicyBase::ddrfTableChanged(void)
 	onDdrfTableChanged();
 }
 
+void PolicyBase::tpgaTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": TPGA Table changed."; });
+	onTpgaTableChanged();
+}
+
 void PolicyBase::adaptivePerformanceActionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -579,6 +588,14 @@ void PolicyBase::intelligentThermalManagementTableChanged(void)
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Intelligent Thermal Management Table changed."; });
 	onIntelligentThermalManagementTableChanged();
 }
+
+void PolicyBase::energyPerformanceOptimizerTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Energy Performance Optimizer Table changed."; });
+	onEnergyPerformanceOptimizerTableChanged();
+}
+
 void PolicyBase::pidAlgorithmTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -625,6 +642,13 @@ Bool PolicyBase::hasActiveControlCapability() const
 Bool PolicyBase::hasPassiveControlCapability() const
 {
 	return false;
+}
+
+void PolicyBase::igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy resume event received."; });
+	onIgccBroadcastReceived(broadcastNotificationData);
 }
 
 Bool PolicyBase::hasCriticalShutdownCapability() const
@@ -965,6 +989,23 @@ void PolicyBase::foregroundRatioChanged(UIntN ratio)
 	onForegroundRatioChanged(ratio);
 }
 
+void PolicyBase::collaborationChanged(OnOffToggle::Type collaborationstate) 
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Collaboration changed to " + to_string(collaborationstate) + "."; });
+	onCollaborationChanged(collaborationstate);
+}
+
+void PolicyBase::thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
+{
+	throwIfPolicyIsDisabled();
+
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": NV Power State changed to [" + StatusFormat::friendlyValue(tpgPowerStateOff) + "]";
+	});
+	onThirdPartyGraphicsPowerStateChanged(tpgPowerStateOff);
+}
+
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 {
 	throw not_implemented();
@@ -1165,6 +1206,16 @@ void PolicyBase::onDdrfTableChanged(void)
 	throw not_implemented();
 }
 
+void PolicyBase::onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onTpgaTableChanged(void)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onConnectedStandbyEntry(void)
 {
 	throw not_implemented();
@@ -1355,6 +1406,11 @@ void PolicyBase::onPowerShareAlgorithmTable2Changed(void)
 	throw not_implemented();
 }
 
+void PolicyBase::onEnergyPerformanceOptimizerTableChanged(void)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onPowerLimitChanged(void)
 {
 	throw not_implemented();
@@ -1381,6 +1437,11 @@ void PolicyBase::onUserInteractionChanged(UserInteraction::Type userInteraction)
 }
 
 void PolicyBase::onForegroundRatioChanged(UIntN ratio)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onCollaborationChanged(OnOffToggle::Type collaborationstate)
 {
 	throw not_implemented();
 }
@@ -1420,18 +1481,6 @@ void PolicyBase::throwIfPolicyIsDisabled()
 	if (m_enabled == false)
 	{
 		throw dptf_exception("The policy has been disabled.");
-	}
-}
-
-void PolicyBase::sendPolicyOscRequest()
-{
-	if (m_enabled)
-	{
-		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), true);
-	}
-	else
-	{
-		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), false);
 	}
 }
 
@@ -1516,6 +1565,11 @@ void PolicyBase::operatingSystemGameModeChanged(OnOffToggle::Type gameMode)
 }
 
 void PolicyBase::onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
 {
 	throw not_implemented();
 }

@@ -96,6 +96,18 @@ void PolicyServicesDomainPowerControl::setPowerLimit(
 		->setPowerLimit(domainIndex, getPolicyIndex(), controlType, powerLimit);
 }
 
+void PolicyServicesDomainPowerControl::setPowerLimitWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitWithoutUpdatingEnabled(domainIndex, getPolicyIndex(), controlType, powerLimit);
+}
+
 void PolicyServicesDomainPowerControl::setPowerLimitIgnoringCaps(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -129,6 +141,18 @@ void PolicyServicesDomainPowerControl::setPowerLimitTimeWindow(
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->setPowerLimitTimeWindow(domainIndex, getPolicyIndex(), controlType, timeWindow);
+}
+
+void PolicyServicesDomainPowerControl::setPowerLimitTimeWindowWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitTimeWindowWithoutUpdatingEnabled(domainIndex, getPolicyIndex(), controlType, timeWindow);
 }
 
 void PolicyServicesDomainPowerControl::setPowerLimitTimeWindowIgnoringCaps(

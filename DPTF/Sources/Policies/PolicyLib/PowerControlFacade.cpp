@@ -213,6 +213,25 @@ void PowerControlFacade::setPL2PowerLimitControlToMax()
 void PowerControlFacade::setPowerLimitPL1(const Power& powerLimit)
 {
 	throwIfControlNotSupported();
+
+	Int64 pl1Tau = 0;
+	try
+	{
+		pl1Tau = getPowerLimitTimeWindowPL1().asMicroseconds();
+
+		const auto& capsSet = getCapabilities();
+		if (pl1Tau == 0 && capsSet.hasCapability(PowerControlType::PL1))
+		{
+			const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+			m_policyServices.domainPowerControl->setPowerLimitTimeWindowWithoutUpdatingEnabled(
+				m_participantIndex, m_domainIndex, PowerControlType::PL1, caps.getMaxTimeWindow());
+			m_lastSetTimeWindow[PowerControlType::PL1] = caps.getMaxTimeWindow();
+		}
+	}
+	catch (...)
+	{
+	}
+
 	m_policyServices.domainPowerControl->setPowerLimit(
 		m_participantIndex, m_domainIndex, PowerControlType::PL1, powerLimit);
 	m_lastSetPowerLimit[PowerControlType::PL1] = powerLimit;
@@ -251,6 +270,25 @@ void PowerControlFacade::setPowerLimitPL4(const Power& powerLimit)
 void PowerControlFacade::setPowerLimitTimeWindowPL1(const TimeSpan& timeWindow)
 {
 	throwIfControlNotSupported();
+
+	Int64 pl1 = 0;
+	try
+	{
+		pl1 = getPowerLimitPL1().toInt32();
+
+		const auto& capsSet = getCapabilities();
+		if (pl1 == 0 && capsSet.hasCapability(PowerControlType::PL1))
+		{
+			const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+			m_policyServices.domainPowerControl->setPowerLimitWithoutUpdatingEnabled(
+				m_participantIndex, m_domainIndex, PowerControlType::PL1, caps.getMaxPowerLimit());
+			m_lastSetPowerLimit[PowerControlType::PL1] = caps.getMaxPowerLimit();
+		}
+	}
+	catch (...)
+	{
+	}
+
 	m_policyServices.domainPowerControl->setPowerLimitTimeWindow(
 		m_participantIndex, m_domainIndex, PowerControlType::PL1, timeWindow);
 	m_lastSetTimeWindow[PowerControlType::PL1] = timeWindow;

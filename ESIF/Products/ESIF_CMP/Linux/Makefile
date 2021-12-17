@@ -83,15 +83,16 @@ else
 	endif
 	ifeq ($(PLAT), x86)
 		CFLAGS += -m32
-		ifeq ($(CC), gcc)
-			CFLAGS += -msse2
-		endif
+		CFLAGS += -msse2
 	endif
 endif
 
 # make BUILD=Debug
+# -s flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
 	CFLAGS   += -g
+else
+	CFLAGS   += -s
 endif
 
 $(info ++++ )

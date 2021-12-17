@@ -125,6 +125,7 @@ public:
 	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
 		override;
+	virtual UInt32 getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex) override; 
 
 	// Core Controls
 	virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
@@ -200,6 +201,11 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const Power& powerLimit) override;
+	virtual void setPowerLimitWithoutUpdatingEnabled(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit) override;
 	virtual void setPowerLimitIgnoringCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -210,6 +216,11 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType) override;
 	virtual void setPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow) override;
+	virtual void setPowerLimitTimeWindowWithoutUpdatingEnabled(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
@@ -260,6 +271,7 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const PowerControlDynamicCaps& capabilities) override;
+	virtual Power getPowerValue(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue) override;
 
 	// System Power Controls

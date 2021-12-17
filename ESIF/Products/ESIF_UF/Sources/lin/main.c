@@ -92,12 +92,6 @@ static struct iovec msg_buf;
 static int sock_fd;
 static struct msghdr msg;
 
-
-#ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
-	#include <readline/readline.h>
-	#include <readline/history.h>
-#endif
-
 #ifdef ESIF_FEAT_OPT_DBUS
 #include <dbus/dbus.h>
 esif_thread_t g_dbus_thread;
@@ -130,41 +124,38 @@ static char *g_psy_val[TOTAL_PSY_PROPERTIES];
 
 // Default ESIF Paths for each OS
 // Paths preceded by "$" are treated as system paths and are not auto-created or checked for symbolic links
-// Paths preceded by "#" indicate that the full path is not specified when loading .so libraries with dlopen()
 static const esif_string ESIF_PATHLIST =
 #if defined(ESIF_ATTR_OS_ANDROID)
 	// Android
-	"HOME=/vendor/etc/dptf\n"
+	"HOME=/data/vendor/dptf/log\n"
 	"TEMP=/data/vendor/dptf/tmp\n"
 	"DV=/vendor/etc/dptf/dv\n"
 	"LOG=/data/vendor/dptf/log\n"
 	"BIN=/vendor/etc/dptf/bin\n"
 	"LOCK=/data/vendor/dptf/lock\n"
-	"EXE=$#/vendor/bin\n"
-	"DLL=$#/vendor/lib" ARCHBITS "\n"
+	"EXE=$/vendor/bin\n"
+	"DLL=$/vendor/lib" ARCHBITS "\n"
 	"DLLALT=$#/vendor/lib" ARCHBITS "\n"
-	"DPTF=/vendor/etc/dptf/bin\n"
 	"DSP=/vendor/etc/dptf/dsp\n"
 	"CMD=/vendor/etc/dptf/cmd\n"
 	"DATA=/vendor/etc/dptf/ui\n"
 #elif defined(ESIF_ATTR_OS_CHROME)
 	// Chromium
-	"HOME=/usr/share/dptf\n"
+	"HOME=/var/log/dptf\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
 	"LOCK=$/var/run\n"
-	"EXE=$#/usr/bin\n"
-	"DLL=$#/usr/lib" ARCHBITS "\n"
-	"DLLALT=$#/usr/lib" ARCHBITS "\n"
-	"DPTF=/usr/share/dptf\n"
+	"EXE=$/usr/bin\n"
+	"DLL=$/usr/lib" ARCHBITS "\n"
+	"DLLALT=$/usr/lib" ARCHBITS "\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
 	"DATA=/usr/share/dptf/ui\n"
 #else
 	// Generic Linux
-	"HOME=/usr/share/dptf\n"
+	"HOME=/usr/share/dptf/log\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/usr/share/dptf/log\n"
@@ -173,7 +164,6 @@ static const esif_string ESIF_PATHLIST =
 	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLL=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLLALT=/usr/share/dptf/uf" ARCHNAME "\n"
-	"DPTF=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DSP=/usr/share/dptf/dsp\n"
 	"CMD=/usr/share/dptf/cmd\n"
 	"DATA=/usr/share/dptf/ui\n"
@@ -410,8 +400,8 @@ static int check_for_uevent(int fd) {
 	int len;
 	const char dev_path[] = "DEVPATH=";
 	unsigned int dev_path_len = sizeof(dev_path) - 1;
-	char buffer[MAX_PAYLOAD + 1];
-	char thermal_path[MAX_PAYLOAD + 1];
+	char buffer[MAX_PAYLOAD + 1] = {0};
+	char thermal_path[MAX_PAYLOAD + 1] = {0};
 	char *buf_ptr;
 	char *zone_name;
 	int temp;
@@ -481,7 +471,7 @@ static int check_for_uevent(int fd) {
 				char *parsed = NULL;
 				char *ctx = NULL;
 
-				esif_ccb_strncpy(thermal_path, buf_ptr + dev_path_len, MAX_PAYLOAD);
+				esif_ccb_strcpy(thermal_path, buf_ptr + dev_path_len, sizeof(thermal_path));
 				parsed = esif_ccb_strtok(thermal_path, "/", &ctx);
 				while (parsed != NULL) {
 					esif_ccb_strcpy(g_udev_target,parsed,MAX_PAYLOAD);
@@ -1591,35 +1581,6 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		EsifAppMgr_GetPrompt(&data_prompt);
 		prompt = (esif_string)data_prompt.buf_ptr;
 
-#ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
-		// Read from Input File
-		if (input != stdin) {
-			if (esif_ccb_fgets(line, MAX_LINE, input) == NULL) {
-				input = stdin;
-				if (quit_after_command) {
-					g_quit = 1;
-					continue;
-				}
-			}
-		}
-		if (input == stdin) {
-			// Use Readline With History
-			esif_ccb_sprintf(sizeof(full_prompt), full_prompt, "%s ", prompt);
-			CMD_LOGFILE("%s ", prompt);
-			ptr = readline(full_prompt);
-
-			// Skip command and wait for graceful shutdown if readline returns NULL due to SIGTERM
-			if (NULL == ptr)
-				continue;
-
-			// Add To History NO NUL's
-			if (ptr[0] != 0) {
-					add_history(ptr);
-			}
-			esif_ccb_strcpy(line, ptr, sizeof(line));
-			free(ptr);
-		}
-#else
 		// No History So Sorry
 		CMD_OUT("%s ", prompt);
 		if (esif_ccb_fgets(line, MAX_LINE, input) == NULL) {
@@ -1635,7 +1596,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 				}
 				ptr++;
 		}
-#endif
+
 		CMD_LOGFILE("%s\n", line);
 		esif_shell_execute(line);
 	}

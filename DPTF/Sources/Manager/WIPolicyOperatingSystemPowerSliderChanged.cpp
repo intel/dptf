@@ -40,11 +40,12 @@ void WIPolicyOperatingSystemPowerSliderChanged::onExecute(void)
 	auto policyManager = getPolicyManager();
 	auto policyIndexes = policyManager->getPolicyIndexes();
 
+	getDptfManager()->getEventCache()->powerSlider.set(m_powerSlider);
+
 	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->powerSlider.set(m_powerSlider);
 			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemPowerSliderChanged(m_powerSlider);
 		}

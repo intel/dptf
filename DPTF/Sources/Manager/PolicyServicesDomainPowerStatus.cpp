@@ -39,6 +39,12 @@ Power PolicyServicesDomainPowerStatus::getAveragePower(
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getAveragePower(domainIndex, capabilities);
 }
 
+Power PolicyServicesDomainPowerStatus::getPowerValue(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerValue(domainIndex);
+}
+
 void PolicyServicesDomainPowerStatus::setCalculatedAveragePower(
 	UIntN participantIndex,
 	UIntN domainIndex,

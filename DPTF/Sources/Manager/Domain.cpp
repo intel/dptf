@@ -716,6 +716,36 @@ void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType
 	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, powerLimit);
 }
 
+void Domain::setPowerLimitWithoutUpdatingEnabled(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
+{
+	PowerControlArbitrator* powerControlArbitrator = m_arbitrator->getPowerControlArbitrator();
+	Bool shouldSetPowerLimit = false;
+	Power newPowerLimit;
+
+	if (powerControlArbitrator->hasArbitratedPowerLimit(controlType))
+	{
+		auto currentPowerLimit = powerControlArbitrator->getArbitratedPowerLimit(controlType);
+		newPowerLimit = powerControlArbitrator->arbitrate(policyIndex, controlType, powerLimit);
+		if (currentPowerLimit != newPowerLimit)
+		{
+			shouldSetPowerLimit = true;
+		}
+	}
+	else
+	{
+		shouldSetPowerLimit = true;
+		newPowerLimit = powerControlArbitrator->arbitrate(policyIndex, controlType, powerLimit);
+	}
+
+	if (shouldSetPowerLimit)
+	{
+		m_theRealParticipant->setPowerLimitWithoutUpdatingEnabled(
+			m_participantIndex, m_domainIndex, controlType, newPowerLimit);
+		clearDomainCachedDataPowerControl();
+	}
+	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, powerLimit);
+}
+
 void Domain::setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
 {
 	m_theRealParticipant->setPowerLimitIgnoringCaps(m_participantIndex, m_domainIndex, controlType, powerLimit);
@@ -756,6 +786,38 @@ void Domain::setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type c
 	if (shouldSetTimeWindow)
 	{
 		m_theRealParticipant->setPowerLimitTimeWindow(m_participantIndex, m_domainIndex, controlType, newTimeWindow);
+		clearDomainCachedDataPowerControl();
+	}
+	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, timeWindow);
+}
+
+void Domain::setPowerLimitTimeWindowWithoutUpdatingEnabled(
+	UIntN policyIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
+	PowerControlArbitrator* powerControlArbitrator = m_arbitrator->getPowerControlArbitrator();
+	Bool shouldSetTimeWindow = false;
+	TimeSpan newTimeWindow;
+
+	if (powerControlArbitrator->hasArbitratedTimeWindow(controlType))
+	{
+		auto currentTimeWindow = powerControlArbitrator->getArbitratedTimeWindow(controlType);
+		newTimeWindow = powerControlArbitrator->arbitrate(policyIndex, controlType, timeWindow);
+		if (currentTimeWindow != newTimeWindow)
+		{
+			shouldSetTimeWindow = true;
+		}
+	}
+	else
+	{
+		shouldSetTimeWindow = true;
+		newTimeWindow = powerControlArbitrator->arbitrate(policyIndex, controlType, timeWindow);
+	}
+
+	if (shouldSetTimeWindow)
+	{
+		m_theRealParticipant->setPowerLimitTimeWindowWithoutUpdatingEnabled(m_participantIndex, m_domainIndex, controlType, newTimeWindow);
 		clearDomainCachedDataPowerControl();
 	}
 	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, timeWindow);
@@ -915,6 +977,11 @@ PowerStatus Domain::getPowerStatus(void)
 Power Domain::getAveragePower(const PowerControlDynamicCaps& capabilities)
 {
 	return m_theRealParticipant->getAveragePower(m_participantIndex, m_domainIndex, capabilities);
+}
+
+Power Domain::getPowerValue(void)
+{
+	return m_theRealParticipant->getPowerValue(m_participantIndex, m_domainIndex);
 }
 
 void Domain::setCalculatedAveragePower(Power powerValue)
@@ -1255,4 +1322,9 @@ void Domain::clearDomainCachedDataSystemPowerControl()
 	m_systemPowerLimit.clear();
 	m_systemPowerLimitTimeWindow.clear();
 	m_systemPowerLimitDutyCycle.clear();
+}
+
+UInt32 Domain::getSocDgpuPerformanceHintPoints(void)
+{
+	return m_theRealParticipant->getSocDgpuPerformanceHintPoints(m_participantIndex, m_domainIndex);
 }

@@ -1105,7 +1105,7 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_BATTERY);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SOCWC);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_HWPF);
-	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SYSMAN);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_NVAPI);
 
 	EsifActConfigInit();
 	EsifActConstInit();

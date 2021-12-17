@@ -25,7 +25,6 @@ namespace DataVaultPathBasePaths
 	static const std::string FeaturesRoot = "/features";
 	static const std::string SharedRoot = "/shared";
 	static const std::string TablesRoot = SharedRoot + "/tables";
-	static const std::string ValuesRoot = SharedRoot + "/values";
 	static const std::string ExportRoot = SharedRoot + "/export";
 	static const std::string AUPPControlsRoot = SharedRoot + "/aupp_controls";
 }
@@ -45,13 +44,14 @@ namespace DataVaultPath
 			static const std::string GfxPl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/gfx_ps_pl1_time_window/";
 			static const std::string PowerShareParamsLoggingState =
 				DataVaultPathBasePaths::ExportRoot + "/powershare_params_logging/";
-
-			static const std::string PredictiveBattDelayStart =
-				DataVaultPathBasePaths::ExportRoot + "/pred_batt_delay_start";
-			static const std::string PredictiveBattFastCheckInterval =
-				DataVaultPathBasePaths::ExportRoot + "/pred_batt_fast_chk_intrvl";
-			static const std::string PredictiveBattEporStepSize =
-				DataVaultPathBasePaths::ExportRoot + "/pred_batt_epor_step_size";
+			static const std::string TpgLowerGfxUtilThreshold =
+				DataVaultPathBasePaths::ExportRoot + "/tpg_lower_gfx_util_threshold/";
+			static const std::string TpgEwmaGfxUtilThreshold =
+				DataVaultPathBasePaths::ExportRoot + "/tpg_ewma_gfx_util_threshold/";
+			static const std::string TpgSlowpollPeriod =
+				DataVaultPathBasePaths::ExportRoot + "/tpg_slowpoll_period/";
+			static const std::string TpgDefaultPollPeriod =
+				DataVaultPathBasePaths::ExportRoot + "/tpg_default_poll_period/";
 			static const std::string Above2cTimeConstraintStepsize =
 				DataVaultPathBasePaths::ExportRoot + "/above_2c_time_constraint_stepsize";
 		};
@@ -66,15 +66,14 @@ namespace DataVaultPath
 			static const std::string Acpr = DataVaultPathBasePaths::TablesRoot + "/acpr/";
 			static const std::string Psh2 = DataVaultPathBasePaths::TablesRoot + "/psh2/";
 			static const std::string Itmt = DataVaultPathBasePaths::TablesRoot + "/itmt/";
+			static const std::string Epot = DataVaultPathBasePaths::TablesRoot + "/epot/";
 		};
 	};
 
 	namespace Features
 	{
 		static const std::string Hwpf = DataVaultPathBasePaths::FeaturesRoot + "/hwpf";
-		static const std::string SocWorkload = DataVaultPathBasePaths::FeaturesRoot + "/soc_workload";
-		static const std::string Pl2Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_sharing";
-		static const std::string Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl4_sharing";
-		static const std::string Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
+		static const std::string PowerShare2Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
+		static const std::string Psh2GfxPerfHintDisabled = DataVaultPathBasePaths::FeaturesRoot + "/psh2_gfx_perf_hint_disabled";
 	};
 };

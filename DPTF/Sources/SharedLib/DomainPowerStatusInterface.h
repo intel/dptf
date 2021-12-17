@@ -32,5 +32,6 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const PowerControlDynamicCaps& capabilities) = 0;
+	virtual Power getPowerValue(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue) = 0;
 };

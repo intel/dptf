@@ -56,6 +56,19 @@ vector<string> StringParser::split(const string& input, char delimiter)
 	return strings;
 }
 
+std::string StringParser::join(std::vector<std::string> strings, char delimiter)
+{
+	std::string retString = "";
+	retString.push_back(delimiter);
+	for (std::vector<std::string>::iterator string = strings.begin(); string != strings.end(); ++string)
+	{
+		retString += *string;
+		retString.push_back(delimiter);
+	}
+
+	return retString;
+}
+
 std::string StringParser::removeString(const std::string& input, const std::string& substring)
 {
 	string inputCopy = input;

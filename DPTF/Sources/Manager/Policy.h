@@ -60,6 +60,8 @@ public:
 
 	// Event handlers
 
+	virtual void executeIgccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void executeConnectedStandbyEntry(void) = 0;
 	virtual void executeConnectedStandbyExit(void) = 0;
 	virtual void executeSuspend(void) = 0;
@@ -119,6 +121,7 @@ public:
 	virtual void executePolicyAdaptivePerformanceConditionsTableChanged(void) = 0;
 	virtual void executePolicyAdaptivePerformanceActionsTableChanged(void) = 0;
 	virtual void executePolicyDdrfTableChanged(void) = 0;
+	virtual void executePolicyTpgaTableChanged(void) = 0;
 	virtual void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
 	virtual void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
 	virtual void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage) = 0;
@@ -155,10 +158,13 @@ public:
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
 	virtual void executePolicyPowerShareAlgorithmTable2Changed(void) = 0;
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) = 0;
+	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) = 0;
 	virtual void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) = 0;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) = 0;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) = 0;
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) = 0;
+	virtual void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) = 0;
+	virtual void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) = 0;
 };
 
 class dptf_export Policy : public IPolicy
@@ -196,7 +202,8 @@ public:
 	virtual std::string getDynamicPolicyUuidString(void) const override;
 
 	// Event handlers
-
+	virtual void executeIgccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
 	virtual void executeConnectedStandbyEntry(void) override;
 	virtual void executeConnectedStandbyExit(void) override;
 	virtual void executeSuspend(void) override;
@@ -256,6 +263,7 @@ public:
 	virtual void executePolicyAdaptivePerformanceConditionsTableChanged(void) override;
 	virtual void executePolicyAdaptivePerformanceActionsTableChanged() override;
 	virtual void executePolicyDdrfTableChanged(void) override;
+	virtual void executePolicyTpgaTableChanged(void) override;
 	virtual void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override;
 	virtual void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) override;
 	virtual void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override;
@@ -287,6 +295,7 @@ public:
 	virtual void executePolicyActiveControlPointRelationshipTableChanged(void) override;
 	virtual void executePolicyPowerShareAlgorithmTableChanged(void) override;
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) override;
+	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) override;
 	virtual void executePowerLimitChanged(void) override;
 	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) override;
@@ -296,6 +305,8 @@ public:
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) override;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) override;
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) override;
+	virtual void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) override;
+	virtual void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override;
 
 private:
 	// hide the copy constructor and assignment operator.

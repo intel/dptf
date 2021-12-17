@@ -54,7 +54,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 // Alternate Configuration for DTT UI
 #define		WS_APP_LEGACYNAME	WS_LIBRARY_NAME	// Legacy AppName
 #define		WS_APP_ALTNAME		"dptfui"	// Alternate AppName
-#define		WS_APP_ALTDESC		"Intel(R) Innovation Platform Framework Web Server"	// Alternate AppDesc
+#define		WS_APP_ALTDESC		"Intel(R) Dynamic Tuning Technology Web Server"	// Alternate AppDesc
 #define		WS_APP_ALTVERSION	"9.0." EXPAND_TOSTR(VER_HOTFIX.VER_BUILD) // Alternate AppVersion
 #define		WS_APP_ALTPORT		8888		// Alternate Port if AppName (Loadable Library) is ALTNAME
 
@@ -307,7 +307,7 @@ static esif_error_t EsifWs_LoadString(EsifDataPtr response, const char *buf_ptr)
 	const size_t max_string = 4096;
 
 	if (response && buf_ptr) {
-		u32 buf_len = (u32)esif_ccb_strlen(buf_ptr, max_string) + 1;
+		u32 buf_len = (u32)esif_ccb_strnlen(buf_ptr, max_string) + 1;
 		if (response->type != ESIF_DATA_STRING) {
 			rc = ESIF_E_INVALID_REQUEST_TYPE;
 		}
@@ -476,22 +476,21 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 			// Convert DPTF Path to UI Document Root Path, except for IPF Clients
 			if (rc == ESIF_OK) {
 				if (!self->config.docRoot[0]) {
-					esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
-				}
-				char *sep = esif_ccb_strchr(self->config.docRoot, '|');
-				if (sep) {
-					*sep = 0;
-					// Convert Linux /xxx/xxx/dptf or /xxx/xxx/dptf/xxx to /xxx/xxx/dptf/ui
-					if (self->config.docRoot[0] == '/') {
-						sep = esif_ccb_strrchr(self->config.docRoot, '/');
+					// Use OS-Specific UI Document Root Path instead of fPathHome when running In-Process
+					#if defined(ESIF_ATTR_OS_ANDROID)
+						esif_ccb_strcpy(self->config.docRoot, "/vendor/etc/dptf/ui", sizeof(self->config.docRoot));
+					#elif defined(ESIF_ATTR_OS_CHROME) 
+						esif_ccb_strcpy(self->config.docRoot, "/usr/share/dptf/ui", sizeof(self->config.docRoot));
+					#elif defined(ESIF_ATTR_OS_LINUX)
+						esif_ccb_strcpy(self->config.docRoot, "/usr/share/dptf/ui", sizeof(self->config.docRoot));
+					#elif defined(ESIF_ATTR_OS_WINDOWS)
+						esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
+						char *sep = esif_ccb_strrchr(self->config.docRoot, *ESIF_PATH_SEP);
 						if (sep) {
-							if (esif_ccb_stricmp(sep + 1, "dptf") != 0) {
-								*sep = 0;
-							}
-							esif_ccb_strcat(self->config.docRoot, "/ui", sizeof(self->config.docRoot));
+							sep[1] = 0;
+							esif_ccb_strcat(self->config.docRoot, "ui", sizeof(self->config.docRoot));
 						}
-					}
-					// No conversion needed for Windows
+					#endif
 				}
 
 				// Set Trace Level
@@ -523,6 +522,40 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 					}
 				}
 #endif
+
+				// If in-process using legacy appname, lookup and use last known URL. Do Not Fail AppCreate on Error
+				if (!self->config.isClient && esif_ccb_stricmp(self->config.appName, WS_APP_LEGACYNAME) == 0 && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+					char cmd[MAX_PATH] = {0};
+					char result_buf[MAX_PATH] = {0};
+					esif_ccb_sprintf(sizeof(cmd), cmd, "config get @%s url", self->config.appName);
+					EsifData request  = { ESIF_DATA_STRING };
+					EsifData result = { ESIF_DATA_STRING };
+					request.buf_ptr = cmd;
+					request.buf_len = request.data_len = (u32)esif_ccb_strlen(cmd, sizeof(cmd)) + 1;
+					result.buf_ptr = result_buf;
+					result.buf_len = sizeof(result_buf);
+
+					// Send command to ESIF_UF Command Shell
+					esif_error_t urlrc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
+						self->esifHandle,
+						1,
+						&request,
+						&result
+					);
+
+					// If successful response, parse last known URL and set server config parameters
+					char prefix[] = "http://";
+					if (urlrc == ESIF_OK && esif_ccb_strncmp(result_buf, prefix, sizeof(prefix) - 1) == 0) {
+						char *sep = esif_ccb_strchr(result_buf + sizeof(prefix) - 1, ':');
+						if (sep) {
+							*sep++ = 0;
+							self->config.port = (UInt16)atoi(sep);
+						}
+						esif_ccb_strcpy(self->config.ipAddr, result_buf + sizeof(prefix) - 1, sizeof(self->config.ipAddr));
+					}
+				}
+
+				// Start Server
 				esif_error_t startrc = WebServer_Config(
 					server,
 					0,
@@ -689,6 +722,32 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 				esif_ccb_strcpy(self->config.ipAddr, ip, sizeof(self->config.ipAddr));
 				self->config.port = port;
 				self->config.flags = flags;
+
+				// If in-process using legacy appname, save current URL
+				if (!self->config.isClient && esif_ccb_stricmp(self->config.appName, WS_APP_LEGACYNAME) == 0 && (self->config.ipAddr[0] || self->config.port) && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+					char cmd[MAX_PATH] = {0};
+					char result_buf[MAX_PATH] = {0};
+					esif_ccb_sprintf(sizeof(cmd), cmd,
+						"config set @%s url http://%s:%hu nopersist", 
+						self->config.appName,
+						(self->config.ipAddr[0] ? self->config.ipAddr : WS_DEFAULT_IPADDR),
+						(self->config.port ? self->config.port : WS_DEFAULT_PORT)
+					);
+					EsifData request  = { ESIF_DATA_STRING };
+					EsifData result = { ESIF_DATA_STRING };
+					request.buf_ptr = cmd;
+					request.buf_len = request.data_len = (u32)esif_ccb_strlen(cmd, sizeof(cmd)) + 1;
+					result.buf_ptr = result_buf;
+					result.buf_len = sizeof(result_buf);
+
+					// Send command to ESIF_UF Command Shell. Ignore Result.
+					self->ifaceSet.esifIface.fSendCommandFuncPtr(
+						self->esifHandle,
+						1,
+						&request,
+						&result
+					);
+				}
 
 				// Configure Listener
 				rc = WebServer_Config(

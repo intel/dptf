@@ -64,6 +64,7 @@ static EsifEventCacheEntry g_CachedEvents[] = {
 	{ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED,	{0}},
 	{ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED,		{0}},
 	{ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED,{0}},
+	{ESIF_EVENT_COLLABORATION_CHANGED,              {0}},
 };
 
 #define ESIF_EVENT_CACHE_NUM_ENTRIES (sizeof(g_CachedEvents) / sizeof(*g_CachedEvents))

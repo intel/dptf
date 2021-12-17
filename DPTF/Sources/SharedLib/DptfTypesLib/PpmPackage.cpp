@@ -19,6 +19,7 @@
 #include "PpmPackage.h"
 #include "StringConverter.h"
 #include "StringParser.h"
+#include "string.h"
 
 namespace PpmPackage
 {
@@ -75,28 +76,33 @@ namespace PpmPackage
 	PpmPackage::Type fromString(const std::string package)
 	{
 		const std::string packageName = StringConverter::toUpper(package);
-
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P1)))
+		std::string packageString = StringConverter::toUpper(toString(PpmPackage::P1));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P1;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P2)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P2));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P2;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P3)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P3));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P3;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P4)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P4));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P4;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P5)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P5));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P5;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P6)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P6));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P6;
 		}
@@ -131,30 +137,5 @@ namespace PpmPackage
 			return PpmPackage::P6;
 		}
 		throw dptf_exception("PPM Package input value is invalid");
-	}
-
-	std::string toStringBasedOnOS(PpmPackage::Type package, OsPowerSource::Type osPowerSource)
-	{
-		if (osPowerSource == OsPowerSource::AC)
-		{
-			switch (package)
-			{
-			case PpmPackage::P1:
-				return toString(PpmPackage::P1AC);
-			case PpmPackage::P2:
-				return toString(PpmPackage::P2AC);
-			case PpmPackage::P3:
-				return toString(PpmPackage::P3AC);
-			case PpmPackage::P4:
-				return toString(PpmPackage::P4AC);
-			case PpmPackage::P5:
-				return toString(PpmPackage::P5AC);
-			case PpmPackage::P6:
-				return toString(PpmPackage::P6AC);
-			default:
-				return Constants::InvalidString;
-			}
-		}
-		return toString(package);
 	}
 }

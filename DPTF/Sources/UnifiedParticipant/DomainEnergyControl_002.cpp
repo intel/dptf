@@ -42,22 +42,7 @@ UInt32 DomainEnergyControl_002::getRaplEnergyCounter(UIntN participantIndex, UIn
 
 EnergyCounterInfo DomainEnergyControl_002::getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex)
 {
-	try
-	{
-		DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_RAPL_ENERGY_COUNTER_INFO, ESIF_DATA_BINARY, domainIndex);
-
-		TimeSpan timestamp = EsifTime().getTimeStamp();
-
-		return EnergyCounterInfo::getEnergyCounterInfoFromBuffer(buffer, timestamp.asMicroseconds());
-	}
-	catch (...)
-	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to get Core Activity Info. ";
-			});
-		return EnergyCounterInfo();
-	}
+	throw not_implemented();
 }
 
 double DomainEnergyControl_002::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
@@ -133,52 +118,7 @@ void DomainEnergyControl_002::setEnergyThresholdInterruptDisable(UIntN participa
 
 void DomainEnergyControl_002::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-	try
-	{
-		if (isActivityLoggingEnabled() == true)
-		{
-			EsifCapabilityData capability;
-			capability.type = ESIF_CAPABILITY_TYPE_ENERGY_CONTROL;
-			capability.size = sizeof(capability);
-
-			try
-			{
-				DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
-					esif_primitive_type::GET_RAPL_ENERGY_COUNTER_INFO, ESIF_DATA_BINARY, domainIndex);
-				UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-				struct esif_data_energy_counter_info* currentRow = reinterpret_cast<struct esif_data_energy_counter_info*>(data);
-
-				capability.data.energyControl.energyCounter = static_cast<UInt32>(currentRow->energyCount.integer.value);
-				capability.data.energyControl.instantaneousPower = 0;
-			}
-			catch (dptf_exception& ex)
-			{
-				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
-
-				capability.data.energyControl.energyCounter = 0;
-				capability.data.energyControl.instantaneousPower = 0;
-			}
-
-			getParticipantServices()->sendDptfEvent(
-				ParticipantEvent::DptfParticipantControlAction,
-				domainIndex,
-				Capability::getEsifDataFromCapabilityData(&capability));
-
-			PARTICIPANT_LOG_MESSAGE_INFO({
-				std::stringstream message;
-				message << "Published activity for participant " << getParticipantIndex() << ", "
-						<< "domain " << getName() << " "
-						<< "("
-						<< "Energy Control"
-						<< ")";
-				return message.str();
-			});
-		}
-	}
-	catch (...)
-	{
-		// skip if there are any issue in sending log data
-	}
+	throw not_implemented();
 }
 
 void DomainEnergyControl_002::onClearCachedData(void)

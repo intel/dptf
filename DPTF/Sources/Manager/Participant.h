@@ -125,7 +125,7 @@ public:
 	void domainFanCapabilityChanged(void);
 	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification);
 	void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint);
-
+	
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
 	//
@@ -139,6 +139,7 @@ public:
 	UInt32 getTimestampCounterWidth(UIntN domainIndex);
 	CoreActivityInfo getCoreActivityInfo(UIntN domainIndex);
 	void setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias);
+	UInt32 getSocDgpuPerformanceHintPoints(UIntN domainIndex);
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(UIntN domainIndex);
@@ -203,6 +204,11 @@ public:
 		UIntN policyIndex,
 		PowerControlType::Type controlType,
 		const Power& powerLimit);
+	void setPowerLimitWithoutUpdatingEnabled(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit);
 	void setPowerLimitIgnoringCaps(
 		UIntN domainIndex,
 		UIntN policyIndex,
@@ -210,6 +216,11 @@ public:
 		const Power& powerLimit);
 	TimeSpan getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType);
 	void setPowerLimitTimeWindow(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow);
+	void setPowerLimitTimeWindowWithoutUpdatingEnabled(
 		UIntN domainIndex,
 		UIntN policyIndex,
 		PowerControlType::Type controlType,
@@ -242,6 +253,7 @@ public:
 	// Power status
 	PowerStatus getPowerStatus(UIntN domainIndex);
 	Power getAveragePower(UIntN domainIndex, const PowerControlDynamicCaps& capabilities);
+	Power getPowerValue(UIntN domainIndex);
 	void setCalculatedAveragePower(UIntN domainIndex, Power powerValue);
 
 	// System Power Controls

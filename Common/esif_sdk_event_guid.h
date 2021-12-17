@@ -1017,20 +1017,47 @@
 	0x95, 0xF1, 0x86, 0x9D, 0xEA, 0xD3, 0x4A, 0x1D }
 
 /*
- * Event Name:  WINDOWS_MODERN_STANDBY_ENTRY
+ * Event Name:  WINDOWS_LOW_POWER_MODE_ENTRY
  * Event GUID:  3E754B59-0924-4E00-9C4C-CDB2E8B9D489
- * Event Desc:  Windows Modern Standby Entry
+ * Event Desc:  Windows Low Power Mode Entry
  */
-#define WINDOWS_MODERN_STANDBY_ENTRY { \
+#define WINDOWS_LOW_POWER_MODE_ENTRY { \
 	0x3E, 0x75, 0x4B, 0x59, 0x09, 0x24, 0x4E, 0x00, \
 	0x9C, 0x4C, 0xCD, 0xB2, 0xE8, 0xB9, 0xD4, 0x89 }
 
 /*
- * Event Name:  WINDOWS_MODERN_STANDBY_EXIT
+ * Event Name:  WINDOWS_LOW_POWER_MODE_EXIT
  * Event GUID:  58389C6D-3A12-4803-8467-7BDDA61077BD
- * Event Desc:  Windows Modern Standby Exit
+ * Event Desc:  Windows Low Power Mode Exit
  */
-#define WINDOWS_MODERN_STANDBY_EXIT { \
+#define WINDOWS_LOW_POWER_MODE_EXIT { \
 	0x58, 0x38, 0x9C, 0x6D, 0x3A, 0x12, 0x48, 0x03, \
 	0x84, 0x67, 0x7B, 0xDD, 0xA6, 0x10, 0x77, 0xBD }
+
+/*
+ * Event Name:  APP_BROADCAST_UNPRIVILEGED
+ * Event GUID:  905CFF02-CB49-4ACA-93B7-7CE4BD39449D
+ * Event Desc:  App Broadcast Unprivileged
+ */
+#define APP_BROADCAST_UNPRIVILEGED { \
+	0x90, 0x5C, 0xFF, 0x02, 0xCB, 0x49, 0x4A, 0xCA, \
+	0x93, 0xB7, 0x7C, 0xE4, 0xBD, 0x39, 0x44, 0x9D }
+
+/*
+ * Event Name:  TPG_POWER_STATE_CHANGED
+ * Event GUID:  D5905D12-7885-4460-98AB-CF364A7EBC44
+ * Event Desc:  TPG Power State Changed
+ */
+#define TPG_POWER_STATE_CHANGED { \
+	0xD5, 0x90, 0x5D, 0x12, 0x78, 0x85, 0x44, 0x60, \
+	0x98, 0xAB, 0xCF, 0x36, 0x4A, 0x7E, 0xBC, 0x44 }
+
+/*
+ * Event Name:  COLLABORATION_CHANGED
+ * Event GUID:  F9BAC2C6-FAF0-4EF8-92CA-40379FB22257
+ * Event Desc:  Collaboration Changed
+ */
+#define COLLABORATION_CHANGED { \
+	0xF9, 0xBA, 0xC2, 0xC6, 0xFA, 0xF0, 0x4E, 0xF8, \
+	0x92, 0xCA, 0x40, 0x37, 0x9F, 0xB2, 0x22, 0x57 }
 

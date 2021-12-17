@@ -27,7 +27,8 @@ namespace SystemMode
 		Performance = 0,
 		Balanced = 1,
 		Quiet = 2,
-		Invalid = 3
+		EnduranceGaming = 3,
+		Invalid = 4
 	};
 
 	std::string toString(SystemMode::Type systemMode);

@@ -30,6 +30,8 @@ namespace OsPowerSource
 			return "DC";
 		case ShortTermDC:
 			return "Short Term DC";
+		case Invalid:
+			return "Invalid";
 		default:
 			throw dptf_exception("OsPowerSource::Type is invalid");
 		}

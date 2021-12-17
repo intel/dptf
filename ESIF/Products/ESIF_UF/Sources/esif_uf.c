@@ -566,7 +566,6 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 		{ "EXE",	ESIF_PATHTYPE_EXE },
 		{ "DLL",	ESIF_PATHTYPE_DLL },
 		{ "DLLALT",	ESIF_PATHTYPE_DLL_ALT },
-		{ "DPTF",	ESIF_PATHTYPE_DPTF },
 		{ "DSP",	ESIF_PATHTYPE_DSP },
 		{ "CMD",	ESIF_PATHTYPE_CMD },
 		{ "DATA",	ESIF_PATHTYPE_DATA  },
@@ -687,13 +686,6 @@ esif_string esif_build_path(
 		if (*pathname == '$') {
 			pathname++;
 			autocreate = ESIF_FALSE;
-		}
-		// Do not return full path in result string if it starts with a "#" unless no filename specified
-		if (*pathname == '#') {
-			if (filename == NULL && ext == NULL)
-				pathname++;
-			else
-				pathname = "";
 		}
 		esif_ccb_strcpy(buffer, pathname, buf_len);
 	}
@@ -948,6 +940,16 @@ static eEsifError esif_uf_exec_startup_primitives(void)
 
 	// Execute CNFG Delegate to load all DPTF Configuration data
 	rc = EsifUp_ExecutePrimitive(upPtr, &tuple, &requestData, &responseData);
+
+	// Delete any NOPERSIST data from override.dv or GDDV that may have been erroneously persisted
+	if (rc == ESIF_OK) {
+		char dvname[] = "override";
+		char keyname[] = "/nopersist/*";
+		EsifData namespace = { ESIF_DATA_STRING, dvname, sizeof(dvname), sizeof(dvname) };
+		EsifData keyspec = { ESIF_DATA_STRING, keyname, sizeof(keyname), sizeof(keyname) };
+		EsifConfigDelete(&namespace, &keyspec);
+	}
+
 exit:
 	EsifUp_PutRef(upPtr);
 	esif_ccb_free(responseData.buf_ptr);

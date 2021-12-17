@@ -63,7 +63,6 @@ public:
 	virtual std::string getDptfHomeDirectoryPath(void) const = 0;
 	virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
 	virtual std::string getDptfReportDirectoryPath(void) const = 0;
-	virtual Bool isDptfPolicyLoadNameOnly(void) const = 0;
 	virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
 	virtual void unbindDomainsFromPolicies(UIntN participantIndex) const = 0;
 	virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;

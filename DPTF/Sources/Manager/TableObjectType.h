@@ -27,7 +27,9 @@ namespace TableObjectType
 		Apct,
 		Dynamic_Idsp,
 		Ddrf,
-		Itmt
+		Itmt,
+		Epot,
+		Tpga
 	};
 
 	std::string ToString(TableObjectType::Type type);

@@ -16,7 +16,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z
 
 if (CHROMIUM_BUILD MATCHES YES)
 	message("Building for Chromium OS...")
-
+	add_definitions(-DESIF_ATTR_OS_CHROME -DESIF_ATTR_USER)
 	if (BUILD_ARCH MATCHES 32bit)	
 	        message("Building 32-bit...")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
@@ -34,13 +34,14 @@ if (CHROMIUM_BUILD MATCHES YES)
 
 else()
 	message("Building for Linux...")
-
+	add_definitions(-DESIF_ATTR_OS_LINUX -DESIF_ATTR_USER)
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 	set(CMAKE_CXX_FLAGS_RELEASE "-Os")
 	
 	if (BUILD_ARCH MATCHES 32bit AND CMAKE_BUILD_TYPE MATCHES Release)
         	message("Building 32-bit release...")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
 	        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x32/release)
 	        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x32/release)
 	        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x32/release)
@@ -62,6 +63,7 @@ else()
 	else ()
 	        message("Building 64-bit release...")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
 	        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x64/release)
 	        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x64/release)
 	        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x64/release)
@@ -74,7 +76,7 @@ message ("CXX Debug Flags : " ${CMAKE_CXX_FLAGS_DEBUG})
 message ("CXX Release Flags : " ${CMAKE_CXX_FLAGS_RELEASE}) 
 #message ("CXX MinSizeRel Flags : " ${CMAKE_C_FLAGS_MINSIZEREL}) 
 
-add_definitions(-DESIF_ATTR_OS_LINUX -DESIF_ATTR_USER)
+
 
 set(BASIC_TYPES_LIB "DptfBasicTypesLib")
 set(ESIF_TYPES_LIB "DptfEsifTypesLib")

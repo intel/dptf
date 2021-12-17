@@ -95,8 +95,16 @@ void DomainPowerControlBase::setEnabled(PowerControlType::Type controlType, Bool
 {
 	try
 	{
+		UInt32 enabled = enable ? (UInt32)1 : (UInt32)0;
 		getParticipantServices()->primitiveExecuteSetAsUInt32(
-			SET_RAPL_POWER_LIMIT_ENABLE, enable ? (UInt32)1 : (UInt32)0, getDomainIndex(), (UInt8)controlType);
+			SET_RAPL_POWER_LIMIT_ENABLE, enabled, getDomainIndex(), (UInt8)controlType);
+
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			std::stringstream message;
+			message << "Successfully set RAPL Power Limit Enable Bit of control type "
+					<< PowerControlType::ToString(controlType) << " to " << std::to_string(enabled);
+			return message.str();
+		});
 	}
 	catch (...)
 	{

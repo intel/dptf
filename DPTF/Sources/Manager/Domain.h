@@ -73,6 +73,7 @@ public:
 	UInt32 getTimestampCounterWidth();
 	CoreActivityInfo getCoreActivityInfo();
 	void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias);
+	UInt32 getSocDgpuPerformanceHintPoints(void); 
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(void);
@@ -130,9 +131,11 @@ public:
 	Bool isSocPowerFloorEnabled();
 	Bool isSocPowerFloorSupported();
 	void setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
+	void setPowerLimitWithoutUpdatingEnabled(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	void setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	TimeSpan getPowerLimitTimeWindow(PowerControlType::Type controlType);
 	void setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
+	void setPowerLimitTimeWindowWithoutUpdatingEnabled(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
 	void setPowerLimitTimeWindowIgnoringCaps(
 		UIntN policyIndex,
 		PowerControlType::Type controlType,
@@ -156,6 +159,7 @@ public:
 	// Power status
 	PowerStatus getPowerStatus(void);
 	Power getAveragePower(const PowerControlDynamicCaps& capabilities);
+	Power getPowerValue(void);
 	void setCalculatedAveragePower(Power powerValue);
 
 	// System Power Controls

@@ -324,8 +324,6 @@ static AppDataPtr CreateAppData(
 	)
 {
 	AppDataPtr app_data_ptr = NULL;
-	char policyLoadPath[ESIF_PATH_LEN] = { 0 }; // empty if path starts with "#"
-	char logPath[ESIF_PATH_LEN] = { 0 };
 
 	if (NULL == self) {
 		goto exit;
@@ -336,13 +334,8 @@ static AppDataPtr CreateAppData(
 		goto exit;
 	}
 
-	// Build path(s) for DPTF: "HomeDir" or "HomeDir|[#]PolicyDir|LogDir"
-	esif_build_path(policyLoadPath, sizeof(policyLoadPath), ESIF_PATHTYPE_DLL, "", NULL);
-	esif_build_path(logPath, sizeof(logPath), ESIF_PATHTYPE_LOG, NULL, NULL);
-
-	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_DATA, NULL, NULL);
-	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s%s", (policyLoadPath[0] ? "" : "#"), self->loadDir);
-	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s", logPath);
+	// Build path for ESIF Apps: "HomeDir"
+	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_HOME, NULL, NULL);
 
 	ESIF_TRACE_DEBUG("pathBuf=%s\n", (esif_string)pathBuf);
 
@@ -576,12 +569,12 @@ static AppDomainDataPtr CreateDomainData(const struct esif_fpc_domain *domainPtr
 
 	dom_data_ptr->fName.buf_ptr  = (void *)domainPtr->descriptor.name;
 	dom_data_ptr->fName.buf_len  = ESIF_NAME_LEN;
-	dom_data_ptr->fName.data_len = (UInt32)esif_ccb_strlen(domainPtr->descriptor.name, ESIF_NAME_LEN);
+	dom_data_ptr->fName.data_len = (UInt32)esif_ccb_strlen(domainPtr->descriptor.name, sizeof(domainPtr->descriptor.name));
 	dom_data_ptr->fName.type     = ESIF_DATA_STRING;
 
 	dom_data_ptr->fDescription.buf_ptr  = (void *)domainPtr->descriptor.description;
 	dom_data_ptr->fDescription.buf_len  = ESIF_DESC_LEN;
-	dom_data_ptr->fDescription.data_len = (UInt32)esif_ccb_strlen(domainPtr->descriptor.description, ESIF_DESC_LEN);
+	dom_data_ptr->fDescription.data_len = (UInt32)esif_ccb_strlen(domainPtr->descriptor.description, sizeof(domainPtr->descriptor.description));
 	dom_data_ptr->fDescription.type     = ESIF_DATA_STRING;
 
 	dom_data_ptr->fGuid.buf_ptr  = (void *)domainPtr->descriptor.guid;

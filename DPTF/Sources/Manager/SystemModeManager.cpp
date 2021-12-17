@@ -22,16 +22,15 @@
 #include "WorkItemQueueManagerInterface.h"
 #include "WIPolicySystemModeChanged.h"
 #include "EsifServicesInterface.h"
+#include "StatusFormat.h"
 
 SystemModeManager::SystemModeManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
 	, m_policySystemModeValue(SystemMode::Invalid)
 	, m_arbitratedValue(SystemMode::Invalid)
 	, m_arbitratedValueChangedSinceLastSet(false)
-	, m_registeredEvents()
+	, m_powerSource(OsPowerSource::Invalid)
 {
-	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSliderChanged);
-	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged);
 }
 
 SystemModeManager::~SystemModeManager(void)
@@ -44,12 +43,14 @@ void SystemModeManager::arbitrateAndCreateEventSystemModeChanged()
 	{
 		auto powerSlider = m_dptfManager->getEventCache()->powerSlider.get();
 		auto powerSchemePersonality = m_dptfManager->getEventCache()->powerSchemePersonality.get();
+
 		arbitrateSystemMode(powerSlider, powerSchemePersonality);
 
 		MANAGER_LOG_MESSAGE_INFO({
 			return "Power Slider: " + toString(powerSlider) + ", Power Scheme Personality: "
 				   + toString(powerSchemePersonality) + ", Policy System Mode: " + toString(m_policySystemModeValue)
-				   + ", Arbitrated System Mode: " + toString(m_arbitratedValue);
+				   + ", Arbitrated System Mode: " + toString(m_arbitratedValue) + ", Arbitrated System Mode Changed: "
+				   + StatusFormat::friendlyValue(m_arbitratedValueChangedSinceLastSet);
 		});
 
 		if (m_arbitratedValueChangedSinceLastSet == true)
@@ -136,10 +137,29 @@ void SystemModeManager::executeOperatingSystemPowerSchemePersonalityChanged()
 	}
 }
 
+void SystemModeManager::executeOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
+{
+	if (m_registeredEvents.test(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged))
+	{
+		m_powerSource = powerSource;
+		arbitrateAndCreateEventSystemModeChanged();
+	}
+}
+
+
+
+void SystemModeManager::registerFrameworkEvents()
+{
+	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSliderChanged);
+	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged);	
+	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged);
+}
+
 void SystemModeManager::unregisterFrameworkEvents()
 {
 	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSliderChanged);
-	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged);
+	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged);	
+	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged);
 }
 
 void SystemModeManager::registerEvent(FrameworkEvent::Type frameworkEvent)

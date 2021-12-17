@@ -28,6 +28,7 @@
 #include "esif_lib_esifdata.h"
 #include "esif_queue.h"
 #include "esif_ccb_atomic.h"
+#include "esif_uf_primitive_type.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -92,7 +93,7 @@ struct EsifArbReq_s;
  *     1 if function determines Req 1 is higher priority
  *    -1 if function determines Req 2 is higher priority
  *     0 if function determines the requests are of equal priority
- * 
+ *
  * Note: "Valid pointers" indicate if well-formed data for the given arbitration
  * type.
  */
@@ -119,13 +120,14 @@ typedef struct EsifArbMgr_s {
 	EsifQueue *primitiveQueuePtr; /* EsifArbPrimReq primitive requests */
 	esif_thread_t primitiveQueueThread;
 	Bool primitiveQueueExitFlag;
+	esif_ccb_lock_t primitiveQueueLock;
 } EsifArbMgr;
 
 /*
  * Arbitration Context
  *
  * The arbitration context contains a collection of arbration entries, one
- * for each primitive/instance. 
+ * for each primitive/instance.
  *
  * An arbitration context is stored in each participant.  By doing this, the
  * arbitration manager does not have to track partcipant availability or track
@@ -205,10 +207,17 @@ typedef struct EsifArbReq_s {
  */
 typedef struct EsifArbPrimReq_s {
 	esif_handle_t participantId;
-	UInt32 primitiveId;
+	esif_primitive_type_t primitiveId;
 	UInt16 domain;
 	UInt8 instance;
-	EsifDataPtr dataPtr;
+	EsifDataPtr reqDataPtr;
+	EsifDataPtr rspDataPtr;
+	esif_ccb_event_t *completionEventPtr;
+	esif_error_t *completionStatusPtr;
+	Bool reqDataRequiresRelease;
+	Bool requiresDelay;
+	esif_primitive_type_t delayedPrimitiveId;
+	Bool isDummyRequest;
 } EsifArbPrimReq;
 
 /*
@@ -247,6 +256,20 @@ esif_error_t EsifArbMgr_ExecutePrimitive(
 	const UInt8 instance,
 	const EsifDataPtr requestPtr,
 	EsifData *responsePtr
+	);
+
+static esif_error_t EsifArbMgr_ExecuteUnarbitratedPrimitive(
+	EsifUp *upPtr,
+	const UInt32 primitiveId,
+	const UInt16 domain,
+	const UInt8 instance,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	);
+
+/* The primitive queue lock is expected to be held when called */
+static Bool EsifArbMgr_MustDelayPrimitive_Locked(
+	esif_primitive_type_t primitiveId
 	);
 
 /*
@@ -333,12 +356,17 @@ static EsifArbCtx *EsifArbMgr_CtxInst(EsifUp *upPtr);
 static void EsifArbMgr_PurgeRequests_Locked();
 
 /* Queues primitive request for asynchronous execution outside locks */
-static esif_error_t EsifArbMgr_QueuePrimitiveRequest(
+/* The primitive queue lock is expected to be held when called */
+static esif_error_t EsifArbMgr_QueuePrimitiveRequest_Locked(
 	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const UInt16 domain,
 	const UInt8 instance,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr,
+	esif_ccb_event_t *completionEventPtr,
+	esif_error_t *completionStatusPtr,
+	Bool requiresDelay /* Indicates if incoming requests must be delayed until completion of this request */
 	);
 
 static void *ESIF_CALLCONV EsifArbMgr_PrimitiveQueueExecutionThread(void *ctxPtr);
@@ -559,9 +587,11 @@ static esif_error_t EsifArbEntry_RearbitrateRequests_Locked(
 	);
 
 /* Limits data and then queues primitive request for asynchronous execution outside locks */
+/* The entryLock is expect to be held when called */
 static esif_error_t EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(
 	EsifArbEntry *self,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	Bool requiresDelay
 	);
 
 /*
@@ -603,7 +633,11 @@ static EsifArbPrimReq *EsifArbPrimReq_Create(
 	const UInt32 primitiveId,
 	const UInt16 domain,
 	const UInt8 instance,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr,
+	esif_ccb_event_t *completionEventPtr,
+	esif_error_t *completionStatusPtr,
+	Bool requiresDelay
 	);
 
 static void EsifArbPrimReq_Destroy(EsifArbPrimReq *self);
@@ -657,7 +691,13 @@ static EsifArbMgr_ArbitratorFunc g_arbitrationFunctions[] = {
 	EsifArbFunction_UInt32_LessThan,  /* ESIF_ARBITRATION_UIN32_LESS_THAN */
 };
 
+/*
+ * NOTE: Whenever a Primitive is Added to or Removed from these Tables, it must also
+ * be updated in the DSP database so that esif_uf_primitive_type.h can be regenerated.
+ */
 static EsifArbEntryParams g_cpuArbTable[] = {
+	{SET_PERF_PREFERENCE_MAX, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX_PERCENT, ESIF_ARB_LIMIT_MIN_PERCENT},
+	{SET_PERF_PREFERENCE_MIN, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX_PERCENT, ESIF_ARB_LIMIT_MIN_PERCENT},
 	{SET_PLATFORM_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_PLATFORM_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_PLATFORM_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
@@ -725,7 +765,6 @@ esif_error_t EsifArbMgr_ExecutePrimitive(
 {
 	esif_error_t rc = ESIF_OK;
 	EsifUp  *upPtr = NULL;
-	EsifPrimitiveTuple tuple = { 0 };
 	UInt16 domain = 0;
 	EsifArbCtx *arbCtxPtr = NULL;
 
@@ -776,10 +815,10 @@ esif_error_t EsifArbMgr_ExecutePrimitive(
 	 */
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_PRIMITIVE_DEBUG("Executing unarbitrated primitive.");
-		tuple.id = (u16)primitiveId;
-		tuple.domain = domain;
-		tuple.instance = instance;
-		rc = EsifUp_ExecutePrimitive(upPtr, &tuple, requestPtr, responsePtr);
+		rc = EsifArbMgr_ExecuteUnarbitratedPrimitive(
+			upPtr,
+			primitiveId, domain, instance,
+			requestPtr, responsePtr);
 	}
 exit:
 	ESIF_TRACE_PRIMITIVE_DEBUG("Primitive result = %s", esif_rc_str(rc));
@@ -788,6 +827,100 @@ exit:
 		EsifUp_PutRef(upPtr);
 	}
 	return rc;
+}
+
+
+static esif_error_t EsifArbMgr_ExecuteUnarbitratedPrimitive(
+	EsifUp *upPtr,
+	const UInt32 primitiveId,
+	const UInt16 domain,
+	const UInt8 instance,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	esif_error_t rc = ESIF_OK;
+	esif_error_t completionStatus = ESIF_E_UNSPECIFIED;
+	Bool primitiveCompleted = ESIF_FALSE;
+	EsifPrimitiveTuple tuple = { 0 };
+	esif_ccb_event_t completionEvent = { 0 };
+
+	tuple.id = (u16)primitiveId;
+	tuple.domain = domain;
+	tuple.instance = instance;
+
+	if (atomic_read(&g_arbMgr.arbitrationEnabled)) {
+
+		esif_ccb_write_lock(&g_arbMgr.primitiveQueueLock);
+
+		if (EsifArbMgr_MustDelayPrimitive_Locked(primitiveId)) {
+			esif_ccb_event_init(&completionEvent);
+			esif_ccb_event_reset(&completionEvent);
+
+			rc = EsifArbMgr_QueuePrimitiveRequest_Locked(
+				EsifUp_GetInstance(upPtr),
+				primitiveId, domain, instance,
+				requestPtr,
+				responsePtr,
+				&completionEvent,
+				&completionStatus,
+				ESIF_FALSE);
+
+			/* Must release lock before waiting */
+			esif_ccb_write_unlock(&g_arbMgr.primitiveQueueLock);
+
+			if (ESIF_OK == rc) {
+				/* Wait for primitive execution if queueing was successful */
+				esif_ccb_event_wait(&completionEvent);
+				rc = completionStatus; /* Set by pointer during primitive execution */
+				primitiveCompleted = ESIF_TRUE;
+			}
+			esif_ccb_event_uninit(&completionEvent);
+		}
+		else {
+			esif_ccb_write_unlock(&g_arbMgr.primitiveQueueLock);
+		}
+	}
+
+	/*
+	* If the primitive did not execute; we will execute without queue.
+	*/
+	if (!primitiveCompleted) {
+		rc = EsifUp_ExecutePrimitive(upPtr, &tuple, requestPtr, responsePtr);
+	}
+
+	return rc;
+}
+
+/* The primitive queue lock is expected to be held when called */
+static Bool EsifArbMgr_MustDelayPrimitive_Locked(
+	esif_primitive_type_t primitiveId
+)
+{
+	Bool requiresDelay = ESIF_FALSE;
+	EsifLinkListNode *curNodePtr = NULL;
+	EsifArbPrimReq *curReqPtr = NULL;
+
+	/*
+	* Search the arbitrated request queue for any primitives that would require
+	* the current primitive to be delayed
+	*/
+	if (g_arbMgr.primitiveQueuePtr && g_arbMgr.primitiveQueuePtr->queue_list_ptr) {
+
+		curNodePtr = g_arbMgr.primitiveQueuePtr->queue_list_ptr->head_ptr;
+		while (curNodePtr) {
+			curReqPtr = (EsifArbPrimReq *)curNodePtr->data_ptr;
+
+			if (curReqPtr) {
+				if (curReqPtr->requiresDelay && (primitiveId == curReqPtr->delayedPrimitiveId)) {
+					requiresDelay = ESIF_TRUE;
+					break;
+				}
+			}
+			curNodePtr = curNodePtr->next_ptr;
+		}
+	}
+	return requiresDelay;
 }
 
 
@@ -838,31 +971,55 @@ static EsifArbCtx *EsifArbMgr_CtxInst(
 }
 
 
-static esif_error_t EsifArbMgr_QueuePrimitiveRequest(
+/* The primitive queue lock is expected to be held when called */
+static esif_error_t EsifArbMgr_QueuePrimitiveRequest_Locked(
 	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const UInt16 domain,
 	const UInt8 instance,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr,
+	esif_ccb_event_t *completionEventPtr,
+	esif_error_t *completionStatusPtr,
+	Bool requiresDelay /* Indicates if incoming requests must be delayed until completion of this request */
 	)
 {
 	esif_error_t rc = ESIF_E_NO_MEMORY;
 	EsifArbPrimReq *primReqPtr = NULL;
+	EsifArbPrimReq *copyPrimReqPtr = NULL;
 
 	primReqPtr = EsifArbPrimReq_Create(
 		participantId,
 		primitiveId,
 		domain,
 		instance,
-		requestPtr
+		requestPtr,
+		responsePtr,
+		completionEventPtr,
+		completionStatusPtr,
+		requiresDelay
 	);
 	/* Queue will accept NULL requests so, need to check before inserting */
 	if (primReqPtr) {
 		rc = esif_queue_enqueue(g_arbMgr.primitiveQueuePtr, primReqPtr);
+
+		/*
+		* We place a copy of the request in the queue so that primitives requiring
+		* delay can detect the case when the request has been removed from the queue,
+		* but has not been processed yet.
+		*/
+		if (primReqPtr->requiresDelay && (primReqPtr->delayedPrimitiveId != (esif_primitive_type_t)0)) {
+			copyPrimReqPtr = esif_ccb_malloc(sizeof(*copyPrimReqPtr));
+			if (copyPrimReqPtr) {
+				esif_ccb_memcpy(copyPrimReqPtr, primReqPtr, sizeof(*copyPrimReqPtr));
+				copyPrimReqPtr->isDummyRequest = ESIF_TRUE;
+				esif_queue_enqueue(g_arbMgr.primitiveQueuePtr, copyPrimReqPtr);
+			}
+		}
 	}
 	ESIF_TRACE_DEBUG("[Prim = %u, Inst = %u, Part = " ESIF_HANDLE_FMT "] : Queued primitive request; rc = %d",
 		primitiveId, instance, esif_ccb_handle2llu(participantId), rc);
-	
+
 	return rc;
 }
 
@@ -873,10 +1030,12 @@ static void *ESIF_CALLCONV EsifArbMgr_PrimitiveQueueExecutionThread(
 {
 	esif_error_t rc = ESIF_OK;
 	EsifArbPrimReq *primReqPtr = NULL;
+	EsifArbPrimReq *dummyReqPtr = NULL;
 	EsifUp *upPtr = NULL;
 	EsifPrimitiveTuple tuple = { 0 };
 	UInt32 phonyData = 0;
 	EsifData phonyResponseData = { ESIF_DATA_VOID };
+	EsifData *respDataPtr = &phonyResponseData;
 
 	phonyResponseData.buf_ptr = &phonyData;
 
@@ -889,13 +1048,25 @@ static void *ESIF_CALLCONV EsifArbMgr_PrimitiveQueueExecutionThread(
 			continue;
 		}
 
+		/* Do not process dummy requests used to determine primitive delays */
+		if (primReqPtr->isDummyRequest) {
+			esif_ccb_free(primReqPtr); /* Just free, do not destroy; data is a copy */
+			primReqPtr = NULL;
+			continue;
+		}
+
 		tuple.id = (UInt16)primReqPtr->primitiveId;
 		tuple.domain = primReqPtr->domain;
 		tuple.instance = primReqPtr->instance;
 
+		respDataPtr = &phonyResponseData;
+		if (primReqPtr->rspDataPtr != NULL) {
+			respDataPtr = primReqPtr->rspDataPtr;
+		}
+
 		upPtr = EsifUpPm_GetAvailableParticipantByInstance(primReqPtr->participantId);
-		rc = EsifUp_ExecutePrimitive(upPtr, &tuple, primReqPtr->dataPtr, &phonyResponseData);
-		
+		rc = EsifUp_ExecutePrimitive(upPtr, &tuple, primReqPtr->reqDataPtr, respDataPtr);
+
 		if (rc != ESIF_OK) {
 			ESIF_TRACE_DEBUG("[%s Prim = %lu, Inst = %lu] : Executed queued primitive request, rc = %d",
 				EsifUp_GetName(upPtr),
@@ -903,8 +1074,31 @@ static void *ESIF_CALLCONV EsifArbMgr_PrimitiveQueueExecutionThread(
 				rc);
 		}
 
+		if (primReqPtr->completionStatusPtr) {
+			*primReqPtr->completionStatusPtr = rc;
+		}
+
+		/*
+		* Remove the dummy request used to determine if associated primitive
+		* should be delayed (used to prevent race condition when primitive is
+		* removed from queue, but not yet processed)
+		*/
+		esif_ccb_write_lock(&g_arbMgr.primitiveQueueLock);
+
+		dummyReqPtr = esif_queue_dequeue(g_arbMgr.primitiveQueuePtr);
+		if (dummyReqPtr && dummyReqPtr->isDummyRequest && (primReqPtr->primitiveId == dummyReqPtr->primitiveId)) {
+			esif_ccb_free(dummyReqPtr); /* Just free, do not destroy; data is a copy */
+		}
+		else {
+			esif_queue_requeue(g_arbMgr.primitiveQueuePtr, dummyReqPtr);
+			esif_queue_signal_event(g_arbMgr.primitiveQueuePtr);
+		}
+		esif_ccb_write_unlock(&g_arbMgr.primitiveQueueLock);
+
 		EsifUp_PutRef(upPtr);
-		EsifArbPrimReq_Destroy(primReqPtr);
+		EsifArbPrimReq_Destroy(primReqPtr); /* Release waiting thread */
+		primReqPtr = NULL;
+		dummyReqPtr = NULL;
 	}
 	return 0;
 }
@@ -995,7 +1189,7 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 					numArbitratedParts++;
 					tempCtxInfoPtr->isArbitrated = ESIF_TRUE;
 					/* Update the required size for each participant */
-					
+
 				}
 				/* If not arbitrated, provide placeholder for each participant data */
 				else {
@@ -1053,7 +1247,7 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 
 			/* Set participant information */
 			curCtxInfoPtr = infoPtr->arbCtxInfo;
-		
+
 			curNodePtr = ctxInfoListPtr->head_ptr;
 			while (curNodePtr) {
 				if (curNodePtr->data_ptr) {
@@ -1187,6 +1381,7 @@ esif_error_t EsifArbMgr_StopArbitration(
 			rc = EsifArbCtx_StopArbitration(arbCtxPtr, primitiveId, domain, instance);
 		}
 	}
+	EsifUp_PutRef(upPtr);
 	return rc;
 }
 
@@ -1253,6 +1448,7 @@ esif_error_t EsifArbMgr_Init(void)
 	esif_error_t rc = ESIF_E_NO_MEMORY;
 
 	esif_ccb_lock_init(&g_arbMgr.mgrLock);
+	esif_ccb_lock_init(&g_arbMgr.primitiveQueueLock);
 
 	atomic_set(&g_arbMgr.arbitrationEnabled, ESIF_TRUE);
 
@@ -1273,6 +1469,7 @@ void EsifArbMgr_Exit(void)
 	esif_queue_destroy(g_arbMgr.primitiveQueuePtr, (queue_item_destroy_func)EsifArbPrimReq_Destroy);
 	g_arbMgr.primitiveQueuePtr = NULL;
 
+	esif_ccb_lock_uninit(&g_arbMgr.primitiveQueueLock);
 	esif_ccb_lock_uninit(&g_arbMgr.mgrLock);
 }
 
@@ -1660,14 +1857,14 @@ static esif_error_t EsifArbCtx_RemoveArbEntry_Locked(
 static EsifArbEntry *EsifArbCtx_LookupArbEntry_Locked(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
-	const UInt16 domain, 
+	const UInt16 domain,
 	const UInt8 instance
 	)
 {
 	EsifArbEntry *entryPtr = NULL;
 	EsifArbEntry **curEntryPtr = NULL;
 	size_t i = 0;
-	
+
 	/*
 	 * Looking for valid entry based on the primitive and instance.
 	 */
@@ -2013,7 +2210,7 @@ static esif_error_t EsifArbCtx_SetLimits(
 				rc = EsifArbCtx_CreateAndInsertEntry_Locked(self, &entryParams, self->participantId, self->participantName, &entryPtr);
 				if (rc != ESIF_OK) {
 					ESIF_ASSERT(0);
-					ESIF_TRACE_ARB_CTX(ESIF_TRACELEVEL_ERROR, "[Prim = %lu, Inst = %lu] Failed to add entry : rc = %d\n", 
+					ESIF_TRACE_ARB_CTX(ESIF_TRACELEVEL_ERROR, "[Prim = %lu, Inst = %lu] Failed to add entry : rc = %d\n",
 						primitiveId, instance, rc);
 				}
 			}
@@ -2094,7 +2291,7 @@ static void EsifArbEntry_Destroy(
 		self->markedForDelete = ESIF_TRUE;
 
 		EsifArbEntry_PutRef(self); /* Must release reference we own */
-		
+
 		ESIF_TRACE_ARB_ENTRY(ESIF_TRACELEVEL_DEBUG, "Destroying arbitration entry: waiting for delete event...\n");
 		esif_ccb_event_wait(&self->deleteEvent);
 
@@ -2204,7 +2401,7 @@ static esif_error_t EsifArbEntry_ExecutePrimitive(
 					 * so queue the request for later processing.  Execution order is
 					 * guaranteed, but is asynchronous.
 					 */
-					rc = EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, curArbDataPtr);
+					rc = EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, curArbDataPtr, ESIF_TRUE);
 				}
 			}
 		}
@@ -2292,7 +2489,7 @@ static esif_error_t EsifArbEntry_ArbitrateRequest_Locked(
 			 */
 			else if (arbFunc && !isInserted) {
 				/*
-				* Arbitrate the request with the current request; 
+				* Arbitrate the request with the current request;
 				* returns > 0 if 1 better than 2
 				* returns < 0 2 better than 1
 				* returns 0 if equal
@@ -2406,7 +2603,7 @@ static esif_error_t EsifArbEntry_SetLimits(
 				self->lowerLimit = newLowerLimit;
 
 				arbDataPtr = EsifArbEntry_GetArbitratedRequestData_Locked(self);
-				EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, arbDataPtr);
+				EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, arbDataPtr, ESIF_FALSE);
 			}
 		}
 
@@ -2488,7 +2685,7 @@ static esif_error_t EsifArbEntry_SetArbitrationFunction(
 					 * so queue the request for later processing.  Execution order is
 					 * guaranteed, but is asynchronous.
 					 */
-					rc = EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, curArbDataPtr);
+					rc = EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, curArbDataPtr, ESIF_FALSE);
 				}
 			}
 		}
@@ -2500,10 +2697,11 @@ static esif_error_t EsifArbEntry_SetArbitrationFunction(
 	return rc;
 }
 
-
+/* The entryLock is expect to be held when called */
 static esif_error_t EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(
 	EsifArbEntry *self,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	Bool requiresDelay /* Indicates if incoming associated requests must be delayed until completion of this request */
 	)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
@@ -2517,10 +2715,19 @@ static esif_error_t EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(
 			dataPtr = limitedClonedDataPtr;
 		}
 
-		rc = EsifArbMgr_QueuePrimitiveRequest(
+		esif_ccb_write_lock(&g_arbMgr.primitiveQueueLock);
+
+		rc = EsifArbMgr_QueuePrimitiveRequest_Locked(
 			self->participantId,
 			self->primitiveId, self->domain, self->instance,
-			dataPtr);
+			dataPtr,
+			NULL,
+			NULL,
+			NULL,
+			requiresDelay);
+
+		esif_ccb_write_unlock(&g_arbMgr.primitiveQueueLock);
+
 	}
 
 	EsifData_Destroy(limitedClonedDataPtr);
@@ -2585,7 +2792,7 @@ static esif_error_t EsifArbEntry_RearbitrateRequests_Locked(
 
 	if (self) {
 		rc = ESIF_OK;
-		/* 
+		/*
 		* Copy the current request list and clear it in the entry.
 		* Then rearbitrate each item in the list.
 		*/
@@ -2601,7 +2808,7 @@ static esif_error_t EsifArbEntry_RearbitrateRequests_Locked(
 		curNodePtr = tempList.head_ptr;
 		while (curNodePtr) {
 			curReqPtr = (EsifArbReq *)curNodePtr->data_ptr;
-		
+
 			EsifArbEntry_ArbitrateRequest_Locked(self, curReqPtr);
 
 			esif_link_list_node_remove(&tempList, curNodePtr);
@@ -2680,7 +2887,7 @@ static void EsifArbEntry_RemoveApp(
 			ESIF_TRACE_ARB_ENTRY(ESIF_TRACELEVEL_DEBUG, "Updating arbitrated value after removal of " ESIF_HANDLE_FMT,
 				esif_ccb_handle2llu(appHandle));
 
-			EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, curArbDataPtr);
+			EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(self, curArbDataPtr, ESIF_FALSE);
 		}
 
 		esif_ccb_write_unlock(&self->entryLock);
@@ -2803,7 +3010,11 @@ static EsifArbPrimReq *EsifArbPrimReq_Create(
 	const UInt32 primitiveId,
 	const UInt16 domain,
 	const UInt8 instance,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr,
+	esif_ccb_event_t *completionEventPtr,
+	esif_error_t *completionStatusPtr,
+	Bool requiresDelay
 	)
 {
 	EsifArbPrimReq *self = NULL;
@@ -2814,10 +3025,24 @@ static EsifArbPrimReq *EsifArbPrimReq_Create(
 		self->primitiveId = primitiveId;
 		self->domain = domain;
 		self->instance = instance;
-		self->dataPtr = EsifData_Clone(requestPtr);
-		if (NULL == self->dataPtr) {
-			EsifArbPrimReq_Destroy(self);
-			self = NULL;
+		self->rspDataPtr = responsePtr;
+		self->completionStatusPtr = completionStatusPtr;
+		self->completionEventPtr = completionEventPtr;
+		self->requiresDelay = requiresDelay;
+
+		if (requestPtr) {
+			self->reqDataPtr = EsifData_Clone(requestPtr);
+
+			if (requiresDelay) {
+				self->delayedPrimitiveId = esif_primitive_type_set2get(primitiveId);
+			}
+			if (NULL == self->reqDataPtr) {
+				EsifArbPrimReq_Destroy(self);
+				self = NULL;
+			}
+			else {
+				self->reqDataRequiresRelease = ESIF_TRUE;
+			}
 		}
 	}
 	else {
@@ -2830,7 +3055,14 @@ static EsifArbPrimReq *EsifArbPrimReq_Create(
 static void EsifArbPrimReq_Destroy(EsifArbPrimReq *self)
 {
 	if (self) {
-		EsifData_Destroy(self->dataPtr);
+		if (!self->isDummyRequest) {
+			if (self->reqDataRequiresRelease) {
+				EsifData_Destroy(self->reqDataPtr);
+			}
+			if (self->completionEventPtr) {
+				esif_ccb_event_set(self->completionEventPtr);
+			}
+		}
 		esif_ccb_free(self);
 	}
 }
@@ -2906,7 +3138,7 @@ static esif_error_t EsifArbFunction_UInt32_GreaterThan(
 	if (isValid2Ptr) {
 		*isValid2Ptr = isValid2;
 	}
-	ESIF_TRACE_DEBUG("Arbitration result = %d, Data1 = %u, isValid1 = %d, Data2 = %u, isValid2 = %d, rc = %d", 
+	ESIF_TRACE_DEBUG("Arbitration result = %d, Data1 = %u, isValid1 = %d, Data2 = %u, isValid2 = %d, rc = %d",
 		arbResult, data1, isValid1, data2, isValid2, rc);
 	return rc;
 }
@@ -3004,7 +3236,7 @@ static Bool IsPrimitiveSupported(
 	EsifUp *upPtr = NULL;
 	EsifDsp *dspPtr = NULL;
 	EsifFpcPrimitive *primitivePtr = NULL;
-	EsifPrimitiveTuple tuple = { 
+	EsifPrimitiveTuple tuple = {
 		.id = (u16)primitiveId,
 		.domain = domain,
 		.instance = instance
@@ -3017,7 +3249,7 @@ static Bool IsPrimitiveSupported(
 		if (dspPtr) {
 			primitivePtr = dspPtr->get_primitive(dspPtr, &tuple);
 			if (primitivePtr) {
-				if ((ESIF_PRIMITIVE_OP_SET == (enum esif_primitive_opcode)primitivePtr->operation) && 
+				if ((ESIF_PRIMITIVE_OP_SET == (enum esif_primitive_opcode)primitivePtr->operation) &&
 					(ESIF_ARB_DATA_SIZE == esif_data_type_sizeof(primitivePtr->request_type))) {
 					bRet = ESIF_TRUE;
 				}

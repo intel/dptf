@@ -19,6 +19,7 @@
 #include "DptfBuffer.h"
 
 DptfBuffer::DptfBuffer(void)
+	: m_buffer()
 {
 }
 

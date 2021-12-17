@@ -1608,7 +1608,7 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	ESIF_ASSERT(primitivePtr != NULL);
 	ESIF_ASSERT(fpcActionPtr != NULL);
 	
-	if (NULL == requestPtr || NULL == requestPtr->buf_ptr) {
+	if (NULL == requestPtr) {
 		ESIF_TRACE_ERROR("Request pointer is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
@@ -1638,7 +1638,12 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	 * checks required within subordinate code.
 	 */
 	if (requestPtr->buf_len < (int) esif_data_type_sizeof(requestPtr->type)) {
-		rc = ESIF_E_REQ_SIZE_TYPE_MISTMATCH;
+		if (requestPtr->data_len == 0) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+		}
+		else {
+			rc = ESIF_E_REQ_SIZE_TYPE_MISTMATCH;
+		}
 		goto exit;
 	}
 
@@ -1650,7 +1655,11 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 		// Copy the request data so that if a transform takes place and the action
 		// fails, the transformed data is not used by subsequent actions
 		//
-		if (requestPtr->buf_len < sizeof(xformedData)) {
+		if (NULL == requestPtr->buf_ptr) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+			goto exit;
+		}
+		else if (requestPtr->buf_len < sizeof(xformedData)) {
 			rc = ESIF_E_REQ_SIZE_TYPE_MISTMATCH;
 			goto exit;
 		}

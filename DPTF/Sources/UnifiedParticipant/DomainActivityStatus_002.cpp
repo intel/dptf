@@ -65,19 +65,7 @@ UInt32 DomainActivityStatus_002::getTimestampCounterWidth(UIntN participantIndex
 
 CoreActivityInfo DomainActivityStatus_002::getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex)
 {
-	try
-	{
-		DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_CORE_ACTIVITY_INFO, ESIF_DATA_BINARY, domainIndex);
-		return CoreActivityInfo::getCoreActivityInfoFromBuffer(buffer);
-	}
-	catch (...)
-	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to get Core Activity Info. ";
-			});
-		return CoreActivityInfo();
-	}
+	throw not_implemented();
 }
 
 void DomainActivityStatus_002::setPowerShareEffectiveBias(
@@ -127,3 +115,4 @@ std::string DomainActivityStatus_002::getName(void)
 {
 	return "Activity Status";
 }
+

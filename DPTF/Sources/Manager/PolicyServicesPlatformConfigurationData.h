@@ -53,8 +53,6 @@ public:
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) override final;
 	virtual DptfBuffer getOemVariables(void) override final;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt32 getSocWorkload(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt32 getSupportEppHint(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl)
 		override final;
@@ -70,11 +68,13 @@ public:
 	virtual Bool getDisplayRequired(void) override final;
 	virtual void setPidAlgorithmTable(DptfBuffer data) override final;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) override final;
-	virtual UInt32 getAutonomousBatteryLifeManagementState(void) override final;
 	virtual TimeSpan getExpectedBatteryLife(void) override final;
 	virtual UInt32 getAggressivenessLevel(void) override final;
 	virtual DptfBuffer getDdrfTable(void) override final;
 	virtual DptfBuffer getAggregateDisplayInformation(void) override final;
+	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) override final;
+	virtual void setEnergyPerformanceOptimizerTable(DptfBuffer data) override final;
+	virtual DptfBuffer getTpgaTable(void) override final;
 
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
@@ -88,6 +88,9 @@ public:
 	virtual void setPowerSchemeEpp(UInt32 value) override final;
 	virtual void setActivePowerScheme() override final;
 	virtual void setForegroundAppRatioPeriod(UInt32 value) override final;
+	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) override final;
+	virtual UInt32 getTpgPowerState(UIntN participantIndex, UIntN domainIndex) override final;
 
 	virtual void clearPpmPackageSettings(void) override final;
 
@@ -105,4 +108,5 @@ private:
 	void resetPowerShareAlgorithmTable(void);
 	void resetPowerShareAlgorithmTable2(void);
 	void resetIntelligentThermalManagementTable(void);
+	void resetEnergyPerformanceOptimizerTable();
 };

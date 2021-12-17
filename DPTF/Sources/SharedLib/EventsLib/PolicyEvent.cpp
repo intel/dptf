@@ -118,6 +118,9 @@ namespace PolicyEvent
 			CASE(PolicyUserInteractionChanged)
 			CASE(PolicyForegroundRatioChanged)
 			CASE(PolicySystemModeChanged)
+			CASE(PolicyCollaborationChanged)
+			CASE(PolicyThirdPartyGraphicsPowerStateChanged)
+			CASE(PolicyAppBroadcastListen)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -162,13 +165,18 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyPlatformUserPresenceChanged)
 			|| (policyEventType == PolicyEvent::PolicyExternalMonitorStateChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserInteractionChanged)
-			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged));
+			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged)
+			|| (policyEventType == PolicyEvent::PolicyCollaborationChanged)
+			|| (policyEventType == PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged)
+			|| (policyEventType == PolicyEvent::PolicyAppBroadcastListen));
 	}
 
 	std::string toString(Type type)
 	{
 		switch (type)
 		{
+		case PolicyEvent::PolicyAppBroadcastListen:
+			return "PolicyAppBroadcastListen";
 		case PolicyEvent::DptfConnectedStandbyEntry:
 			return "DptfConnectedStandbyEntry";
 		case PolicyEvent::DptfConnectedStandbyExit:
@@ -269,6 +277,8 @@ namespace PolicyEvent
 			return "PolicyAdaptivePerformanceActionsTableChanged";
 		case PolicyEvent::PolicyDdrfTableChanged:
 			return "PolicyDdrfTableChanged";
+		case PolicyEvent::PolicyTpgaTableChanged:
+			return "PolicyTpgaTableChanged";
 		case PolicyEvent::PolicyOperatingSystemPowerSourceChanged:
 			return "PolicyOperatingSystemPowerSourceChanged";
 		case PolicyEvent::PolicyOperatingSystemLidStateChanged:
@@ -321,6 +331,8 @@ namespace PolicyEvent
 			return "PolicyActiveControlPointRelationshipTableChanged";
 		case PolicyEvent::PolicyPowerShareAlgorithmTableChanged:
 			return "PolicyPowerShareAlgorithmTableChanged";
+		case PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged:
+			return "PolicyEnergyPerformanceOptimizerTableChanged";
 		case PolicyEvent::PowerLimitChanged:
 			return "PowerLimitChanged";
 		case PolicyEvent::PerformanceCapabilitiesChanged:
@@ -341,6 +353,10 @@ namespace PolicyEvent
 			return "PolicyForegroundRatioChanged";
 		case PolicyEvent::PolicySystemModeChanged:
 			return "PolicySystemModeChanged";
+		case PolicyEvent::PolicyCollaborationChanged:
+			return "PolicyCollaborationChanged";
+		case PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged:
+			return "PolicyThirdPartyGraphicsPowerStateChanged";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

@@ -35,7 +35,7 @@ ESIF_CM_SOURCES := $(ESIF_SOURCES)/ESIF_CM/Sources
 ESIF_LIB_SOURCES := $(ESIF_SOURCES)/ESIF_LIB/Sources
 ESIF_SDK_SOURCES := $(ESIF_SOURCES)/../../Common
 
-LDLIBS := -lpthread -ldl -lrt -lreadline -lm
+LDLIBS := -lpthread -ldl -lrt -lm
 
 CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(ESIF_SDK_SOURCES)
 CPPFLAGS += -DESIF_ATTR_USER 
@@ -79,14 +79,14 @@ ifeq ($(OS), Android)
 $(error For Android build please use Android.mk in ESIF_UF/Androidx86/jni directory)
 else ifeq ($(OS), Chrome)
 	CPPFLAGS += -DESIF_ATTR_OS_CHROME
-	CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
+	# CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
 	CPPFLAGS += -std=gnu99
 ifeq ($(OPT_GMIN), 1)
 	OPT_DBUS = 1
 endif
 else
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX
-	CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
+	# CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
 	CPPFLAGS += -std=gnu99
 
 	# make PLAT=<x64|x86>
@@ -113,10 +113,13 @@ ifeq ($(OPT_DBUS), 1)
 endif
 
 # make BUILD=Debug
+# -s  flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
 	CFLAGS   += -g
 	CPPFLAGS += -DESIF_ATTR_DEBUG
 	CPPFLAGS += -DESIF_ATTR_MEMTRACE
+else
+	CFLAGS += -s     
 endif
 
 $(info ++++ )

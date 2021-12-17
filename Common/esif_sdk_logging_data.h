@@ -259,6 +259,7 @@ typedef struct _t_EsifManagerStatusData {
 	UInt32 platformUserPresence;
 	UInt32 foregroundBackgroundRatio;
 	UInt32 ppmPackage;
+	UInt32 collaboration;
 } EsifManagerStatusData, * EsifManagerStatusDataPtr;
 
 /* Workload Classification Data */

@@ -52,6 +52,7 @@
 #include "WIDomainFanCapabilityChanged.h"
 #include "WIDomainSocWorkloadClassificationChanged.h"
 #include "WIDomainEppSensitivityHintChanged.h"
+#include "WIDptfIgccBroadcastReceived.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
 #include "WIDptfResume.h"
@@ -109,3 +110,5 @@
 #include "WIPolicyExternalMonitorStateChanged.h"
 #include "WIPolicyUserInteractionChanged.h"
 #include "WIPolicyForegroundRatioChanged.h"
+#include "WIPolicyCollaborationChanged.h"
+#include "WIPolicyThirdPartyGraphicsPowerStateChanged.h"

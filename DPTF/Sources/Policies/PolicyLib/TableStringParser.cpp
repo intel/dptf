@@ -27,3 +27,11 @@ std::string TableStringParser::getDeviceString(esif_data_variant& device)
 
 	return deviceString;
 }
+
+std::string TableStringParser::getString(esif_data_variant& device, UInt32 length)
+{
+	std::string deviceString(
+		reinterpret_cast<const char*>(&(device)) + sizeof(union esif_data_variant), length);
+
+	return deviceString;
+}

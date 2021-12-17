@@ -1644,6 +1644,12 @@ Power UnifiedParticipant::getAveragePower(
 	return averagePower;
 }
 
+Power UnifiedParticipant::getPowerValue(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerStatusControl()->getPowerValue(participantIndex, domainIndex);
+}
+
 void UnifiedParticipant::setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -2024,6 +2030,19 @@ void UnifiedParticipant::setPowerLimit(
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
 }
 
+void UnifiedParticipant::setPowerLimitWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfDomainInvalid(domainIndex);
+	auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
+	m_domains[domainIndex]->getPowerControl()->setPowerLimitWithoutUpdatingEnabled(
+		participantIndex, domainIndex, controlType, snappedPowerLimit);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
 void UnifiedParticipant::setPowerLimitIgnoringCaps(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -2054,6 +2073,18 @@ void UnifiedParticipant::setPowerLimitTimeWindow(
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getPowerControl()->setPowerLimitTimeWindow(
+		participantIndex, domainIndex, controlType, timeWindow);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
+void UnifiedParticipant::setPowerLimitTimeWindowWithoutUpdatingEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPowerControl()->setPowerLimitTimeWindowWithoutUpdatingEnabled(
 		participantIndex, domainIndex, controlType, timeWindow);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
 }
@@ -2185,4 +2216,10 @@ void UnifiedParticipant::setPowerShareEffectiveBias(
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getActivityStatusControl()->setPowerShareEffectiveBias(
 		participantIndex, domainIndex, powerShareEffectiveBias);
+}
+
+UInt32 UnifiedParticipant::getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getSocDgpuPerformanceHintPoints(participantIndex, domainIndex);
 }

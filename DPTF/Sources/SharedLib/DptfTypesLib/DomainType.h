@@ -63,6 +63,7 @@ namespace DomainType
 		WwanRfim,
 		IdgfxCore,
 		Idgfx2,
+		Nvdgx,
 		All,
 		Max
 	};

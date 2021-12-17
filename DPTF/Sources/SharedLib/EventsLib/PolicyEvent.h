@@ -27,7 +27,7 @@ namespace PolicyEvent
 {
 	enum Type
 	{
-		Invalid,
+		Invalid,		
 		DptfConnectedStandbyEntry,
 		DptfConnectedStandbyExit,
 		DptfSuspend,
@@ -94,6 +94,7 @@ namespace PolicyEvent
 		PolicyPowerBossConditionsTableChanged,
 		PolicyPowerBossActionsTableChanged,
 		PolicyPowerBossMathTableChanged,
+		PolicyTpgaTableChanged,
 		PolicyVoltageThresholdMathTableChanged,
 		DptfPolicyActivityLoggingEnabled,
 		DptfPolicyActivityLoggingDisabled,
@@ -104,6 +105,7 @@ namespace PolicyEvent
 		PolicyIntelligentThermalManagementTableChanged,
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
+		PolicyEnergyPerformanceOptimizerTableChanged,
 		PowerLimitChanged,
 		PerformanceCapabilitiesChanged,
 		PolicyWorkloadHintConfigurationChanged,
@@ -114,6 +116,9 @@ namespace PolicyEvent
 		PolicyUserInteractionChanged,
 		PolicyForegroundRatioChanged,
 		PolicySystemModeChanged,
+		PolicyCollaborationChanged,
+		PolicyThirdPartyGraphicsPowerStateChanged,
+		PolicyAppBroadcastListen,
 		Max
 	};
 

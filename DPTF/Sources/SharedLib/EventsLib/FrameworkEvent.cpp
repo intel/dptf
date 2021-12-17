@@ -217,12 +217,18 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyExternalMonitorStateChanged, 0, EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyUserInteractionChanged, 0, OS_USER_INTERACTION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyForegroundRatioChanged, 0, FOREGROUND_BACKGROUND_RATIO_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyCollaborationChanged, 0, COLLABORATION_CHANGED);
 	INIT_EVENT(PolicySystemModeChanged, 0);
+	INIT_EVENT(PolicyTableObjectChanged, 0);
+	INIT_EVENT_WITH_GUID(PolicyThirdPartyGraphicsPowerStateChanged, 0, TPG_POWER_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyAppBroadcastListen, 0, APP_BROADCAST_UNPRIVILEGED);
+	INIT_EVENT_WITH_GUID(PolicyAppBroadcastSend, 0, APP_BROADCAST);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloading, 0, APP_UNLOADING);
-	INIT_EVENT_WITH_GUID(DptfAppAliveRequest, 0, DTT_ALIVE_REQUEST);
+	INIT_EVENT_WITH_GUID(DptfAppAliveRequest, 0, DTT_ALIVE_REQUEST);	
+	
 	INIT_EVENT(DptfCommand, 0);
 }
 

@@ -199,7 +199,7 @@ int EsifUfTraceMessageArgs(
 		timestamp[20] = 0; // truncate year
 
 		va_copy(args, arglist);
-		msglen = esif_ccb_vscprintf(msg, args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(timestamp, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + TRACE_MESSAGE_PADDING;
+		msglen = esif_ccb_vscprintf(msg, args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(timestamp, sizeof(timestamp)) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + TRACE_MESSAGE_PADDING;
 		va_end(args);
 		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
 		buffer = (char *)esif_ccb_malloc(msglen);
