@@ -101,6 +101,7 @@
 #define SYSFS_FIVR_PCH_NODE_SET "freq_mhz_high_clock"
 #define SYSFS_FIVR_PCH_NODE_GET "fivr_switching_freq_mhz"
 #define SYSF_FIVR_PCH_SSC       "ssc_clock_info"
+#define SYSF_FIVR_PCH_VER       "fivr_switching_fault_status"
 #define SYSFS_THERMAL           "/sys/class/thermal"
 #define SYSFS_EPP_PATH          "/sys/bus/cpu/devices/cpu%d/cpufreq"
 #define SYSFS_GFX_PATH		"/sys/class/drm/card0/"
@@ -238,6 +239,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_RFPROFILE_SSC_PCH = 'PSSG',
 	ESIF_SYSFS_GET_BATTERY_MAX_PEAK_CURRENT = 'ppmc',
 	ESIF_SYSFS_GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION = 'RAFG',
+	ESIF_SYSFS_GET_FIVR_VER_PCH = 'PVFG',
 	ESIF_SYSFS_SET_CPU_PSTATE = 'SPCS',
 	ESIF_SYSFS_SET_GFX_PSTATE = 'SPGS',
 	ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY = 'FCRS',
@@ -934,6 +936,15 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			                sscPercentage = ((sscRegisterValue - ESIF_FIVR_SSC_0_2_RES_MIN_REG_VAL) * ESIF_FIVR_SSC_0_2_RES) + ESIF_FIVR_SSC_0_2_RES_MIN_PER;
 				}
 				*(UInt32 *) responsePtr->buf_ptr = (UInt32) sscPercentage;
+                                break;
+			case ESIF_SYSFS_GET_FIVR_VER_PCH:
+				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
+				if (SysfsGetInt64(cur_node_name, SYSF_FIVR_PCH_VER, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+		                        rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		                        ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+		                        goto exit;
+	                        }
+				*(UInt32 *) responsePtr->buf_ptr = (UInt32) sysval;
                                 break;
 			case ESIF_SYSFS_GET_RFPROFILE_MAX_FREQUENCY:
 				rc = GetCrystalClockFrequency(&crystalClockFreq);
