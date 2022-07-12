@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,30 +23,9 @@
 
 namespace PpmPackage
 {
-	struct PpmParam
-	{
-		UIntN ppmType;
-		esif_guid_t subgroupGuid;
-		esif_guid_t paramGuid;
-		UIntN paramValue;
-		UIntN betterBattery;
-		UIntN betterPerformance;
-		UIntN powerSource;
-	};
+	const UInt32 Invalid = 0;
+	const UInt32 MaxNumberOfPackages = 20;
 
-	enum Type
-	{
-		P1 = 1,
-		P2 = 2,
-		P3 = 3,
-		P4 = 4,
-		P5 = 5,
-		P6 = 6,
-		Invalid = 0
-	};
-
-	std::string toString(PpmPackage::Type package);
-	PpmPackage::Type toState(std::string state);
-	PpmPackage::Type fromString(const std::string package);
-	PpmPackage::Type toState(UInt32 state);
+	std::string toString(UInt32 package);
+	UInt32 fromString(std::string package);
 }

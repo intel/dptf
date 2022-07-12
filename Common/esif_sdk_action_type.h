@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -106,10 +106,11 @@ typedef enum esif_action_type {
 	ESIF_ACTION_USBCM = 76,
 	ESIF_ACTION_USBFAN = 49,
 	ESIF_ACTION_VIRTUAL = 39,
+	ESIF_ACTION_VPU = 84,
 } esif_action_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_CAPI
+#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_VPU
 
 static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 {
@@ -160,6 +161,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_USBCM);
 	ESIF_CASE_ENUM(ESIF_ACTION_USBFAN);
 	ESIF_CASE_ENUM(ESIF_ACTION_VIRTUAL);
+	ESIF_CASE_ENUM(ESIF_ACTION_VPU);
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -220,6 +222,7 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_USBCM),
 		ESIF_MAP_ENUM(ESIF_ACTION_USBFAN),
 		ESIF_MAP_ENUM(ESIF_ACTION_VIRTUAL),
+		ESIF_MAP_ENUM(ESIF_ACTION_VPU),
 	};
 
 	/* Match ESIF_ACTION_TYPENAME or TYPENAME using a Binary Search */
@@ -253,6 +256,7 @@ enum esif_action_msr_hint {
 	ESIF_ACTION_MSR_HINT_MAX = 2,
 	ESIF_ACTION_MSR_HINT_MIN = 3,
 	ESIF_ACTION_MSR_HINT_MUL = 4,
+	ESIF_ACTION_MSR_HINT_SPECIFIC = 5,
 };
 
 static ESIF_INLINE esif_string esif_action_msr_hint_str(
@@ -264,6 +268,7 @@ static ESIF_INLINE esif_string esif_action_msr_hint_str(
 	ESIF_CASE_ENUM(ESIF_ACTION_MSR_HINT_MAX);
 	ESIF_CASE_ENUM(ESIF_ACTION_MSR_HINT_MIN);
 	ESIF_CASE_ENUM(ESIF_ACTION_MSR_HINT_MUL);
+	ESIF_CASE_ENUM(ESIF_ACTION_MSR_HINT_SPECIFIC);
 	}
 	return ESIF_NOT_AVAILABLE;
 }

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -255,6 +255,12 @@ enum esif_rc esif_lp_get_dmn_by_id(
 enum esif_rc esif_lp_check_msr_whitelist(
 	const struct esif_lp *self,
 	const u32 msr,
+	const enum whitelist_access req_access
+	);
+
+enum esif_rc esif_lp_check_ocmb_allowlist(
+	const struct esif_lp *self,
+	const u32 cmd,
 	const enum whitelist_access req_access
 	);
 

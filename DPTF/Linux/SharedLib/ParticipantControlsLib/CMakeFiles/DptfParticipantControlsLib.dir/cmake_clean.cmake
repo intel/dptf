@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "../../x64/release/DptfParticipantControlsLib.a"
+  "../../x64/release/DptfParticipantControlsLib.a.debug"
+  "../../x64/release/DptfParticipantControlsLib.pdb"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/ActiveControl.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/ActiveControlDynamicCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/ActiveControlSet.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/ActiveControlStaticCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/ActiveControlStatus.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/CoreActivityInfo.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/CoreControlDynamicCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/CoreControlLpoPreference.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/CoreControlOffliningMode.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/CoreControlStaticCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/CoreControlStatus.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/DisplayControl.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/DisplayControlDynamicCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/DisplayControlSet.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/DisplayControlStatus.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/EnergyCounterInfo.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PerformanceControl.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PerformanceControlDynamicCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PerformanceControlSet.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PerformanceControlStaticCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PerformanceControlStatus.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PowerControlDynamicCaps.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PowerControlDynamicCapsSet.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/PowerStatus.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/RfProfileCapabilities.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/RfProfileData.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/RfProfileDataSet.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/RfProfileSupplementalData.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/TemperatureStatus.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/TemperatureThresholds.cpp.o"
+  "CMakeFiles/DptfParticipantControlsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/ParticipantControlsLib/UtilizationStatus.cpp.o"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/DptfParticipantControlsLib.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

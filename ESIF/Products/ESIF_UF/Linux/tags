@@ -1,0 +1,22 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BUILD	Makefile	/^BUILD     := Release$/;"	m
+CC	Makefile	/^CC := gcc$/;"	m
+ESIF_CM_SOURCES	Makefile	/^ESIF_CM_SOURCES := $(ESIF_SOURCES)\/ESIF_CM\/Sources$/;"	m
+ESIF_LIB_SOURCES	Makefile	/^ESIF_LIB_SOURCES := $(ESIF_SOURCES)\/ESIF_LIB\/Sources$/;"	m
+ESIF_SDK_SOURCES	Makefile	/^ESIF_SDK_SOURCES := $(ESIF_SOURCES)\/..\/..\/Common$/;"	m
+ESIF_SOURCES	Makefile	/^ESIF_SOURCES := ..\/..$/;"	m
+ESIF_UF_SOURCES	Makefile	/^ESIF_UF_SOURCES := $(ESIF_SOURCES)\/ESIF_UF\/Sources$/;"	m
+GCC_STRONG	Makefile	/^GCC_STRONG := $(shell expr `($(CC) -dumpfullversion 2>\/dev\/null || $(CC) -dumpversion) | cut -d'.' -f1,2,3 | sed -e 's\/\\.\\([0-9]\\)$$\/0\\1\/' | sed -e 's\/\\.\/\/g' ` \\>= 409)$/;"	m
+LDLIBS	Makefile	/^LDLIBS := -lpthread -ldl -lrt -lm$/;"	m
+OBJ	Makefile	/^OBJ := $(ESIF_UF_SOURCES)\/lin\/main.o$/;"	m
+OPT_DBUS	Makefile	/^	OPT_DBUS = 1$/;"	m
+OPT_DBUS	Makefile	/^OPT_DBUS  := 0$/;"	m
+OPT_GMIN	Makefile	/^OPT_GMIN  := 1$/;"	m
+OS	Makefile	/^OS        := Linux$/;"	m
+PKG_CONFIG	Makefile	/^	PKG_CONFIG ?= pkg-config$/;"	m
+PLAT	Makefile	/^PLAT      := x64$/;"	m

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "esif_uf_event_cache.h"
 #include "esif_ccb_lock.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_pm.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -43,6 +44,7 @@ typedef struct EsifEventCacheMgr_s {
 
 typedef struct EsifEventCacheEntry_s {
 	esif_event_type_t eventType;
+	Bool mustRegister;
 	EsifData data;
 } EsifEventCacheEntry;
 
@@ -52,24 +54,38 @@ typedef struct EsifEventCacheEntry_s {
 ///////////////////////////////////////////////////////////////////////////////
 
 static EsifEventCacheEntry g_CachedEvents[] = {
-	{ESIF_EVENT_OS_POWER_SOURCE_CHANGED,			{0}},
-	{ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED,			{0}},
-	{ESIF_EVENT_OS_DOCK_MODE_CHANGED,				{0}},
-	{ESIF_EVENT_OS_GAME_MODE_CHANGED,				{0}},
-	{ESIF_EVENT_OS_LID_STATE_CHANGED,				{0}},
-	{ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED,		{0}},
-	{ESIF_EVENT_OS_SCREEN_STATE_CHANGED,			{0}},
-	{ESIF_EVENT_DTT_SYSTEM_COOLING_POLICY_CHANGED,	{0}},
-	{ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED,			{0}},
-	{ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED,	{0}},
-	{ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED,		{0}},
-	{ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED,{0}},
-	{ESIF_EVENT_COLLABORATION_CHANGED,              {0}},
+	{ESIF_EVENT_OS_POWER_SOURCE_CHANGED,			ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED,			ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_DOCK_MODE_CHANGED,				ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_GAME_MODE_CHANGED,				ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_LID_STATE_CHANGED,				ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED,		ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_SCREEN_STATE_CHANGED,			ESIF_TRUE, {0}},
+	{ESIF_EVENT_DTT_SYSTEM_COOLING_POLICY_CHANGED,	ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED,			ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED,	ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED,		ESIF_TRUE, {0}},
+	{ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED,ESIF_TRUE, {0}},
+	{ESIF_EVENT_COLLABORATION_CHANGED,              ESIF_TRUE, {0}},
+	{ESIF_EVENT_OS_USER_PRESENCE_CHANGED,           ESIF_FALSE, {0}},
+	{ESIF_EVENT_DEVICE_ORIENTATION_CHANGED,         ESIF_FALSE, {0}},
+	{ESIF_EVENT_MOTION_CHANGED,						ESIF_FALSE, {0}},
+	{ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED,        ESIF_FALSE, {0}},
 };
 
 #define ESIF_EVENT_CACHE_NUM_ENTRIES (sizeof(g_CachedEvents) / sizeof(*g_CachedEvents))
 
 static EsifEventCacheMgr g_EventCacheMgr = { 0 };
+
+/* Private friend functions for the Event Manger use only */
+esif_error_t EsifEventCache_UpdateData(
+	esif_event_type_t eventType,
+	esif_handle_t participantId,
+	UInt16 domainId,
+	EsifDataPtr eventDataPtr
+	);
+
+Bool EsifEventCache_IsEventCacheable(esif_event_type_t eventType);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Function Definitions
@@ -189,6 +205,46 @@ exit:
 }
 
 
+/* Private friend function for the Event Manger use only */
+esif_error_t EsifEventCache_UpdateData(
+	esif_event_type_t eventType,
+	esif_handle_t participantId,
+	UInt16 domainId,
+	EsifDataPtr eventDataPtr
+	)
+{
+	esif_error_t rc = ESIF_OK;
+	EsifFpcEvent fpcEvent = { 0 };
+
+	fpcEvent.esif_event = eventType;
+
+	if (EsifUpPm_IsPrimaryParticipantId(participantId)) {
+		rc = EsifEventCache_EventCallback(0, participantId, domainId, &fpcEvent, eventDataPtr);
+	}
+
+	return rc;
+}
+
+
+Bool EsifEventCache_IsEventCacheable(
+	esif_event_type_t eventType
+	)
+{
+	Bool isCacheable = ESIF_FALSE;
+	EsifEventCacheEntry *curEntryPtr = g_CachedEvents;
+	size_t index = 0;
+
+	for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
+		if (eventType == curEntryPtr->eventType) {
+			isCacheable = ESIF_TRUE;
+			break;
+		}
+	}
+	return isCacheable;
+}
+
+
+
 esif_error_t EsifEventCache_Init(void)
 {
 	esif_ccb_lock_init(&g_EventCacheMgr.dataLock);
@@ -213,7 +269,9 @@ esif_error_t EsifEventCache_Start(void)
 	g_EventCacheMgr.isStarted = ESIF_TRUE;
 
 	for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
-		EsifEventMgr_RegisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
+		if (curEntryPtr->mustRegister) {
+			EsifEventMgr_RegisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
+		}
 	}
 #endif
 	return rc;
@@ -229,7 +287,10 @@ void EsifEventCache_Stop(void)
 
 	if (g_EventCacheMgr.isStarted) {
 		for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
-			EsifEventMgr_UnregisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
+
+			if (curEntryPtr->mustRegister) {
+				EsifEventMgr_UnregisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
+			}
 
 			esif_ccb_free(curEntryPtr->data.buf_ptr);
 			curEntryPtr->data.buf_ptr = NULL;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,6 +57,8 @@ namespace DomainType
 														{IdgfxCore, "IdgfxCore"},
 														{Idgfx2, "Idgfx2"},
 														{Nvdgx, "Nvdgx"},
+														{Pcie, "Pcie"},
+														{Vpu, "Vpu"},
 														{All, "All"},
 														{Invalid, Constants::NotAvailableString}};
 
@@ -150,6 +152,10 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::Idgfx2;
 	case ESIF_DOMAIN_TYPE_NVDGX:
 		return DomainType::Nvdgx;
+	case ESIF_DOMAIN_TYPE_PCIE:
+		return DomainType::Pcie;
+	case ESIF_DOMAIN_TYPE_VPU:
+		return DomainType::Vpu;
 	case ESIF_DOMAIN_TYPE_ALL:
 		return DomainType::All;
 	case ESIF_DOMAIN_TYPE_INVALID:
@@ -237,6 +243,10 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_IDGFX2;
 	case DomainType::Nvdgx:
 		return ESIF_DOMAIN_TYPE_NVDGX;
+	case DomainType::Pcie:
+		return ESIF_DOMAIN_TYPE_PCIE;
+	case DomainType::Vpu:
+		return ESIF_DOMAIN_TYPE_VPU;
 	case DomainType::All:
 		return ESIF_DOMAIN_TYPE_ALL;
 	case DomainType::Invalid:

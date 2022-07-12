@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -313,6 +313,7 @@ void DataManager::loadTableRevisions()
 	m_tableRevisions.insert({TableObjectType::Itmt, 1});
 	m_tableRevisions.insert({TableObjectType::Epot, 1});
 	m_tableRevisions.insert({TableObjectType::Tpga, 1});
+	m_tableRevisions.insert({TableObjectType::SwOemVariables, 1});
 }
 
 void DataManager::loadTableObjectMap()
@@ -437,12 +438,29 @@ void DataManager::loadTableObjectMap()
 		  {{DataVaultType::Override, dataVaultString}}}});
 
 	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Tpga);
+	noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Tpga);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
 	m_tableObjectMap.insert(
 		{TableObjectType::Tpga,
 		 {TableObjectType::Tpga,
 		  {{"fld1", "fld1", ESIF_DATA_STRING},
 		   {"fld2", "fld2", ESIF_DATA_UINT64}, 
 		   {"fld3", "fld3", ESIF_DATA_UINT64}},
-		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
+
+	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::SwOemVariables);
+	noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::SwOemVariables);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+	m_tableObjectMap.insert(
+		{TableObjectType::SwOemVariables,
+		 {TableObjectType::SwOemVariables,
+		  {{"fld1", "fld1", ESIF_DATA_UINT64},
+		   {"fld2", "fld2", ESIF_DATA_UINT64}},
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
 		  {{DataVaultType::Override, dataVaultString}}}});
 }

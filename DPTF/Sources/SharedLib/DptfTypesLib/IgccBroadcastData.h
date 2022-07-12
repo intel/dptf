@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,9 +23,10 @@
 const Guid IGCC_BROADCAST_GUID(0xD6, 0x24,0xDB,0xA2,0xEC,0xD8,0x48,0x2C,0xAB,0x7F,0xC9, 0xA8, 0x61, 0xAA, 0x6D, 0x72); // d624dba2-ecd8-482c-ab7f-c9a861aa6d72
 const Guid IGCC_SEND_GUID(0xB3, 0xB3, 0xCF, 0xE6, 0xA5, 0x9C, 0x4C, 0xB6, 0xBD, 0x99, 0x7E, 0xDF, 0x4F, 0xE1, 0xF4, 0xBB); // b3b3cfe6-a59c-4cb6-bd99-7edf4fe1f4bb
 const UInt32 IGCC_DATA_PAYLOAD_LENGTH = 3;
-const UInt8 IGCC_TOTAL_AVAILABLE_LEVELS = 6;
 const UInt8 INVALID_PPM = 0;
 const UInt64 ENDURANCE_GAMING_HEART_BEAT = 20; //unit: seconds
+const UInt8 ENDURANCE_GAMING_DIRECTION_UP = 1; 
+const UInt8 ENDURANCE_GAMING_DIRECTION_DOWN = 0; 
 
 namespace EnduranceGamingStatus
 {
@@ -41,6 +42,8 @@ namespace EnduranceGamingStatus
 		EnduranceGamingErrorInvalidPpm = 7
 	};
 }
+
+
 
 namespace IgccBroadcastData
 {

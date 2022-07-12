@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -67,6 +67,8 @@ char *esif_cmd_info(char *output);
 
 extern esif_error_t CreateParticipantFromJson(esif_string jsonStr);
 extern esif_error_t CreateDynamicParticipants();
+extern esif_error_t CreatePcieParticipant();
+extern esif_error_t CreateVpuParticipant();
 
 #ifdef __cplusplus
 }

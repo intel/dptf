@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,8 +37,9 @@
 #include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
+#include <poll.h>
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2022 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #ifdef ESIF_ATTR_OS_ANDROID
@@ -67,6 +68,16 @@ static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
 static char *g_udev_target = NULL;
 
+static esif_thread_t gSysfsReadThread;
+static Bool gSysfsReadQuit = ESIF_TRUE;
+
+static Bool EsifSysfsReadIsStarted();
+static void EsifSysfsReadStart();
+static void EsifSysfsReadStop();
+static void *EsifSysfsReadListen(void *ptr);
+static void EsifSysfsReadExit();
+static Bool EsifSysfsPollEvent();
+static Bool EsifSysfsPeriodicPolling();
 /* Dedicated thread pool to handle SIGRTMIN timer signals */
 static esif_thread_t *g_sigrtmin_thread_pool;
 static Bool g_os_quit = ESIF_FALSE; /* global flag to supress KW flagging as while(1) alternative */
@@ -155,10 +166,10 @@ static const esif_string ESIF_PATHLIST =
 	"DATA=/usr/share/dptf/ui\n"
 #else
 	// Generic Linux
-	"HOME=/usr/share/dptf/log\n"
+	"HOME=/var/log/dptf\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
-	"LOG=/usr/share/dptf/log\n"
+	"LOG=/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
 	"LOCK=$/var/run\n"
 	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
@@ -327,11 +338,11 @@ static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, in
 		}
 		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(temp_eq, sizeof(temp_eq))
 				&& esif_ccb_strncmp(buffer + i, temp_eq, esif_ccb_strlen(temp_eq, sizeof(temp_eq))) == 0) {
-				*temp= atoi(buffer + i + esif_ccb_strlen(temp_eq, sizeof(temp_eq)));
+				*temp= esif_atoi(buffer + i + esif_ccb_strlen(temp_eq, sizeof(temp_eq)));
 		}
 		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(event_eq, sizeof(event_eq))
 				&& esif_ccb_strncmp(buffer + i, event_eq, esif_ccb_strlen(event_eq, sizeof(event_eq))) == 0) {
-				*event= atoi(buffer + i + esif_ccb_strlen(event_eq, sizeof(event_eq)));
+				*event= esif_atoi(buffer + i + esif_ccb_strlen(event_eq, sizeof(event_eq)));
 		}
 		i += esif_ccb_strlen(buffer + i, len - i) + 1;
 	}
@@ -1040,7 +1051,7 @@ void instance_unlock()
 		close(g_instance.lockfd);
 		g_instance.lockfd = 0;
 		esif_build_path(fullpath, sizeof(fullpath), ESIF_PATHTYPE_LOCK, g_instance.lockfile, NULL);
-		unlink(fullpath);
+		esif_ccb_unlink(fullpath);
 	}
 }
 
@@ -1071,6 +1082,20 @@ static void esif_udev_stop()
 		esif_udev_exit();
 	}
 }
+static void EsifSysfsReadStart()
+{
+	if (!EsifSysfsReadIsStarted()) {
+		gSysfsReadQuit = ESIF_FALSE;
+		esif_ccb_thread_create(&gSysfsReadThread, EsifSysfsReadListen, NULL);
+	}
+}
+
+static void EsifSysfsReadStop()
+{
+	if (esif_udev_is_started()) {
+		EsifSysfsReadExit();
+	}
+}
 
 void enumerate_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate)
 {
@@ -1080,6 +1105,19 @@ void enumerate_available_uf_participants(EnumerableUFParticipants typeOfUFPartic
 void register_events_for_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate)
 {
 	// currently not used for linux
+}
+
+esif_error_t CreateEnumeratedParticipants()
+{
+	// currently not used for linux
+	return ESIF_OK;
+}
+
+esif_error_t CreateActionAssociatedParticipants(esif_action_type_t actionType)
+{
+	// currently not used for linux
+	UNREFERENCED_PARAMETER(actionType);
+	return ESIF_OK;
 }
 
 static void esif_udev_exit()
@@ -1096,11 +1134,176 @@ static void esif_udev_exit()
 	esif_ccb_free(g_udev_target);
 }
 
+static void EsifSysfsReadExit()
+{
+	gSysfsReadQuit = ESIF_TRUE;
+
+	pthread_cancel(gSysfsReadThread);
+	esif_ccb_thread_join(&gSysfsReadThread);
+}
+
 static Bool esif_udev_is_started()
 {
 	return !g_udev_quit;
 }
 
+static Bool EsifSysfsReadIsStarted()
+{
+	return !gSysfsReadQuit;
+}
+
+#ifdef ESIF_FEAT_SYSFS_POLL
+static Bool EsifSysfsPeriodicPolling()
+{
+	//Open the Fds
+	for (UInt32 i = 0; i < gNumberOfSysfsReadEntries; i++) {
+		/* The IsValidFilePath() filters out all the invalid sysfs path */
+		Int32 fd = open(gSysfsReadTable[i].sysfsPath, O_RDONLY);
+		if (fd < 0) {
+			CMD_DEBUG("Failed to open sysfs attribute : %s\n", gSysfsReadTable[i].sysfsPath);
+			return ESIF_FALSE;
+		}
+		gSysfsReadTable[i].fd = fd;
+	}
+
+	/* Poll the FDs for change in values */
+	while(!gSysfsReadQuit) {
+		for ( UInt32 i = 0 ; i < gNumberOfSysfsReadEntries ; i++) {
+			if (gSysfsReadTable[i].fd > 0 ) {
+				Int64 value = 0;
+				if (SysfsGetInt64Direct(gSysfsReadTable[i].fd, &value) <= 0) {
+					ESIF_TRACE_ERROR("Failed to get sysfs attribute value : %s\n", gSysfsReadTable[i].sysfsPath);
+					return ESIF_FALSE;
+				}
+				if (value != gSysfsReadTable[i].value) {
+					ESIF_TRACE_DEBUG("\n Attribute changed(%s) : %s",gSysfsReadTable[i].participantName, gSysfsReadTable[i].sysfsPath);
+					ESIF_TRACE_DEBUG("\n Old Value : %d New Value : %d",gSysfsReadTable[i].value, value);
+					EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByName(gSysfsReadTable[i].participantName);
+					if ( upPtr != NULL ) {
+						EsifEventMgr_SignalEvent(
+							EsifUp_GetInstance(upPtr), 
+							EVENT_MGR_DOMAIN_NA, 
+							gSysfsReadTable[i].eventType, 
+							NULL
+							);
+						EsifUp_PutRef(upPtr);
+					}
+					gSysfsReadTable[i].value = value; 
+				}
+			}
+		}
+		// Poll for every 1s interval
+		esif_ccb_sleep_msec(1000);
+	}
+	// Close the fds
+	for ( UInt32 i = 0 ; i < gNumberOfSysfsReadEntries ; i++) {
+		if (gSysfsReadTable[i].fd > 0 ) {
+			close(gSysfsReadTable[i].fd);
+			esif_ccb_memset(&gSysfsReadTable[i], 0 , sizeof(gSysfsReadTable[i]));
+		}
+	}
+	return ESIF_TRUE;
+}
+#endif
+static Bool EsifSysfsPollEvent()
+{
+
+	Bool oneTime = ESIF_TRUE;
+	struct pollfd *sysfs_fds = (struct pollfd *)esif_ccb_malloc((gNumberOfSysfsReadEntries * sizeof(struct pollfd)));
+	if (sysfs_fds == NULL) {
+		CMD_DEBUG(" Failed to allocate memory for sysfs_fds");
+		goto exit;
+	}
+
+	while(!gSysfsReadQuit) {
+		for (UInt32 i = 0; i < gNumberOfSysfsReadEntries; i++) {
+			/* The IsValidFilePath() filters out all the invalid sysfs path */
+			gSysfsReadTable[i].fd = open(gSysfsReadTable[i].sysfsPath, O_RDONLY);
+			if (gSysfsReadTable[i].fd < 0) {
+				CMD_DEBUG("Failed to open sysfs attribute : %s\n", gSysfsReadTable[i].sysfsPath);
+				goto exit;
+			}
+			sysfs_fds[i].fd = gSysfsReadTable[i].fd;
+			sysfs_fds[i].events = POLLPRI|POLLERR;
+			if (SysfsGetInt64Direct(gSysfsReadTable[i].fd, &gSysfsReadTable[i].value) <= 0) {
+				CMD_DEBUG("Failed to get sysfs attribute value for %s\n", gSysfsReadTable[i].sysfsPath);
+				goto exit;
+			}
+			if (oneTime) {
+				EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByName(gSysfsReadTable[i].participantName);
+				if ( upPtr != NULL ) {
+					EsifEventMgr_SignalEvent(
+					EsifUp_GetInstance(upPtr),
+					EVENT_MGR_DOMAIN_NA,
+					gSysfsReadTable[i].eventType,
+					NULL
+					);
+					EsifUp_PutRef(upPtr);
+				}
+			}
+		}
+
+		oneTime = ESIF_FALSE;
+		// poll wait for an event to happen on all the sysfs fds.
+		if (poll(sysfs_fds, gNumberOfSysfsReadEntries, -1) < 0 ) {
+			ESIF_TRACE_ERROR("Failed attempt on sysfs poll wait\n");
+			goto exit;
+		}
+
+		for (UInt32 i = 0; i < gNumberOfSysfsReadEntries; i++) {
+			if (sysfs_fds[i].revents != 0 && gSysfsReadTable[i].fd > 0) {
+				Int64 value = 0;
+				if (SysfsGetInt64Direct(gSysfsReadTable[i].fd, &value) <= 0) {
+					ESIF_TRACE_ERROR("Failed to get sysfs attribute value : %s\n", gSysfsReadTable[i].sysfsPath);
+					goto exit;
+				}
+				ESIF_TRACE_DEBUG("\n Attribute changed(%s) : %s",gSysfsReadTable[i].participantName, gSysfsReadTable[i].sysfsPath);
+				ESIF_TRACE_DEBUG("\n Old Value : %d New Value : %d",gSysfsReadTable[i].value, value);
+				gSysfsReadTable[i].value = value;
+				EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByName(gSysfsReadTable[i].participantName);
+				if ( upPtr != NULL ) {
+					EsifEventMgr_SignalEvent(
+					EsifUp_GetInstance(upPtr),
+					EVENT_MGR_DOMAIN_NA,
+					gSysfsReadTable[i].eventType,
+					NULL
+					);
+					EsifUp_PutRef(upPtr);
+				}
+			}
+		}
+
+		// Close the fds
+		for (UInt32 i = 0 ; i < gNumberOfSysfsReadEntries ; i++) {
+			if (gSysfsReadTable[i].fd > 0) {
+				close(gSysfsReadTable[i].fd);
+			}
+		}
+	}
+	esif_ccb_free(sysfs_fds);
+	return ESIF_TRUE;
+exit:
+	esif_ccb_free(sysfs_fds);
+	return ESIF_FALSE;
+}
+
+static void *EsifSysfsReadListen(void *ptr)
+{
+	UNREFERENCED_PARAMETER(ptr);
+
+#ifdef ESIF_FEAT_SYSFS_POLL
+	if(!EsifSysfsPeriodicPolling())
+		goto exit;
+#else
+	if(!EsifSysfsPollEvent())
+		goto exit;
+#endif
+	ESIF_TRACE_INFO("Exiting thread EsifSysfsReadListen...\n");
+	return NULL;
+exit:
+	ESIF_TRACE_INFO("Exiting thread EsifSysfsReadListen with Error...\n");
+	return NULL;
+}
 
 static void *esif_udev_listen(void *ptr)
 {
@@ -1113,14 +1316,14 @@ static void *esif_udev_listen(void *ptr)
 		goto exit;
 	}
 
-	memset(&sock_addr_src, 0, sizeof(sock_addr_src));
+	esif_ccb_memset(&sock_addr_src, 0, sizeof(sock_addr_src));
 	sock_addr_src.nl_family = AF_NETLINK;
 	sock_addr_src.nl_pid = getpid();
 	sock_addr_src.nl_groups = -1;
 
 	bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src));
 
-	memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
+	esif_ccb_memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
 	sock_addr_dest.nl_family = AF_NETLINK;
 	sock_addr_dest.nl_pid = 0;
 	sock_addr_dest.nl_groups = 0;
@@ -1129,7 +1332,7 @@ static void *esif_udev_listen(void *ptr)
 	if (netlink_msg == NULL) {
 		goto exit;
 	}
-	memset(netlink_msg, 0, NLMSG_SPACE(MAX_PAYLOAD));
+	esif_ccb_memset(netlink_msg, 0, NLMSG_SPACE(MAX_PAYLOAD));
 	netlink_msg->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
 	netlink_msg->nlmsg_pid = getpid();
 	netlink_msg->nlmsg_flags = 0;
@@ -1297,7 +1500,7 @@ void* dbus_listen()
 		return NULL;
 	}
 
-	dbus_bus_add_match(g_dbus_conn, "type='signal'", &err);
+	dbus_bus_add_match(g_dbus_conn, "type='signal', sender='org.chromium.PowerManager'", &err);
 	if (dbus_error_is_set(&err)) {
 		fprintf(stderr, "Connection Error (%s)\n", err.message);
 		dbus_error_free(&err);
@@ -1407,7 +1610,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	/* 7. Open file descriptors 0, 1, and 2 and redirect */
 	/* stdin */
 	if (ESIF_TRUE == start_with_log) {
-		unlink(cmd_out);
+		esif_ccb_unlink(cmd_out);
 		stdinfd = open (cmd_out, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	}
 	else {
@@ -1438,6 +1641,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	/* uevent listener */
 	esif_udev_start();
 #endif
+	EsifSysfsReadStart();
 
 	/* Start D-Bus listener thread if necessary */
 #ifdef ESIF_FEAT_OPT_DBUS
@@ -1463,7 +1667,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 			}
 		}
 		if (ESIF_TRUE == start_with_pipe) {
-			unlink(cmd_in);
+			esif_ccb_unlink(cmd_in);
 		}
 	}
 
@@ -1475,7 +1679,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 			start_with_pipe = ESIF_FALSE;
 		}
 		else {
-			unlink(cmd_in);
+			esif_ccb_unlink(cmd_in);
 			if (-1 == mkfifo(cmd_in, S_IROTH)) {
 				start_with_pipe = ESIF_FALSE;
 			}
@@ -1553,6 +1757,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	/* uevent listener */
 	esif_udev_start();
 #endif
+	EsifSysfsReadStart();
 
 	/* Start D-Bus listener thread if necessary */
 #ifdef ESIF_FEAT_OPT_DBUS
@@ -1855,6 +2060,7 @@ void esif_uf_os_exit ()
 {
 	/* Stop uevent listener */
 	esif_udev_stop();
+	EsifSysfsReadStop();
 
 	/* If uevent listener thread is canceled, the netlink_msg may not be freed yet */
 	esif_ccb_free(netlink_msg);

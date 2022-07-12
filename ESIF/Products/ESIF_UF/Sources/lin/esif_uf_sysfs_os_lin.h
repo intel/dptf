@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,22 @@
 #define MAX_SYSFS_STRING            (4 * 1024)
 #define MIN_INT64	            ((Int64) 0x8000000000000000)
 #define MAX_INT64	            ((Int64) 0x7FFFFFFFFFFFFFFF)
+typedef struct SysfsReadEntry_t {
+	char participantName[ESIF_NAME_LEN];
+	char sysfsPath[ESIF_PATH_LEN];
+	UInt32 eventType;
+	Int32 fd;
+	Int64 value;
+} SysfsReadEntry , *sysfsReadEntryPtr;
 
+typedef struct SysfsAttrToEventMap_s {
+	char attributeName[MAX_SYSFS_FILENAME];
+	UInt32 eventType;
+} SysfsAttrToEventMap , *SysfsAttrToEventMapPtr;
+
+#define MAX_SYSFS_READ_ENTRY_SIZE  (16)
+extern SysfsReadEntry gSysfsReadTable[MAX_SYSFS_READ_ENTRY_SIZE];
+extern UInt32 gNumberOfSysfsReadEntries;
 #pragma pack(push, 1)
 
 typedef struct _PerfCpuMapping {

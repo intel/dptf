@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -42,6 +42,7 @@ CPPFLAGS += -DESIF_ATTR_USER
 CPPFLAGS += -DESIF_ATTR_DAEMON
 CPPFLAGS += -DESIF_FEAT_OPT_COMPRESS
 #CPPFLAGS += -DESIF_FEAT_EPP_MAILBOX
+#CPPFLAGS += -DESIF_FEAT_SYSFS_POLL
 
 CFLAGS  += -Wno-multichar
 CFLAGS  += -Werror
@@ -112,6 +113,7 @@ ifeq ($(OPT_DBUS), 1)
 	LDFLAGS += $(shell $(PKG_CONFIG) --libs dbus-1)
 endif
 
+ifneq ($(OS), Chrome)
 # make BUILD=Debug
 # -s  flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
@@ -120,6 +122,7 @@ ifeq ($(BUILD), Debug)
 	CPPFLAGS += -DESIF_ATTR_MEMTRACE
 else
 	CFLAGS += -s     
+endif
 endif
 
 $(info ++++ )

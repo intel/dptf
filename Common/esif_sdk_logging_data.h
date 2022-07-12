@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,6 +54,7 @@
 #pragma once
 
 #include "esif_sdk_data.h"
+#include "esif_sdk_data_misc.h"
 
 #ifdef ESIF_ATTR_USER
 
@@ -260,6 +261,7 @@ typedef struct _t_EsifManagerStatusData {
 	UInt32 foregroundBackgroundRatio;
 	UInt32 ppmPackage;
 	UInt32 collaboration;
+	EsifPpmParamValues ppmParamValues;
 } EsifManagerStatusData, * EsifManagerStatusDataPtr;
 
 /* Workload Classification Data */
@@ -270,6 +272,7 @@ typedef struct _t_EsifWorkloadClassification {
 /* Dynamic EPP Data */
 typedef struct _t_EsifDynamicEppControl {
 	UInt32 eppHint;
+	UInt32 eppValue;
 } EsifDynamicEppControl, * EsifDynamicEppControlPtr;
 
 typedef union _t_EsifCapability {

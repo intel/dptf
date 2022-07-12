@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "esif_sdk_data_misc.h"
 #include "TableObjectType.h"
 #include "DataManager.h"
+#include "esif_ccb_cpuid.h"
 
 PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData(
 	DptfManagerInterface* dptfManager,
@@ -195,6 +196,24 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getOemVariables(void)
 	throwIfNotWorkItemThread();
 
 	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_OEM_VARS, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getSwOemVariables(void)
+{
+	throwIfNotWorkItemThread();
+
+	return getDptfManager()->getDataManager()->getTableObject(TableObjectType::Type::SwOemVariables, Constants::EmptyString).getData();
+}
+
+void PolicyServicesPlatformConfigurationData::setSwOemVariables(const DptfBuffer& swOemVariablesData)
+{
+	throwIfNotWorkItemThread();
+
+	getDptfManager()->getDataManager()->setTableObject(
+		swOemVariablesData.size(),
+		swOemVariablesData.get(),
+		TableObjectType::SwOemVariables,
+		Constants::EmptyString);
 }
 
 UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIndex, UIntN domainIndex)
@@ -656,6 +675,18 @@ void PolicyServicesPlatformConfigurationData::resetEnergyPerformanceOptimizerTab
 	}
 }
 
+void PolicyServicesPlatformConfigurationData::resetThirdPartyGraphicsTable(void)
+{
+	try
+	{
+		getDptfManager()->getDataManager()->deleteTableObjectKeyForNoPersist(TableObjectType::Tpga);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
 void PolicyServicesPlatformConfigurationData::resetAllTables(void)
 {
 	resetActiveRelationshipTable();
@@ -685,24 +716,39 @@ Bool PolicyServicesPlatformConfigurationData::getDisplayRequired(void)
 	return false;
 }
 
-void PolicyServicesPlatformConfigurationData::setPpmPackage(UInt32 value)
+void PolicyServicesPlatformConfigurationData::setPpmPackage(DptfBuffer package)
 {
 	throwIfNotWorkItemThread();
-
-	getEsifServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
-		value,
-		Constants::Esif::NoParticipant,
-		Constants::Esif::NoDomain,
-		Constants::Esif::NoInstance);
-}
-
-void PolicyServicesPlatformConfigurationData::setPpmPackageSettings(PpmPackage::PpmParam param)
-{
-	throwIfNotWorkItemThread();
+	EsifPpmParamValuesHeader* pkgHeader = (EsifPpmParamValuesHeader *) package.get();
+	UInt32 numParams = pkgHeader->numberElement;
+	UInt32 ppmParameterSize = (numParams - 1) * sizeof(EsifPpmParamValues); // One less since package already accounts for one parameter
+	UInt32 ppmPackageSize = sizeof(EsifPpmParamValuesHeader) + ppmParameterSize;
 
 	getEsifServices()->primitiveExecuteSet(
-		SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
+		esif_primitive_type::SET_PPM_PARAM_VALUES,
+		ESIF_DATA_STRUCTURE, 
+		pkgHeader,
+		ppmPackageSize,
+		ppmPackageSize);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getPpmPackage(
+	DptfBuffer requestpackage
+	)
+{
+	throwIfNotWorkItemThread();
+
+	DptfBuffer buffer;
+
+	buffer = getEsifServices()->primitiveExecuteGetWithArgument(
+		esif_primitive_type::GET_PPM_PARAM_VALUES,
+		requestpackage, 
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance
+		);
+
+	return buffer;
 }
 
 void PolicyServicesPlatformConfigurationData::setPowerSchemeEpp(UInt32 value)
@@ -808,6 +854,13 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getTpgaTable(void)
 		.getData();
 }
 
+void PolicyServicesPlatformConfigurationData::setTpgaTable(DptfBuffer data)
+{
+	throwIfNotWorkItemThread();
+
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Tpga);
+}
+
 UInt32 PolicyServicesPlatformConfigurationData::getDynamicBoostState(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
@@ -829,10 +882,22 @@ void PolicyServicesPlatformConfigurationData::setDynamicBoostState(
 		esif_primitive_type::SET_DYNAMIC_BOOST_STATE, value, participantIndex, domainIndex);
 }
 
-UInt32 PolicyServicesPlatformConfigurationData::getTpgPowerState(UIntN participantIndex, UIntN domainIndex)
+UInt32 PolicyServicesPlatformConfigurationData::getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 
 	return getEsifServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_TPG_POWER_STATE, participantIndex, domainIndex);
+}
+
+UInt64 PolicyServicesPlatformConfigurationData::getPlatformCpuId()
+{
+	throwIfNotWorkItemThread();
+
+	esif_ccb_cpuid_t cpuInfo = { 0 };
+	cpuInfo.leaf = ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE;
+	esif_ccb_cpuid(&cpuInfo);
+	UInt64 platformCpuId = cpuInfo.eax & CPUID_FAMILY_MODEL_MASK;
+
+	return platformCpuId;
 }

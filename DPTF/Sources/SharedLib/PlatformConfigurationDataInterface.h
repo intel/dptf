@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,6 +55,8 @@ public:
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) = 0;
 	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) = 0;
 	virtual DptfBuffer getOemVariables(void) = 0;
+	virtual DptfBuffer getSwOemVariables(void) = 0;
+	virtual void setSwOemVariables(const DptfBuffer& swOemVariablesData) = 0;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl) = 0;
@@ -75,6 +77,7 @@ public:
 	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) = 0;
 	virtual void setEnergyPerformanceOptimizerTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getTpgaTable(void) = 0;
+	virtual void setTpgaTable(DptfBuffer data) = 0;
 	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) = 0;
@@ -84,14 +87,15 @@ public:
 	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) = 0;
 	virtual DptfBuffer getIntelligentThermalManagementTable(void) = 0;
 	virtual void setIntelligentThermalManagementTable(DptfBuffer data) = 0;
-	virtual void setPpmPackage(UInt32 value) = 0;
-	virtual void setPpmPackageSettings(PpmPackage::PpmParam param) = 0;
+	virtual void setPpmPackage(DptfBuffer package) = 0;
+	virtual DptfBuffer getPpmPackage(DptfBuffer package) = 0;
 	virtual void setActivePowerScheme() = 0;
 	virtual void setPowerSchemeEpp(UInt32 value) = 0;
 	virtual void setForegroundAppRatioPeriod(UInt32 value) = 0;
 	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) = 0;
-	virtual UInt32 getTpgPowerState(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt64 getPlatformCpuId() = 0;
 
 	virtual void clearPpmPackageSettings(void) = 0;
 };

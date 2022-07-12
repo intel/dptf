@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../x64/release/DptfDptfObjectsLib.a  CMakeFiles/DptfDptfObjectsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/DptfObjectsLib/BinaryParse.cpp.o CMakeFiles/DptfDptfObjectsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/DptfObjectsLib/RelationshipTableBase.cpp.o CMakeFiles/DptfDptfObjectsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/DptfObjectsLib/RelationshipTableEntryBase.cpp.o
+/usr/bin/ranlib ../../x64/release/DptfDptfObjectsLib.a

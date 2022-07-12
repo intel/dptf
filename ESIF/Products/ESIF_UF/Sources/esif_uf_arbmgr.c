@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -725,8 +725,13 @@ static EsifArbEntryParams g_wifiArbTable[] = {
 	{0} /* Mark end of table */
 };
 
-static EsifArbEntryParams g_displayArbTable[] = {
+static EsifArbEntryParams g_ietmArbTable[] = {
 	{SET_DISPLAY_BRIGHTNESS_SOFT, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{0} /* Mark end of table */
+};
+
+static EsifArbEntryParams g_fanArbTable[] = {
+	{SET_FAN_LEVEL, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{0} /* Mark end of table */
 };
 
@@ -1546,11 +1551,14 @@ static EsifArbCtx *EsifArbCtx_Create(
 	else {
 		upDataPtr = EsifUp_GetMetadata(upPtr);
 		if (upDataPtr) {
-			if (ESIF_DOMAIN_TYPE_WIRELESS == upDataPtr->fAcpiType) {
+			if (EsifUpPm_IsPrimaryParticipantId(EsifUp_GetInstance(upPtr))) {
+				EsifArbCtx_PopulateDefaultArbitrationTable(self, g_ietmArbTable);
+			}
+			else if (ESIF_DOMAIN_TYPE_WIRELESS == upDataPtr->fAcpiType) {
 				EsifArbCtx_PopulateDefaultArbitrationTable(self, g_wifiArbTable);
 			}
-			else if (ESIF_DOMAIN_TYPE_DISPLAY == upDataPtr->fAcpiType) {
-				EsifArbCtx_PopulateDefaultArbitrationTable(self, g_displayArbTable);
+			else if (ESIF_DOMAIN_TYPE_FAN == upDataPtr->fAcpiType) {
+				EsifArbCtx_PopulateDefaultArbitrationTable(self, g_fanArbTable);
 			}
 		}
 	}

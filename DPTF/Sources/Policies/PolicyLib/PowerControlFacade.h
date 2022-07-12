@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,7 +38,6 @@ public:
 	virtual void initializeControlsIfNeeded() override;
 	virtual void setControlsToMax() override;
 	virtual void setPL1PowerLimitControlToMax() override;
-	virtual void setPL1PowerLimitControlToMaxAndTimeWindowToMin() override;
 	virtual void setPL2PowerLimitControlToMax() override;
 	virtual void setCapability(const PowerControlDynamicCaps& capability) override;
 	virtual void refreshCapabilities() override;
@@ -101,4 +100,5 @@ private:
 	void setTimeWindowsWithinCapabilities();
 	void setPowerLimitsWithinCapabilities();
 	void throwIfControlNotSupported() const;
+	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

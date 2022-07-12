@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -63,7 +63,7 @@
  * 3 - Changed to provide IO target vs device for ACPI accesses in Windows
  * 4 - Added a void* context field to allow the dev ext for a given device to be specified for debugging
  */
-#define ESIF_PARTICIPANT_VERSION 4
+#define ESIF_PARTICIPANT_VERSION 5
 #define ESIF_PARTICIPANT_INVALID_TYPE ((u32)ESIF_DOMAIN_TYPE_INVALID)
 
 /* Flags */
@@ -80,6 +80,7 @@ typedef WDFIOTARGET acpi_handle;
 
 #define MSR_WHITELIST_TERMINATOR 0
 #define MMIO_WHITELIST_TERMINATOR 0
+#define OCMB_ALLOWLIST_TERMINATOR 0
 
 /* The order is such that access rights are increased with value */
 enum whitelist_access {
@@ -108,6 +109,11 @@ struct msr_whitelist_entry {
 struct mmio_whitelist_entry {
 	u32 start;
 	u32 end;
+	enum whitelist_access access;
+};
+
+struct ocmb_allowlist_entry {
+	u32 cmd;
 	enum whitelist_access access;
 };
 
@@ -156,6 +162,7 @@ struct esif_participant_iface {
 
 	struct msr_whitelist_entry *msr_wlist_ptr;
 	struct mmio_whitelist_entry *mmio_wlist_ptr;
+	struct ocmb_allowlist_entry *ocmb_alist_ptr;
 
 	void *context; /* Reserved */
 };

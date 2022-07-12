@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -161,12 +161,13 @@ static int IioDeviceFilter(const struct dirent *entry)
 	else return 0;
 };
 
-static void AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
+static eEsifError AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
 {
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
+	eEsifError rc = ESIF_OK;
 
 	if (!sensorPtr)
-		return;
+		return ESIF_E_PARAMETER_IS_NULL;
 
 	if (SysfsGetString(fullPath, "location", iioSysfsNode, sizeof(iioSysfsNode)) > 0) {
 		if (esif_ccb_strstr(iioSysfsNode, "base")) {
@@ -177,6 +178,11 @@ static void AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
 			if (NULL == gAccelLid) gAccelLid = sensorPtr;
 		}
 	}
+	else {
+		ESIF_TRACE_WARN("Accelerometer location is not found \n");
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+	return rc;
 }
 
 static void AccelGetScale(SensorPtr sensorPtr, char *fullPath)
@@ -187,6 +193,8 @@ static void AccelGetScale(SensorPtr sensorPtr, char *fullPath)
 		return;
 
 	if (ESIF_OK == SysfsGetFloat(fullPath, "scale", &scale)) {
+		sensorPtr->data.accel.scale = scale;
+	} else if (ESIF_OK == SysfsGetFloat(fullPath, "in_accel_scale", &scale)) {
 		sensorPtr->data.accel.scale = scale;
 	}
 }
@@ -221,6 +229,7 @@ static void LidAngleOpenFileDescriptors(SensorPtr sensorPtr, char *fullPath)
 static void InitSensor(int index, char *devName)
 {
 	SensorPtr sensorPtr = &gSensors[index];
+	eEsifError rc = ESIF_OK;
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
 	char fullPath[MAX_PATH + IIO_STR_LEN] = { 0 };
 
@@ -231,7 +240,12 @@ static void InitSensor(int index, char *devName)
 		// Init code for accelerometers
 		if (esif_ccb_strstr(iioSysfsNode, "accel")) {
 			sensorPtr->base.type = SENSOR_TYPE_ACCEL;
-			AccelGetLoc(sensorPtr, fullPath);
+			rc = AccelGetLoc(sensorPtr, fullPath);
+			if(ESIF_E_NOT_SUPPORTED == rc) {
+				if (NULL == gAccelBase) {
+					gAccelBase = sensorPtr;
+				}
+			}
 			AccelGetScale(sensorPtr, fullPath);
 			AccelOpenFileDescriptors(sensorPtr, fullPath);
 		} else if (esif_ccb_strstr(iioSysfsNode, "lid-angle")) {
@@ -277,9 +291,9 @@ static eEsifError EsifSensorMgr_RegisterSensors()
 	// Populate gSensors array and set up the pointers to base/lid accels
 	for (i = 0; i < gSensorsNum; ++i) {
 		InitSensor(i, namelist[i]->d_name);
-		free(namelist[i]);
+		esif_ccb_free(namelist[i]);
 	};
-	free(namelist);
+	esif_ccb_free(namelist);
 
 exit:
 	return rc;
@@ -415,11 +429,13 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 	if (delta > MOTION_CHANGE_THRESHOLD) {
 		newMotionState = MOTION_ON;
 	}
+	ESIF_TRACE_DEBUG("delta=%f , MOTION_CHANGE_THRESHOLD %d\n", delta, MOTION_CHANGE_THRESHOLD);
 
 	if (newMotionState != gInMotion) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &newMotionState, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_MOTION_CHANGED, &evtData);
 		gInMotion = newMotionState;
+		ESIF_TRACE_DEBUG("delta=%f \n", delta);
 	}
 	gCurAccelData = data;
 }
@@ -730,9 +746,11 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 
 	// Send gratuitous event for OS metric registration
 	if (0 == memcmp(guid, guidDockMode, ESIF_GUID_LEN)) {
-		ESIF_DATA_UINT32_ASSIGN(evtData, &gDockMode, sizeof(UInt32));
-		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
-		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_DOCK_MODE_CHANGED\n");
+		if (gDockMode != DOCK_MODE_INVALID) {
+			ESIF_DATA_UINT32_ASSIGN(evtData, &gDockMode, sizeof(UInt32));
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
+			ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_DOCK_MODE_CHANGED\n");
+		}
 		StartEsifSensorMgr();
 	}
 
@@ -758,9 +776,11 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 	}
 
 	if (0 == memcmp(guid, guidPlatformType, ESIF_GUID_LEN)) {
-		ESIF_DATA_UINT32_ASSIGN(evtData, &gPlatType, sizeof(UInt32));
-		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
-		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED\n");
+		if (gPlatType != PLATFORM_TYPE_INVALID) {
+			ESIF_DATA_UINT32_ASSIGN(evtData, &gPlatType, sizeof(UInt32));
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
+			ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED\n");
+		}
 		StartEsifSensorMgr();
 	}
 exit:

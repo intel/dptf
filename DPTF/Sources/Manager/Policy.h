@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -62,6 +62,7 @@ public:
 
 	virtual void executeIgccBroadcastReceived(
 		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
+	virtual void executeSwOemVariablesChanged(const DptfBuffer& swOemVariablesData) = 0;
 	virtual void executeConnectedStandbyEntry(void) = 0;
 	virtual void executeConnectedStandbyExit(void) = 0;
 	virtual void executeSuspend(void) = 0;
@@ -204,6 +205,7 @@ public:
 	// Event handlers
 	virtual void executeIgccBroadcastReceived(
 		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
+	virtual void executeSwOemVariablesChanged(const DptfBuffer& swOemVariablesData) override;
 	virtual void executeConnectedStandbyEntry(void) override;
 	virtual void executeConnectedStandbyExit(void) override;
 	virtual void executeSuspend(void) override;

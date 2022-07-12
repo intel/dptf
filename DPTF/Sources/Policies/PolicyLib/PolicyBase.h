@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -130,6 +130,7 @@ public:
 	virtual void onSensorMotionChanged(OnOffToggle::Type sensorMotion);
 	virtual void onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject);
 	virtual void onOemVariablesChanged(void);
+	virtual void onSwOemVariablesChanged(const DptfBuffer& swOemVariablesData);
 	virtual void onPowerBossConditionsTableChanged(void);
 	virtual void onPowerBossActionsTableChanged(void);
 	virtual void onPowerBossMathTableChanged(void);
@@ -244,6 +245,7 @@ public:
 		SensorSpatialOrientation::Type sensorSpatialOrientation) override final;
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) override final;
 	virtual void oemVariablesChanged(void) override final;
+	virtual void swOemVariablesChanged(const DptfBuffer& swOemVariablesData) override final;
 	virtual void powerBossConditionsTableChanged(void) override final;
 	virtual void powerBossActionsTableChanged(void) override final;
 	virtual void powerBossMathTableChanged(void) override final;

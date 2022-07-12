@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -581,6 +581,12 @@ static eEsifError EsifUpPm_ActionChangeHandler(
 	}
 
 	actionType = *((UInt32 *)eventDataPtr->buf_ptr);
+
+	//
+	// Create participants based on the arrival of KPE actions
+	// (Best effort only)
+	//
+	CreateActionAssociatedParticipants(actionType);
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
 

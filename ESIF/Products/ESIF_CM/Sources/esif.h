@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -66,6 +66,10 @@
 /* Build option to enable event caching */
 #define ESIF_FEAT_OPT_EVENT_CACHE_ENABLED
 
+/* IPF core and IPC layer tracing support */
+/* #define ESIF_FEAT_OPT_IPF_CLIENT_ETW_TRACE_ENABLED */
+
+
 #ifdef ESIF_ATTR_OS_LINUX	/* All Linux-Derived OS */
 
 /*
@@ -99,6 +103,12 @@
 
 /* Build option to create the LF driver in a configuration which is not in the INT3400 stack */
 /*#define ESIF_FEAT_OPT_BIOS_LITE_LF*/
+
+/* Build option to enable creation of the PCIe participant */
+#define ESIF_FEAT_OPT_PCIE_SUPPORT_ENABLED
+
+/* Build option to enable creation of the VPU participant */
+#define ESIF_FEAT_OPT_VPU_SUPPORT_ENABLED /**/
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 

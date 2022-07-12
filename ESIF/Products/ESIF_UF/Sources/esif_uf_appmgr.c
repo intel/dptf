@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,6 +37,7 @@
 #define ESIF_UF_APPMGR_QUEUE_TIMEOUT ESIF_QUEUE_TIMEOUT_INFINITE /* No timeout */
 #define ESIF_UF_APPMGR_QUEUE_SIZE 0xFFFFFFFF
 #define ESIF_UF_APPMGR_QUEUE_NAME "UfAppMgrPartQueue"
+#define ESIF_UF_APPMGR_QUEUE_DELAY_TIME 1000 /* ms */
 
 
 //
@@ -899,6 +900,7 @@ static void *ESIF_CALLCONV EsifAppMgr_PartQueueThread(void *ctxPtr)
 		* after it is done creating the app
 		*/
 		if (isProcessing) {
+			esif_ccb_sleep_msec(ESIF_UF_APPMGR_QUEUE_DELAY_TIME);
 			esif_queue_requeue(g_appMgr.partQueuePtr, queueItemPtr);
 			continue;
 		}

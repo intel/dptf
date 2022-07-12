@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -134,6 +134,7 @@ static ESIF_INLINE esif_primitive_type_t esif_primitive_type_set2get(esif_primit
 		{ SET_USER_BASED_REFRESH_RATE, GET_USER_BASED_REFRESH_RATE },
 		{ SET_USER_BASED_REFRESH_RATE_SUR, GET_USER_BASED_REFRESH_RATE_SUR },
 		{ SET_PERF_PREFERENCE_SUR, GET_PERF_PREFERENCE_SUR },
+		{ SET_FAN_OPERATING_MODE, GET_FAN_OPERATING_MODE },
 	};
 
 	/* Match SET using a Binary Search */
@@ -264,6 +265,7 @@ static ESIF_INLINE esif_primitive_type_t esif_primitive_type_get2set(esif_primit
 		{ GET_USER_BASED_REFRESH_RATE, SET_USER_BASED_REFRESH_RATE },
 		{ GET_USER_BASED_REFRESH_RATE_SUR, SET_USER_BASED_REFRESH_RATE_SUR },
 		{ GET_PERF_PREFERENCE_SUR, SET_PERF_PREFERENCE_SUR },
+		{ GET_FAN_OPERATING_MODE, SET_FAN_OPERATING_MODE },
 	};
 
 	/* Match Assocated GET using a Binary Search */

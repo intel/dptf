@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -88,7 +88,11 @@ static eEsifError EsifGetActionDelegateSupportSocWorkload(
 
 static eEsifError EsifGetActionDelegateIsFaceDetectionCapableSensor(
 	EsifDataPtr responsePtr
-);
+	);
+
+static eEsifError EsifGetActionDelegateIsBpCapableSensor(
+	EsifDataPtr responsePtr
+	);
 
 static eEsifError EsifGetActionDelegateBpsg(EsifDataPtr responsePtr);
 static eEsifError EsifSetActionDelegateBpss(const EsifDataPtr requestPtr);
@@ -167,11 +171,16 @@ esif_error_t get_last_hid_input_time_win(EsifDataPtr responsePtr);
 esif_error_t get_display_required_win(EsifDataPtr responsePtr);
 esif_error_t get_is_ext_mon_connected_win(EsifDataPtr responsePtr);
 esif_error_t get_aggregate_display_information_win(EsifDataPtr responsePtr);
-esif_error_t EsifSetActionDelegatePpmActivePackageSettingWin(EsifDataPtr requestPtr);
-esif_error_t EsifSetActionDelegatePpmParamSettingWin(EsifDataPtr requestPtr);
+esif_error_t EsifSetActionDelegatePpmParamValuesSettingWin(EsifDataPtr requestPtr);
+esif_error_t EsifGetActionDelegatePpmParamValuesSettingWin(EsifDataPtr requestPtr, EsifDataPtr responsePtr);
 esif_error_t EsifSetActionDelegatePowerSchemeEppWin(EsifDataPtr requestPtr);
 esif_error_t EsifSetActionDelegateActivePowerSchemeWin();
 esif_error_t EsifSetActionDelegatePpmParamClearWin();
+esif_error_t EsifGetActionDelegateGurrWin(EsifDataPtr responsePtr);
+esif_error_t EsifGetActionDelegateGurcWin(EsifDataPtr responsePtr);
+esif_error_t EsifSetActionDelegateSurrWin(EsifDataPtr requestPtr);
+esif_error_t EsifActDelegateInitOsWin();
+esif_error_t EsifActDelegateExitOsWin();
 
 #define set_nv_tgp_value(reqPtr) set_nv_tgp_value_win(reqPtr)
 #define set_nv_power_limit(reqPtr) set_nv_power_limit_win(reqPtr)
@@ -193,11 +202,16 @@ esif_error_t EsifSetActionDelegatePpmParamClearWin();
 #define get_display_required(rspPtr) get_display_required_win(rspPtr)
 #define get_is_ext_mon_connected(rspPtr) get_is_ext_mon_connected_win(rspPtr)
 #define get_aggregate_display_information(rspPtr) get_aggregate_display_information_win(rspPtr)
-#define EsifSetActionDelegatePpmActivePackageSetting(requestPtr) EsifSetActionDelegatePpmActivePackageSettingWin(requestPtr) 
-#define EsifSetActionDelegatePpmParamSetting(requestPtr) EsifSetActionDelegatePpmParamSettingWin(requestPtr)
+#define EsifSetActionDelegatePpmParamValuesSetting(requestPtr) EsifSetActionDelegatePpmParamValuesSettingWin(requestPtr)
+#define EsifGetActionDelegatePpmParamValuesSetting(requestPtr, rspPtr) EsifGetActionDelegatePpmParamValuesSettingWin(requestPtr, rspPtr)
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) EsifSetActionDelegatePowerSchemeEppWin(requestPtr)
 #define EsifSetActionDelegateActivePowerScheme() EsifSetActionDelegateActivePowerSchemeWin()
 #define EsifSetActionDelegatePpmParamClear() EsifSetActionDelegatePpmParamClearWin()
+#define EsifGetActionDelegateGurr(reqPtr) EsifGetActionDelegateGurrWin(reqPtr)
+#define EsifGetActionDelegateGurc(reqPtr) EsifGetActionDelegateGurcWin(reqPtr)
+#define EsifSetActionDelegateSurr(rspPtr) EsifSetActionDelegateSurrWin(rspPtr)
+#define EsifActDelegateInitOs() EsifActDelegateInitOsWin()
+#define EsifActDelegateExitOs() EsifActDelegateExitOsWin()
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 
@@ -221,11 +235,16 @@ esif_error_t EsifSetActionDelegatePpmParamClearWin();
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_aggregate_display_information(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
-#define EsifSetActionDelegatePpmActivePackageSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
-#define EsifSetActionDelegatePpmParamSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegatePpmParamValuesSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifGetActionDelegatePpmParamValuesSetting(requestPtr, rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateActivePowerScheme() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePpmParamClear() (ESIF_E_NOT_IMPLEMENTED)
+#define EsifGetActionDelegateGurr(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifGetActionDelegateGurc(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateSurr(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifActDelegateInitOs() (ESIF_E_NOT_IMPLEMENTED)
+#define EsifActDelegateExitOs() (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
 
@@ -351,10 +370,25 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = EsifGetActionDelegateIsFaceDetectionCapableSensor(responsePtr);
 		break;
 
+	case 'SBIG': /* GIBS **/
+		rc = EsifGetActionDelegateIsBpCapableSensor(responsePtr);
+		break;
+
 	case 'GSPB': /* BPSG - Get Biometric Presence Sensor selection */
 		rc = EsifGetActionDelegateBpsg(responsePtr);
 		break;
 
+	case 'RRUG': /* GURR - Get User-Based Refresh Rate */
+		rc = EsifGetActionDelegateGurr(responsePtr);
+		break;
+
+	case 'CRUG': /* GURC - Get User-Based Refresh Capability */
+		rc = EsifGetActionDelegateGurc(responsePtr);
+		break;
+
+	case 'VPPG': /* GPPV - Get PPM Parameter Values */
+		rc = EsifGetActionDelegatePpmParamValuesSetting(requestPtr, responsePtr);
+		break;
 
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
@@ -518,14 +552,9 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateSsap(upPtr, requestPtr);
 		break;
 
-	case 'PPAS':	/* SAPP: Set Active PPM Package */
-		ESIF_TRACE_INFO("Set Active PPM Package request received\n");
-		rc = EsifSetActionDelegatePpmActivePackageSetting(requestPtr);
-		break;
-
-	case 'PPPS':	/* SPPP: Set PPM Package Parameters */
-		ESIF_TRACE_INFO("Set PPM Package Parameters request received\n");
-		rc = EsifSetActionDelegatePpmParamSetting(requestPtr);
+	case 'VPPS':	/* SPPV: Set PPM Parameter Values */
+		ESIF_TRACE_INFO("Set PPM Parameter Values request received\n");
+		rc = EsifSetActionDelegatePpmParamValuesSetting(requestPtr);
 		break;
 
 	case 'ESPS':	/* SPSE: Set Power Scheme EPP */
@@ -601,6 +630,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'SSPB': /* BPSS - Set Biometric Presence Sensor preference*/
 		rc = EsifSetActionDelegateBpss(requestPtr);
+		break;
+
+	case 'RRUS': /* SURR - Set User-Based Refresh Rate */
+		rc = EsifSetActionDelegateSurr(requestPtr);
 		break;
 
 	default:
@@ -1318,9 +1351,11 @@ exit:
 }
 
 static eEsifError EsifGetActionDelegateIsFaceDetectionCapableSensor(
-	EsifDataPtr responsePtr)
+	EsifDataPtr responsePtr
+	)
 {
 	eEsifError rc = ESIF_OK;
+	UInt32 isCapable = ESIF_FALSE;
 
 	ESIF_ASSERT(responsePtr != NULL);
 
@@ -1329,11 +1364,48 @@ static eEsifError EsifGetActionDelegateIsFaceDetectionCapableSensor(
 		goto exit;
 	}
 
-	*(u32 *)responsePtr->buf_ptr = (u32)(esif_is_face_detection_capable_sensor());
+	responsePtr->data_len = sizeof(isCapable);
+	if (responsePtr->buf_len < sizeof(isCapable)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+	
+	isCapable =  (u32)(esif_is_face_detection_capable_sensor());
+	*(u32 *)responsePtr->buf_ptr = isCapable;
 
 exit:
 	return rc;
 }
+
+
+static eEsifError EsifGetActionDelegateIsBpCapableSensor(
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 isCapable = ESIF_FALSE;
+
+	ESIF_ASSERT(responsePtr != NULL);
+
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	responsePtr->data_len = sizeof(isCapable);
+	if (responsePtr->buf_len < sizeof(isCapable)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	isCapable = (u32)(esif_is_bp_capable_sensor());
+
+	*(u32 *)responsePtr->buf_ptr = isCapable;
+
+exit:
+	return rc;
+}
+
 
 static eEsifError EsifSetActionDelegateSampleBehavior(
 	const EsifUpDomainPtr domainPtr,
@@ -1602,6 +1674,7 @@ static EsifActIfaceStatic g_delegate = {
 eEsifError EsifActDelegateInit()
 {
 	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_delegate);
+	EsifActDelegateInitOs();
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
@@ -1609,9 +1682,9 @@ eEsifError EsifActDelegateInit()
 void EsifActDelegateExit()
 {
 	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_delegate);
+	EsifActDelegateExitOs();
 	ESIF_TRACE_EXIT_INFO();
 }
-
 
 /*****************************************************************************/
 /*****************************************************************************/

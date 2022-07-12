@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -1060,4 +1060,22 @@
 #define COLLABORATION_CHANGED { \
 	0xF9, 0xBA, 0xC2, 0xC6, 0xFA, 0xF0, 0x4E, 0xF8, \
 	0x92, 0xCA, 0x40, 0x37, 0x9F, 0xB2, 0x22, 0x57 }
+
+/*
+ * Event Name:  NUM_FACES_ENROLLED_CHANGED
+ * Event GUID:  60656876-38D6-4471-903D-B1A430271E9B
+ * Event Desc:  Number of Faces Enrolled Changed
+ */
+#define NUM_FACES_ENROLLED_CHANGED { \
+	0x60, 0x65, 0x68, 0x76, 0x38, 0xD6, 0x44, 0x71, \
+	0x90, 0x3D, 0xB1, 0xA4, 0x30, 0x27, 0x1E, 0x9B }
+
+/*
+ * Event Name:  FACE_ID_CAPABILITY_SUPPORT_CHANGED
+ * Event GUID:  70ED77E2-0D42-4B59-B388-9F9623B875BA
+ * Event Desc:  Face ID Capability Support Changed
+ */
+#define FACE_ID_CAPABILITY_SUPPORT_CHANGED { \
+	0x70, 0xED, 0x77, 0xE2, 0x0D, 0x42, 0x4B, 0x59, \
+	0xB3, 0x88, 0x9F, 0x96, 0x23, 0xB8, 0x75, 0xBA }
 

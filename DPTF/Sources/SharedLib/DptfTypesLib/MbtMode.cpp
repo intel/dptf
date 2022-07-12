@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -68,5 +68,26 @@ namespace MbtMode
 			return MbtMode::AcCollaboration;
 		}
 		return MbtMode::Invalid;
+	}
+
+	std::string toPpmKeyString(MbtMode::Type mbtMode)
+	{
+		switch (mbtMode)
+		{
+		case DcEnduranceGaming:
+			return "EnduranceGaming";
+		case DcBetterBattery:
+			return "BetterBatt";
+		case DcBetterPerformance:
+			return "BetterPerf";
+		case AcBalanced:
+			return "Balanced";
+		case AcQuiet:
+			return "Quiet";
+		case AcCollaboration:
+			return "Collaboration";
+		default:
+			throw dptf_exception("MbtMode::Type is invalid");
+		}
 	}
 }

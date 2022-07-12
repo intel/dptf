@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1964,15 +1964,15 @@ static void EsifLogMgr_ParticipantLogWriteHeader(
 		curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
 		if (curEntryPtr != NULL) {
 			if (printTimeInfo != ESIF_FALSE) {
-				esif_ccb_sprintf(dataLength, self->logData, " Date, Time, Server Msec,");
+				esif_ccb_sprintf(dataLength, self->logData, "Date,Time,Server Msec,");
 				printTimeInfo = ESIF_FALSE;
 			}
 			if (currentParticipantId != curEntryPtr->participantId) {
-				esif_ccb_sprintf_concat(dataLength, self->logData, " Participant ID, Participant Name, Domain Id,");
+				esif_ccb_sprintf_concat(dataLength, self->logData, "Participant ID,Participant Name,Domain Id,");
 			}
 			else if ((currentParticipantId == curEntryPtr->participantId) &&
 				(currentDomainId != curEntryPtr->domainId)) {
-				esif_ccb_sprintf_concat(dataLength, self->logData, " Domain Id,");
+				esif_ccb_sprintf_concat(dataLength, self->logData, "Domain Id,");
 			}
 
 			partName = "UNK";
@@ -2037,7 +2037,7 @@ static void EsifLogMgr_ParticipantLogWriteData(
 			if (printTimeInfo != ESIF_FALSE) {
 				esif_ccb_system_time(&msec);
 				if (esif_ccb_localtime(&time, &now) == 0) {
-					esif_ccb_sprintf(dataLength, self->logData, " %04d-%02d-%02d, %02d:%02d:%02d, %llu,",
+					esif_ccb_sprintf(dataLength, self->logData, "%04d-%02d-%02d,%02d:%02d:%02d,%llu,",
 						time.tm_year + TIME_BASE_YEAR, time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec, msec);
 				}
 				printTimeInfo = ESIF_FALSE;
@@ -2057,16 +2057,16 @@ static void EsifLogMgr_ParticipantLogWriteData(
 							(1 << curEntryPtr->capabilityData.type)
 						);
 					}
-					esif_ccb_sprintf_concat(dataLength, self->logData, " %llu, %s, %d,", esif_ccb_handle2llu(curEntryPtr->participantId), EsifUp_GetName(upPtr), domainIndex);
+					esif_ccb_sprintf_concat(dataLength, self->logData, "%llu,%s,%d,", esif_ccb_handle2llu(curEntryPtr->participantId), EsifUp_GetName(upPtr), domainIndex);
 					EsifUp_PutRef(upPtr);
 				}
 				else {
-					esif_ccb_sprintf_concat(dataLength, self->logData, " %llu, UNAVAIL, %d,", esif_ccb_handle2llu(curEntryPtr->participantId), domainIndex);
+					esif_ccb_sprintf_concat(dataLength, self->logData, "%llu,UNAVAIL,%d,", esif_ccb_handle2llu(curEntryPtr->participantId), domainIndex);
 				}
 			}
 			else if ((currentParticipantId == curEntryPtr->participantId) &&
 				(currentDomainId != curEntryPtr->domainId)) {
-				esif_ccb_sprintf_concat(dataLength, self->logData, " %d,", domainIndex);
+				esif_ccb_sprintf_concat(dataLength, self->logData, "%d,", domainIndex);
 			}
 			EsifLogMgr_ParticipantLogAddDataNode(self->logData, dataLength, curEntryPtr);
 
@@ -2102,22 +2102,22 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 
 	switch (capabilityPtr->type) {
 	case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " ControlID, Speed, Min Fan Speed %%, Max Fan Speed %%,");
+		esif_ccb_sprintf_concat(dataLength, logString, "ControlID,Speed,Min Fan Speed %%,Max Fan Speed %%,");
 		break;
 	case ESIF_CAPABILITY_TYPE_CORE_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Active Cores, Lower Limit, Upper Limit,");
+		esif_ccb_sprintf_concat(dataLength, logString, "Active Cores,Lower Limit,Upper Limit,");
 		break;
 	case ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Brightness Limit, Lower Limit, Upper Limit,");
+		esif_ccb_sprintf_concat(dataLength, logString, "Brightness Limit,Lower Limit,Upper Limit,");
 		break;
 	case ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%dPriority,",participantName,domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%dPriority,",participantName,domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_Energy Counter, %s_Instantaneous Power (mW),", participantName, participantName);
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_Energy Counter,%s_Instantaneous Power (mW),", participantName, participantName);
 		break;
 	case ESIF_CAPABILITY_TYPE_PERF_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_PState Index, %s_D%d_Lower Limit, %s_D%d_Upper Limit,", 
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_PState Index,%s_D%d_Lower Limit,%s_D%d_Upper Limit,", 
 			participantName, 
 			domainId,
 			participantName, 
@@ -2131,32 +2131,35 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		UInt32 powerType = 0;
 		for (powerType = 0; powerType < MAX_POWER_CONTROL_TYPE; powerType++)
 		{
-			esif_ccb_sprintf_concat(dataLength, logString, " PL%d Limit(mW), PL%d Min Power Limit(mW), PL%d Max Power Limit(mW), Stepsize(mW),"
-				" Minimum TimeWindow(ms), Maximum TimeWindow(ms), Minimum DutyCycle, Maximum DutyCycle,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%s_PL%d Limit(mW),%s_PL%d Min Power Limit(mW),%s_PL%d Max Power Limit(mW),Stepsize(mW),"
+				"Minimum TimeWindow(ms),Maximum TimeWindow(ms),Minimum DutyCycle,Maximum DutyCycle,",
+				participantName,
 				powerType + 1,
+				participantName,
 				powerType + 1,
+				participantName,
 				powerType + 1
 				);
 		}
-		esif_ccb_sprintf_concat(dataLength, logString, " SoC Power Floor State,");
+		esif_ccb_sprintf_concat(dataLength, logString, "SoC Power Floor State,");
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_POWER_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Current Power(mW), %s_D%d_Current Power Sent To Filter(mW),"
-			" %s_D%d_Power Calculated By Filter(mW),",
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_Current Power(mW),%s_D%d_Current Power Sent To Filter(mW),"
+			"%s_D%d_Power Calculated By Filter(mW),",
 			participantName, domainId,
 			participantName,domainId,
 			participantName, domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Temperature(C),", participantName,domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_Temperature(C),", participantName,domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Utilization,",participantName,domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_Utilization,",participantName,domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_PROP(mW), %s_D%d_ARTG(mW),"
-			" %s_D%d_PSRC, %s_D%d_AVOL(mV), %s_D%d_ACUR(mA), %s_D%d_AP01(%%), %s_D%d_AP02(%%), %s_D%d_AP10(%%),",
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_PROP(mW),%s_D%d_ARTG(mW),"
+			"%s_D%d_PSRC,%s_D%d_AVOL(mV),%s_D%d_ACUR(mA),%s_D%d_AP01(%%),%s_D%d_AP02(%%),%s_D%d_AP10(%%),",
 			participantName,domainId,participantName,domainId,
 			participantName,domainId,participantName,domainId,
 			participantName,domainId,participantName,domainId,
@@ -2164,8 +2167,8 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 			);
 		break;
 	case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_PMAX(mW), %s_D%d_PBSS(mW),"
-			" %s_D%d_CTYP, %s_D%d_RBHF(mOhm), %s_D%d_CMPP(mA), %s_D%d_VBNL(mV), %s_D%d_batteryPercentage(%%),",
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_PMAX(mW),%s_D%d_PBSS(mW),"
+			"%s_D%d_CTYP,%s_D%d_RBHF(mOhm),%s_D%d_CMPP(mA),%s_D%d_VBNL(mV),%s_D%d_batteryPercentage(%%),",
 			participantName, domainId, participantName, domainId,
 			participantName, domainId, participantName, domainId,
 			participantName, domainId, participantName, domainId,
@@ -2173,7 +2176,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Aux0(C), %s_D%d_Aux1(C), %s_D%d_Hysteresis(C),", 
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_Aux0(C),%s_D%d_Aux1(C),%s_D%d_Hysteresis(C),", 
 			participantName, 
 			domainId, 
 			participantName, 
@@ -2186,13 +2189,13 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	{
 		for (UInt32 channelNumber = 0; channelNumber < MAX_FREQUENCY_CHANNEL_NUM; channelNumber++)
 		{
-			esif_ccb_sprintf_concat(dataLength, logString, " Channel Number, %s_D%d_Center Frequency(Hz), %s_D%d_Left Frequency Spread(Hz), %s_D%d_Right Frequency Spread(Hz),", 
+			esif_ccb_sprintf_concat(dataLength, logString, "Channel Number,%s_D%d_Center Frequency(Hz),%s_D%d_Left Frequency Spread(Hz),%s_D%d_Right Frequency Spread(Hz),", 
 				participantName, domainId, participantName, domainId, participantName, domainId);
 		}
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Min Frequency(Hz), %s_D%d_Center Frequency(Hz), %s_D%d_Max Frequency(Hz), %s_D%d_SSC,",
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_Min Frequency(Hz),%s_D%d_Center Frequency(Hz),%s_D%d_Max Frequency(Hz),%s_D%d_SSC,",
 			participantName, domainId, participantName, domainId, participantName, domainId,
 			participantName, domainId);
 		break;
@@ -2200,7 +2203,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	{
 		UInt32 psysType = 0;
 		for (psysType = 0; psysType < MAX_PSYS_CONTROL_TYPE; psysType++) {
-			esif_ccb_sprintf_concat(dataLength, logString, " Psys PL%d Power Limit (mW), Psys PL%d Duty Cycle, Psys PL%d Time Window (ms),",
+			esif_ccb_sprintf_concat(dataLength, logString, "Psys PL%d Power Limit (mW),Psys PL%d Duty Cycle,Psys PL%d Time Window (ms),",
 				psysType + 1,
 				psysType + 1,
 				psysType + 1
@@ -2209,21 +2212,21 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	}
 		break;
 	case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " AC Peak Power, DC Peak Power,");
+		esif_ccb_sprintf_concat(dataLength, logString, "AC Peak Power,DC Peak Power,");
 		break;
 	case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_TCC Offset(C), %s_D%d_Under Voltage Threshold (mV),", participantName, domainId, participantName, domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_TCC Offset(C),%s_D%d_Under Voltage Threshold (mV),", participantName, domainId, participantName, domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_MANAGER:
-		esif_ccb_sprintf_concat(dataLength, logString, " OS Power Source, OS Battery Percent, OS Dock Mode, OS Game Mode, OS Lid State, OS Power Slider, OS User Interaction,"
-			" OS User Presence, OS Screen State, Device Orientation, In Motion, System Cooling Mode, OS Platform Type,"
-			" Display Orientation, OS Power Scheme Personality, OS Mixed Reality Mode, Platform User Presence, Foreground Background Ratio, PPM Package,");
+		esif_ccb_sprintf_concat(dataLength, logString, "OS Power Source,OS Battery Percent,OS Dock Mode,OS Game Mode,OS Lid State,OS Power Slider,OS User Interaction,"
+			"OS User Presence,OS Screen State,Device Orientation,In Motion,System Cooling Mode,OS Platform Type,"
+			"Display Orientation,OS Power Scheme Personality,OS Mixed Reality Mode,Platform User Presence,Foreground Background Ratio,PPM Package,Collaboration State,");
 		break;
 	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-		esif_ccb_sprintf_concat(dataLength, logString, " SOC Workload,");
+		esif_ccb_sprintf_concat(dataLength, logString, "SOC Workload,");
 		break;
 	case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
-		esif_ccb_sprintf_concat(dataLength, logString, " MBT Hint,");
+		esif_ccb_sprintf_concat(dataLength, logString, "MBT Hint,EPP,");
 		break;
 	default:
 		break;
@@ -2275,7 +2278,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 	
 		switch (capabilityPtr->type) {
 		case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,",
 				capabilityPtr->data.activeControl.controlId,
 				capabilityPtr->data.activeControl.speed,
 				capabilityPtr->data.activeControl.lowerLimit,
@@ -2283,31 +2286,31 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_CORE_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,",
 				capabilityPtr->data.coreControl.activeLogicalProcessors,
 				capabilityPtr->data.coreControl.maximumActiveCores,
 				capabilityPtr->data.coreControl.minimumActiveCores
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,",
 				capabilityPtr->data.displayControl.currentDPTFLimit,
 				capabilityPtr->data.displayControl.lowerLimit,
 				capabilityPtr->data.displayControl.upperLimit
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,",
 				capabilityPtr->data.domainPriority.priority
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,",
 				capabilityPtr->data.energyControl.energyCounter,
 				capabilityPtr->data.energyControl.instantaneousPower);
 			break;
 		case ESIF_CAPABILITY_TYPE_PERF_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,",
 				capabilityPtr->data.performanceControl.pStateLimit,
 				capabilityPtr->data.performanceControl.lowerLimit,
 				capabilityPtr->data.performanceControl.upperLimit
@@ -2320,7 +2323,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			{
 				if ((capabilityPtr->data.powerControl.powerDataSet[powerType].powerType <= MAX_POWER_CONTROL_TYPE) &&
 					(capabilityPtr->data.powerControl.powerDataSet[powerType].isEnabled != ESIF_FALSE)) {
-					esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u, %u, %u, %u, %u,",
+					esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,",
 						capabilityPtr->data.powerControl.powerDataSet[powerType].powerLimit,
 						capabilityPtr->data.powerControl.powerDataSet[powerType].lowerLimit,
 						capabilityPtr->data.powerControl.powerDataSet[powerType].upperLimit,
@@ -2332,20 +2335,20 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 					);
 				}
 				else {
-					esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X, X, X,");
+					esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,");
 				}
 			}
 			if (capabilityPtr->data.powerControl.socPowerFloorData.isSupported != ESIF_FALSE) {
-				esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+				esif_ccb_sprintf_concat(dataLength, logString, "%u,",
 					capabilityPtr->data.powerControl.socPowerFloorData.socPowerFloorState);
 			}
 			else {
-				esif_ccb_sprintf_concat(dataLength, logString, " X,");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,");
 			}
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_POWER_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,",
 				capabilityPtr->data.powerStatus.currentPower,
 				capabilityPtr->data.powerStatus.powerFilterData.currentPowerSentToFilter,
 				capabilityPtr->data.powerStatus.powerFilterData.powerCalculatedByFilter
@@ -2356,16 +2359,16 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			int temp = (int)capabilityPtr->data.temperatureStatus.temperature;
 			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&temp);
 
-			esif_ccb_sprintf_concat(dataLength, logString, " %.1f,", temp / 10.0);
+			esif_ccb_sprintf_concat(dataLength, logString, "%.1f,", temp / 10.0);
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,",
 				capabilityPtr->data.utilizationStatus.utilization
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u, %u, %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,",
 				capabilityPtr->data.platformPowerStatus.platformRestOfPower,
 				capabilityPtr->data.platformPowerStatus.adapterPowerRating,
 				capabilityPtr->data.platformPowerStatus.platformPowerSource,
@@ -2377,7 +2380,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u, %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,",
 				capabilityPtr->data.batteryStatus.maxBatteryPower,
 				capabilityPtr->data.batteryStatus.steadyStateBatteryPower,
 				capabilityPtr->data.batteryStatus.chargerType,
@@ -2397,7 +2400,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&tempAux1);
 			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&tempHyst);
 
-			esif_ccb_sprintf_concat(dataLength, logString, " %.1f, %.1f, %.1f,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%.1f,%.1f,%.1f,",
 				tempAux0 / 10.0,
 				tempAux1 / 10.0,
 				tempHyst / 10.0
@@ -2412,17 +2415,17 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				UInt32 leftFrequencySpread = capabilityPtr->data.rfProfileStatus.rfProfileFrequencyData[channelNumber].leftFrequencySpread;
 				UInt32 rightFrequencySpread = capabilityPtr->data.rfProfileStatus.rfProfileFrequencyData[channelNumber].rightFrequencySpread;
 				if (centerFrequency != ESIF_INVALID_DATA && leftFrequencySpread != ESIF_INVALID_DATA && rightFrequencySpread != ESIF_INVALID_DATA) {
-					esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u,", channelNumber, centerFrequency,
+					esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,", channelNumber, centerFrequency,
 						leftFrequencySpread, rightFrequencySpread);
 				}
 				else {
-					esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X,");
+					esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
 				}
 			}
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,",
 				capabilityPtr->data.rfProfileControl.rfProfileMinFrequency,
 				capabilityPtr->data.rfProfileControl.rfProfileCenterFrequency,
 				capabilityPtr->data.rfProfileControl.rfProfileMaxFrequency,
@@ -2436,32 +2439,32 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			{
 				if (capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType <= MAX_PSYS_CONTROL_TYPE) {
 					if (capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimit != ESIF_INVALID_DATA) {
-						esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+						esif_ccb_sprintf_concat(dataLength, logString, "%u,",
 							capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimit
 						);
 					}
 					else {
-						esif_ccb_sprintf_concat(dataLength, logString, " X,"
+						esif_ccb_sprintf_concat(dataLength, logString, "X,"
 						);
 					}
 
 					if (capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitDutyCycle != ESIF_INVALID_DATA) {
-						esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+						esif_ccb_sprintf_concat(dataLength, logString, "%u,",
 							capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitDutyCycle
 						);
 					}
 					else {
-						esif_ccb_sprintf_concat(dataLength, logString, " X,"
+						esif_ccb_sprintf_concat(dataLength, logString, "X,"
 						);
 					}
 
 					if (capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitTimeWindow != ESIF_INVALID_DATA) {
-						esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+						esif_ccb_sprintf_concat(dataLength, logString, "%u,",
 							capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitTimeWindow
 						);
 					}
 					else {
-						esif_ccb_sprintf_concat(dataLength, logString, " X,"
+						esif_ccb_sprintf_concat(dataLength, logString, "X,"
 						);
 					}
 				}
@@ -2469,7 +2472,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,",
 				capabilityPtr->data.peakPowerControl.acPeakPower,
 				capabilityPtr->data.peakPowerControl.dcPeakPower
 			);
@@ -2479,16 +2482,16 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			int temp = (int)capabilityPtr->data.processorControlStatus.tccOffset;
 			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&temp);
 
-			esif_ccb_sprintf_concat(dataLength, logString, " %.1f, %u,", temp / 10.0, capabilityPtr->data.processorControlStatus.uvth);
+			esif_ccb_sprintf_concat(dataLength, logString, "%.1f,%u,", temp / 10.0, capabilityPtr->data.processorControlStatus.uvth);
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_MANAGER:
 		{
 			if (capabilityPtr->data.managerStatus.osPowerSource == ESIF_INVALID_DATA) {
-				esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			}
 			else {
-				esif_ccb_sprintf_concat(dataLength, logString, " %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,%u,",
+				esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,%u,",
 					capabilityPtr->data.managerStatus.osPowerSource,
 					capabilityPtr->data.managerStatus.batteryPercent,
 					capabilityPtr->data.managerStatus.dockMode,
@@ -2514,10 +2517,10 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u,", capabilityPtr->data.workloadClassification.socWorkload);
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,", capabilityPtr->data.workloadClassification.socWorkload);
 			break;
 		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u,", capabilityPtr->data.dynamicEppControl.eppHint);
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,", capabilityPtr->data.dynamicEppControl.eppHint, capabilityPtr->data.dynamicEppControl.eppValue);
 			break;
 		default:
 			rc = ESIF_E_UNSPECIFIED;
@@ -2530,47 +2533,47 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 		case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
-			esif_ccb_sprintf_concat(dataLength, logString, " X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_CORE_CONTROL:
 		case ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL:
 		case ESIF_CAPABILITY_TYPE_PERF_CONTROL:
 		case ESIF_CAPABILITY_TYPE_POWER_STATUS:
 		case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
 		case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X,");
+		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X, X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_POWER_CONTROL:
 		{
 			UInt32 powerType = 0;
 			for (powerType = 0; powerType < MAX_POWER_CONTROL_TYPE; powerType++)
 			{
-				esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X, X, X,");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,");
 			}
-			esif_ccb_sprintf_concat(dataLength, logString, " X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,");
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
 		{
 			for (UInt32 channelNumber = 0; channelNumber < MAX_FREQUENCY_CHANNEL_NUM; channelNumber++)
 			{
-				esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X,");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
 			}
 			break;
 		}
@@ -2579,15 +2582,15 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			UInt32 psysType = 0;
 			for (psysType = 0; psysType < MAX_PSYS_CONTROL_TYPE; psysType++)
 			{
-				esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, ");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X, ");
 			}
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_MANAGER:
-			esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			break;
 		default:
 			rc = ESIF_E_UNSPECIFIED;
@@ -2982,6 +2985,16 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			eppHint = 0;
 		}
 		dataNodePtr->capabilityData.data.dynamicEppControl.eppHint = eppHint;
+
+		UInt32 eppValue = 0;
+		struct esif_data eppvalue_response = { ESIF_DATA_UINT32, &eppValue, sizeof(eppValue), sizeof(eppValue) };
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_HWP_EPP_VALUE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &eppvalue_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_HWP_EPP_VALUE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			eppValue = 0;
+		}
+		dataNodePtr->capabilityData.data.dynamicEppControl.eppValue = eppValue;
 		break;
 	}
 	// WARNING:  Any new cases must be added to g_statusCapability
@@ -3364,8 +3377,6 @@ static void EsifLogMgr_PrintListenerStatus(
 				);
 
 			if (!self->isDefaultFile) {
-
-
 				EsifLogFile_GetFullPath(filepath, sizeof(filepath), self->filename);
 
 				esif_ccb_strcat(
@@ -3375,17 +3386,10 @@ static void EsifLogMgr_PrintListenerStatus(
 				);
 			} 
 			else {
-				if (self->isLogStarted && EsifLogFile_GetFileNameFromType(ESIF_LOG_PARTICIPANT)) {
+				if (EsifLogFile_GetFileNameFromType(ESIF_LOG_PARTICIPANT)) {
 						esif_ccb_strcat(
 						output,
 						EsifLogFile_GetFileNameFromType(ESIF_LOG_PARTICIPANT),
-						datalength
-						);
-				}
-				else {
-					esif_ccb_strcat(
-						output,
-						"NA",
 						datalength
 						);
 				}

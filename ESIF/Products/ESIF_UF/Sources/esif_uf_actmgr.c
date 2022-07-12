@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1106,6 +1106,7 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SOCWC);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_HWPF);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_NVAPI);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_CAPI);
 
 	EsifActConfigInit();
 	EsifActConstInit();

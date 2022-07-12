@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,6 +53,17 @@ typedef struct EsifEventMgr_s {
 	esif_thread_t eventQueueThread;
 
 	UInt64 filteredEvents[(MAX_ESIF_EVENT_ENUM_VALUE / EVENT_MGR_FILTERED_EVENTS_PER_LINE) + 1];
+	Bool *cacheableEventListPtr;
+
+	/*
+	* List of applications whose events will be unregistered on CS/MS exit
+	* Allows sensors to remain registered (for WOA for example) until CS/MS exit
+	* Contains EsifEventMgr_AppRemovalEntry items
+	*/
+	EsifLinkListPtr appUnregisterList;
+	esif_ccb_lock_t appUnregisterListLock;
+	Bool delayedAppUnregistrationEnabled;
+	Bool delayAppUnregistration;
 }EsifEventMgr, *EsifEventMgrPtr;
 
 typedef struct EventMgrEntry_s {
@@ -78,6 +89,12 @@ typedef struct EsifEventQueueItem_s {
 	Bool isLfEvent;
 	Bool isUnfiltered;
 }EsifEventQueueItem, *EsifEventQueueItemPtr;
+
+
+typedef struct EsifEventMgr_AppRemovalEntry_s {
+	EVENT_OBSERVER_CALLBACK eventCallback;
+	esif_context_t context; /* App handle */
+}EsifEventMgr_AppRemovalEntry;
 
 
 /*
@@ -111,6 +128,15 @@ typedef struct EsifEventQueueItem_s {
 static EsifEventMgr g_EsifEventMgr = {0};
 
 
+/* Private friend functions for the Event Manger use only */
+esif_error_t EsifEventCache_UpdateData(
+	esif_event_type_t eventType,
+	esif_handle_t participantId,
+	UInt16 domainId,
+	EsifDataPtr eventDataPtr
+	);
+
+Bool EsifEventCache_IsEventCacheable(esif_event_type_t eventType);
 
 static eEsifError EsifEventMgr_AddEntry(
 	EsifFpcEventPtr fpcEventPtr,
@@ -152,6 +178,7 @@ static eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local (
 );
 
 static Bool EsifEventMgr_IsEventFiltered(eEsifEventType eventType);
+static Bool EsifEventMgr_IsEventCacheable(eEsifEventType eventType);
 
 /*
 * Friend function:  Target is determined only once removed from queue and all
@@ -377,8 +404,24 @@ static eEsifError EsifEventMgr_ProcessEvent(
 		}
 	}
 
+	/*
+	* First, allow the event cache update its data before sending to the
+	* listeners, so that the data is updated already when other callbacks
+	* are called.
+	*/
+	if (EsifEventMgr_IsEventCacheable(eventType)) {
+		EsifEventCache_UpdateData(
+			eventType,
+			participantId,
+			domainId,
+			eventDataPtr
+		);
+	}
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
+	/*
+	* Next, send the event to all registered listeners.
+	*/
 	listPtr = g_EsifEventMgr.observerLists[(unsigned)eventType % NUM_EVENT_LISTS];
 	if(NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
@@ -564,7 +607,43 @@ exit:
 }
 
 
-eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterAllForApp(
+static eEsifError ESIF_CALLCONV EsifEventMgr_DelayAppUnregistration(
+	EVENT_OBSERVER_CALLBACK eventCallback,
+	esif_context_t context
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifEventMgr_AppRemovalEntry *entryPtr = NULL;
+
+	ESIF_TRACE_DEBUG("Delaying unregister all events for app " ESIF_HANDLE_FMT "\n", context);
+
+	if ((NULL == eventCallback) || (ESIF_HANDLE_DEFAULT == context)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (NULL == g_EsifEventMgr.appUnregisterList) {
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	entryPtr = (EsifEventMgr_AppRemovalEntry *)esif_ccb_malloc(sizeof(*entryPtr));
+	if (NULL == entryPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	entryPtr->eventCallback = eventCallback;
+	entryPtr->context = context;
+	esif_ccb_write_lock(&g_EsifEventMgr.appUnregisterListLock);
+	esif_link_list_add_at_back(g_EsifEventMgr.appUnregisterList, entryPtr);
+	esif_ccb_write_unlock(&g_EsifEventMgr.appUnregisterListLock);
+exit:
+	ESIF_TRACE_DEBUG("Exit code = %d\n", rc);
+	return rc;
+}
+
+
+static eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterApp(
 	EVENT_OBSERVER_CALLBACK eventCallback,
 	esif_context_t context
 	)
@@ -614,6 +693,33 @@ eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterAllForApp(
 	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 	EsifEventMgr_DumpGarbage();
 exit:
+	return rc;
+}
+
+
+eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterAllForApp(
+	EVENT_OBSERVER_CALLBACK eventCallback,
+	esif_context_t context
+)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_TRACE_DEBUG("Unregistering all events for app " ESIF_HANDLE_FMT "\n", context);
+
+	if ((NULL == eventCallback) || (ESIF_HANDLE_DEFAULT == context)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	/* If in low power state; register for removal after exit of low power state */
+	if (g_EsifEventMgr.delayedAppUnregistrationEnabled && g_EsifEventMgr.delayAppUnregistration) {
+		EsifEventMgr_DelayAppUnregistration(eventCallback, context);
+	}
+	else {
+		EsifEventMgr_UnregisterApp(eventCallback, context);
+	}
+exit:
+	ESIF_TRACE_DEBUG("Exit code = %d\n", rc);
 	return rc;
 }
 
@@ -1022,6 +1128,120 @@ exit:
 }
 
 
+esif_error_t EsifEventMgr_UnregisterRemovedApps()
+{
+	esif_error_t rc = ESIF_OK;
+	EsifLinkListNodePtr curNodePtr = NULL;
+	EsifEventMgr_AppRemovalEntry *curEntryPtr = NULL;
+
+	if (NULL == g_EsifEventMgr.appUnregisterList) {
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("Unregistering removed apps\n");
+
+	esif_ccb_write_lock(&g_EsifEventMgr.appUnregisterListLock);
+
+	curNodePtr = g_EsifEventMgr.appUnregisterList->head_ptr;
+	while (curNodePtr) {
+		curEntryPtr = (EsifEventMgr_AppRemovalEntry *)curNodePtr->data_ptr;
+		esif_link_list_node_remove(g_EsifEventMgr.appUnregisterList, curNodePtr);
+
+		if (curEntryPtr) {
+			ESIF_TRACE_DEBUG("Unregistering all events for app " ESIF_HANDLE_FMT "\n", curEntryPtr->context);
+
+			esif_ccb_write_unlock(&g_EsifEventMgr.appUnregisterListLock);
+			EsifEventMgr_UnregisterApp(curEntryPtr->eventCallback, curEntryPtr->context);
+			esif_ccb_write_lock(&g_EsifEventMgr.appUnregisterListLock);
+
+			esif_ccb_free(curEntryPtr);
+		}
+
+		curNodePtr = g_EsifEventMgr.appUnregisterList->head_ptr;
+	}
+	esif_ccb_write_unlock(&g_EsifEventMgr.appUnregisterListLock);
+exit:
+	ESIF_TRACE_DEBUG("Exit code = %d\n", rc);
+	return rc;
+}
+
+static esif_error_t ESIF_CALLCONV EsifEventMgr_EventCallback(
+	esif_context_t context,
+	esif_handle_t participantId,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+)
+{
+	esif_error_t rc = ESIF_OK;
+
+	UNREFERENCED_PARAMETER(context);
+	UNREFERENCED_PARAMETER(domainId);
+	UNREFERENCED_PARAMETER(eventDataPtr);
+
+	if (NULL == fpcEventPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	// Only handle at the app level
+	if (!EsifUpPm_IsPrimaryParticipantId(participantId)) {
+		goto exit;
+	}
+
+	switch (fpcEventPtr->esif_event) {
+	case ESIF_EVENT_DISPLAY_ON:
+	case ESIF_EVENT_WINDOWS_LOW_POWER_MODE_EXIT:
+		g_EsifEventMgr.delayAppUnregistration = ESIF_FALSE;
+		EsifEventMgr_UnregisterRemovedApps();
+		break;
+	case ESIF_EVENT_DISPLAY_OFF:
+	case ESIF_EVENT_WINDOWS_LOW_POWER_MODE_ENTRY:
+		g_EsifEventMgr.delayAppUnregistration = ESIF_TRUE;
+		break;
+	default:
+		rc = ESIF_E_NOT_SUPPORTED;
+		break;
+	}
+exit:
+	return rc;
+}
+
+
+static esif_error_t EsifEventMgr_RegisterEvents(void)
+{
+	esif_error_t rc = ESIF_OK;
+
+	rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_OFF, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	if (ESIF_OK == rc) {
+		rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_ON, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	}
+	if (ESIF_OK == rc) {
+		rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_WINDOWS_LOW_POWER_MODE_ENTRY, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	}
+	if (ESIF_OK == rc) {
+		rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_WINDOWS_LOW_POWER_MODE_EXIT, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	}
+	if (rc != ESIF_OK) {
+		g_EsifEventMgr.delayedAppUnregistrationEnabled = ESIF_FALSE;
+	}
+
+	return rc;
+}
+
+
+static void EsifEventMgr_UnregisterEvents(void)
+{
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_OFF, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_ON, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_WINDOWS_LOW_POWER_MODE_ENTRY, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_WINDOWS_LOW_POWER_MODE_EXIT, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventMgr_EventCallback, 0);
+	
+	return;
+}
+
+
 eEsifError EsifEventMgr_Init(void)
 {
 	eEsifError rc = ESIF_OK;
@@ -1030,6 +1250,7 @@ eEsifError EsifEventMgr_Init(void)
 	ESIF_TRACE_ENTRY_INFO();
 
 	esif_ccb_lock_init(&g_EsifEventMgr.listLock);
+	esif_ccb_lock_init(&g_EsifEventMgr.appUnregisterListLock);
 
 	for (i = 0; i < NUM_EVENT_LISTS; i++) {
 		g_EsifEventMgr.observerLists[i] = esif_link_list_create();
@@ -1041,16 +1262,30 @@ eEsifError EsifEventMgr_Init(void)
 
 	g_EsifEventMgr.eventQueuePtr = esif_queue_create(ESIF_UF_EVENT_QUEUE_SIZE, ESIF_UF_EVENT_QUEUE_NAME, ESIF_UF_EVENT_QUEUE_TIMEOUT);
 	g_EsifEventMgr.garbageList = esif_link_list_create();
+	g_EsifEventMgr.appUnregisterList = esif_link_list_create();
 
 	if ((NULL == g_EsifEventMgr.eventQueuePtr) ||
-		(NULL == g_EsifEventMgr.garbageList)) {
+		(NULL == g_EsifEventMgr.garbageList) ||
+		(NULL == g_EsifEventMgr.appUnregisterList)) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
 
+	g_EsifEventMgr.delayedAppUnregistrationEnabled = ESIF_TRUE;
+	g_EsifEventMgr.delayAppUnregistration = ESIF_FALSE;
+
 	rc = esif_ccb_thread_create(&g_EsifEventMgr.eventQueueThread, EsifEventMgr_EventQueueThread, NULL);
 	if (rc != ESIF_OK) {
 		goto exit;
+	}
+
+	g_EsifEventMgr.cacheableEventListPtr = (Bool *)esif_ccb_malloc(MAX_ESIF_EVENT_ENUM_VALUE * sizeof(*g_EsifEventMgr.cacheableEventListPtr));
+	if (NULL == g_EsifEventMgr.cacheableEventListPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	for (i = 0; i < MAX_ESIF_EVENT_ENUM_VALUE; i++) {
+		g_EsifEventMgr.cacheableEventListPtr[i] = EsifEventCache_IsEventCacheable(i);
 	}
 exit:
 	if (rc != ESIF_OK) {
@@ -1058,6 +1293,12 @@ exit:
 	}
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
+}
+
+
+esif_error_t EsifEventMgr_Start(void)
+{
+	return 	EsifEventMgr_RegisterEvents();  /* Register for events after participants are available */
 }
 
 
@@ -1071,6 +1312,11 @@ void EsifEventMgr_Exit(void)
 	if (!g_EsifEventMgr.eventsDisabled) {
 		EsifEventMgr_Disable();
 	}
+
+	/* Stop accepting event manager events and then unregister any delayed apps */
+	EsifEventMgr_UnregisterEvents();
+	g_EsifEventMgr.delayAppUnregistration = ESIF_FALSE;
+	EsifEventMgr_UnregisterRemovedApps();
 
 	/* Remove all listeners */
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
@@ -1089,6 +1335,15 @@ void EsifEventMgr_Exit(void)
 	esif_queue_destroy(g_EsifEventMgr.eventQueuePtr, EsifEventMgr_QueueDestroyCallback);
 	g_EsifEventMgr.eventQueuePtr = NULL;
 
+	/* Release the cacheable event list */
+	esif_ccb_free(g_EsifEventMgr.cacheableEventListPtr);
+	g_EsifEventMgr.cacheableEventListPtr = NULL;
+
+	/*Destroy the delayed app unregistration list */
+	esif_ccb_write_lock(&g_EsifEventMgr.appUnregisterListLock);
+	esif_link_list_free_data_and_destroy(g_EsifEventMgr.appUnregisterList, NULL);
+	g_EsifEventMgr.appUnregisterList = NULL;
+	esif_ccb_write_unlock(&g_EsifEventMgr.appUnregisterListLock);
 
 	/* Destroy the garbage list */
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
@@ -1097,6 +1352,8 @@ void EsifEventMgr_Exit(void)
 	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 
 	esif_ccb_lock_uninit(&g_EsifEventMgr.listLock);
+	esif_ccb_lock_uninit(&g_EsifEventMgr.appUnregisterListLock);
+	
 
 	ESIF_TRACE_EXIT_INFO();
 }
@@ -1294,6 +1551,22 @@ static Bool EsifEventMgr_IsEventFiltered(eEsifEventType eventType)
 	}
 
 	return bRet;
+}
+
+
+static Bool EsifEventMgr_IsEventCacheable(
+	eEsifEventType eventType
+	)
+{
+	Bool isCacheable = ESIF_FALSE;
+
+	ESIF_ASSERT(g_EsifEventMgr.cacheableEventListPtr);
+
+	if (eventType < MAX_ESIF_EVENT_ENUM_VALUE) {
+		isCacheable = g_EsifEventMgr.cacheableEventListPtr[eventType];
+	}
+
+	return isCacheable;
 }
 
 

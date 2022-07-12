@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,7 +31,6 @@ public:
 	virtual void initializeControlsIfNeeded() = 0;
 	virtual void setControlsToMax() = 0;
 	virtual void setPL1PowerLimitControlToMax() = 0;
-	virtual void setPL1PowerLimitControlToMaxAndTimeWindowToMin() = 0;
 	virtual void setPL2PowerLimitControlToMax() = 0;
 	virtual void refreshCapabilities() = 0;
 	virtual void setCapability(const PowerControlDynamicCaps& capabilities) = 0;

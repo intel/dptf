@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 
 #define VER_MAJOR  9
 #define VER_MINOR  0
-#define VER_HOTFIX 10801
-#define VER_BUILD  25309
+#define VER_HOTFIX 11000
+#define VER_BUILD  27524
 
 #define ARG_TOSTR(arg) #arg
 #define VER_TOSTR(arg) ARG_TOSTR(arg)
@@ -33,4 +33,4 @@
 
 #define VERSION_STR VER_MAJOR_STR "." VER_MINOR_STR "." VER_HOTFIX_STR "." VER_BUILD_STR
 
-#define COPYRIGHT_STR "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved \0"
+#define COPYRIGHT_STR "Copyright (c) 2013-2022 Intel Corporation All Rights Reserved \0"

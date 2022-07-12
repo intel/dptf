@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -740,6 +740,39 @@ DptfBuffer EsifServices::primitiveExecuteGet(
 
 	buffer.trim(esifData.getDataLength());
 	return buffer;
+}
+
+DptfBuffer EsifServices::primitiveExecuteGetWithArgument(
+	esif_primitive_type primitive,
+	DptfBuffer esifData,
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt8 instance)
+{
+	DptfBuffer esifResult = DptfBuffer(esifData.size());
+	UInt32 size = esifData.size();
+	esifResult = esifData;
+
+	if (esifData.get())
+	{
+		EsifDataContainer esifRequest(esif_data_type::ESIF_DATA_STRUCTURE, esifData.get(), size, size);
+		EsifDataContainer esifResponse(
+			esif_data_type::ESIF_DATA_STRUCTURE, esifResult.get(), size, size);
+
+		eEsifError rc = m_appServices->executePrimitive(
+			m_esifHandle,
+			(const esif_handle_t)(UInt64)m_dptfManager,
+			m_dptfManager->getIndexContainer()->getParticipantHandle(participantIndex),
+			m_dptfManager->getIndexContainer()->getDomainHandle(participantIndex, domainIndex),
+			esifRequest,
+			esifResponse,
+			primitive,
+			instance);
+
+		throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+	}
+
+	return esifResult;
 }
 
 void EsifServices::primitiveExecuteSet(

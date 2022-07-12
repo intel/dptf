@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,6 +54,29 @@
 #pragma once
 
 #include "esif_sdk_data.h"
+
+/*
+* Header structures for PPM parameter and the PPM package that holds all
+* the PPM parameters associated with it.
+*/
+#define DEFAULT_PARAM_COUNT 1
+#define PPM_HEADER_REVISION 1
+
+typedef struct EsifPpmParamValues_s
+{
+	u32 powerSource; //AC: 0, DC : 1
+	u32 paramValue; // 32bits
+	esif_guid_t powerSchemeGuid;
+	esif_guid_t subgroupGuid;
+	esif_guid_t paramGuid;
+} EsifPpmParamValues;
+
+typedef struct EsifPpmParamValuesHeader_s
+{
+	u32 revision; // 1,2, …
+	u32 numberElement;
+	EsifPpmParamValues ppmParamValuesArray[DEFAULT_PARAM_COUNT];	// Additional items may be present following this
+} EsifPpmParamValuesHeader;
 
 /* Have ESIF Allocate Buffer */
 #define ESIF_DATA_ALLOCATE 0xFFFFFFFF
@@ -111,6 +134,39 @@ struct loadable_action_device {
 struct loadable_action_devices {
 	int numDevicesLoaded;
 	struct loadable_action_device deviceData[1]; //n number of loadable_action_device objects
+};
+
+/*
+* Request structure for Overclocking Mailbox primitives
+*/
+#define OCMB_REQUEST_VERSION_1 1 /* Start at 1, so cleared structure isn't valid */
+#define OCMB_REQUEST_VERSION OCMB_REQUEST_VERSION_1
+
+struct ocmb_affinity_data {
+	u16 group; 
+	u64 affinity_mask; /* 0 indicates no affinity required */
+	u32 data; /* Only used for SETs.  GET data returned in response */
+	/*
+	* Notes:
+	* 1) If the affinity_mask is 0, only a single data element is accessed on
+	* current core without affinity change.
+	* 2) For GET's, if the affinity_mask is not all F's, only the data elements
+	* corresponding to the bitmask position are valid upon return.
+	* 3) For GET's, a response buffer large enough to hold 64 * sizeof(u32) is
+	* still required, but only the first item is valid.
+	*/
+};
+
+struct ocmb_request {
+	u32 version;
+	struct {
+		u32 cmd_rsp : 8;
+		u32 param1 : 8;
+		u32 param2 : 8;
+		u32 rsvd : 8;
+	} cmd;
+	u32 count; /* Number of ocmb_affinity_data structures; must be non-0 */
+	/* Array of ocmb_affinity_data structure follow here. See ocmb_affinity_data */
 };
 
 #pragma pack(pop)

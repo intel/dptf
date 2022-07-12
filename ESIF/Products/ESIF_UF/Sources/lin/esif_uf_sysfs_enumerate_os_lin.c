@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "esif_uf_ccb_imp_spec.h"
 #include "esif_uf_sysfs_os_lin.h"
 #include "esif_enum_ietm_hid.h"
+#include "esif_enum_acpi_device.h"
 #include <dirent.h>
 
 #define DEFAULT_DRIVER_NAME	""
@@ -48,11 +49,23 @@
 #define SYSFS_WWAN_HID "INT3408"
 #define PARTICIPANT_FIELD_LEN 64
 #define NUM_CPU_LOCATIONS 3
+#define SIZE_OF_UINT64	(sizeof(UInt64))
 
 static int g_zone_count = 0;
 const char *CPU_location[NUM_CPU_LOCATIONS] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1"};
 static Bool gSocParticipantFound = ESIF_FALSE;
-
+SysfsReadEntry gSysfsReadTable[MAX_SYSFS_READ_ENTRY_SIZE] = { 0 }; 
+UInt32 gNumberOfSysfsReadEntries = 0; 
+// EVENT Notification for battery and power participant
+SysfsAttrToEventMap gSysfsAttrToEventMapList[] = { 
+{"platform_power_source", ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED}, 
+{"rest_of_platform_power_mw", ESIF_EVENT_PLATFORM_REST_OF_POWER_CHANGED}, 
+{"max_platform_power_mw", ESIF_EVENT_MAX_BATTERY_POWER_CHANGED }, 
+{"max_steady_state_power_mw",ESIF_EVENT_PLATFORM_BATTERY_STEADY_STATE_CHANGED},
+{"no_load_voltage_mv",ESIF_EVENT_BATTERY_NO_LOAD_VOLTAGE_CHANGED}, 
+{"battery_steady_power_mw", ESIF_EVENT_PLATFORM_BATTERY_STEADY_STATE_CHANGED}, 
+{"high_freq_impedance_mohm", ESIF_EVENT_BATTERY_HIGH_FREQUENCY_IMPEDANCE_CHANGED} 
+};
 
 #define MAX_CORE_COUNT_SUPPORTED    (32)    // Supports max 32 cores per CPU Type
 #define MAX_CPU_TYPES_SUPPORTED     (4)     // Supports only 4 different CPU types
@@ -63,15 +76,6 @@ static Bool gSocParticipantFound = ESIF_FALSE;
 Bool IsSystemCpuIndexTableInitialized(SystemCpuIndexTablePtr self);
 void AddEntryToSystemCpuIndexTable(SystemCpuIndexTablePtr self, UInt32 cpuIndex, UInt32 highestPerf);
 SystemCpuIndexTable g_systemCpuIndexTable = { 0 };
-// List of Platform devices with no mapping Thermal Zones e.g PCH, Battery, Platform power,
-const char dttPlatformDeviceList[][HID_LEN] = {
-	"INTC1045", // TGL - PCH Participant Device
-	"INTC1049", // ADL - PCH Participant Device
-	"INTC1047", // TGL - Power Participant Device
-	"INTC1060", // ADL - Power Participant Device
-	"INTC1050", // TGL - Battery Participant Device
-	"INTC1061", // ADL - Battery Participant Device
-};
 static Bool IsSupportedDttPlatformDevice(const char *hidDevice);
 static void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
 static int scanPCI(void);
@@ -93,7 +97,10 @@ static eEsifError newParticipantCreate(
 	const UInt32 acpiType
 	);
 static Bool IsValidDirectoryPath(const char* dirPath);
+static Bool IsValidFilePath(char* filePath);
 static eEsifError GetManagerSysfsPath();
+static void EnumerateSysfsReadAttributes(char *ACPI_name,char *participant_path);
+static void AddSysfsReadTableEntry(char *ACPI_name, char *sysfsAtrributePath, Int32 eventType);
 static eEsifError EnumerateCoresBasedOnPerformance();
 
 char g_ManagerSysfsPath[MAX_SYSFS_PATH] = { 0 };
@@ -346,9 +353,9 @@ static int scanPCI(void)
 			}
 
 exit_participant:
-			free(namelist[n]);
+			esif_ccb_free(namelist[n]);
 		}
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 	closedir(dir);
 
@@ -401,7 +408,8 @@ static int scanPlat(void)
 					continue;
 				}
 				char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
-				if (esif_ccb_strcmp(ACPI_name, ACPI_DPTF)==0) {
+				if (esif_ccb_strlen(ACPI_name,ESIF_SCOPE_LEN) == ACPI_DEVICE_NAME_LEN
+					&& 	esif_ccb_strcmp(ACPI_name, ACPI_DPTF)==0) {
 					// DPTF (IETM) participant has already been created prior to the scanPlat() call
 					goto exit_participant;
 				}
@@ -446,19 +454,64 @@ static int scanPlat(void)
 							participant_scope,
 							ptype);
 					ESIF_TRACE_INFO("Participant created with HID : %s", hid);
+					EnumerateSysfsReadAttributes(ACPI_name,participant_path);
 
 				}
 				esif_ccb_free(ACPI_alias);
 			}
 
 exit_participant:
-			free(namelist[n]);
+			esif_ccb_free(namelist[n]);
 		}
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 	closedir(dir);
 
 	return 0;
+}
+static void AddSysfsReadTableEntry(char *ACPI_name, char *sysfsAtrributePath, Int32 eventType)
+{
+	ESIF_ASSERT(ACPI_name != NULL);
+	ESIF_ASSERT(sysfsAtrributePath != NULL);
+
+	esif_ccb_strcpy(gSysfsReadTable[gNumberOfSysfsReadEntries].participantName, 
+		ACPI_name,
+		sizeof(gSysfsReadTable[gNumberOfSysfsReadEntries].participantName));
+
+	esif_ccb_strcpy(gSysfsReadTable[gNumberOfSysfsReadEntries].sysfsPath, 
+		sysfsAtrributePath,
+		sizeof(gSysfsReadTable[gNumberOfSysfsReadEntries].sysfsPath));
+
+	gSysfsReadTable[gNumberOfSysfsReadEntries].eventType = eventType;
+	gNumberOfSysfsReadEntries++;
+
+	ESIF_TRACE_INFO("Valid Sysfs Poll Entry found : %s\n", sysfsAtrributePath);
+}
+
+static void EnumerateSysfsReadAttributes(char *ACPI_name,char *participant_path)
+{
+	ESIF_ASSERT(ACPI_name != NULL);
+	ESIF_ASSERT(participant_path != NULL);
+
+	for (UInt32 i = 0; i < sizeof(gSysfsAttrToEventMapList)/sizeof(gSysfsAttrToEventMapList[0]); i++) {
+		char filepath[MAX_SYSFS_FILENAME] = { 0 };
+		esif_ccb_strcpy(filepath,participant_path,MAX_SYSFS_FILENAME);
+		esif_ccb_strcat(filepath,"/dptf_power/",MAX_SYSFS_FILENAME);
+		esif_ccb_strcat(filepath,gSysfsAttrToEventMapList[i].attributeName,MAX_SYSFS_FILENAME);
+		if(IsValidFilePath(filepath) && gNumberOfSysfsReadEntries < MAX_SYSFS_READ_ENTRY_SIZE) {
+			AddSysfsReadTableEntry(ACPI_name, filepath ,gSysfsAttrToEventMapList[i].eventType);
+		}
+
+		esif_ccb_memset(filepath, 0 , sizeof(filepath));
+		esif_ccb_strcpy(filepath,participant_path,MAX_SYSFS_FILENAME);
+		esif_ccb_strcat(filepath,"/dptf_battery/",MAX_SYSFS_FILENAME);
+		esif_ccb_strcat(filepath,gSysfsAttrToEventMapList[i].attributeName,MAX_SYSFS_FILENAME);
+		if(IsValidFilePath(filepath) && gNumberOfSysfsReadEntries < MAX_SYSFS_READ_ENTRY_SIZE) {
+			AddSysfsReadTableEntry(ACPI_name, filepath ,gSysfsAttrToEventMapList[i].eventType);
+		}
+	}
+	ESIF_TRACE_DEBUG("Number of Entries : %d\n", gNumberOfSysfsReadEntries);
+	return;
 }
 
 static int scanThermal(void)
@@ -508,9 +561,9 @@ static int scanThermal(void)
 			}
 
 exit_zone:
-			free(namelist[n]);
+			esif_ccb_free(namelist[n]);
 		}
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 	closedir(dir);
 
@@ -579,6 +632,24 @@ static Bool IsValidDirectoryPath(const char* dirPath)
 	return isValid;
 }
 
+static Bool IsValidFilePath(char* filePath)
+{
+	ESIF_ASSERT(NULL != filePath);
+
+	Bool isValid = ESIF_FALSE;
+	char buffer[SIZE_OF_UINT64] = {'\0'};
+
+	FILE *fp = esif_ccb_fopen(filePath, "r", NULL);
+	if (fp != NULL) {
+		if ((esif_ccb_fseek(fp, 0, SEEK_SET) == 0) && (esif_ccb_fread(buffer, 1, 1, 1, fp) > 0)) {
+			isValid = ESIF_TRUE;
+		}
+		esif_ccb_fclose(fp);
+	}
+	ESIF_TRACE_DEBUG("File Path %s for Read is %s" , filePath , isValid ? "Valid" : "Not Valid");
+	return isValid;
+}
+
 static eEsifError GetManagerSysfsPath()
 {
 	eEsifError rc = ESIF_OK;
@@ -614,13 +685,11 @@ static Bool IsSupportedDttPlatformDevice(const char *hidDevice)
 	Bool isSupported = ESIF_FALSE;
 	ESIF_ASSERT(NULL != hidDevice);
 
-	for( UInt32 i = 0 ; i < sizeof(dttPlatformDeviceList) / sizeof(dttPlatformDeviceList[0]) ; i++ ) {
-		if ( esif_ccb_strcmp(hidDevice, dttPlatformDeviceList[i]) == 0 ) {
-			isSupported = ESIF_TRUE;
-			ESIF_TRACE_INFO("Platform Device Found : %s at index : %d" ,hidDevice , i);
-			break;
-		}
+	if (esif_ccb_strcmp(esif_acpi_device_str((esif_string)hidDevice), ESIF_NOT_AVAILABLE) != 0) {
+		ESIF_TRACE_INFO("Platform Device Found: %s\n", hidDevice);
+		isSupported = ESIF_TRUE;
 	}
+
 	return isSupported;
 }
 
@@ -742,7 +811,7 @@ eEsifError EnumerateCoresBasedOnPerformance()
 		rc = SysfsGetInt(acpiCppcPath, HIGH_PERF_SYSFS_NAME, &highestPerformance);
 		if (rc != ESIF_OK) {
 			ESIF_TRACE_ERROR("Fail to get highest_perf\n");
-			free(namelist[i]);
+			esif_ccb_free(namelist[i]);
 			continue;
 		}
 		AddEntryToSystemCpuIndexTable(&g_systemCpuIndexTable, cpuIndex, highestPerformance);
@@ -753,7 +822,7 @@ eEsifError EnumerateCoresBasedOnPerformance()
 	ESIF_TRACE_INFO("\n System CPU Index Table Initialized");
 exit:
 	if ( namelist != NULL ) {
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 	if ( dir != NULL) {
 		closedir(dir);

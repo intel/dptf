@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -144,6 +144,13 @@ public:
 
 	virtual TimeSpan primitiveExecuteGetAsTimeInMilliseconds(
 		esif_primitive_type primitive,
+		UIntN participantIndex = Constants::Esif::NoParticipant,
+		UIntN domainIndex = Constants::Esif::NoDomain,
+		UInt8 instance = Constants::Esif::NoInstance) override;
+
+	virtual DptfBuffer primitiveExecuteGetWithArgument(
+		esif_primitive_type primitive,
+		DptfBuffer esifDataType,
 		UIntN participantIndex = Constants::Esif::NoParticipant,
 		UIntN domainIndex = Constants::Esif::NoDomain,
 		UInt8 instance = Constants::Esif::NoInstance) override;

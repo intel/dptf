@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -735,6 +735,7 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE },
 	{ EsifEventCache_Init,				EsifEventCache_Exit,				ESIF_INIT_FLAG_NONE },
 	{ EsifEventCache_Start,				EsifEventCache_Stop,				ESIF_INIT_FLAG_NONE },
+	{ EsifEventMgr_Start,				NULL,								ESIF_INIT_FLAG_IGNORE_ERROR },
 	// Next NULL init items may or may not be running and are only started once ESIF is fully initialized
 	{ NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE },
 	{ NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE },
@@ -744,7 +745,7 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER },
 	{ esif_uf_shell_banner_init,		NULL,								ESIF_INIT_FLAG_NONE },
 	// If shutting down, event processing is disabled
-	{ NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_NONE },
+	{ NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_MUST_RUN_ON_EXIT },
 };
 
 
@@ -958,8 +959,7 @@ exit:
 	return rc;
 }
 
-/* Create Dynamic Participants as defined in Data Vault
- */
+/* Create enumerated and persisted dynamic participants */
 static eEsifError esif_uf_exec_startup_dynamic_parts(void)
 {
 	return CreateDynamicParticipants();

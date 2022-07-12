@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -342,6 +342,21 @@ Bool PolicyManager::policyExists(const string& policyName) const
 		}
 	}
 	return false;
+}
+
+Bool PolicyManager::IsDynamicPolicyTemplateFileName(const std::string& policyName) const
+{
+	// TODO : Make this as list if there are more policy templates
+	const std::string policyTemplateFileName = "DptfPolicyAdaptivePerformance" ESIF_LIB_EXT;
+
+	if ( policyName == policyTemplateFileName)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void PolicyManager::throwIfPolicyAlreadyExists(string policyFileName)

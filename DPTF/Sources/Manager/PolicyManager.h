@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public:
 	virtual IPolicy* getPolicyPtr(UIntN policyIndex) override;
 	virtual std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const override;
 	virtual Bool policyExists(const std::string& policyName) const override;
-
+	virtual Bool IsDynamicPolicyTemplateFileName(const std::string& policyName) const override;
 	// Policy manager handles registering and unregistering events since more than one policy can
 	// register or unregister, and we don't want one policy to unregister the event while another
 	// still needs it.

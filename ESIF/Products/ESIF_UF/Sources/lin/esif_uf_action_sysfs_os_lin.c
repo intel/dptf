@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -77,6 +77,7 @@
 #define ENERGY_UNIT_CONVERSION_FACTOR 1000000
 #define GT_FREQ_STEP 100
 #define MAX_GFX_PSTATE	64
+#define MAX_FAN_PROPERTIES 101
 
 #define MAX_ACPI_SCOPE_LEN ESIF_SCOPE_LEN
 #define ACPI_THERMAL_IOR_TYPE 's'
@@ -95,6 +96,7 @@
 #define SYSFS_PCI               "/sys/bus/pci/devices"
 #define SYSFS_PLATFORM          "/sys/bus/platform/devices"
 #define SYSFS_PSTATE_PATH       "/sys/devices/system/cpu/intel_pstate/"
+#define SYSFS_PSTATE_TFN        "/sys/bus/acpi/devices/"
 #define SYSFS_FIVR_PATH       	"/sys/bus/pci/devices/0000:00:04.0/fivr"
 #define SYSFS_FIVR_NODE       	"rfi_vco_ref_code"
 #define SYSFS_FIVR_PCH_PATH     "pch_fivr_switch_frequency"
@@ -132,6 +134,19 @@ struct trt_table {
 	u64 trt_sample_period;
 	u64 trt_reserved[4];
 };
+
+struct fan_properties {
+	UInt64 control;
+	UInt64 tripPoint;
+	UInt64 speed;
+	UInt64 noiseLevel;
+	UInt64 power;
+};
+
+struct fan_properties g_fanProperties[MAX_FAN_PROPERTIES];
+UInt32 g_isFanFpsSupported = 0xFFFFFFFF;
+UInt32 g_isFanFineGrainSupported = 0xFFFFFFFF;
+UInt32 g_fanStepSize = 0xFFFFFFFF;
 
 struct art_table {
 	char art_source_device[8]; /* ACPI 4 char name */
@@ -222,6 +237,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_RAPL_ENERGY_UNIT= 'UERG',
 	ESIF_SYSFS_GET_RAPL_ENERGY= 'ERSG',
 	ESIF_SYSFS_GET_RAPL_TIME_WINDOW = 'WTRG',
+	ESIF_SYSFS_GET_PLATFORM_POWER_LIMIT_TIME_WINDOW = 'WTPG',
 	ESIF_SYSFS_GET_TCC_OFFSET = 'CCTG',
 	ESIF_SYSFS_GET_PLATFORM_MAX_BATTERY_POWER = 'XAMP',
 	ESIF_SYSFS_GET_PLATFORM_POWER_SOURCE = 'CRSP',
@@ -234,6 +250,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_PLATFORM_BATTERY_STEADY_STATE = 'SSBP',
 	ESIF_SYSFS_GET_PLATFORM_REST_OF_POWER = 'PORP',
 	ESIF_SYSFS_GET_BATTERY_HIGH_FREQUENCY_IMPEDANCE = 'FHBR',
+	ESIF_SYSFS_GET_BATTERY_CURRENT_DISCHARGE_CAPABILITY = 'PPMC',
 	ESIF_SYSFS_GET_BATTERY_NO_LOAD_VOLTAGE = 'LNBV',
 	ESIF_SYSFS_GET_RFPROFILE_SSC = 'FSRG',
 	ESIF_SYSFS_GET_RFPROFILE_SSC_PCH = 'PSSG',
@@ -246,9 +263,11 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY_PCH = 'PCRS',
 	ESIF_SYSFS_SET_WWAN_PSTATE = 'SPWS',
 	ESIF_SYSFS_SET_OSC = 'CSOS',
+	ESIF_SYSFS_SET_PBOK = 'KOBP',
 	ESIF_SYSFS_SET_FAN_LEVEL = 'ELFS',
 	ESIF_SYSFS_SET_BRIGHTNESS_LEVEL = 'ELBS',
 	ESIF_SYSFS_SET_RAPL_TIME_WINDOW = 'WTRS',
+	ESIF_SYSFS_SET_PLATFORM_POWER_LIMIT_TIME_WINDOW = 'WTPS',
 	ESIF_SYSFS_SET_TCC_OFFSET = 'CCTS',
 	ESIF_SYSFS_SET_IMOK = 'KOMI',
 	ESIF_SYSFS_SET_EPP_WORKLOAD_TYPE = 'TWES',
@@ -297,8 +316,9 @@ static char sys_long_string_val[MAX_SYSFS_STRING];
 static eEsifError SetFanLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr);
 static eEsifError SetBrightnessLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr);
 static eEsifError SetEppWorkloadType(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr, const EsifString fileNamePtr);
-static eEsifError GetFanInfo(EsifDataPtr responsePtr);
-static eEsifError GetFanPerfStates(EsifDataPtr responsePtr, const EsifString devicePathPtr);
+static eEsifError GetFanInfo(EsifDataPtr responsePtr, const EsifString devicePathPtr);
+static eEsifError GetFanPerfStates(const EsifString acpiDevName, EsifDataPtr responsePtr, const EsifString devicePathPtr);
+static eEsifError EnumerateFpsEntries(EsifDataPtr responsePtr, const EsifString fpsPathPtr);
 static eEsifError GetRfprofileFreqAdjuRes(EsifDataPtr responsePtr);
 static eEsifError GetRfprofileCenterFreq(EsifDataPtr responsePtr, char *path, char *node);
 static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString devicePathPtr);
@@ -318,6 +338,9 @@ static eEsifError SetIntelPState(u64 val);
 static eEsifError ValidateOutput(char *devicePathPtr, char *nodeName, u64 val);
 static eEsifError GetGddvData(const EsifDataPtr responsePtr);
 static eEsifError GetOemVariables(char *table_str);
+static void UpdateFineGrainSupportedStatus(const EsifString devicePathPtr);
+static void UpdateStepSize(const EsifString devicePathPtr);
+static void UpdateFpsSupportedStatus(const EsifString devicePathPtr);
 
 #ifdef ESIF_ATTR_OS_ANDROID
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
@@ -449,6 +472,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	EsifString parm2 = NULL;
 	EsifString parm3 = NULL;
 	EsifString parm4 = NULL;
+	EsifString acpiDeviceName = NULL;
 	EsifString devicePathPtr = NULL;
 	EsifString deviceAltPathPtr = NULL;
 	EsifString deviceFullPathPtr = NULL;
@@ -553,6 +577,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	deviceFullPathPtr = (EsifString)metaPtr->fDevicePath;
 	devicePathPtr = esif_ccb_strtok(deviceFullPathPtr, "|", &pathTok);
 	deviceAltPathPtr = esif_ccb_strtok(NULL, "|", &pathTok);
+	acpiDeviceName = (EsifString)metaPtr->fAcpiDevice;
 
 	if (NULL == devicePathPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -765,14 +790,15 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				domainPtr->lastPower = sysval;
 				*(u32 *) responsePtr->buf_ptr = (u32) ret_val;
 				break;
+			case ESIF_SYSFS_GET_PLATFORM_POWER_LIMIT_TIME_WINDOW:
 			case ESIF_SYSFS_GET_RAPL_TIME_WINDOW: /* PL1 time window (Tau) */
 				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
 				}
 
-				/* Convert microseconds to milliseconds */
-				sysval /= 1000;
+				/* Convert microseconds to milliseconds after round off*/
+				sysval = (sysval + 0.5) / 1000;
 				*(u32 *) responsePtr->buf_ptr = (u32) sysval;
 				break;
 			case ESIF_SYSFS_GET_CPU_PDL: /* pdl */
@@ -860,6 +886,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			case ESIF_SYSFS_GET_BATTERY_HIGH_FREQUENCY_IMPEDANCE:
                         case ESIF_SYSFS_GET_BATTERY_MAX_PEAK_CURRENT:
                         case ESIF_SYSFS_GET_PLATFORM_BATTERY_STEADY_STATE:
+                        case ESIF_SYSFS_GET_BATTERY_CURRENT_DISCHARGE_CAPABILITY:
 			case ESIF_SYSFS_GET_BATTERY_NO_LOAD_VOLTAGE:
 				if (esif_ccb_strcmp("ipf_pwr",upPtr->fDspPtr->code_ptr) == 0) {
 					esif_ccb_sprintf(sizeof(batPwrSysfsPath),batPwrSysfsPath, "%s/%s",deviceFullPathPtr,"dptf_power");
@@ -979,10 +1006,10 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				rc = GetRfprofileFreqAdjuRes(responsePtr);
 				break;
 			case ESIF_SYSFS_GET_FAN_INFO:
-                                rc = GetFanInfo(responsePtr);
-                                break;
+                rc = GetFanInfo(responsePtr, devicePathPtr);
+                break;
 			case ESIF_SYSFS_GET_FAN_PERF_STATES:
-				rc = GetFanPerfStates(responsePtr, devicePathPtr);
+				rc = GetFanPerfStates(acpiDeviceName, responsePtr, devicePathPtr);
 				break;
 			case ESIF_SYSFS_GET_FAN_STATUS:
 				rc = GetFanStatus(responsePtr, devicePathPtr);
@@ -1206,7 +1233,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, tableObject.binaryData, tableObject.binaryDataSize);
 		responsePtr->type = ESIF_DATA_BINARY;
 		responsePtr->data_len = tableObject.binaryDataSize;
-		//esif_ccb_free(table_str);
 		TableObject_Destroy(&tableObject);
 		break;
 	default:
@@ -1519,6 +1545,14 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 
 				close(rfkill_fd);
 				break;
+			case ESIF_SYSFS_SET_PBOK:
+				sysval = *(Int32 *) requestPtr->buf_ptr;
+				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, "dptf_power");
+				if (SysfsSetInt64(cur_node_name, parm2, sysval) < 0) {
+                                        rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+                                        goto exit;
+                                }
+				break;
 			case ESIF_SYSFS_SET_OSC:  /* osc */
 				rc = SetOsc(upPtr, requestPtr);
 				break;
@@ -1531,10 +1565,11 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 			case ESIF_SYSFS_SET_BRIGHTNESS_LEVEL:
 				rc = SetBrightnessLevel(upPtr, requestPtr, parm1);
 				break;
+			case ESIF_SYSFS_SET_PLATFORM_POWER_LIMIT_TIME_WINDOW:
 			case ESIF_SYSFS_SET_RAPL_TIME_WINDOW:
 				sysval = (u64)*(u32 *)requestPtr->buf_ptr;
-				/* Convert milliseconds to microseconds */
-				sysval *= 1000;
+				/* Convert milliseconds to microseconds and round off*/
+				sysval = (sysval + 0.5) * 1000;
 				if (SysfsSetInt64(parm1, parm2, sysval) < 0) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
@@ -2186,9 +2221,9 @@ static enum esif_rc get_rapl_power_control_capabilities(
 				candidate_found = 1;
 				}
 			}
-			free(namelist[n]); // Use NATIVE free since allocated by scandir
+			esif_ccb_free(namelist[n]); // Use NATIVE free since allocated by scandir
 		}
-		free(namelist); // Use NATIVE free since allocated by scandir
+		esif_ccb_free(namelist); // Use NATIVE free since allocated by scandir
 	}
 	closedir(dir);
 
@@ -2407,6 +2442,8 @@ static eEsifError GetGddvData(const EsifDataPtr responsePtr)
 	size_t fileSize = 0;
 	rc = SysfsGetFileSize(g_ManagerSysfsPath, SYSFS_DATA_VAULT, &fileSize);
 	if (rc != ESIF_OK) {
+		// ACPI data_vault path is not found.
+		rc = ESIF_E_ACPI_OBJECT_NOT_FOUND;	
 		goto exit;
 	}
 
@@ -2468,10 +2505,10 @@ static eEsifError GetOemVariables(char *table_str)
 			variableIndex++;
 			ESIF_TRACE_INFO("OEM Variable %d : %d ", variableIndex , oemVariable);
 		}
-		free(namelist[fileIndex]);
+		esif_ccb_free(namelist[fileIndex]);
 		fileIndex++;
 	}
-	free(namelist);
+	esif_ccb_free(namelist);
 
 	ESIF_TRACE_INFO("Completed reading All the OEM Variables. OEM Count : %d bytes", variableIndex );
 
@@ -2540,14 +2577,26 @@ static eEsifError SetFanLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPt
 		goto exit;
 	}
 
-	if (SysfsGetInt64(devicePathPtr, "max_state", &pdlVal) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		ESIF_TRACE_WARN("Fail get participant %d's fan max_state\n", upPtr->fInstance);
-		goto exit;
+	UpdateFineGrainSupportedStatus(devicePathPtr);
+	if ( g_isFanFineGrainSupported == ESIF_TRUE ) {
+		// Fine Grain control is supported. The value received from policy will be in 0 - 100%
+		// Need to be divided by step size and set that value to cur_state
+		// e.g if we receive value as 90 and step size is 2 , 90/2 = 45 needs to be set in cur_state
+		UpdateStepSize(devicePathPtr);
+		curVal = *(UInt32 *) requestPtr->buf_ptr / g_fanStepSize;
+	}
+	else {
+		// Legacy Flow
+		if (SysfsGetInt64(devicePathPtr, "max_state", &pdlVal) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_WARN("Fail get participant %d's fan max_state\n", upPtr->fInstance);
+			goto exit;
+		}
+
+		target_perc = ((double) *(u32 *) requestPtr->buf_ptr) / 100.0;
+		curVal = round((target_perc + EPSILON_CONVERT_PERC) * pdlVal); // Avoid rounding errors
 	}
 
-	target_perc = ((double) *(u32 *) requestPtr->buf_ptr) / 100.0;
-	curVal = round((target_perc + EPSILON_CONVERT_PERC) * pdlVal); // Avoid rounding errors
 	if (SysfsSetInt64(devicePathPtr, "cur_state", curVal) < 0) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Fail set participant %d's fan cur_state\n", upPtr->fInstance);
@@ -2608,12 +2657,98 @@ exit:
 	return rc;
 }
 
-static eEsifError GetFanInfo(EsifDataPtr responsePtr)
+static void UpdateFineGrainSupportedStatus(const EsifString devicePathPtr)
+{
+	Int64 fineGrainControl = 0;
+	char fanACPIPath[MAX_SYSFS_PATH] = { 0 };
+
+	ESIF_ASSERT(devicePathPtr != NULL);
+
+	//Update the FineGrainSupported Status only once
+	if (g_isFanFineGrainSupported != 0xFFFFFFFF ) {
+		// This status is already updated return.
+		goto exit;
+	}
+
+	esif_ccb_strcpy(fanACPIPath, devicePathPtr, sizeof(fanACPIPath));
+	esif_ccb_strcat(fanACPIPath, "/device/firmware_node",sizeof(fanACPIPath));
+	if (SysfsGetInt64(fanACPIPath, "fine_grain_control", &fineGrainControl) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+		// Ignore if any failure
+		ESIF_TRACE_WARN("Fail to get participant fine_grain_control\n");
+		goto exit;
+	}
+
+	ESIF_TRACE_INFO("Fine Grain Control : %d", fineGrainControl);
+	g_isFanFineGrainSupported = fineGrainControl;
+
+exit:
+	return;
+}
+
+static void UpdateStepSize(const EsifString devicePathPtr)
+{
+	Int64 maxPState = 0;
+
+	ESIF_ASSERT(devicePathPtr != NULL);
+
+	//Update the fanstep size only once
+	if (g_fanStepSize != 0xFFFFFFFF ) {
+		// This status is already updated return.
+		goto exit;
+	}
+
+	if (SysfsGetInt64(devicePathPtr, "max_state", &maxPState) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+		// Ignore if any failure
+		ESIF_TRACE_ERROR("Fail to get participant fan max_state\n");
+		g_fanStepSize = 1; // set default to 1 on failure and exit
+		goto exit;
+	}
+	ESIF_TRACE_DEBUG("max P State : %d", maxPState);
+	g_fanStepSize = 100 / maxPState;
+	ESIF_TRACE_INFO("Fan Step Size : %d", g_fanStepSize);
+
+exit:
+	return;
+}
+
+static void UpdateFpsSupportedStatus(const EsifString devicePathPtr)
+{
+	char sysValString[MAX_SYSFS_PATH] = { 0 };
+	char fanFPSPath[MAX_SYSFS_PATH] = { 0 };
+
+	ESIF_ASSERT(devicePathPtr != NULL);
+
+	//Update the FAN FPS Status only once
+	if (g_isFanFpsSupported != 0xFFFFFFFF ) {
+		// This status is already updated return.
+		goto exit;
+	}
+
+	esif_ccb_strcpy(fanFPSPath, devicePathPtr, sizeof(fanFPSPath));
+	esif_ccb_strcat(fanFPSPath, "/device/firmware_node",sizeof(fanFPSPath));
+	//Check if FAN FPS Support is available
+	if (SysfsGetString(fanFPSPath, "state0", sysValString, sizeof(sysValString)) > -1) {
+		g_isFanFpsSupported = ESIF_TRUE;
+	}
+	else {
+		g_isFanFpsSupported = ESIF_FALSE;
+	}
+	ESIF_TRACE_INFO("Fan FPS Supported : %s", (g_isFanFpsSupported == ESIF_TRUE) ? "TRUE" : "FALSE");
+
+exit:
+	return;
+}
+
+static eEsifError GetFanInfo(EsifDataPtr responsePtr, const EsifString devicePathPtr)
 {
 	// Since the ACPI object _FIF is not exposed to user space, just fake
 	// the data. It's mostly a filler since DPTF only cares one field (see below)
 	eEsifError rc = ESIF_OK;
 	struct EsifDataBinaryFifPackage fif = {0};
+	UInt32 maxPState = 0;
+
+	ESIF_ASSERT(responsePtr != NULL);
+	ESIF_ASSERT(devicePathPtr != NULL);
 
 	responsePtr->type = ESIF_DATA_BINARY;
 	responsePtr->data_len = sizeof(fif);
@@ -2627,33 +2762,76 @@ static eEsifError GetFanInfo(EsifDataPtr responsePtr)
 	fif.hasFineGrainControl.integer.type = ESIF_DATA_UINT64;
 	fif.stepSize.integer.type = ESIF_DATA_UINT64;
 	fif.supportsLowSpeedNotification.integer.type = ESIF_DATA_UINT64;
-	fif.hasFineGrainControl.integer.value = ESIF_TRUE; // Only thing cared by DPTF, set it to true
+
+	UpdateFineGrainSupportedStatus(devicePathPtr);
+	if ( g_isFanFineGrainSupported == ESIF_TRUE ) {
+		// Latest kernel and FineGrain supported
+		//Update the step size only if fine grain is supported
+		UpdateStepSize(devicePathPtr);
+		fif.hasFineGrainControl.integer.value = g_isFanFineGrainSupported;
+	}
+	else if ( g_isFanFineGrainSupported == ESIF_FALSE ) {
+		// Latest kernel and FineGrain is NOT supported
+		fif.hasFineGrainControl.integer.value = g_isFanFineGrainSupported;
+		g_fanStepSize = 0;
+	}
+	else {
+		// Legacy code
+		fif.hasFineGrainControl.integer.value = ESIF_TRUE;
+		g_fanStepSize = 0;
+	}
+	fif.stepSize.integer.value = g_fanStepSize;
+	ESIF_TRACE_INFO("\n FanFineGrainSupported : %d fanStepSize : %d",g_isFanFineGrainSupported, g_fanStepSize);
 	esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, &fif, sizeof(fif));
 
 exit:
 	return rc;
 }
 
-static eEsifError GetFanPerfStates(EsifDataPtr responsePtr, const EsifString devicePathPtr)
+static int FpsEntryFilter(const struct dirent *entry)
 {
-	// Since the ACPI object _FPS is not exposed to user space, just fake
-	// the data. It's just a filler and all fields are ignored by DPTF.
-	// However, its presence is required otherwise DPTF will abort fan control
+	if (esif_ccb_strstr(entry->d_name, "state")) return 1;
+	else return 0;
+};
+
+static eEsifError EnumerateFpsEntries(EsifDataPtr responsePtr, const EsifString devicePathPtr)
+{
+	DIR *dir = NULL;
+	struct dirent **namelist;
+	Int32 n = 0;
+	char sysValString[MAX_SYSFS_PATH] = { 0 };
+	char fanFPSPath[MAX_SYSFS_PATH] = { 0 };
+	char fpsEntryName[MAX_SYSFS_PATH] = { 0 };
 	eEsifError rc = ESIF_OK;
 	union esif_data_variant revision = {0};
 	struct EsifDataBinaryFpsPackage fps = {0};
-	Int64 pdlVal = 0;
-	int size = 0;
-	int totalSize = 0;
-	int i = 0;
+	UInt32 size = 0;
+	UInt32 totalSize = 0;
+	char *token = NULL;
+	char *next_token = NULL;
 
-	if (SysfsGetInt64(devicePathPtr, "max_state", &pdlVal) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		ESIF_TRACE_WARN("Fail to get participant fan max_state\n");
+	ESIF_ASSERT(responsePtr != NULL);
+	ESIF_ASSERT(devicePathPtr != NULL);
+
+	esif_ccb_strcpy(fanFPSPath, devicePathPtr, sizeof(fanFPSPath));
+	esif_ccb_strcat(fanFPSPath, "/device/firmware_node",sizeof(fanFPSPath));
+	dir = opendir(fanFPSPath);
+	if (!dir) {
+		ESIF_TRACE_DEBUG("No FPS directory\n");
+		rc = ESIF_E_UNSPECIFIED;
 		goto exit;
 	}
+
+	n = scandir(fanFPSPath, &namelist, FpsEntryFilter, alphasort);
+	if (n < 0) {
+		//no scan
+		rc = ESIF_E_NOT_SUPPORTED;
+		ESIF_TRACE_WARN("FPS entries not supported\n");
+		goto exit;
+	}
+
 	totalSize = sizeof(revision);
-	totalSize += (pdlVal+1) * sizeof(fps);
+	totalSize += n  * sizeof(fps);
 	responsePtr->type = ESIF_DATA_BINARY;
 	responsePtr->data_len = totalSize;
 	if (responsePtr->buf_len < totalSize) {
@@ -2676,10 +2854,112 @@ static eEsifError GetFanPerfStates(EsifDataPtr responsePtr, const EsifString dev
 	// First copy revision, then multiple fps "packages"
 	esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, &revision, sizeof(revision));
 	size += sizeof(revision);
-	for (i = 0; i <= pdlVal; i++) {
-		fps.control.integer.value = round(i * 100 / pdlVal);
+	for ( UInt32 i = 0 ; i < n ; i++ ) {
+		esif_ccb_sprintf(MAX_SYSFS_PATH, fpsEntryName, "state%d", i);
+		if (SysfsGetString(fanFPSPath, fpsEntryName , sysValString, sizeof(sysValString)) > -1) {
+			ESIF_TRACE_DEBUG("SysValString=%s \n", sysValString);
+			next_token = sysValString;
+
+			token = esif_ccb_strtok(next_token, ":", &next_token);
+			if (token != NULL) {
+				fps.control.integer.value = (UInt64) strtol(token, NULL, 0);
+				g_fanProperties[i].control = fps.control.integer.value;
+			}
+
+			token = esif_ccb_strtok(next_token, ":", &next_token);
+			if (token != NULL) {
+				fps.tripPoint.integer.value = (UInt64) strtol(token, NULL, 0);
+				g_fanProperties[i].tripPoint = fps.tripPoint.integer.value;
+			}
+
+			token = esif_ccb_strtok(next_token, ":", &next_token);
+			if (token != NULL) {
+				fps.speed.integer.value	= (UInt64) strtol(token, NULL, 0);
+				g_fanProperties[i].speed =  fps.speed.integer.value;
+			}
+
+			token = esif_ccb_strtok(next_token, ":", &next_token);
+			if (token != NULL) {
+				fps.noiseLevel.integer.value = (UInt64) strtol(token, NULL, 0);
+				g_fanProperties[i].noiseLevel =  fps.noiseLevel.integer.value;
+			}
+
+			token = esif_ccb_strtok(next_token, ":", &next_token);
+			if (token != NULL) {
+				fps.power.integer.value = (UInt64) strtol(token, NULL, 0);
+				g_fanProperties[i].power =  fps.power.integer.value;
+			}
+		}
+		//cleanup each namelist entry
+		esif_ccb_free(namelist[i]);
 		esif_ccb_memcpy((u8 *) responsePtr->buf_ptr + size, &fps, sizeof(fps));
 		size += sizeof(fps);
+	}
+	esif_ccb_free(namelist);
+exit:
+	if (dir) {
+		closedir(dir);
+	}
+	return rc;
+}
+
+static eEsifError GetFanPerfStates(const EsifString acpiDevName, EsifDataPtr responsePtr, const EsifString devicePathPtr)
+{
+	eEsifError rc = ESIF_OK;
+	union esif_data_variant revision = {0};
+	struct EsifDataBinaryFpsPackage fps = {0};
+	Int64 pdlVal = 0;
+	int size = 0;
+	int totalSize = 0;
+	int i = 0;
+	char sysValString[MAX_SYSFS_PATH] = { 0 };
+	char fanFPSPath[MAX_SYSFS_PATH] = { 0 };
+
+	UpdateFpsSupportedStatus(devicePathPtr);
+	if ( g_isFanFpsSupported == ESIF_TRUE) {
+		// Latest kernel and FPS entries are supported
+		rc = EnumerateFpsEntries(responsePtr, devicePathPtr);
+	}
+	else {
+		// Legacy flow
+		// Since the ACPI object _FPS is not exposed to user space, just fake
+		// the data. It's just a filler and all fields are ignored by DPTF.
+		// However, its presence is required otherwise DPTF will abort fan control
+		if (SysfsGetInt64(devicePathPtr, "max_state", &pdlVal) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_WARN("Fail to get participant fan max_state\n");
+			goto exit;
+		}
+
+		totalSize = sizeof(revision);
+		totalSize += (pdlVal) * sizeof(fps);
+		responsePtr->type = ESIF_DATA_BINARY;
+		responsePtr->data_len = totalSize;
+		if (responsePtr->buf_len < totalSize) {
+			rc = ESIF_E_NEED_LARGER_BUFFER;
+			ESIF_TRACE_WARN("Need larger buffer to return _FPS data to DPTF\n");
+			goto exit;
+		}
+
+		revision.integer.type = ESIF_DATA_UINT64;
+		fps.control.integer.type = ESIF_DATA_UINT64;
+		fps.tripPoint.integer.type = ESIF_DATA_UINT64;
+		fps.tripPoint.integer.value = INVALID_64BIT_UINTEGER;
+		fps.speed.integer.type = ESIF_DATA_UINT64;
+		fps.speed.integer.value = INVALID_64BIT_UINTEGER;
+		fps.noiseLevel.integer.type = ESIF_DATA_UINT64;
+		fps.noiseLevel.integer.value = INVALID_64BIT_UINTEGER;
+		fps.power.integer.type = ESIF_DATA_UINT64;
+		fps.power.integer.value = INVALID_64BIT_UINTEGER;
+
+		// First copy revision, then multiple fps "packages"
+		esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, &revision, sizeof(revision));
+		size += sizeof(revision);
+		for (i = 0; i <= pdlVal; i++) {
+			fps.control.integer.value = round(i * 100 / pdlVal);
+			esif_ccb_memcpy((u8 *) responsePtr->buf_ptr + size, &fps, sizeof(fps));
+			size += sizeof(fps);
+		}
 	}
 
 exit:
@@ -2800,6 +3080,11 @@ static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString deviceP
 	Int64 curVal = 0;
 	Int64 pdlVal = 0;
 	struct EsifDataBinaryFstPackage fst = {0};
+	char fanFPSPath[MAX_SYSFS_PATH] = { 0 };
+	Int64 fanSpeed = 0;
+
+	ESIF_ASSERT(responsePtr != NULL);
+	ESIF_ASSERT(devicePathPtr != NULL);
 
 	responsePtr->type = ESIF_DATA_BINARY;
 	responsePtr->data_len = sizeof(fst);
@@ -2822,14 +3107,38 @@ static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString deviceP
 
 	if (SysfsGetInt64(devicePathPtr, "cur_state", &curVal) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 		// Do nothing, best effort.
+		ESIF_TRACE_WARN("Fail to get participant cur_state\n");
+		goto exit;
+	}
+
+	UpdateFineGrainSupportedStatus(devicePathPtr);
+	UpdateFpsSupportedStatus(devicePathPtr);
+	if ( (g_isFanFineGrainSupported == ESIF_TRUE) && (g_isFanFpsSupported == ESIF_TRUE) ) {
+		// Latest Kernel with Finegrain and FPS support
+		UpdateStepSize(devicePathPtr);
+		fst.control.integer.value = curVal * g_fanStepSize;
+		esif_ccb_strcpy(fanFPSPath, devicePathPtr, sizeof(fanFPSPath));
+		esif_ccb_strcat(fanFPSPath, "/device/firmware_node",sizeof(fanFPSPath));
+		if (SysfsGetInt64(fanFPSPath, "fan_speed_rpm", &fanSpeed) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			// Do nothing, best effort.
+			ESIF_TRACE_WARN("Fail to get participant fan_speed_rpm\n");
+			goto exit;
+		}
+		fst.speed.integer.value = fanSpeed;
+	}
+	else if (g_isFanFpsSupported == ESIF_TRUE) {
+		// Kernel with only FPS support
+		fst.control.integer.value = g_fanProperties[curVal].control;
+		fst.speed.integer.value = g_fanProperties[curVal].speed;
 	}
 	else {
+		// Legacy flow
 		fst.control.integer.value = round(curVal * 100 / pdlVal);
 	}
-
-	esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, &fst, sizeof(fst));
+	ESIF_TRACE_INFO("fst.control=%d: fst.speed=%d\n", fst.control.integer.value, fst.speed.integer.value);
 
 exit:
+	esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, &fst, sizeof(fst));
 	return rc;
 }
 
@@ -3026,9 +3335,9 @@ static eEsifError SetThermalZonePolicy()
 					}
 				}
 			}
-			free(namelist[n]);
+			esif_ccb_free(namelist[n]);
 		}
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 exit:
 	if (dir) {
@@ -3069,9 +3378,9 @@ static eEsifError ResetThermalZonePolicy()
 					ESIF_TRACE_WARN("Failed to change thermal zone policy type to default\n");
 				}
 			}
-			free(namelist[n]);
+			esif_ccb_free(namelist[n]);
 		}
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 
 	esif_ccb_free(tzPolicies);
@@ -3101,9 +3410,9 @@ static int AllocateThermalZones(void)
 	else {
 		numEntries = n;
 		while (n--) {
-			free(namelist[n]);
+			esif_ccb_free(namelist[n]);
 		}
-		free(namelist);
+		esif_ccb_free(namelist);
 	}
 	closedir(dir);
 	g_thermalZonePtr = (thermalZonePtr)esif_ccb_malloc(numEntries * sizeof(thermalZone));

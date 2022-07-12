@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -897,6 +897,13 @@ void PolicyBase::oemVariablesChanged(void)
 	onOemVariablesChanged();
 }
 
+void PolicyBase::swOemVariablesChanged(const DptfBuffer& swOemVariablesData)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": SW OEM variable(s) changed."; });
+	onSwOemVariablesChanged(swOemVariablesData);
+}
+
 void PolicyBase::powerBossConditionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -1347,6 +1354,11 @@ void PolicyBase::onSensorMotionChanged(OnOffToggle::Type sensorMotion)
 }
 
 void PolicyBase::onOemVariablesChanged(void)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onSwOemVariablesChanged(const DptfBuffer& swOemVariablesData)
 {
 	throw not_implemented();
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -120,7 +120,8 @@ namespace PolicyEvent
 			CASE(PolicySystemModeChanged)
 			CASE(PolicyCollaborationChanged)
 			CASE(PolicyThirdPartyGraphicsPowerStateChanged)
-			CASE(PolicyAppBroadcastListen)
+			CASE(PolicyAppBroadcastPrivileged)
+			CASE(PolicyAppBroadcastUnprivileged)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -168,15 +169,18 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged)
 			|| (policyEventType == PolicyEvent::PolicyCollaborationChanged)
 			|| (policyEventType == PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyAppBroadcastListen));
+			|| (policyEventType == PolicyEvent::PolicyAppBroadcastPrivileged)
+			|| (policyEventType == PolicyEvent::PolicyAppBroadcastUnprivileged));
 	}
 
 	std::string toString(Type type)
 	{
 		switch (type)
 		{
-		case PolicyEvent::PolicyAppBroadcastListen:
-			return "PolicyAppBroadcastListen";
+		case PolicyEvent::PolicyAppBroadcastPrivileged:
+			return "PolicyAppBroadcastPrivileged";
+		case PolicyEvent::PolicyAppBroadcastUnprivileged:
+			return "PolicyAppBroadcastUnprivileged";
 		case PolicyEvent::DptfConnectedStandbyEntry:
 			return "DptfConnectedStandbyEntry";
 		case PolicyEvent::DptfConnectedStandbyExit:

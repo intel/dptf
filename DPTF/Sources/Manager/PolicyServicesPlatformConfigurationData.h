@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,6 +52,8 @@ public:
 	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) override final;
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) override final;
 	virtual DptfBuffer getOemVariables(void) override final;
+	virtual DptfBuffer getSwOemVariables(void) override final;
+	virtual void setSwOemVariables(const DptfBuffer& swOemVariablesData) override final;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl)
@@ -75,6 +77,7 @@ public:
 	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) override final;
 	virtual void setEnergyPerformanceOptimizerTable(DptfBuffer data) override final;
 	virtual DptfBuffer getTpgaTable(void) override final;
+	virtual void setTpgaTable(DptfBuffer data) override final;
 
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
@@ -83,14 +86,15 @@ public:
 	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) override final;
 	virtual DptfBuffer getIntelligentThermalManagementTable() override final;
 	virtual void setIntelligentThermalManagementTable(DptfBuffer data) override final;
-	virtual void setPpmPackage(UInt32 value) override final;
-	virtual void setPpmPackageSettings(PpmPackage::PpmParam param) override final;
+	virtual void setPpmPackage(DptfBuffer package) override final;
+	virtual DptfBuffer getPpmPackage(DptfBuffer requestpackage) override final;
 	virtual void setPowerSchemeEpp(UInt32 value) override final;
 	virtual void setActivePowerScheme() override final;
 	virtual void setForegroundAppRatioPeriod(UInt32 value) override final;
 	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) override final;
-	virtual UInt32 getTpgPowerState(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt64 getPlatformCpuId() override final;
 
 	virtual void clearPpmPackageSettings(void) override final;
 
@@ -108,5 +112,6 @@ private:
 	void resetPowerShareAlgorithmTable(void);
 	void resetPowerShareAlgorithmTable2(void);
 	void resetIntelligentThermalManagementTable(void);
-	void resetEnergyPerformanceOptimizerTable();
+	void resetEnergyPerformanceOptimizerTable(void);
+	void resetThirdPartyGraphicsTable(void);
 };

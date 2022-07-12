@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,9 @@ typedef enum eEnumerableUFParticipants {
 
 void enumerate_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate);
 void register_events_for_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate);
+esif_error_t CreateEnumeratedParticipants();
+esif_error_t CreateActionAssociatedParticipants(esif_action_type_t actionType);
+
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 
@@ -51,7 +54,9 @@ static ESIF_INLINE void esif_ccb_imp_spec_actions_exit()
 	void EsifActSysfsExit(void);
 	EsifActSysfsExit();
 }
+
 #else
+
 enum esif_rc sync_lf_participants();
 
 static ESIF_INLINE enum esif_rc esif_ccb_participants_initialize(void)

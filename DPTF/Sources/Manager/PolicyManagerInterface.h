@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -46,6 +46,7 @@ public:
 	virtual IPolicy* getPolicyPtr(UIntN policyIndex) = 0;
 	virtual std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const = 0;
 	virtual Bool policyExists(const std::string& policyName) const = 0;
+	virtual Bool IsDynamicPolicyTemplateFileName(const std::string& policyName) const = 0;
 
 	virtual void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) = 0;
 	virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) = 0;

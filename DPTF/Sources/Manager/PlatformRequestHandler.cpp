@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -305,7 +305,7 @@ DptfRequestResult PlatformRequestHandler::handleAppBroadcastSend(const PolicyReq
 			}
 		}
 		getEsifServices()->sendDptfEvent(
-			FrameworkEvent::PolicyAppBroadcastSend, Constants::Invalid, Constants::Invalid, eventData);
+			FrameworkEvent::PolicyAppBroadcastPrivileged, Constants::Invalid, Constants::Invalid, eventData);
 		return DptfRequestResult(true, "Successfully sent appbroadcast event", request);
 	}
 	catch (dptf_exception& ex)

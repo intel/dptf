@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -197,6 +197,8 @@ typedef enum esif_event_type {
 	ESIF_EVENT_APP_BROADCAST_UNPRIVILEGED = 172,
 	ESIF_EVENT_TPG_POWER_STATE_CHANGED = 173,
 	ESIF_EVENT_COLLABORATION_CHANGED = 174,
+	ESIF_EVENT_NUM_FACES_ENROLLED_CHANGED = 175,
+	ESIF_EVENT_FACE_ID_CAPABILITY_SUPPORT_CHANGED = 176,
 	ESIF_EVENT_SESSION_DISCONNECTED = 10000,
 } esif_event_type_t;
 
@@ -204,7 +206,7 @@ typedef enum esif_event_type {
 ** Note that this only includes ESIF Event Types with an associated GUID and
 ** does not include Event Types used outside of ESIF, such as IPF-specific Events.
 */
-#define MAX_ESIF_EVENT_ENUM_VALUE  ESIF_EVENT_COLLABORATION_CHANGED
+#define MAX_ESIF_EVENT_ENUM_VALUE  ESIF_EVENT_FACE_ID_CAPABILITY_SUPPORT_CHANGED
 
 /* Event Type String */
 static ESIF_INLINE char *esif_event_type_str(esif_event_type_t type)
@@ -326,6 +328,8 @@ static ESIF_INLINE char *esif_event_type_str(esif_event_type_t type)
 	ESIF_CASE_ENUM(ESIF_EVENT_APP_BROADCAST_UNPRIVILEGED);
 	ESIF_CASE_ENUM(ESIF_EVENT_TPG_POWER_STATE_CHANGED);
 	ESIF_CASE_ENUM(ESIF_EVENT_COLLABORATION_CHANGED);
+	ESIF_CASE_ENUM(ESIF_EVENT_NUM_FACES_ENROLLED_CHANGED);
+	ESIF_CASE_ENUM(ESIF_EVENT_FACE_ID_CAPABILITY_SUPPORT_CHANGED);
 	ESIF_CASE_ENUM(ESIF_EVENT_SESSION_DISCONNECTED);
 	}
 	return ESIF_NOT_AVAILABLE;
@@ -404,6 +408,7 @@ static ESIF_INLINE esif_event_type_t esif_event_type_str2enum(const esif_string 
 		ESIF_MAP_ENUM(ESIF_EVENT_EMERGENCY_CALL_MODE_TABLE_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_ENERGY_THRESHOLD_CROSSED),
 		ESIF_MAP_ENUM(ESIF_EVENT_EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED),
+		ESIF_MAP_ENUM(ESIF_EVENT_FACE_ID_CAPABILITY_SUPPORT_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_FAN_CAPABILITIES_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_FOREGROUND_APP_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED),
@@ -412,6 +417,7 @@ static ESIF_INLINE esif_event_type_t esif_event_type_str2enum(const esif_string 
 		ESIF_MAP_ENUM(ESIF_EVENT_MAX_BATTERY_POWER_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_MOTION_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_NONE),
+		ESIF_MAP_ENUM(ESIF_EVENT_NUM_FACES_ENROLLED_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_OEM_VARS_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_ONLOOKER_SENSOR_HUMAN_COUNT_CHANGED),
 		ESIF_MAP_ENUM(ESIF_EVENT_ONLOOKER_SENSOR_STATUS_CHANGED),

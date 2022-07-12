@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -143,4 +143,9 @@ SensorUserPresence::Type PolicyServicesPlatformState::getPlatformUserPresence(vo
 UserInteraction::Type PolicyServicesPlatformState::getUserInteraction(void) const
 {
 	return getDptfManager()->getEventCache()->userInteraction.get();
+}
+
+OnOffToggle::Type PolicyServicesPlatformState::getTpgPowerState(void) const
+{
+	return getDptfManager()->getEventCache()->tpgPowerState.get();
 }

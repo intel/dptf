@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 ******************************************************************************/
 
 #include "PowerControlFacade.h"
+#include "PolicyLogger.h"
+#include "StatusFormat.h"
+using namespace StatusFormat;
 using namespace std;
 
 PowerControlFacade::PowerControlFacade(
@@ -187,18 +190,6 @@ void PowerControlFacade::setPL1PowerLimitControlToMax()
 	}
 }
 
-void PowerControlFacade::setPL1PowerLimitControlToMaxAndTimeWindowToMin()
-{
-	const auto& capsSet = getCapabilities();
-
-	if (capsSet.hasCapability(PowerControlType::PL1))
-	{
-		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
-		setPowerLimitPL1(caps.getMaxPowerLimit());
-		setPowerLimitTimeWindowPL1(caps.getMinTimeWindow());
-	}
-}
-
 void PowerControlFacade::setPL2PowerLimitControlToMax()
 {
 	const auto& capsSet = getCapabilities();
@@ -218,18 +209,46 @@ void PowerControlFacade::setPowerLimitPL1(const Power& powerLimit)
 	try
 	{
 		pl1Tau = getPowerLimitTimeWindowPL1().asMicroseconds();
+	}
+	catch (dptf_exception& ex)
+	{
+		POLICY_LOG_MESSAGE_WARNING_EX({
+			return "Failed to get PL1 time window for participant " + StatusFormat::friendlyValue(m_participantIndex)
+				   + ": " + string(ex.what());
+		});
+	}
+	catch(...)
+	{
+		POLICY_LOG_MESSAGE_WARNING({
+			return "Failed to get PL1 time window for participant " + StatusFormat::friendlyValue(m_participantIndex);});
+	}
 
-		const auto& capsSet = getCapabilities();
-		if (pl1Tau == 0 && capsSet.hasCapability(PowerControlType::PL1))
+	try
+	{
+		// pl1Tau is 0 when PL1 control is disabled or PL1 Time Window value is 0
+		if (pl1Tau == 0)
 		{
-			const auto& caps = capsSet.getCapability(PowerControlType::PL1);
-			m_policyServices.domainPowerControl->setPowerLimitTimeWindowWithoutUpdatingEnabled(
-				m_participantIndex, m_domainIndex, PowerControlType::PL1, caps.getMaxTimeWindow());
-			m_lastSetTimeWindow[PowerControlType::PL1] = caps.getMaxTimeWindow();
+			const auto& capsSet = getCapabilities();
+			if (capsSet.hasCapability(PowerControlType::PL1))
+			{
+				const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+				m_policyServices.domainPowerControl->setPowerLimitTimeWindowWithoutUpdatingEnabled(
+					m_participantIndex, m_domainIndex, PowerControlType::PL1, caps.getMaxTimeWindow());
+				m_lastSetTimeWindow[PowerControlType::PL1] = caps.getMaxTimeWindow();
+			}
 		}
 	}
-	catch (...)
+	catch (dptf_exception& ex)
 	{
+		POLICY_LOG_MESSAGE_WARNING_EX({
+			return "Failed to set PL1 time window without updating enabled for participant "
+				   + StatusFormat::friendlyValue(m_participantIndex) + ": " + string(ex.what());
+		});
+	}
+	catch(...)
+	{
+		POLICY_LOG_MESSAGE_WARNING({
+			return "Failed to set PL1 time window without updating enabled for participant " + StatusFormat::friendlyValue(m_participantIndex);});
 	}
 
 	m_policyServices.domainPowerControl->setPowerLimit(
@@ -275,18 +294,36 @@ void PowerControlFacade::setPowerLimitTimeWindowPL1(const TimeSpan& timeWindow)
 	try
 	{
 		pl1 = getPowerLimitPL1().toInt32();
+	}
+	catch (dptf_exception& ex)
+	{
+		POLICY_LOG_MESSAGE_WARNING_EX({
+			return "Failed to get PL1 for participant " + StatusFormat::friendlyValue(m_participantIndex) + ": "
+				   + string(ex.what());
+		});
+	}
 
-		const auto& capsSet = getCapabilities();
-		if (pl1 == 0 && capsSet.hasCapability(PowerControlType::PL1))
+	try
+	{
+		// pl1 is 0 when PL1 control is disabled or PL1 value is 0
+		if (pl1 == 0)
 		{
-			const auto& caps = capsSet.getCapability(PowerControlType::PL1);
-			m_policyServices.domainPowerControl->setPowerLimitWithoutUpdatingEnabled(
-				m_participantIndex, m_domainIndex, PowerControlType::PL1, caps.getMaxPowerLimit());
-			m_lastSetPowerLimit[PowerControlType::PL1] = caps.getMaxPowerLimit();
+			const auto& capsSet = getCapabilities();
+			if (capsSet.hasCapability(PowerControlType::PL1))
+			{
+				const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+				m_policyServices.domainPowerControl->setPowerLimitWithoutUpdatingEnabled(
+					m_participantIndex, m_domainIndex, PowerControlType::PL1, caps.getMaxPowerLimit());
+				m_lastSetPowerLimit[PowerControlType::PL1] = caps.getMaxPowerLimit();
+			}
 		}
 	}
-	catch (...)
+	catch (dptf_exception& ex)
 	{
+		POLICY_LOG_MESSAGE_WARNING_EX({
+			return "Failed to set PL1 without updating enabled for participant "
+				   + StatusFormat::friendlyValue(m_participantIndex) + ": " + string(ex.what());
+		});
 	}
 
 	m_policyServices.domainPowerControl->setPowerLimitTimeWindow(
@@ -577,4 +614,9 @@ Percentage PowerControlFacade::getLivePowerLimitDutyCyclePL3()
 	throwIfControlNotSupported();
 	return m_policyServices.domainPowerControl->getPowerLimitDutyCycle(
 		m_participantIndex, m_domainIndex, PowerControlType::PL3);
+}
+
+const PolicyServicesInterfaceContainer& PowerControlFacade::getPolicyServices() const
+{
+	return m_policyServices;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -674,7 +674,8 @@ extern "C"
 
 			switch (frameworkEvent)
 			{
-			case FrameworkEvent::PolicyAppBroadcastListen:
+			case FrameworkEvent::PolicyAppBroadcastUnprivileged:
+			case FrameworkEvent::PolicyAppBroadcastPrivileged:
 				wi = EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreateWorkItem(dptfManager, esifEventDataPtr);
 				break;
 			// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high

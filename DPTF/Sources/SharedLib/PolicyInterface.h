@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -182,6 +182,7 @@ public:
 	virtual void ddrfTableChanged(void) = 0;
 	virtual void tpgaTableChanged(void) = 0;
 	virtual void oemVariablesChanged(void) = 0;
+	virtual void swOemVariablesChanged(const DptfBuffer& swOemVariablesData) = 0;
 	virtual void powerBossConditionsTableChanged(void) = 0;
 	virtual void powerBossActionsTableChanged(void) = 0;
 	virtual void powerBossMathTableChanged(void) = 0;

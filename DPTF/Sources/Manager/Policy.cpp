@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -188,8 +188,8 @@ void Policy::destroyPolicy()
 		{
 			sendPolicyLogDataIfLoggingEnabled(false);
 			m_theRealPolicy->destroy();
-			m_policyName = std::string("");
 		}
+		m_policyName = std::string("");
 	}
 	catch (...)
 	{
@@ -278,7 +278,7 @@ string Policy::getDynamicPolicyUuidString(void) const
 
 void Policy::executeIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
 {
-	if (isEventRegistered(PolicyEvent::PolicyAppBroadcastListen))
+	if (isEventRegistered(PolicyEvent::PolicyAppBroadcastUnprivileged))
 	{
 		m_theRealPolicy->igccBroadcastReceived(broadcastNotificationData);
 	}
@@ -662,6 +662,14 @@ void Policy::executePolicyOemVariablesChanged(void)
 	if (isEventRegistered(PolicyEvent::PolicyOemVariablesChanged))
 	{
 		m_theRealPolicy->oemVariablesChanged();
+	}
+}
+
+void Policy::executeSwOemVariablesChanged(const DptfBuffer& swOemVariablesData)
+{
+	if (isEventRegistered(PolicyEvent::PolicyAppBroadcastPrivileged))
+	{
+		m_theRealPolicy->swOemVariablesChanged(swOemVariablesData);
 	}
 }
 

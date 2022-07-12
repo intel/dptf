@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,6 +59,7 @@
 #include "esif_dsp.h"
 #include "esif_uf_fpc.h"
 #include "esif_uf_ccb_system.h"
+#include "esif_uf_ccb_imp_spec.h"
 #include "esif_uf_app.h"
 #include "esif_uf_tableobject.h"
 #include "esif_sdk_iface_esif.h"
@@ -117,6 +118,19 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define DYNAMIC_PARTICIPANT_VERSION ESIF_PARTICIPANT_VERSION
 #define DYNAMIC_PARTICIPANT_FLAGS 0X0
 
+#define DYNAMIC_PARTICIPANT_PCIE_NAME "PCIE"
+#define DYNAMIC_PARTICIPANT_PCIE_DESCRIPTION "PCIE Participant"
+#define DYNAMIC_PARTICIPANT_PCIE_HID "INTPCIE"
+#define DYNAMIC_PARTICIPANT_PCIE_PTYPE "45" // ESIF_DOMAIN_TYPE_PCIE
+#define DYNAMIC_PARTICIPANT_PCIE_FLAGS "0"
+
+#define DYNAMIC_PARTICIPANT_VPU_NAME "VPU"
+#define DYNAMIC_PARTICIPANT_VPU_DESCRIPTION "VPU Participant"
+#define DYNAMIC_PARTICIPANT_VPU_HID "INTVPU"
+#define DYNAMIC_PARTICIPANT_VPU_PTYPE "46" // ESIF_DOMAIN_TYPE_VPU
+#define DYNAMIC_PARTICIPANT_VPU_FLAGS "0"
+
+
 /* Friends */
 extern EsifAppMgr g_appMgr;
 extern EsifCnjMgr g_cnjMgr;
@@ -153,6 +167,8 @@ static const char *g_shellStartScript = NULL;
 
 static eEsifError esif_shell_get_participant_id(char *participantNameOrId, esif_handle_t *targetParticipantIdPtr);
 static void esif_shell_get_primitive_alias(esif_primitive_type_t primitiveId, UInt8 instance, char* primitiveAlias, int buffer_len);
+esif_error_t CreatePcieParticipant();
+esif_error_t CreateVpuParticipant();
 
 // Global Shell lock to limit parse_cmd to one thread at a time
 static esif_ccb_mutex_t g_shellLock;
@@ -524,7 +540,7 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 			else if (type && revision && (esif_ccb_stricmp(type, DYNAMIC_PARTICIPANTS_OBJTYPE) == 0)) {
 				switch (esif_atoi(revision)) {
 				case 1: // Revision 1: implied enumerator=CONJURE only
-					enumerator = ltrim(esif_participant_enum_str(ESIF_PARTICIPANT_ENUM_CONJURE), PREFIX_PARTICIPANT_ENUM);;
+					enumerator = ltrim(esif_participant_enum_str(ESIF_PARTICIPANT_ENUM_CONJURE), PREFIX_PARTICIPANT_ENUM);
 					rc = ESIF_OK;
 					break;
 				case 2: // Revision 2: explicit enumerator
@@ -684,7 +700,8 @@ IStringPtr CreateJsonFromParticipantData(
 	return jsonStr;
 }
 
-// Create all Persisted Dynamic Participants (that have not yet been created)
+
+// Create all Dynamic Participants (that have not yet been created)
 esif_error_t CreateDynamicParticipants()
 {
 	eEsifError rc = ESIF_OK;
@@ -695,6 +712,13 @@ esif_error_t CreateDynamicParticipants()
 	EsifDataPtr value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 	EsifConfigFindContext context = NULL;
 
+	//
+	// Enumerated participants are created during initialization and are not
+	// persisted in a DV. They are not destroyed based on configuration changes.
+	// They are only destroyed at exit; unless, manually destroyed via the shell. 
+	//
+	CreateEnumeratedParticipants();
+	
 	// Find all matching JSON strings in Participants DataVault and create them
 	if (nameSpace && key && value && key->buf_ptr && (rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
 		do {
@@ -716,6 +740,67 @@ esif_error_t CreateDynamicParticipants()
 	EsifData_Destroy(value);
 	return rc;
 }
+
+
+#if defined(ESIF_FEAT_OPT_PCIE_SUPPORT_ENABLED)
+
+esif_error_t CreatePcieParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_PCIE_NAME,
+		DYNAMIC_PARTICIPANT_PCIE_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_PCIE_HID,
+		DYNAMIC_PARTICIPANT_PCIE_PTYPE,
+		DYNAMIC_PARTICIPANT_PCIE_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+
+	return rc;
+}
+
+#else
+esif_error_t CreatePcieParticipant()
+{
+	return ESIF_OK;
+}
+#endif
+
+
+#if defined(ESIF_FEAT_OPT_VPU_SUPPORT_ENABLED)
+
+esif_error_t CreateVpuParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_VPU_NAME,
+		DYNAMIC_PARTICIPANT_VPU_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_VPU_HID,
+		DYNAMIC_PARTICIPANT_VPU_PTYPE,
+		DYNAMIC_PARTICIPANT_VPU_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+
+	return rc;
+}
+
+#else
+esif_error_t CreateVpuParticipant()
+{
+	return ESIF_OK;
+}
+#endif
+
 
 // Destroy all Persisted Dynamic Participants (that have been created)
 esif_error_t DestroyDynamicParticipants()
@@ -4926,13 +5011,15 @@ static char *esif_shell_cmd_addpartk(EsifShellCmdPtr shell)
 
 	// Input Validation
 	if ((argc < 6) ||
-		(!shell_isstring(argv[1], ESIF_TRUE, 5)) ||
+		(!shell_isstring(argv[1], ESIF_TRUE, 5)) || /* Size of kernel type prefixes ACPI/PCI */
 		(!shell_isstring(argv[2], ESIF_TRUE, sizeof(name))) ||
 		(!shell_isstring(argv[3], ESIF_FALSE, sizeof(desc))) ||
 		(!shell_isstring(argv[4], ESIF_TRUE, sizeof(acpiDevice)) && !shell_isnumber(argv[4])) ||
 		(!shell_isnumber(argv[5]))) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Usage:\taddpartk PCI <name> <desc> <vid> <did>\n\taddpartk ACPI <name> <desc> <hid> <ptype>\n");
+		esif_ccb_sprintf(OUT_BUF_LEN, output,
+			"Usage:\taddpartk PCI <name> <desc> <vid> <did>\n"
+			      "\taddpartk ACPI <name> <desc> <hid> <ptype>\n");
 		goto exit;
 	}
 
@@ -6878,7 +6965,7 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "\n"
 						 "IPF - Intel(R) Innovation Platform Framework\n"
-						 "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n"
+						 "Copyright (c) 2013-2022 Intel Corporation All Rights Reserved\n"
 						 "\n"
 						 "ipf_uf - IPF Upper Framework (UF)\n"
 						 "Version:  %s\n"
@@ -8336,7 +8423,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2022 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
 		"Key:  <>-Required parameters\n"
 		"      []-Optional parameters\n"

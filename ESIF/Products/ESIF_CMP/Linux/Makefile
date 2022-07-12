@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -87,12 +87,14 @@ else
 	endif
 endif
 
+ifneq ($(OS), Chrome)
 # make BUILD=Debug
 # -s flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
 	CFLAGS   += -g
 else
 	CFLAGS   += -s
+endif
 endif
 
 $(info ++++ )

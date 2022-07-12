@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,119 +23,35 @@
 
 namespace PpmPackage
 {
-	std::string toString(PpmPackage::Type package)
+	std::string toString(UInt32 package)
 	{
-		switch (package)
+		std::string packageName = Constants::InvalidString;
+
+		if (package != PpmPackage::Invalid)
 		{
-		case PpmPackage::P1:
-			return "P1";
-		case PpmPackage::P2:
-			return "P2";
-		case PpmPackage::P3:
-			return "P3";
-		case PpmPackage::P4:
-			return "P4";
-		case PpmPackage::P5:
-			return "P5";
-		case PpmPackage::P6:
-			return "P6";
-		default:
-			return Constants::InvalidString;
+			packageName = std::to_string(package);
+			packageName.insert(0, "P");
 		}
+
+		return packageName;
 	}
 
-	PpmPackage::Type toState(std::string state)
+	UInt32 fromString(std::string packageName)
 	{
-		if (StringConverter::toUInt32(state) == 1)
+		UInt32 package = PpmPackage::Invalid;
+		try
 		{
-			return PpmPackage::P1;
+			if (packageName.at(0) == 'P')
+			{
+				packageName.erase(packageName.begin());
+				package = StringConverter::toUInt32(packageName);
+			}
 		}
-		if (StringConverter::toUInt32(state) == 2)
+		catch (...)		
 		{
-			return PpmPackage::P2;
-		}
-		if (StringConverter::toUInt32(state) == 3)
-		{
-			return PpmPackage::P3;
-		}
-		if (StringConverter::toUInt32(state) == 4)
-		{
-			return PpmPackage::P4;
-		}
-		if (StringConverter::toUInt32(state) == 5)
-		{
-			return PpmPackage::P5;
-		}
-		if (StringConverter::toUInt32(state) == 6)
-		{
-			return PpmPackage::P6;
-		}
-		throw dptf_exception("PPM Package input value is invalid");
-	}
-
-	PpmPackage::Type fromString(const std::string package)
-	{
-		const std::string packageName = StringConverter::toUpper(package);
-		std::string packageString = StringConverter::toUpper(toString(PpmPackage::P1));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
-		{
-			return PpmPackage::P1;
-		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P2));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
-		{
-			return PpmPackage::P2;
-		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P3));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
-		{
-			return PpmPackage::P3;
-		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P4));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
-		{
-			return PpmPackage::P4;
-		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P5));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
-		{
-			return PpmPackage::P5;
-		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P6));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
-		{
-			return PpmPackage::P6;
+			package = PpmPackage::Invalid;
 		}
 
-		return PpmPackage::Invalid;
-	}
-
-	PpmPackage::Type toState(UInt32 state)
-	{
-		if (state == 1)
-		{
-			return PpmPackage::P1;
-		}
-		if (state == 2)
-		{
-			return PpmPackage::P2;
-		}
-		if (state == 3)
-		{
-			return PpmPackage::P3;
-		}
-		if (state == 4)
-		{
-			return PpmPackage::P4;
-		}
-		if (state == 5)
-		{
-			return PpmPackage::P5;
-		}
-		if (state == 6)
-		{
-			return PpmPackage::P6;
-		}
-		throw dptf_exception("PPM Package input value is invalid");
+		return package;		
 	}
 }

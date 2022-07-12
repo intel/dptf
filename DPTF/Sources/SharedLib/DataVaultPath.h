@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,6 +52,8 @@ namespace DataVaultPath
 				DataVaultPathBasePaths::ExportRoot + "/tpg_slowpoll_period/";
 			static const std::string TpgDefaultPollPeriod =
 				DataVaultPathBasePaths::ExportRoot + "/tpg_default_poll_period/";
+			static const std::string TpgUtilEwmaAlpha =
+				DataVaultPathBasePaths::ExportRoot + "/tpg_util_ewma_alpha/";
 			static const std::string Above2cTimeConstraintStepsize =
 				DataVaultPathBasePaths::ExportRoot + "/above_2c_time_constraint_stepsize";
 		};
@@ -67,6 +69,7 @@ namespace DataVaultPath
 			static const std::string Psh2 = DataVaultPathBasePaths::TablesRoot + "/psh2/";
 			static const std::string Itmt = DataVaultPathBasePaths::TablesRoot + "/itmt/";
 			static const std::string Epot = DataVaultPathBasePaths::TablesRoot + "/epot/";
+			static const std::string Tpga = DataVaultPathBasePaths::TablesRoot + "/tpga/";
 		};
 	};
 
