@@ -82,6 +82,7 @@ extern "C" {
 #endif
 
 int SysfsSetString(const char *path, const char *filename, char *val);
+int SysfsSetStringWithError(const char *path, const char *filename, char *buffer, unsigned int length);
 int SysfsGetInt64Direct(int fd, Int64 *p64);
 int SysfsSetInt64Direct(int fd, Int32 val);
 int SysfsGetString(char *path, char *filename, char *str, size_t buf_len);

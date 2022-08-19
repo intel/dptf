@@ -3154,29 +3154,43 @@ static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr)
 	}
 }
 
+static eEsifError HandleOscMode(UInt32 capabilities, const char *cur_node_name)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (capabilities) {	// DPTF to take over thermal control
+		if (SysfsSetString(cur_node_name, "mode", "enabled") < 0) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		}
+	} else {
+		if (SysfsSetString(cur_node_name, "mode", "disabled") < 0) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		}
+	}
+
+	return rc;
+}
+
 static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, const char *cur_node_name)
 {
 	eEsifError rc = ESIF_OK;
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
 	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
 	esif_guid_t *guidPtr = (esif_guid_t *) oscPtr->guid;
+        char *dptfGuid = "B23BA85D-C8B7-3542-88DE-8DE2FFCFD698";
+        static UInt32 newOsc = ESIF_INVALID_ENUM_VALUE;
+        Bool isDptfGuid = ESIF_TRUE;
+	static UInt32 prevOscCap = 0;
+	char *policies_guid[3] = {
+		"3A95C389-E4B8-4629-A526-C52C88626BAE", /* ACTIVE   */
+		"42A441D6-AE6A-462B-A84B-4A8CE79027D3", /* PASSIVE  */
+		"97C68AE7-15FA-499C-B8C9-5DA81D606E0A"  /* CRITICAL */
+	};
 
 	// Convert IDSP GUID from binary format to text format because
 	// INT3400/INTC1040 driver only takes text format as input
 	esif_guid_mangle(guidPtr);
 	esif_guid_print(guidPtr, guidStr);
-
-	if (oscPtr->capabilities) {	// DPTF to take over thermal control
-		if (SysfsSetString(cur_node_name, "mode", "enabled") < 0) {
-			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-			goto exit;
-		}
-	} else {
-		if (SysfsSetString(cur_node_name, "mode", "disabled") < 0) {
-			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-			goto exit;
-		}
-	}
 
 	if ( esif_ccb_strlen(g_ManagerSysfsPath, sizeof(g_ManagerSysfsPath)) == 0) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
@@ -3184,10 +3198,74 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 		goto exit;
 	}
 
-	if (SysfsSetString(g_ManagerSysfsPath, SYSFS_CURRENT_UUID, guidStr) < 0) {
-		ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
-		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		goto exit;
+	ESIF_TRACE_DEBUG("GUID received: %s and oscCap: 0x%x\n", guidStr, oscPtr->capabilities);
+	if (newOsc == ESIF_INVALID_ENUM_VALUE) {
+		if (SysfsSetStringWithError(g_ManagerSysfsPath, SYSFS_CURRENT_UUID, dptfGuid, ESIF_GUID_PRINT_SIZE) < 0) {
+			ESIF_TRACE_DEBUG("Legacy OSC interface\n");
+			newOsc = ESIF_FALSE;
+		}
+		else {
+			ESIF_TRACE_DEBUG("New OSC interface\n");
+			newOsc = ESIF_TRUE;
+		}
+	}
+
+        isDptfGuid = esif_ccb_strncmp(guidStr, dptfGuid, ESIF_GUID_PRINT_SIZE) ? ESIF_FALSE : ESIF_TRUE;
+        if (newOsc) {
+		/* New OSC interface. Ignore Policy GUID and handle DPTF GUID */
+		if (!isDptfGuid) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			goto exit;
+		}
+
+		if (oscPtr->capabilities != prevOscCap) {
+			/* Reset current_uuid by disabling the mode */
+			if (SysfsSetStringWithError(cur_node_name, "mode", "disabled", sizeof("disabled")) < 0) {
+				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+				goto exit;
+			}
+		}
+
+		if (!(oscPtr->capabilities & 0x1)) {
+			ESIF_TRACE_INFO("Dynamic Tuning is disabled\n");
+			prevOscCap = oscPtr->capabilities;
+			goto exit;
+		}
+
+		prevOscCap = 0x1;
+		for (int i = 1; i <= sizeof(policies_guid)/sizeof(policies_guid[0]); i++) {
+			if (oscPtr->capabilities & (0x1 << i)) {
+				esif_ccb_strncpy(guidStr, policies_guid[i - 1], ESIF_GUID_PRINT_SIZE);
+				if (SysfsSetStringWithError(g_ManagerSysfsPath, SYSFS_CURRENT_UUID, guidStr, ESIF_GUID_PRINT_SIZE) < 0) {
+					ESIF_TRACE_WARN("Failed to set _OSC for DPTF GUID: %s\n", guidStr);
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
+				prevOscCap |= 0x1 << i;
+			}
+		}
+
+		rc = HandleOscMode(oscPtr->capabilities, cur_node_name);
+		if (rc != ESIF_OK) {
+			goto exit;
+		}
+	} else {
+		/* Legacy OSC interface. Ignore DPTF GUID and handle Policy GUID */
+		rc = HandleOscMode(oscPtr->capabilities, cur_node_name);
+		if (rc != ESIF_OK) {
+			goto exit;
+		}
+
+		if (isDptfGuid) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			goto exit;
+		}
+
+		if (SysfsSetStringWithError(g_ManagerSysfsPath, SYSFS_CURRENT_UUID, guidStr, ESIF_GUID_PRINT_SIZE) < 0) {
+			ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			goto exit;
+		}
 	}
 
 	if (SysfsGetString((char *)cur_node_name, "policy", sysvalstring, sizeof(sysvalstring)) > -1) {

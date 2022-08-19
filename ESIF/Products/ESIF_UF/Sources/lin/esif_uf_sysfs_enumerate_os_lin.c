@@ -78,7 +78,7 @@ void AddEntryToSystemCpuIndexTable(SystemCpuIndexTablePtr self, UInt32 cpuIndex,
 SystemCpuIndexTable g_systemCpuIndexTable = { 0 };
 static Bool IsSupportedDttPlatformDevice(const char *hidDevice);
 static void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
-static int scanPCI(void);
+static Int32 scanPCI(void);
 static int scanPlat(void);
 static int scanThermal(void);
 static Bool match_thermal_zone(const char *matchToName, char *participant_path);
@@ -287,79 +287,100 @@ static eEsifError newParticipantCreate (
 	return ESIF_OK;
 }
 
-static int scanPCI(void)
+static Int32 PciDeviceFilter(const struct dirent *entry)
 {
-	DIR *dir;
-	struct dirent **namelist;
+	//Filter only the available CPU Locations
+	for (UInt32 cpu_loc_counter = 0;cpu_loc_counter < NUM_CPU_LOCATIONS; cpu_loc_counter++) {
+		if (esif_ccb_strstr(entry->d_name, CPU_location[cpu_loc_counter]) != NULL ) {
+			return 1;
+		}
+	}
+	return 0;
+};
+
+static Int32 scanPCI(void)
+{
+	Int32 returnCode = 0;
+	DIR *dir = NULL;
+	struct dirent **namelist = NULL;
 	int n = 0;
-	int cpu_loc_counter = 0;
-	int thermal_counter = 0;
 	char participant_path[MAX_SYSFS_PATH] = { 0 };
 	char firmware_path[MAX_SYSFS_PATH] = { 0 };
 	char participant_scope[ESIF_SCOPE_LEN] = { 0 };
-	UInt32 ptype = ESIF_PARTICIPANT_INVALID_TYPE;
+	UInt32 ptype = ESIF_DOMAIN_TYPE_PROCESSOR;
 	esif_guid_t classGuid = ESIF_PARTICIPANT_CPU_CLASS_GUID;
 
 	dir = opendir(SYSFS_PCI);
-	if (!dir) {
+	if (dir == NULL) {
 		ESIF_TRACE_DEBUG("No PCI sysfs\n");
-		return -1;
+		returnCode = -1;
+		goto exit;
 	}
-	n = scandir(SYSFS_PCI, &namelist, 0, alphasort);
+	n = scandir(SYSFS_PCI, &namelist, PciDeviceFilter, alphasort);
 	if (n < 0) {
-		//no scan
+		ESIF_TRACE_DEBUG("No Matching PCI path exists\n");
+		returnCode = -1;
+		goto exit;
 	}
-	else {
-		while (n--) {
-			if (gSocParticipantFound) goto exit_participant;
-
-			for (cpu_loc_counter = 0;cpu_loc_counter < NUM_CPU_LOCATIONS;cpu_loc_counter++) {
-				if (esif_ccb_strstr(namelist[n]->d_name, CPU_location[cpu_loc_counter]) != NULL) {
-					esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PCI,namelist[n]->d_name);
-					esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
-
-					if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
-						int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
-						if (scope_len < ACPI_DEVICE_NAME_LEN) {
-							continue;
-						}
-						char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
-						/* map to thermal zone (try pkg thermal zone first)*/
-						for (thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
-							thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
-							if (esif_ccb_strcmp(tz.acpiCode, ACPI_name)==0) {
-								// Re-initialize the device path to one of the thermal zones
-								esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s", tz.thermalPath);
-								break;
-							}
-						}
-
-						/* map to thermal zone (try pkg thermal zone first)*/
-						newParticipantCreate(ESIF_PARTICIPANT_VERSION,
-							classGuid,
-							ESIF_PARTICIPANT_ENUM_SYSFS,
-							0x0,
-							ACPI_name,
-							ESIF_PARTICIPANT_CPU_DESC,
-							"N/A",
-							SYSFS_PROCESSOR_HID,
-							participant_path,
-							participant_scope,
-							ptype);
-						gSocParticipantFound = ESIF_TRUE;
-						break;
-					}
-				}
-			}
-
-exit_participant:
-			esif_ccb_free(namelist[n]);
+	// We need to iterate this loop in ascending order so that 0/0/4 will be enumerated 
+	// before 0/0/b PCI Device
+	for (UInt32 i = 0 ; i < n ; i++) {
+		// We should not break out of this loop and it can result in memory leaks
+		// we need to continue inside the loop to free each namelist entries
+		if ( gSocParticipantFound == ESIF_TRUE ) {
+			esif_ccb_free(namelist[i]);
+			continue;
 		}
-		esif_ccb_free(namelist);
-	}
-	closedir(dir);
 
-	return 0;
+		esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PCI,namelist[i]->d_name);
+		esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
+
+		if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) < 0) {
+			esif_ccb_free(namelist[i]);
+			continue;
+		}
+
+		int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
+		if (scope_len < ACPI_DEVICE_NAME_LEN) {
+			esif_ccb_free(namelist[i]);
+			continue;
+		}
+
+		char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
+		/* map to thermal zone (try pkg thermal zone first)*/
+		for (UInt32 thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
+			thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
+			if (esif_ccb_strcmp(tz.acpiCode, ACPI_name)==0) {
+				// Re-initialize the device path to one of the thermal zones
+				esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s", tz.thermalPath);
+				break;
+			}
+		}
+
+		newParticipantCreate(ESIF_PARTICIPANT_VERSION,
+			classGuid,
+			ESIF_PARTICIPANT_ENUM_SYSFS,
+			0x0,
+			ACPI_name,
+			ESIF_PARTICIPANT_CPU_DESC,
+			"N/A",
+			SYSFS_PROCESSOR_HID,
+			participant_path,
+			participant_scope,
+			ptype);
+
+		gSocParticipantFound = ESIF_TRUE;
+		esif_ccb_free(namelist[i]);
+	}
+
+	esif_ccb_free(namelist);
+
+exit:
+	if ( dir != NULL) {
+		closedir(dir);
+	}
+
+	return returnCode;
 }
 
 

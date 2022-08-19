@@ -78,6 +78,7 @@ Ubuntu Linux only, and may vary if your Linux distro is different.
 Requirement: DPTF requires corresponding ACPI support in BIOS. Not all
 Intel based platforms support DPTF in BIOS. Please contact your BIOS vendor
 to see if DPTF is enabled in your system.
+DPTF requires pm-utils to support some of the dptf functionalities.
 
 The 9.x version of DPTF also requires 4.0-rc7 kernel or later in order to
 run properly. To compile the DPTF source code, you need GCC version 4.8 or

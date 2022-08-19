@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../../x64/release/DptfMessageLoggingLib.a  CMakeFiles/DptfMessageLoggingLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/MessageLoggingLib/DptfMessage.cpp.o CMakeFiles/DptfMessageLoggingLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/MessageLoggingLib/ParticipantMessage.cpp.o CMakeFiles/DptfMessageLoggingLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/MessageLoggingLib/PolicyMessage.cpp.o
-/usr/bin/ranlib ../../x64/release/DptfMessageLoggingLib.a

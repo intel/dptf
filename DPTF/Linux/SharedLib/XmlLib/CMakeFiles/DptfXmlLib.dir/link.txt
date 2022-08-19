@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../../x64/release/DptfXmlLib.a  CMakeFiles/DptfXmlLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/XmlLib/Indent.cpp.o CMakeFiles/DptfXmlLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/XmlLib/XmlNode.cpp.o
-/usr/bin/ranlib ../../x64/release/DptfXmlLib.a

@@ -1000,6 +1000,30 @@ exit:
 	return rc;
 }
 
+int SysfsSetStringWithError(const char *path, const char *filename, char *buffer, unsigned int length)
+{
+	int fd = -1;
+	int rc = -1;
+	char filepath[MAX_SYSFS_PATH] = { 0 };
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
+
+	if (length && ((fd = open(filepath, O_WRONLY)) == -1)) {
+		goto exit;
+	}
+
+	if (write(fd, buffer, length) != length) {
+		goto exit;
+	}
+	rc = 0;
+
+exit:
+        if (fd != -1) {
+	    close(fd);
+        }
+	return rc;
+}
+
 #if !defined(ESIF_ATTR_INSTANCE_LOCK)
 // Instance Checking Disabled in Android for now
 

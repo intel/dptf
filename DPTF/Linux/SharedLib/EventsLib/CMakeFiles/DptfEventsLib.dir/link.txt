@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../../x64/release/DptfEventsLib.a  CMakeFiles/DptfEventsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/EventsLib/FrameworkEvent.cpp.o CMakeFiles/DptfEventsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/EventsLib/ParticipantEvent.cpp.o CMakeFiles/DptfEventsLib.dir/home/badttnayanavm1/repo/drivers.platform.dtt.dtt/DPTF/Sources/SharedLib/EventsLib/PolicyEvent.cpp.o
-/usr/bin/ranlib ../../x64/release/DptfEventsLib.a

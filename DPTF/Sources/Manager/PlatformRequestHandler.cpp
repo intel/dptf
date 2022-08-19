@@ -146,6 +146,7 @@ DptfRequestResult PlatformRequestHandler::handleSetOsc(const PolicyRequest& poli
 		isSuccessfulForArbitrator = false;
 		failureMessage =
 			failureMessage + " Failure during execution of arbitrated _OSC request: " + std::string(ex.what());
+		MANAGER_LOG_MESSAGE_DEBUG_EX({ return failureMessage; });
 	}
 
 	if (isSuccessfulForPolicy || isSuccessfulForArbitrator)
