@@ -66,7 +66,8 @@ typedef enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_RKL = 0x4C03,
 	ESIF_PCI_DEVICE_ID_JSL = 0x4E03,
 	ESIF_PCI_DEVICE_ID_CNL = 0x5a03,
-	ESIF_PCI_DEVICE_ID_MTL_MP = 0x7D03,
+	ESIF_PCI_DEVICE_ID_LNL = 0x641D,
+	ESIF_PCI_DEVICE_ID_MTL = 0x7D03,
 	ESIF_PCI_DEVICE_ID_ICL = 0x8a03,
 	ESIF_PCI_DEVICE_ID_LKF = 0x9820,
 	ESIF_PCI_DEVICE_ID_TGL = 0x9a03,
@@ -89,7 +90,9 @@ static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 		"Jasper Lake");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_CNL,
 		"Cannon Lake");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_MTL_MP,
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_LNL,
+		"Lunar Lake");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_MTL,
 		"Meteor Lake-MP");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_ICL,
 		"Ice Lake");
@@ -136,7 +139,6 @@ static ESIF_INLINE esif_string esif_pci_class_str(u8 class_id)
 }
 
 #if defined(ESIF_FEAT_OPT_USE_VIRT_DRVRS)
-#if defined(ESIF_ATTR_OS_LINUX)
 
 #pragma pack(push, 1)
 
@@ -149,10 +151,11 @@ const struct pci_device_id esif_pci_cpu_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_ADL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_RKL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_JSL) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_MTL_MP) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_MTL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_MTL_S) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_RPL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_FHF) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LNL) },
 	{ 0 }
 };
 
@@ -162,5 +165,4 @@ const struct pci_device_id esif_pci_pch_ids[] = {
 
 #pragma pack(pop)
 
-#endif
 #endif

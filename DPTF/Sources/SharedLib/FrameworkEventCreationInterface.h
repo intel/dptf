@@ -35,4 +35,5 @@ public:
 	virtual void createEventDomainPowerControlCapabilityChanged() = 0;
 	virtual void createEventPowerLimitChanged() = 0;
 	virtual void createEventPerformanceCapabilitiesChanged() = 0;
+	virtual void createEventPowerLimitTimeWindowChanged() = 0;
 };

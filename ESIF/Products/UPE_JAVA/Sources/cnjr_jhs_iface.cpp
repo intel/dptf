@@ -26,22 +26,9 @@
 #include "esif_ccb_thread.h"
 #include "conjure.h"
 
-#ifdef ESIF_ATTR_OS_ANDROID
-#include "jhs_binder_service.h"
-#include <android/log.h>
-using namespace jhs;
-#endif
 
 using namespace std;
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "..\ESIF\Products\ESIF_CM\Sources\win\banned.h"
-#endif
 
 // Application Description
 #define CONJURE_LIB_NAME    "Conjure1"
@@ -56,16 +43,7 @@ using namespace std;
 
 // Debug
 #define IFACE_TAG "esif_uf_cnj_iface -->"
-#ifdef ESIF_ATTR_OS_ANDROID
-	#define TRACE_LEVEL_ERROR	ANDROID_LOG_ERROR
-	#define TRACE_LEVEL_INFORMATION	ANDROID_LOG_INFO
-	#define TRACE_LEVEL_VERBOSE	ANDROID_LOG_DEBUG
-	#define DBG_ESIF_ACT_APP	"UPE_JAVA"
-	#define DBG_ESIF_CNJ_LIB	"UPE_JAVA"
-	#define ESIF_TRACE(level, type, format, ...) __android_log_print(level, type, format, ##__VA_ARGS__)
-#else
 	#define ESIF_TRACE(level, type, format, ...)
-#endif
 
 static void* cjrClientService(void *ptr);
 
@@ -142,18 +120,6 @@ exit:
 }
 
 static void* cjrClientService(void *ptr) {
-#ifdef ESIF_ATTR_OS_ANDROID
-	UNREFERENCED_PARAMETER(ptr);
-
-	sigusr1_enable();
-
-	sp<IServiceManager> sm = defaultServiceManager();
-	ESIF_ASSERT(sm != NULL);
-	sm->addService(String16(JHS_CLIENT_SERVICE_NAME), new JhsClientService());
-	ProcessState::self()->startThreadPool();
-	ESIF_TRACE(TRACE_LEVEL_INFORMATION, DBG_ESIF_ACT_APP, "JHS client service started...");
-	IPCThreadState::self()->joinThreadPool();
-#endif
 	return NULL;
 }
 

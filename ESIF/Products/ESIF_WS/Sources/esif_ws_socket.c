@@ -22,10 +22,6 @@
 #include "esif_ws_server.h"
 #include "esif_ws_socket.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 // WebSocket Frame Header consists of:
 // 1. UInt16 header bits

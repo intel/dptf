@@ -71,104 +71,6 @@
 #define ESIF_FLAG_EXTERN_DPTFZ 0x2	/* Participant Is Actually A DPTF Zone exposed by an external driver */
 #define ESIF_FLAG_ACCESS_ACPI_VIA_HAL 0x4	/* Participant is using the ACPI HAL target with absolute paths */
 
-#ifdef ESIF_ATTR_KERNEL
-
-#ifdef ESIF_ATTR_OS_WINDOWS
-#include <acpiioct.h>	/* ACPI  */
-typedef WDFIOTARGET acpi_handle;
-#endif
-
-#define MSR_WHITELIST_TERMINATOR 0
-#define MMIO_WHITELIST_TERMINATOR 0
-#define OCMB_ALLOWLIST_TERMINATOR 0
-
-/* The order is such that access rights are increased with value */
-enum whitelist_access {
-	WHITELIST_ACCESS_NONE = 0,
-	WHITELIST_ACCESS_READ = 1,
-	WHITELIST_ACCESS_WRITE = 2,
-	WHITELIST_ACCESS_BOTH = 3
-};
-
-static ESIF_INLINE esif_string whitelist_access_str(enum whitelist_access type)
-{
-	switch (type) {
-	ESIF_CASE_ENUM(WHITELIST_ACCESS_NONE);
-	ESIF_CASE_ENUM(WHITELIST_ACCESS_READ);
-	ESIF_CASE_ENUM(WHITELIST_ACCESS_WRITE);
-	ESIF_CASE_ENUM(WHITELIST_ACCESS_BOTH);
-	}
-	return ESIF_NOT_AVAILABLE;
-}
-
-struct msr_whitelist_entry {
-	u32 msr;
-	enum whitelist_access access;
-};
-
-struct mmio_whitelist_entry {
-	u32 start;
-	u32 end;
-	enum whitelist_access access;
-};
-
-struct ocmb_allowlist_entry {
-	u32 cmd;
-	enum whitelist_access access;
-};
-
-/* Participant INTERFACE */
-struct esif_participant_iface {
-	esif_ver_t    version;				/* Version */
-	esif_guid_t   class_guid;			/* Class GUID */
-	enum esif_participant_enum enumerator; /* Device Enumerator If Any */
-	esif_flags_t  flags;				/* Flags If Any
-							 *                    */
-	char          name[ESIF_NAME_LEN];		/* Friendly Name */
-	char          desc[ESIF_DESC_LEN];		/* Description */
-	char          driver_name[ESIF_NAME_LEN];	/* Driver Name */
-	char          device_name[ESIF_NAME_LEN];	/* Device Name */
-	char          device_path[ESIF_PATH_LEN];
-
-	/* EVENT Send Event From Driver To Framework */
-	enum esif_rc  (*send_event)(struct esif_participant_iface *pi,
-				    enum esif_event_type type, u16 domain,
-				    struct esif_data *data);
-	/* EVENT Receive Event From Framework To Driver */
-	enum esif_rc  (*recv_event)(enum esif_event_type type, u16 domain,
-				    struct esif_data *data);
-
-	/* ACPI */
-	char  acpi_device[ESIF_SCOPE_LEN];/* Device INT340X */
-	char  acpi_scope[ESIF_SCOPE_LEN]; /* Scope/REGEX e.g. \_SB.PCI0.TPCH  */
-	char  acpi_uid[ESIF_ACPI_UID_LEN];   /* Unique ID If Any        */
-	u32   acpi_type;                  /* Participant Type If Any */
-
-	/* PCI */
-	u32  pci_vendor;	/* PCI Vendor e.g. 0x8086 For Intel */
-	u32  pci_device;	/* Device ID Unique To Vendor       */
-	u8   pci_bus;		/* Bus This Device Resides On       */
-	u8   pci_bus_device;	/* Device Number On Bus         */
-	u8   pci_function;	/* Function Of Device               */
-	u8   pci_revision;	/* Revision Of PCI Hardware Device  */
-	u8   pci_class; /* Class 3 bytes: (base class,sub sclass, prog-if) */
-	u8   pci_sub_class;	/* Sub Class */
-	u8   pci_prog_if;	/* Program Interface */
-
-	esif_device_t  device;		/* Os Agnostic Driver Context */
-	void __iomem   *mem_base;	/* MMIO/MCHBAR Address        */
-	u32          mem_size;		/* MMIO/MCHBAR Size           */
-	acpi_handle  acpi_handle;	/* ACPI Handle                */
-
-	struct msr_whitelist_entry *msr_wlist_ptr;
-	struct mmio_whitelist_entry *mmio_wlist_ptr;
-	struct ocmb_allowlist_entry *ocmb_alist_ptr;
-
-	void *context; /* Reserved */
-};
-
-#endif /* ESIF ATTR_KERNEL */
-#ifdef ESIF_ATTR_USER
 
 #pragma pack(push,1)
 
@@ -195,4 +97,3 @@ typedef struct _t_EsifParticipantIface {
 
 #pragma pack(pop)
 
-#endif /* ESIF_ATTR_USER */

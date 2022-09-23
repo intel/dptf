@@ -15,8 +15,10 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#pragma once
 #include "CommandHandler.h"
 #include "TableObjectType.h"
+class TableObject;
 
 class dptf_export TableObjectSetCommand : public CommandHandler
 {
@@ -31,19 +33,37 @@ private:
 	void throwIfTableObjectNotExist(const CommandArguments& arguments);
 	void throwIfFailedToAllocateMemory(char* tableValue);
 	void throwIfFailedToAllocateMemory(UInt8* tableValue);
+	void throwIfParticipantNotExist(const CommandArguments& arguments);
+	void throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments);
 	void setTableObjectXmlString(const CommandArguments& arguments);
 	void convertToBinaryAndSet(
 		TableObjectType::Type tableType,
 		const char* textInput,
 		std::string uuid,
 		std::string dvName,
-		std::string key);
+		std::string key,
+		UIntN participantIndex);
+	void convertToEsifDataVariantBinaryAndSet(
+		TableObjectType::Type tableType,
+		const char* textInput,
+		std::string uuid,
+		std::string dvName,
+		std::string key,
+		UIntN participantIndex);
+	void convertToNonEsifDataVariantBinaryAndSet(
+		TableObjectType::Type tableType,
+		const char* textInput,
+		std::string uuid,
+		std::string dvName,
+		std::string key,
+		UIntN participantIndex);
 	UInt32 extractInteger(const esif_string str);
 	void setTableData(
-		UInt32 totalBytesNeeded,
-		UInt8* tableMem,
+		const DptfBuffer& tableData,
 		TableObjectType::Type tableType,
 		std::string uuid,
 		std::string dvName,
-		std::string key);
+		std::string key,
+		UIntN participantIndex);
+	TableObject findTableObjectByType(TableObjectType::Type type) const;
 };

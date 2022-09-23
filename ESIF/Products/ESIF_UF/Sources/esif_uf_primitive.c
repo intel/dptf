@@ -23,14 +23,6 @@
 #include "esif_dsp.h"
 #include "esif_uf_action.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 
 void EsifUfDumpPrimitive(

@@ -435,10 +435,8 @@ void esif_ccb_tmrm_exit(void)
 		esif_ccb_timer_kill_w_wait(&cur_timer);
 	}
 
-#ifdef ESIF_ATTR_USER
 	/* Wait for any possible callbacks to be processed before exiting */
 	esif_ccb_sleep_msec(ESIF_TIMER_DISABLE_DELAY);
-#endif
 
 	g_tmrm.enabled = ESIF_FALSE;
 	esif_ccb_lock_uninit(&g_tmrm.mgr_lock);

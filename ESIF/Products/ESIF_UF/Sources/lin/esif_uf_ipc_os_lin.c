@@ -58,17 +58,11 @@ enum esif_rc esif_os_ipc_execute(
 			 ipc_ptr);
 
 	/* use IOCTL or read here */
-#ifdef ESIF_ATTR_OS_ANDROID
-	rc = read(handle, ipc_ptr, ipc_ptr->data_len + sizeof(struct esif_ipc));
-	ESIF_TRACE_DEBUG("linux_%s: READ handle = %d, IPC = %p rc = %d\n",
-			 __func__, handle, ipc_ptr, rc);
-#else
 	rc = ioctl(handle, ESIF_IOCTL_IPC, ipc_ptr);
 	ESIF_TRACE_DEBUG("linux_%s: IOCTL handle = %d, IPC = %p rc = %d\n",
 			 __func__, handle, ipc_ptr, rc);
 	if (rc)
 		return ESIF_E_UNSPECIFIED;
-#endif
 
 	return ESIF_OK;
 }

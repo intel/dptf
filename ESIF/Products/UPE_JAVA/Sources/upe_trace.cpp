@@ -34,18 +34,6 @@
 #include "esif_ccb_string.h"
 #include "esif_ccb_file.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-/*
- * TODO:  The banned.h file is not included as part of the SDK sample code.
- * If desired, include the file in Windows builds.  The file is available from
- * Microsoft at https://www.microsoft.com/en-us/download/details.aspx?id=24817
- * The Windows banned-API check header must be included after all other headers,
- * or issues can be identified against Windows SDK/DDK included headers which
- * we have no control over. The header is not provided with the SDK code,
- */
-#define _SDL_BANNED_RECOMMENDED
-/* #include "banned.h" */
-#endif
 
 extern "C" {
 

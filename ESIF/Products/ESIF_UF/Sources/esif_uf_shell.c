@@ -73,14 +73,6 @@ char g_esif_kernel_version[64] = "NA";
 
 extern struct esif_uf_dm g_dm;
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 // Shell strings limited to current size of output buffer
 #define ESIF_SHELL_STRLEN(s)        esif_ccb_strlen(s, OUT_BUF_LEN)
@@ -3227,7 +3219,7 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
-		rc = EsifData_FromString(primitiveInDataPtr, argv[opt++] + sizeof(dataIndicator), ESIF_DATA_AUTO);
+		rc = EsifData_FromString(primitiveInDataPtr, argv[opt++] + sizeof(dataIndicator) - 1, ESIF_DATA_AUTO);
 		if (rc != ESIF_OK || primitiveInDataPtr->buf_ptr == NULL) {
 			goto exit;
 		}
@@ -7027,9 +7019,7 @@ static char *esif_shell_cmd_exit(EsifShellCmdPtr shell)
 	}
 
 	g_disconnectClient = ESIF_TRUE;
-#ifndef ESIF_ATTR_OS_WINDOWS
 	g_quit = ESIF_TRUE;
-#endif
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "Exiting...\n");
 	return output;
@@ -7800,9 +7790,7 @@ static char *esif_shell_cmd_quit(EsifShellCmdPtr shell)
 	}
 
 	g_disconnectClient = ESIF_TRUE;
-#ifndef ESIF_ATTR_OS_WINDOWS
 	g_quit = ESIF_TRUE;
-#endif
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "quit\n");
 	return output;
@@ -8753,11 +8741,7 @@ static char *esif_shell_cmd_ui(EsifShellCmdPtr shell)
 		int newargc = 0;
 		newargv[newargc++] = "app";
 		newargv[newargc++] = "cmd";
-#ifdef ESIF_ATTR_OS_WINDOWS
-		newargv[newargc++] = "dptfui";
-#else
 		newargv[newargc++] = ESIF_WS_LIBRARY_NAME;	// TODO: Change when Linux loads dptfui.so instead of esif_ws.so
-#endif
 		newargv[newargc++] = "fetch";
 		newargv[newargc++] = "combined.xsl";
 

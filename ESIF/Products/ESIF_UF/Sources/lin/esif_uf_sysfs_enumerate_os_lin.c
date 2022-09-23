@@ -51,6 +51,9 @@
 #define NUM_CPU_LOCATIONS 3
 #define SIZE_OF_UINT64	(sizeof(UInt64))
 
+#define INTEL_VENDOR_STRING  "0x8086"
+#define SYSFS_VENDOR_ATTRIBUTE "vendor"
+
 static int g_zone_count = 0;
 const char *CPU_location[NUM_CPU_LOCATIONS] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1"};
 static Bool gSocParticipantFound = ESIF_FALSE;
@@ -212,36 +215,7 @@ void SysfsRegisterParticipants ()
 
 	// Special handling for Android OS that may have Java based participants
 	// Possibly add two more Java participants - Display and WWAN - but only if they do not exist yet
-#ifdef ESIF_ATTR_OS_ANDROID
-	if (!EsifUpPm_DoesAvailableParticipantExistByHID(SYSFS_DISP_HID)) {
-		newParticipantCreate(ESIF_PARTICIPANT_VERSION,
-			classGuid,
-			ESIF_PARTICIPANT_ENUM_SYSFS,
-			0x0,
-			"TDSP",
-			ESIF_PARTICIPANT_PLAT_DESC,
-			"N/A",
-			SYSFS_DISP_HID,
-			"N/A",
-			"\\_SB_.TDSP",
-			ESIF_PARTICIPANT_INVALID_TYPE);
-	}
-	if (!EsifUpPm_DoesAvailableParticipantExistByHID(SYSFS_WWAN_HID)) {
-		newParticipantCreate(ESIF_PARTICIPANT_VERSION,
-			classGuid,
-			ESIF_PARTICIPANT_ENUM_SYSFS,
-			0x0,
-			"WWAN",
-			ESIF_PARTICIPANT_PLAT_DESC,
-			"N/A",
-			SYSFS_WWAN_HID,
-			"N/A",
-			"\\_SB_.WWAN",
-			ESIF_DOMAIN_TYPE_WWAN);
-	}
-#else
 	UNREFERENCED_PARAMETER(classGuid);
-#endif
 }
 
 static eEsifError newParticipantCreate (
@@ -298,6 +272,28 @@ static Int32 PciDeviceFilter(const struct dirent *entry)
 	return 0;
 };
 
+static Bool IsIntelDevice(const char * pciDevicePath)
+{
+	Bool vendorIdFound = ESIF_FALSE;
+	char vendorIdStr[ESIF_SCOPE_LEN] = { 0 };
+	ESIF_ASSERT(NULL != pciDevicePath);
+
+	if (SysfsGetString(pciDevicePath,SYSFS_VENDOR_ATTRIBUTE, vendorIdStr, sizeof(vendorIdStr)) < 0) {
+		ESIF_TRACE_ERROR("No vendor info found for PCI Device\n");
+		goto exit;
+	}
+
+	if (esif_ccb_strcmp(vendorIdStr, INTEL_VENDOR_STRING) != 0) {
+		// Not found, exiting
+		goto exit;
+	}
+
+	// Vendor ID Found
+	vendorIdFound = ESIF_TRUE;
+exit:
+	return vendorIdFound;
+}
+
 static Int32 scanPCI(void)
 {
 	Int32 returnCode = 0;
@@ -325,6 +321,7 @@ static Int32 scanPCI(void)
 	// We need to iterate this loop in ascending order so that 0/0/4 will be enumerated 
 	// before 0/0/b PCI Device
 	for (UInt32 i = 0 ; i < n ; i++) {
+
 		// We should not break out of this loop and it can result in memory leaks
 		// we need to continue inside the loop to free each namelist entries
 		if ( gSocParticipantFound == ESIF_TRUE ) {
@@ -333,6 +330,12 @@ static Int32 scanPCI(void)
 		}
 
 		esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PCI,namelist[i]->d_name);
+		// Skip if it is not an Intel Device
+		if (IsIntelDevice(participant_path) == ESIF_FALSE) {
+			esif_ccb_free(namelist[i]);
+			continue;
+		}
+
 		esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
 
 		if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) < 0) {
@@ -422,6 +425,10 @@ static int scanPlat(void)
 			if (SysfsGetString(firmware_path,"hid", hid, sizeof(hid)) < 1) {
 				esif_ccb_strncpy(hid,SYSFS_DEFAULT_HID,HID_LEN);
 			}
+			// Check if it is a DTT Platform Device, If not, skip that device
+			if ( IsSupportedDttPlatformDevice(hid) == ESIF_FALSE ) {
+				goto exit_participant;
+			}
 
 			if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
 				int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
@@ -458,11 +465,7 @@ static int scanPlat(void)
 							ptype);
 				}
 				// For devices with no mapping in thermal zone,
-				// Check if it is an Intel Device and if it is in Available DTT Participant Device List
-				// then , create a new participant
-				else if ( esif_ccb_strstr(hid, "INTC") != 0 &&
-					IsSupportedDttPlatformDevice(hid) == ESIF_TRUE ) {
-
+				else {
 					newParticipantCreate(ESIF_PARTICIPANT_VERSION,
 							classGuid,
 							ESIF_PARTICIPANT_ENUM_SYSFS,
@@ -615,9 +618,6 @@ static enum esif_rc get_participant_name_alias(const char *ACPI_name, char *ACPI
 {
 	enum esif_rc rc = ESIF_OK;
 	struct { const char *name; const char *alias; } participant_aliases[] = {
-#ifdef ESIF_ATTR_OS_ANDROID
-		{ "TCHG", "bq25890-charger" },
-#endif
 		{ NULL, NULL }
 	};
 	int j = 0;

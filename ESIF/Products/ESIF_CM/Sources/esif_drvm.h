@@ -71,6 +71,17 @@
 
 #define drvm_iterator_t struct drvm_iterator
 
+typedef enum esif_rc(*kpe_get_handler)( /* KPE Action GET handler */
+	const void *context_ptr,
+	const u32 p1,
+	const u32 p2,
+	const u32 p3,
+	const u32 p4,
+	const u32 p5,
+	const struct esif_data *request_ptr,
+	struct esif_data *response_ptr
+	);
+
 /*
  * TYPE DECLARATIONS
  */
@@ -138,90 +149,6 @@ struct esif_drv_to_part_binding {
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifdef ESIF_ATTR_KERNEL
-
-enum esif_rc esif_drvm_init(void);
-void esif_drvm_exit(void);
-
-/* Registers a KPE with the Driver Manager*/
-enum esif_rc esif_drvm_register_driver(struct esif_driver_iface *iface_ptr);
-
-/* Unregisters a KPE with the Driver Manager*/
-enum esif_rc esif_drvm_unregister_driver(struct esif_driver_iface *iface_ptr);
-
-
-/*
- * Increase the reference count on the object:
- * Should be called whenever a pointer is passed to another section of code.
- * When done with the object, the caller should call exif_drv_put ref.
- */
-enum esif_rc esif_drv_get_ref(struct esif_drv_obj *self);
-
-/*
- * Decreases the reference count on the object and destroys the object
- * if the reference count is 0.
- * After a call is made to this function, the object pointer should no
- * longer be used by the code; unless additional references have been
- * taken.
- */
-void esif_drv_put_ref(struct esif_drv_obj *self);
-
-/*
- * Outputs an ESIF_TRACE message with object details
- */
-void esif_drv_trace_obj(struct esif_drv_obj *self);
-
-/*
- * Used to iterate through the available drivers.
- * First call esif_drvm_init_iterator to initialize the iterator
- * Next, call esif_drvm_get_next_driver using the iterator
- * Repeat until esif_drvm_get_next_driver fails.
- * The call will release the reference of the driver from the previous call
- * for you.  If you stop iteration part way through all drivers, the caller
- * is responsible for releasing the reference on the last driver returned
- */
-enum esif_rc esif_drvm_init_iterator(
-	drvm_iterator_t *iterator_ptr
-	);
-
-/*
- * NOTE:  User is responsible for releasing the reference on the driver if
- * successful.
- */
-enum esif_rc esif_drvm_get_drv_by_instance(
-	u32 instance,
-	struct esif_drv_obj **drv_ptr
-	);
-
-enum esif_rc esif_drvm_get_next_driver(
-	drvm_iterator_t *iterator_ptr,
-	struct esif_drv_obj **drv_ptr
-	);
-
-enum esif_rc esif_get_action_kpe(
-	struct esif_lp *lp_ptr,
-	struct esif_lp_primitive *primitive_ptr,
-	const struct esif_lp_action *action_ptr,
-	struct esif_data *req_data_ptr,
-	struct esif_data *rsp_data_ptr,
-	void *context_ptr
-);
-
-enum esif_rc esif_set_action_kpe(
-	struct esif_lp *lp_ptr,
-	struct esif_lp_primitive *primitive_ptr,
-	const struct esif_lp_action *action_ptr,
-	struct esif_data *req_data_ptr,
-	void *context_ptr
-);
-
-enum esif_rc esif_drv_send_event(
-	struct esif_drv_obj *self,
-	const enum esif_event_type event_type,
-	const struct esif_data *data_ptr
-	);
-
-#endif /* ESIF_ATTR_KERNEL */
 #ifdef __cplusplus
 }
 #endif

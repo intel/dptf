@@ -27,11 +27,12 @@ public:
 	virtual ~CommandHandler();
 	virtual void execute(const CommandArguments& arguments) = 0;
 	virtual std::string getCommandName() const = 0;
-	virtual std::string getLastExecutionMessage();
-	virtual eEsifError getLastExecutionResultCode();
+	virtual std::string getLastExecutionMessage() const;
+	virtual eEsifError getLastExecutionResultCode() const;
 
 protected:
 	void setResultMessage(const std::string& message);
+	void setDefaultResultMessage();
 	void setResultCode(const eEsifError resultCode);
 	std::string m_resultMessage;
 	eEsifError m_resultCode;

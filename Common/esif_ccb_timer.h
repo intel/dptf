@@ -185,47 +185,12 @@ void esif_ccb_tmrm_callback(
  * Normally, these options should be specified in the project settings in
  * order to allow different options depending on need for a given binary.
  */
-#if defined(ESIF_ATTR_OS_WINDOWS)
-
- /*
-  * Build option to enable use of the WDF timers in Windows
-  * If not enabled, legacy kernel timers are used in kernel mode and
-  * and the specified user timer type is used in user mode.
-  * (See user section below.)
-  */
- /* #define ESIF_FEAT_OPT_WDFTIMER - Enable in project settings */
-
-#if defined(ESIF_ATTR_USER)
-
-/* Build option to enable use of the "waitable" timers in Windows */
-/* #define ESIF_FEAT_OPT_WAITABLE_TIMERS - Enable in project settings */
-
-#if defined(ESIF_FEAT_OPT_WAITABLE_TIMERS)
-#undef ESIF_FEAT_OPT_WDFTIMER
-#endif
-
-#endif /* ESIF_ATTR_USER */
-#endif /* ESIF_ATTR_OS_WINDOWS */
 
 /*
  * Bring in OS-specific implementation code
  */
-#if defined(ESIF_ATTR_KERNEL)
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_timer_win_kern.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
-#include "esif_ccb_timer_lin_kern.h"
-#endif
-
-#elif defined(ESIF_ATTR_USER)
-
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_timer_win_user.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_timer_lin_user.h"
-#endif
-#endif
 
 /*
  * IMPORTANT!!!!!!!!!

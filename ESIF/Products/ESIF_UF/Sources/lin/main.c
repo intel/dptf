@@ -29,6 +29,7 @@
 #include "esif_uf_sysfs_os_lin.h"
 #include "esif_uf_sensors.h"
 #include "esif_sdk_data_misc.h"
+#include "esif_ccb_cpuid.h"
 
 #include <sys/socket.h>
 #include <linux/netlink.h>
@@ -42,15 +43,7 @@
 #define COPYRIGHT_NOTICE "Copyright (c) 2013-2022 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
-#ifdef ESIF_ATTR_OS_ANDROID
-#ifdef ESIF_FEAT_OPT_ACTION_IOC
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"conjure upe_ioc && appstart dptf"
-#else
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"appstart dptf"
-#endif
-#else
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"arbitrator disable && appstart dptf"
-#endif
 #define ESIF_STARTUP_SCRIPT_SERVER_MODE	NULL
 #define TOTAL_PSY_PROPERTIES 10
 
@@ -71,6 +64,7 @@ static char *g_udev_target = NULL;
 static esif_thread_t gSysfsReadThread;
 static Bool gSysfsReadQuit = ESIF_TRUE;
 
+static Bool IsIntelCPU();
 static Bool EsifSysfsReadIsStarted();
 static void EsifSysfsReadStart();
 static void EsifSysfsReadStop();
@@ -126,31 +120,18 @@ static char *g_psy_val[TOTAL_PSY_PROPERTIES];
 # define ARCHBITS "64"
 #else
 #define ARCHNAME "x86"
-# ifdef ESIF_ATTR_OS_ANDROID
-#  define ARCHBITS ""	// Android Libs go in /system/vendor/lib64 or lib, not lib32
-# else
 #  define ARCHBITS "32"
-# endif
 #endif
+
+#define CPUID_LEAF_0_EBX	(0x756E6547)	//'Genu'
+#define CPUID_LEAF_0_EDX	(0x49656E69)	//'ineI'
+#define CPUID_LEAF_0_ECX	(0x6C65746E)	//'ntel'
+
 
 // Default ESIF Paths for each OS
 // Paths preceded by "$" are treated as system paths and are not auto-created or checked for symbolic links
 static const esif_string ESIF_PATHLIST =
-#if defined(ESIF_ATTR_OS_ANDROID)
-	// Android
-	"HOME=/data/vendor/dptf/log\n"
-	"TEMP=/data/vendor/dptf/tmp\n"
-	"DV=/vendor/etc/dptf/dv\n"
-	"LOG=/data/vendor/dptf/log\n"
-	"BIN=/vendor/etc/dptf/bin\n"
-	"LOCK=/data/vendor/dptf/lock\n"
-	"EXE=$/vendor/bin\n"
-	"DLL=$/vendor/lib" ARCHBITS "\n"
-	"DLLALT=$#/vendor/lib" ARCHBITS "\n"
-	"DSP=/vendor/etc/dptf/dsp\n"
-	"CMD=/vendor/etc/dptf/cmd\n"
-	"DATA=/vendor/etc/dptf/ui\n"
-#elif defined(ESIF_ATTR_OS_CHROME)
+#if   defined(ESIF_ATTR_OS_CHROME)
 	// Chromium
 	"HOME=/var/log/dptf\n"
 	"TEMP=$/tmp\n"
@@ -720,11 +701,7 @@ static void release_timer_thread_pool(void)
 		 * to terminate the g_sigrtmin_thread_pool now.
 		 */
 		for (i = 0; i < g_nproc; ++i) {
-#ifdef ESIF_ATTR_OS_ANDROID
-			pthread_kill(g_sigrtmin_thread_pool[i], SIGRTMIN);
-#else
 			pthread_cancel(g_sigrtmin_thread_pool[i]);
-#endif
 		}
 		for (i = 0; i < g_nproc; ++i) {
 			pthread_join(g_sigrtmin_thread_pool[i], NULL);
@@ -733,7 +710,7 @@ static void release_timer_thread_pool(void)
 	}
 }
 
-int SysfsGetString(char *path, char *filename, char *str, size_t buf_len)
+int SysfsGetString(const char *path, const char *filename, char *str, size_t buf_len)
 {
 	FILE *fd = NULL;
 	int ret = -1;
@@ -1147,13 +1124,7 @@ esif_error_t CreateActionAssociatedParticipants(esif_action_type_t actionType)
 static void esif_udev_exit()
 {
 	g_udev_quit = ESIF_TRUE;
-#ifdef ESIF_ATTR_OS_ANDROID
-	// Android NDK does not support pthread_cancel()
-	// Use pthread_kill() to emualte
-	pthread_kill(g_udev_thread, SIGUSR1);
-#else
 	pthread_cancel(g_udev_thread);
-#endif
 	esif_ccb_thread_join(&g_udev_thread);
 	esif_ccb_free(g_udev_target);
 }
@@ -1332,9 +1303,6 @@ exit:
 static void *esif_udev_listen(void *ptr)
 {
 	UNREFERENCED_PARAMETER(ptr);
-#ifdef ESIF_ATTR_OS_ANDROID
-	sigusr1_enable();
-#endif
 	sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT);
 	if (sock_fd < 0) {
 		goto exit;
@@ -1511,9 +1479,6 @@ void* dbus_listen()
 {
 	DBusError err = {0};
 
-#ifdef ESIF_ATTR_OS_ANDROID
-	sigusr1_enable();
-#endif
 
 	dbus_error_init(&err);
 	g_dbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
@@ -1854,6 +1819,11 @@ int main (int argc, char **argv)
 	int start_as_server = ESIF_TRUE;
 #endif
 
+	if(IsIntelCPU() == ESIF_FALSE) {
+		CMD_DEBUG("Not Supported\n");
+		exit(EXIT_FAILURE);
+	}
+
 	// Init ESIF
 	esif_main_init(ESIF_PATHLIST);
 	esif_ccb_sem_init(&g_sigquit);
@@ -2045,13 +2015,7 @@ int main (int argc, char **argv)
 
 #ifdef ESIF_FEAT_OPT_DBUS
 	CMD_DEBUG("Stopping D-Bus listener thread...\n");
-#ifdef ESIF_ATTR_OS_ANDROID
-	// Android NDK does not support pthread_cancel()
-	// Use pthread_kill() to emualte
-	pthread_kill(g_dbus_thread, SIGUSR1);
-#else
 	pthread_cancel(g_dbus_thread);
-#endif
 	esif_ccb_thread_join(&g_dbus_thread);
 	if (g_dbus_conn)
 		dbus_connection_unref(g_dbus_conn);
@@ -2079,6 +2043,34 @@ eEsifError esif_uf_os_init ()
 	return ESIF_OK;
 }
 
+static Bool IsIntelCPU()
+{
+	Bool intelCPUDetected = ESIF_FALSE;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
+
+	cpuInfo.leaf = 0;
+	esif_ccb_cpuid(&cpuInfo);
+	//
+	// Check for CPUID support and verify its an Intel processor
+	//
+	if (cpuInfo.eax < 1) {
+		CMD_DEBUG("CPUID not supported\n");
+		goto exit;
+	}
+	//
+	// Check for "GenuineIntel"
+	//
+	if (cpuInfo.ebx != CPUID_LEAF_0_EBX ||
+	    cpuInfo.ecx != CPUID_LEAF_0_ECX ||
+	    cpuInfo.edx != CPUID_LEAF_0_EDX) {
+		CMD_DEBUG("Not a genuine Intel processor\n");
+		goto exit;
+	}
+
+	intelCPUDetected = ESIF_TRUE;
+exit:
+	return intelCPUDetected;
+}
 
 void esif_uf_os_exit ()
 {

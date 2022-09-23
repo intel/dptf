@@ -23,7 +23,6 @@
  * This file contains OS-specific implementation code and NOT interface code.
  */
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <signal.h>
 
@@ -136,4 +135,3 @@ static ESIF_INLINE void esif_ccb_timer_obj_disable_timer(
 	}
 }
 
-#endif /* LINUX USER */

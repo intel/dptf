@@ -22,21 +22,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifndef ESIF_ATTR_OS_WINDOWS
 # include <syslog.h>
-#endif
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void report_event_to_event_log(int eventType, char *pFormat, ...);
-
-#ifdef __cplusplus
-}
-#endif
-#endif
 
 #ifdef __cplusplus
 extern "C" {

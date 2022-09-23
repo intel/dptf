@@ -85,7 +85,7 @@ int SysfsSetString(const char *path, const char *filename, char *val);
 int SysfsSetStringWithError(const char *path, const char *filename, char *buffer, unsigned int length);
 int SysfsGetInt64Direct(int fd, Int64 *p64);
 int SysfsSetInt64Direct(int fd, Int32 val);
-int SysfsGetString(char *path, char *filename, char *str, size_t buf_len);
+int SysfsGetString(const char *path, const char *filename, char *str, size_t buf_len);
 int SysfsGetStringMultiline(const char *path, const char *filename, char *str);
 int SysfsGetInt64(const char *path, const char *filename, Int64 *p64);
 int SysfsSetInt64(char *path, char *filename, Int64 val);

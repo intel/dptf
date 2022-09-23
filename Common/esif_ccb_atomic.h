@@ -53,27 +53,16 @@
 
 #pragma once
 
+#include "esif_ccb.h"
+
 /*
  * C/C++ OS-Agnostic Universal Implementation of atomic integer operations.
  * Interface is based on native Linux atomic_t kernel type (atomic.h)
  * Note: atomic_t is 32 or 64 bit, depending on OS/Platform so treat as opaque
  */
 
-#if defined(ESIF_ATTR_KERNEL)
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_atomic_win_kern.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
-#include "esif_ccb_atomic_lin_kern.h"
-#endif
-
-#elif defined(ESIF_ATTR_USER)
-
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_atomic_win_user.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_atomic_lin_user.h"
-#endif
 
 /* Disable User-Mode Atomic operations. Use at your own risk */
 #if defined(ATOMIC_LIB_DISABLE)
@@ -86,4 +75,3 @@
 # define atomic_sub(i, v)	(*(v) -= (i))
 #endif
 
-#endif /* USER */

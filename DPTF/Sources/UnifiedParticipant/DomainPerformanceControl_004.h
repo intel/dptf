@@ -64,6 +64,7 @@ private:
 	DomainPerformanceControl_004& operator=(const DomainPerformanceControl_004& rhs);
 
 	PerformanceControlStaticCaps createPerformanceControlStaticCaps();
+	PerformanceControlStatus createPerformanceControlStatus(UIntN domainIndex);
 	PerformanceControlDynamicCaps createPerformanceControlDynamicCaps(UIntN domainIndex);
 	PerformanceControlSet createPerformanceControlSet(UIntN domainIndex);
 	UIntN snapIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);

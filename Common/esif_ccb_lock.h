@@ -55,15 +55,6 @@
 
 #include "esif_ccb.h"
 
-#if defined(ESIF_ATTR_KERNEL)
-
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_lock_win_kern.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
-#include "esif_ccb_lock_lin_kern.h"
-#endif
-
-#elif defined(ESIF_ATTR_USER)
 
 #include "esif_ccb_atomic.h"
 
@@ -74,10 +65,5 @@ typedef atomic_t esif_ccb_spinlock_t;
 #define	esif_ccb_spinlock_lock(lockPtr)   while (atomic_set(lockPtr, 1) == 1) {;}
 #define	esif_ccb_spinlock_unlock(lockPtr) atomic_set(lockPtr, 0)
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_lock_win_user.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_lock_lin_user.h"
-#endif
 
-#endif /* USER */

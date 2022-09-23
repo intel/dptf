@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#pragma once
 #include "CommandHandler.h"
 
 class dptf_export TableObjectDeleteCommand : public CommandHandler
@@ -28,4 +29,6 @@ public:
 private:
 	void throwIfBadArguments(const CommandArguments& arguments);
 	void throwIfTableObjectNotExist(const CommandArguments& arguments);
+	void throwIfParticipantNotExist(const CommandArguments& arguments);
+	void throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments);
 };

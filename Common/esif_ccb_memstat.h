@@ -53,6 +53,8 @@
 
 #pragma once
 
+#include "esif_ccb.h"
+
 /*
 * Kernel Memory Statistics
 */
@@ -67,58 +69,3 @@ struct esif_memory_stats {
 };
 #pragma pack(pop)
 
-#if defined(ESIF_ATTR_KERNEL)
-
-/* Enable Memory Statistics for ESIF_LF Kernel Driver? */
-#ifdef ESIF_FEAT_OPT_USE_VIRT_DRVRS
-
-/* Placeholder macros for memstats when not building ESIF_LF */
-#define memstat_inc(ptr)
-#define memstat_read(ptr)	(0)
-#define memstat_set(ptr)
-
-#else
-
-/* Kernel Memory Stats */
-#include "esif_ccb_lock.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern struct esif_memory_stats g_memstat;
-extern esif_ccb_lock_t g_memstat_lock;
-
-#ifdef __cplusplus
-}
-#endif
-
-/* WARNING:  This function may not be called from paged code in kernel */
-static ESIF_INLINE void memstat_inc(u32 *intptr)
-{
-	esif_ccb_write_lock(&g_memstat_lock);
-	(*(intptr))++;
-	esif_ccb_write_unlock(&g_memstat_lock);
-}
-
-/* WARNING:  This function may not be called from paged code in kernel */
-static ESIF_INLINE u32 memstat_read(u32 *intptr)
-{
-	u32 rc;
-	esif_ccb_read_lock(&g_memstat_lock);
-	rc = *(intptr);
-	esif_ccb_read_unlock(&g_memstat_lock);
-	return rc;
-}
-
-/* WARNING:  This function may not be called from paged code in kernel */
-static ESIF_INLINE void memstat_set(u32 *intptr, u32 val)
-{
-	esif_ccb_write_lock(&g_memstat_lock);
-	*(intptr) = val;
-	esif_ccb_write_unlock(&g_memstat_lock);
-}
-
-#endif /* not ESIF_FEAT_OPT_USE_VIRT_DRVRS */
-
-#endif /* KERNEL */

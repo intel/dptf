@@ -79,6 +79,7 @@ typedef enum esif_action_type {
 	ESIF_ACTION_IOC = 74,
 	ESIF_ACTION_IOSF = 34,
 	ESIF_ACTION_JAVA = 62,
+	ESIF_ACTION_KACACHE = 85,
 	ESIF_ACTION_KDELEGATE = 52,
 	ESIF_ACTION_KHID = 73,
 	ESIF_ACTION_KIOCTL = 64,
@@ -110,7 +111,7 @@ typedef enum esif_action_type {
 } esif_action_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_VPU
+#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_KACACHE
 
 static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 {
@@ -134,6 +135,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_IOC);
 	ESIF_CASE_ENUM(ESIF_ACTION_IOSF);
 	ESIF_CASE_ENUM(ESIF_ACTION_JAVA);
+	ESIF_CASE_ENUM(ESIF_ACTION_KACACHE);
 	ESIF_CASE_ENUM(ESIF_ACTION_KDELEGATE);
 	ESIF_CASE_ENUM(ESIF_ACTION_KHID);
 	ESIF_CASE_ENUM(ESIF_ACTION_KIOCTL);
@@ -167,7 +169,6 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 }
 
 
-#ifdef ESIF_ATTR_USER
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name)
 {
@@ -195,6 +196,7 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_IOC),
 		ESIF_MAP_ENUM(ESIF_ACTION_IOSF),
 		ESIF_MAP_ENUM(ESIF_ACTION_JAVA),
+		ESIF_MAP_ENUM(ESIF_ACTION_KACACHE),
 		ESIF_MAP_ENUM(ESIF_ACTION_KDELEGATE),
 		ESIF_MAP_ENUM(ESIF_ACTION_KHID),
 		ESIF_MAP_ENUM(ESIF_ACTION_KIOCTL),
@@ -243,7 +245,6 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 	}
 	return (esif_action_type_t)0;
 }
-#endif
 #endif
 
 

@@ -55,7 +55,6 @@
 
 #include "esif_ccb_string.h"
 #include "esif_sdk.h"
-#include "esif_sdk_guid.h"
 
 #define ESIF_GUIDSTR_LEN	((ESIF_GUID_LEN * 2) + 4 + 1) /* xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx + NUL */
 

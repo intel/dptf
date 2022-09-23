@@ -18,7 +18,6 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <sys/time.h>
 #include <time.h>
@@ -107,4 +106,3 @@ static ESIF_INLINE esif_ccb_realtime_t esif_ccb_realtime_null()
 	return result;
 }
 
-#endif /* LINUX USER */

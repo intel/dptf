@@ -18,32 +18,9 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_USER)
-
 #include "esif_ccb.h"
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
 
-// Get Environment variable
-static ESIF_INLINE char *esif_ccb_getenv(const char *name)
-{
-    char *path = NULL;
-    size_t len = 0;
-
-    if (_dupenv_s(&path, &len, name) != 0)
-        path = NULL;
-    return path;
-}
-
-static ESIF_INLINE void esif_ccb_envfree(char *name)
-{
-	if (name) {
-		free(name);
-	}
-}
-
-
-#elif defined(ESIF_ATTR_OS_LINUX)
 
 #include  <stdlib.h>
 
@@ -52,6 +29,4 @@ static ESIF_INLINE void esif_ccb_envfree(char *name)
 
 #define esif_ccb_envfree(arg) ((void)(0))
 
-#endif /* LINUX */
 
-#endif /* USER */

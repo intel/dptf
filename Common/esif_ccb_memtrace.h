@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include "esif_ccb.h"
+
 #if defined(ESIF_ATTR_USER) && defined(ESIF_ATTR_MEMTRACE)
 
 #include "esif_ccb_rc.h"

@@ -107,6 +107,7 @@ namespace PolicyEvent
 		PolicyPowerShareAlgorithmTableChanged,
 		PolicyEnergyPerformanceOptimizerTableChanged,
 		PowerLimitChanged,
+		PowerLimitTimeWindowChanged,
 		PerformanceCapabilitiesChanged,
 		PolicyWorkloadHintConfigurationChanged,
 		PolicyOperatingSystemGameModeChanged,

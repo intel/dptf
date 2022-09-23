@@ -19,18 +19,23 @@
 #include "Guid.h"
 #include "esif_ccb_memory.h"
 #include "esif_ccb_string.h"
-#include <algorithm>
 
 Guid::Guid(void)
 	: m_valid(false)
 {
-	esif_ccb_memset(m_guid, 0, GuidSize);
+	m_guid.reserve(GuidSize);
+	m_guid.assign(GuidSize, 0);
 }
 
 Guid::Guid(const UInt8 guid[GuidSize])
 	: m_valid(true)
 {
-	esif_ccb_memcpy(m_guid, guid, GuidSize);
+	m_guid.reserve(GuidSize);
+	m_guid.assign(GuidSize, 0);
+	for (UInt32 i = 0; i < GuidSize; ++i)
+	{
+		m_guid[i] = guid[i];
+	}
 }
 
 Guid::Guid(
@@ -52,6 +57,9 @@ Guid::Guid(
 	UInt8 value15)
 	: m_valid(true)
 {
+	m_guid.reserve(GuidSize);
+	m_guid.assign(GuidSize, 0);
+
 	m_guid[0] = value00;
 	m_guid[1] = value01;
 	m_guid[2] = value02;
@@ -77,23 +85,7 @@ Guid Guid::createInvalid()
 
 Bool Guid::operator==(const Guid& rhs) const
 {
-	UIntN mySize = sizeof(this->m_guid) / sizeof(this->m_guid[0]);
-	UIntN rhsSize = sizeof(rhs.m_guid) / sizeof(rhs.m_guid[0]);
-
-	if (mySize != rhsSize)
-	{
-		return false;
-	}
-
-	// FIXME: this can be switched to memcmp once implemented in esif/ccb
-	for (UIntN i = 0; i < mySize && i < rhsSize; ++i)
-	{
-		if (this->m_guid[i] != rhs.m_guid[i])
-		{
-			return false;
-		}
-	}
-	return true;
+	return m_guid == rhs.m_guid;
 }
 
 Bool Guid::operator!=(const Guid& rhs) const
@@ -110,7 +102,7 @@ std::ostream& operator<<(std::ostream& os, const Guid& guid)
 Guid::operator const UInt8*(void) const
 {
 	throwIfInvalid(*this);
-	return m_guid;
+	return m_guid.data();
 }
 
 Bool Guid::isValid(void) const
@@ -126,7 +118,7 @@ std::string Guid::toString() const
 	{
 		if (isValid())
 		{
-			guidTextStream << std::setw(2) << (IntN)(UInt8)m_guid[i];
+			guidTextStream << std::setw(2) << std::uppercase << (IntN)(UInt8) m_guid[i];
 		}
 		else
 		{
@@ -138,11 +130,40 @@ std::string Guid::toString() const
 			guidTextStream << "-";
 		}
 	}
+	return guidTextStream.str();
+}
 
-	std::string guidText = guidTextStream.str();
-	std::transform(
-		guidText.begin(), guidText.end(), guidText.begin(), [](int c) -> char { return (char)::toupper(c); });
-	return guidText;
+std::string Guid::valuesToHexString(const std::list<UInt8>& values)
+{
+	std::stringstream stream;
+	stream << std::hex << std::setfill('0');
+	for (const auto item : values)
+	{
+		stream << std::setw(2) << std::uppercase << (IntN) item;
+	}
+	return stream.str();
+}
+
+std::string Guid::valuesToHexStringReversed(const std::list<UInt8>& values)
+{
+	std::stringstream stream;
+	stream << std::hex << std::setfill('0');
+	for (auto item = values.crbegin(); item != values.crend(); ++item)
+	{
+		stream << std::setw(2) << std::uppercase << (IntN)*item;
+	}
+	return stream.str();
+}
+
+std::string Guid::toClassicString() const
+{
+	std::stringstream stream;
+	stream << valuesToHexStringReversed(std::list<UInt8>(m_guid.begin(), m_guid.begin() + 4));
+	stream << '-' << valuesToHexStringReversed(std::list<UInt8>(m_guid.begin() + 4, m_guid.begin() + 6));
+	stream << '-' << valuesToHexStringReversed(std::list<UInt8>(m_guid.begin() + 6, m_guid.begin() + 8));
+	stream << '-' << valuesToHexString(std::list<UInt8>(m_guid.begin() + 8, m_guid.begin() + 10));
+	stream << '-' << valuesToHexString(std::list<UInt8>(m_guid.begin() + 10, m_guid.begin() + 16));
+	return stream.str();
 }
 
 Guid Guid::fromString(const std::string guidString)

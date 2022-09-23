@@ -53,9 +53,9 @@
 
 #pragma once
 
-#ifdef ESIF_ATTR_USER
-
 #include "esif_sdk.h"
+
+
 #include "esif_sdk_data.h"
 #include "esif_sdk_domain_type.h"
 #include "esif_sdk_participant_enum.h"
@@ -108,4 +108,3 @@ typedef enum esif_participant_enum	eParticipantBus;
 typedef enum esif_domain_type		eDomainType;
 typedef esif_flags_t			EsifFlags;
 
-#endif /* USER */

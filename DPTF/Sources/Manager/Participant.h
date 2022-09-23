@@ -35,6 +35,16 @@ class dptf_export IParticipant
 public:
 	virtual ~IParticipant(void){};
 	virtual std::string getDiagnosticsAsXml() const = 0;
+	virtual UIntN getDomainCount(void) const = 0;
+	virtual std::string getParticipantName(void) const = 0;
+	virtual UIntN getParticipantIndex(void) const = 0;
+	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const = 0;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const = 0;
+	virtual std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const = 0;
+	virtual ParticipantProperties getParticipantProperties(void) const = 0;
+	virtual DomainPropertiesSet getDomainPropertiesSet(void) const = 0;
+	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) const = 0;
 };
 
 class dptf_export Participant : public IParticipant
@@ -63,7 +73,7 @@ public:
 	void disableDomain(UIntN domainIndex);
 	Bool isDomainEnabled(UIntN domainIndex);
 
-	UIntN getDomainCount(void) const;
+	UIntN getDomainCount(void) const override;
 
 	// This will clear the cached data stored within the participant and associated domains within the framework.
 	// It will not ask the actual participant to clear any of its data.
@@ -75,12 +85,14 @@ public:
 	void unregisterEvent(ParticipantEvent::Type participantEvent);
 	Bool isEventRegistered(ParticipantEvent::Type participantEvent);
 
-	std::string getParticipantName(void) const;
+	std::string getParticipantName(void) const override;
+	UIntN getParticipantIndex(void) const override;
 	std::string getDomainName(UIntN domainIndex);
-	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
-	std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const override;
+	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const override;
 	virtual std::string getDiagnosticsAsXml() const override;
-	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
+	virtual std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type)
+		const override;
 
 	//
 	// Event handlers
@@ -125,7 +137,7 @@ public:
 	void domainFanCapabilityChanged(void);
 	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification);
 	void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint);
-	
+
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
 	//
@@ -311,11 +323,11 @@ public:
 
 	// Get specific info
 	std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
-		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo);
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) const override;
 
 	// Participant properties
-	ParticipantProperties getParticipantProperties(void) const;
-	DomainPropertiesSet getDomainPropertiesSet(void) const;
+	ParticipantProperties getParticipantProperties(void) const override;
+	DomainPropertiesSet getDomainPropertiesSet(void) const override;
 
 	// Set specific info
 	void setParticipantDeviceTemperatureIndication(const Temperature& temperature);

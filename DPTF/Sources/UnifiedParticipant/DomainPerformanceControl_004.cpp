@@ -65,7 +65,7 @@ PerformanceControlStatus DomainPerformanceControl_004::getPerformanceControlStat
 {
 	if (m_performanceControlStatus.isInvalid())
 	{
-		m_performanceControlStatus.set(PerformanceControlStatus(Constants::Invalid));
+		m_performanceControlStatus.set(createPerformanceControlStatus(domainIndex));
 	}
 	return m_performanceControlStatus.get();
 }
@@ -249,6 +249,32 @@ void DomainPerformanceControl_004::restore(void)
 PerformanceControlStaticCaps DomainPerformanceControl_004::createPerformanceControlStaticCaps()
 {
 	return PerformanceControlStaticCaps(false); // This is hard-coded to FALSE in 7.0
+}
+
+PerformanceControlStatus DomainPerformanceControl_004::createPerformanceControlStatus(UIntN domainIndex)
+{
+	UInt32 activeIndex = Constants::Invalid;
+	try
+	{
+		auto perfControlSet = getPerformanceControlSet(getParticipantIndex(), domainIndex);
+		auto currentControlId = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_PARTICIPANT_PERF_PRESENT_CAPABILITY, domainIndex);
+
+		for (UInt32 index = 0; index < perfControlSet.getCount(); ++index) {
+			auto entry = perfControlSet[index];
+			if (currentControlId == entry.getControlId()) {
+				activeIndex = index;
+				break;
+			}
+		}
+
+	}
+	catch (...) 
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to load the initial performance control status. "; });
+	}
+
+	return PerformanceControlStatus(activeIndex);
 }
 
 PerformanceControlDynamicCaps DomainPerformanceControl_004::createPerformanceControlDynamicCaps(UIntN domainIndex)

@@ -22,26 +22,12 @@
 
 const Guid DttToOemAppCommunicationGuid(0x8C, 0xF9, 0x06, 0x02, 0x3D, 0xB0, 0x49, 0xD0, 0xBC, 0x21, 0xFC, 0xB1, 0xC0, 0x0D, 0x0F, 0x57); // 8cf90602-3db0-49d0-bc21-fcb1c00d0f57
 
-namespace IpfAppNotificationData 
-{
-	enum IpfAppNotificationDataType
-	{
-		OemVariable,
-		OemSwNotification,
-		NptWwanBand,
-		NdtWifiChannel,
-		XtuOcMode,
-		Max
-	};
-}
-
 namespace DttToOemSwNotificationData
 {
 	typedef struct OemSwNotificationData
 	{
 		esif_guid_t guidOemDttAppCommunication;
 		UInt32 dataPayloadLength;
-		IpfAppNotificationData::IpfAppNotificationDataType dataPayloadType;
 		UInt32 dataPayload;
 	} OemSwNotificationData, *OemSwNotificationDataPtr;
 }

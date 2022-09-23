@@ -23,10 +23,6 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-# define _SDL_BANNED_RECOMMENDED
-# include "win/banned.h"
-#endif
 
 #define ISTRING_AUTOGROW    0	// Autogrow IString buffer if necessary and pad with this many extra bytes (0-N). Undefine this to disable Autogrow
 

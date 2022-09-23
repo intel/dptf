@@ -175,15 +175,12 @@ void FrameworkEventInfo::initializeEvents()
 	// Policy events
 	INIT_EVENT(PolicyCreate, 31);
 	INIT_EVENT(PolicyDestroy, 31);
-	INIT_EVENT_WITH_GUID(PolicyActiveRelationshipTableChanged, 0, DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyCoolingModePolicyChanged, 0, DTT_SYSTEM_COOLING_POLICY_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyForegroundApplicationChanged, 0, FOREGROUND_APP_CHANGED);
 	INIT_EVENT(PolicyInitiatedCallback, 0);
-	INIT_EVENT_WITH_GUID(PolicyPassiveTableChanged, 0, DTT_PASSIVE_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicySensorOrientationChanged, 0, DISPLAY_ORIENTATION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicySensorMotionChanged, 0, MOTION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicySensorSpatialOrientationChanged, 0, DEVICE_ORIENTATION_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyThermalRelationshipTableChanged, 0, DTT_THERMAL_RELATIONSHIP_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSourceChanged, 0, OS_POWER_SOURCE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemLidStateChanged, 0, OS_LID_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemBatteryPercentageChanged, 0, OS_BATTERY_PERCENT_CHANGED);
@@ -197,22 +194,13 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemScreenStateChanged, 0, OS_SCREEN_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemBatteryCountChanged, 0, BATTERY_COUNT_NOTIFICATION);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSliderChanged, 0, OS_POWER_SLIDER_VALUE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyOemVariablesChanged, 0, OEM_VARS_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyPowerBossConditionsTableChanged, 0, DTT_POWER_BOSS_CONDITIONS_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyPowerBossActionsTableChanged, 0, DTT_POWER_BOSS_ACTIONS_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyPowerBossMathTableChanged, 0, DTT_POWER_BOSS_MATH_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyVoltageThresholdMathTableChanged, 0, DTT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(DptfPolicyLoadedUnloadedEvent, 0, DTT_POLICY_LOADED_UNLOADED);
 	INIT_EVENT_WITH_GUID(PolicyEmergencyCallModeTableChanged, 0, EMERGENCY_CALL_MODE_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyPidAlgorithmTableChanged, 0, DTT_PID_ALGORITHM_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(
-		PolicyActiveControlPointRelationshipTableChanged, 0, DTT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTableChanged, 0, DTT_POWER_SHARING_ALGORITHM_TABLE_CHANGED);
 	INIT_EVENT(PowerLimitChanged, 0);
+	INIT_EVENT(PowerLimitTimeWindowChanged, 0);
 	INIT_EVENT(PerformanceCapabilitiesChanged, 0);
 	INIT_EVENT_WITH_GUID(PolicyWorkloadHintConfigurationChanged, 0, DTT_WORKLOAD_HINT_CONFIGURATION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemGameModeChanged, 0, OS_GAME_MODE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTable2Changed, 0, DTT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPlatformUserPresenceChanged, 0, PLATFORM_USER_PRESENCE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyExternalMonitorStateChanged, 0, EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyUserInteractionChanged, 0, OS_USER_INTERACTION_CHANGED);

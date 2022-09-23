@@ -31,14 +31,6 @@
 #define MAX_OFFSET_FILESTREAM	((size_t)0x7FFFFFFF)	// fseek() only accepts (long), not (size_t)
 #define MAX_OFFSET_MEMORYSTREAM	(((size_t)(-1) >> 1) - 1)
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 // constructor
 void IOStream_ctor(IOStreamPtr self)

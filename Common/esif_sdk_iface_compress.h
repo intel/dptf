@@ -20,11 +20,7 @@
 
 #include "esif_ccb.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-#define	ESIFCMP_LIBRARY				"ipf_cmp"			// Name of Loadable .dll or .so Library
-#else
 #define	ESIFCMP_LIBRARY				"esif_cmp"			// Name of Loadable .dll or .so Library
-#endif
 #define	ESIFCMP_COMPRESSOR			"IpfCompress"		// Name of Exported Symbol in Library to Compress data
 #define	ESIFCMP_DECOMPRESSOR		"IpfDecompress"		// Name of Exported Symbol in Library to Decompress data
 #define ESIFCMP_ERROR_OUTPUT_EOF	7					// Output Buffer too small return code (SZ_ERROR_OUTPUT_EOF)

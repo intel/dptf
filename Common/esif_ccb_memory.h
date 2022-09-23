@@ -55,21 +55,8 @@
 
 #include "esif_ccb.h"
 
-#if defined(ESIF_ATTR_KERNEL)
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_memory_win_kern.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
-#include "esif_ccb_memory_lin_kern.h"
-#endif
-
-#elif defined(ESIF_ATTR_USER)
-
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_memory_win_user.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_memory_lin_user.h"
-#endif
 
 // Find a substring in a non-NULL terminated string buffer
 static ESIF_INLINE char *esif_ccb_memstr(
@@ -90,4 +77,3 @@ static ESIF_INLINE char *esif_ccb_memstr(
 	return NULL;
 }
 
-#endif /* USER */

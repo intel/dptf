@@ -51,8 +51,7 @@
 **
 *******************************************************************************/
 
-#ifndef _ESIF_QUEUE_H_
-#define _ESIF_QUEUE_H_
+#pragma once
 
 #include "esif_ccb.h"
 #include "esif_link_list.h"
@@ -73,9 +72,7 @@ struct esif_queue_instance {
 	char queue_name[ESIF_QUEUE_NAME_LEN];		/* Queue Name */
 };
 
-#ifdef ESIF_ATTR_USER
 typedef struct esif_queue_instance EsifQueue, *EsifQueuePtr;
-#endif
 
 typedef void (*queue_item_destroy_func) (void *item_ptr);
 
@@ -120,9 +117,3 @@ void esif_queue_exit(void);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _ESIF_QUEUE_H_ */
-
-/*****************************************************************************/
-/*****************************************************************************/
-/*****************************************************************************/

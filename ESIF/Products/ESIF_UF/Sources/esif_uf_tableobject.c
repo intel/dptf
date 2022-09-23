@@ -32,14 +32,6 @@
 #include "esif_temp.h"
 #include "esif_uf_ccb_system.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 #define MAX_TABLEOBJECT_KEY_LEN 256
 #define MAX_TABLEOBJECT_COLUMN_DATA_LEN 1 * 1024
@@ -2583,11 +2575,24 @@ eEsifError TableObject_LoadSchema(
 		};
 		fieldlist = psha_fields;
 	}
-	else if (esif_ccb_stricmp(self->name, "psh2") == 0) {
+	else if (esif_ccb_stricmp(self->name, "psh2") == 0 && self->version == 1) {
 	static TableField psh2_fields[] = {
 		{ "fld1", "fld1", ESIF_DATA_STRING },
 		{ "fld2", "fld2", ESIF_DATA_UINT64 },
 		{ "fld3", "fld3", ESIF_DATA_UINT64 },
+		{ 0 }
+	};
+		fieldlist = psh2_fields;
+	}
+	else if (esif_ccb_stricmp(self->name, "psh2") == 0 && self->version == 2) {
+	static TableField psh2_fields[] = {
+		{ "fld1", "fld1", ESIF_DATA_STRING },
+		{ "fld2", "fld2", ESIF_DATA_UINT64 },
+		{ "fld3", "fld3", ESIF_DATA_UINT64 },
+		{ "fld4", "fld4", ESIF_DATA_UINT64 },
+		{ "fld5", "fld5", ESIF_DATA_UINT64 },
+		{ "fld6", "fld6", ESIF_DATA_UINT64 },
+		{ "fld7", "fld7", ESIF_DATA_UINT64 },
 		{ 0 }
 	};
 		fieldlist = psh2_fields;

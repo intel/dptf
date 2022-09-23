@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #pragma once
-
 #include "Dptf.h"
 
 namespace LimitRetrieverType
@@ -30,4 +29,5 @@ namespace LimitRetrieverType
 	};
 
 	std::string ToString(LimitRetrieverType::Type type);
+	LimitRetrieverType::Type FromString(const std::string& value);
 };

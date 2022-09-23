@@ -173,7 +173,6 @@ static ESIF_INLINE size_t esif_data_type_sizeof(esif_data_type_t type)
 	}
 }
 
-#ifdef ESIF_ATTR_USER
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(const esif_string name)
 {
@@ -237,6 +236,5 @@ static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(const esif_string na
 	}
 	return ESIF_DATA_VOID;
 }
-#endif
 #endif
 

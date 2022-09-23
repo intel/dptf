@@ -18,13 +18,7 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_USER)
-
 #include "esif_ccb.h"
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "esif_ccb_socket_win_user.h"
-#elif defined(ESIF_ATTR_OS_LINUX)
+
 #include "esif_ccb_socket_lin_user.h"
-#endif
-#endif /* USER */

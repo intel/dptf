@@ -194,6 +194,7 @@ public:
 	virtual void intelligentThermalManagementTableChanged(void) = 0;
 	virtual void energyPerformanceOptimizerTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
+	virtual void powerLimitTimeWindowChanged(void) = 0;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) = 0;
 	virtual void workloadHintConfigurationChanged(void) = 0;
 	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;

@@ -569,9 +569,6 @@ static void *EsifIio_Poll(void *ptr)
 
 	UNREFERENCED_PARAMETER(ptr);
 
-#ifdef ESIF_ATTR_OS_ANDROID
-	sigusr1_enable();
-#endif
 
 	while(gEsifSensorMgrStarted) {
 		// Update sensor values
@@ -644,13 +641,7 @@ static void StopEsifSensorMgr()
 	if (gEsifSensorMgrStarted) {
 		ESIF_TRACE_DEBUG("Stopping ESIF Sensor Manager...\n");
 		gEsifSensorMgrStarted = ESIF_FALSE;
-#ifdef ESIF_ATTR_OS_ANDROID
-		// Android NDK does not support pthread_cancel()
-		// Use pthread_kill() to emualte
-		pthread_kill(gEsifSensorMgrThread, SIGUSR1);
-#else
 		pthread_cancel(gEsifSensorMgrThread);
-#endif
 		esif_ccb_thread_join(&gEsifSensorMgrThread);
 		EsifSensorMgr_DeregisterSensors();
 	}

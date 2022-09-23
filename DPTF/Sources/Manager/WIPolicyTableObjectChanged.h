@@ -25,7 +25,11 @@
 class WIPolicyTableObjectChanged : public WorkItem
 {
 public:
-	WIPolicyTableObjectChanged(DptfManagerInterface* dptfManager, TableObjectType::Type tableType, std::string uuid);
+	WIPolicyTableObjectChanged(
+		DptfManagerInterface* dptfManager,
+		TableObjectType::Type tableType,
+		std::string uuid,
+		UIntN participantIndex);
 	virtual ~WIPolicyTableObjectChanged(void);
 
 	virtual void onExecute(void) override final;
@@ -33,4 +37,5 @@ public:
 private:
 	TableObjectType::Type m_tableType;
 	std::string m_uuid;
+	UIntN m_participantIndex;
 };

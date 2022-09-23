@@ -26,14 +26,6 @@
 #include "esif_queue.h"
 #include "esif_uf_sensors.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 #define NUM_EVENT_LISTS 64
 #define EVENT_MGR_FILTERED_EVENTS_PER_LINE 64

@@ -53,6 +53,8 @@
 
 #pragma once
 
+#include "esif_sdk.h"
+
 /*
  * Event Name:  DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED
  * Event GUID:  C7C5FC88-8AAC-42C2-8B51-21777033E75D

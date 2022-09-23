@@ -22,11 +22,13 @@
 class TableObjectField final
 {
 public:
-	TableObjectField(std::string name, std::string label, esif_data_type dataType)
+	TableObjectField(std::string name, std::string label, esif_data_type dataType, bool isPowerLimit = false, UInt32 fieldLength = 64)
 	{
 		m_fieldName = name;
 		m_fieldLabel = label;
 		m_fieldDataType = dataType;
+		m_isPowerLimit = isPowerLimit;
+		m_fieldLength = fieldLength;
 	}
 
 	~TableObjectField()
@@ -36,4 +38,6 @@ public:
 	std::string m_fieldName;
 	std::string m_fieldLabel;
 	esif_data_type m_fieldDataType;
+	UInt32 m_fieldLength;
+	bool m_isPowerLimit;
 };

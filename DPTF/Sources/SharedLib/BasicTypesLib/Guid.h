@@ -19,6 +19,8 @@
 #pragma once
 
 #include "Dptf.h"
+#include <vector>
+#include <list>
 #include "esif_sdk_data.h"
 
 class Guid final
@@ -54,12 +56,15 @@ public:
 
 	Bool isValid() const;
 	std::string toString() const;
+	std::string toClassicString() const;
 	static Guid fromString(std::string guidString);
 	static Guid fromUnmangledString(std::string guidString);
 	void copyToBuffer(UInt8 buffer[GuidSize]) const;
 
 private:
 	Bool m_valid;
-	UInt8 m_guid[GuidSize];
+	std::vector<UInt8> m_guid;
+	static std::string valuesToHexString(const std::list<UInt8>& values);
+	static std::string valuesToHexStringReversed(const std::list<UInt8>& values);
 	void throwIfInvalid(const Guid& guid) const;
 };

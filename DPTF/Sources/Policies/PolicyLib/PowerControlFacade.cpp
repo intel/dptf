@@ -616,6 +616,12 @@ Percentage PowerControlFacade::getLivePowerLimitDutyCyclePL3()
 		m_participantIndex, m_domainIndex, PowerControlType::PL3);
 }
 
+void PowerControlFacade::updatePowerLimitTimeWindowPL1(const TimeSpan& timeWindow)
+{
+	throwIfControlNotSupported();
+	m_lastSetTimeWindow[PowerControlType::PL1] = timeWindow;
+}
+
 const PolicyServicesInterfaceContainer& PowerControlFacade::getPolicyServices() const
 {
 	return m_policyServices;

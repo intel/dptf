@@ -37,14 +37,6 @@
 // Currently we do not get any of the domain/participant information as part of the interface.
 // !!!
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 extern char *esif_str_replace(char *orig, char *rep, char *with);
 
@@ -92,6 +84,21 @@ static eEsifError EsifGetActionDelegateIsFaceDetectionCapableSensor(
 
 static eEsifError EsifGetActionDelegateIsBpCapableSensor(
 	EsifDataPtr responsePtr
+	);
+
+static eEsifError EsifGetActionDelegateMcppEnergy(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+	);
+
+static eEsifError EsifGetCpuRaplEnergy(
+	const EsifUpDomainPtr domainPtr,
+	UInt32* cpuRaplEnergy
+	);
+
+static eEsifError EsifGetGpuRaplEnergy(
+	const EsifUpDomainPtr domainPtr,
+	UInt32* gpuRaplEnergy
 	);
 
 static eEsifError EsifGetActionDelegateBpsg(EsifDataPtr responsePtr);
@@ -149,71 +156,6 @@ static eEsifError EsifSetActionDelegateScsm(EsifDataPtr requestPtr);
 static eEsifError EsifSetActionDelegateScas();
 
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-
-esif_error_t set_nv_tgp_value_win(EsifDataPtr requestPtr);
-esif_error_t set_nv_power_limit_win(EsifDataPtr requestPtr);
-esif_error_t set_nv_dynamic_boost_state_win(EsifDataPtr requestPtr);
-esif_error_t set_nv_action_state_enable_win();
-esif_error_t set_nv_action_state_disable_win();
-esif_error_t set_display_state_win(EsifDataPtr requestPtr);
-esif_error_t set_screen_autolock_state_win(EsifDataPtr requestPtr);
-esif_error_t set_wake_on_approach_state_win(EsifDataPtr requestPtr);
-esif_error_t set_workstation_lock_win();
-esif_error_t set_app_ratio_period_win(EsifDataPtr requestPtr);
-esif_error_t get_nv_utilization_win(EsifDataPtr responsePtr);
-esif_error_t get_nv_rapl_power_win(EsifDataPtr responsePtr);
-esif_error_t get_nv_rapl_power_limit_win(EsifDataPtr responsePtr);
-esif_error_t get_nv_temperature_win(EsifDataPtr responsePtr);
-esif_error_t get_nv_dynamic_boost_state_win(EsifDataPtr responsePtr);
-esif_error_t get_nv_power_state_win(EsifDataPtr responsePtr);
-esif_error_t get_last_hid_input_time_win(EsifDataPtr responsePtr);
-esif_error_t get_display_required_win(EsifDataPtr responsePtr);
-esif_error_t get_is_ext_mon_connected_win(EsifDataPtr responsePtr);
-esif_error_t get_aggregate_display_information_win(EsifDataPtr responsePtr);
-esif_error_t EsifSetActionDelegatePpmParamValuesSettingWin(EsifDataPtr requestPtr);
-esif_error_t EsifGetActionDelegatePpmParamValuesSettingWin(EsifDataPtr requestPtr, EsifDataPtr responsePtr);
-esif_error_t EsifSetActionDelegatePowerSchemeEppWin(EsifDataPtr requestPtr);
-esif_error_t EsifSetActionDelegateActivePowerSchemeWin();
-esif_error_t EsifSetActionDelegatePpmParamClearWin();
-esif_error_t EsifGetActionDelegateGurrWin(EsifDataPtr responsePtr);
-esif_error_t EsifGetActionDelegateGurcWin(EsifDataPtr responsePtr);
-esif_error_t EsifSetActionDelegateSurrWin(EsifDataPtr requestPtr);
-esif_error_t EsifActDelegateInitOsWin();
-esif_error_t EsifActDelegateExitOsWin();
-
-#define set_nv_tgp_value(reqPtr) set_nv_tgp_value_win(reqPtr)
-#define set_nv_power_limit(reqPtr) set_nv_power_limit_win(reqPtr)
-#define set_nv_dynamic_boost_state(reqPtr) set_nv_dynamic_boost_state_win(reqPtr)
-#define set_nv_action_state_enable() set_nv_action_state_enable_win()
-#define set_nv_action_state_disable() set_nv_action_state_disable_win()
-#define set_display_state(reqPtr) set_display_state_win(reqPtr)
-#define set_screen_autolock_state(reqPtr) set_screen_autolock_state_win(reqPtr)
-#define set_wake_on_approach_state(reqPtr) set_wake_on_approach_state_win(reqPtr)
-#define set_workstation_lock() set_workstation_lock_win()
-#define set_app_ratio_period(reqPtr) set_app_ratio_period_win(reqPtr)
-#define get_nv_utilization(rspPtr) get_nv_utilization_win(rspPtr)
-#define get_nv_rapl_power(rspPtr) get_nv_rapl_power_win(rspPtr)
-#define get_nv_rapl_power_limit(rspPtr) get_nv_rapl_power_limit_win(rspPtr)
-#define get_nv_temperature(rspPtr) get_nv_temperature_win(rspPtr)
-#define get_nv_dynamic_boost_state(rspPtr) get_nv_dynamic_boost_state_win(rspPtr)
-#define get_nv_power_state(rspPtr) get_nv_power_state_win(rspPtr)
-#define get_last_hid_input_time(rspPtr) get_last_hid_input_time_win(rspPtr)
-#define get_display_required(rspPtr) get_display_required_win(rspPtr)
-#define get_is_ext_mon_connected(rspPtr) get_is_ext_mon_connected_win(rspPtr)
-#define get_aggregate_display_information(rspPtr) get_aggregate_display_information_win(rspPtr)
-#define EsifSetActionDelegatePpmParamValuesSetting(requestPtr) EsifSetActionDelegatePpmParamValuesSettingWin(requestPtr)
-#define EsifGetActionDelegatePpmParamValuesSetting(requestPtr, rspPtr) EsifGetActionDelegatePpmParamValuesSettingWin(requestPtr, rspPtr)
-#define EsifSetActionDelegatePowerSchemeEpp(requestPtr) EsifSetActionDelegatePowerSchemeEppWin(requestPtr)
-#define EsifSetActionDelegateActivePowerScheme() EsifSetActionDelegateActivePowerSchemeWin()
-#define EsifSetActionDelegatePpmParamClear() EsifSetActionDelegatePpmParamClearWin()
-#define EsifGetActionDelegateGurr(reqPtr) EsifGetActionDelegateGurrWin(reqPtr)
-#define EsifGetActionDelegateGurc(reqPtr) EsifGetActionDelegateGurcWin(reqPtr)
-#define EsifSetActionDelegateSurr(rspPtr) EsifSetActionDelegateSurrWin(rspPtr)
-#define EsifActDelegateInitOs() EsifActDelegateInitOsWin()
-#define EsifActDelegateExitOs() EsifActDelegateExitOsWin()
-
-#elif defined(ESIF_ATTR_OS_LINUX)
 
 #define set_nv_tgp_value(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_power_limit(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -243,10 +185,10 @@ esif_error_t EsifActDelegateExitOsWin();
 #define EsifGetActionDelegateGurr(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifGetActionDelegateGurc(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateSurr(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateSres() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifActDelegateInitOs() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifActDelegateExitOs() (ESIF_E_NOT_IMPLEMENTED)
 
-#endif
 
 
 // Delegate Opcodes
@@ -388,6 +330,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 
 	case 'VPPG': /* GPPV - Get PPM Parameter Values */
 		rc = EsifGetActionDelegatePpmParamValuesSetting(requestPtr, responsePtr);
+		break;
+
+	case 'ERMG': /* GMRE - Get MCPP Rapl Energy */
+		rc = EsifGetActionDelegateMcppEnergy(domainPtr, responsePtr);
 		break;
 
 	default:
@@ -634,6 +580,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'RRUS': /* SURR - Set User-Based Refresh Rate */
 		rc = EsifSetActionDelegateSurr(requestPtr);
+		break;
+
+	case 'SERS': /* SRES - Set User-Based Refresh Rate Reset*/
+		rc = EsifSetActionDelegateSres();
 		break;
 
 	default:
@@ -1406,6 +1356,84 @@ exit:
 	return rc;
 }
 
+static eEsifError EsifGetActionDelegateMcppEnergy(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 cpuRaplEnergy = 0;
+	UInt32 gpuRaplEnergy = 0;
+
+	ESIF_ASSERT(NULL != domainPtr);
+	ESIF_ASSERT(NULL != responsePtr);
+
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (responsePtr->buf_len < esif_data_type_sizeof(ESIF_DATA_UINT32)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	rc = EsifGetCpuRaplEnergy(domainPtr, &cpuRaplEnergy);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Failed to obtain RAPL Energy value for CPU component: %s\n", esif_rc_str(rc));
+		goto exit;
+	}
+
+	rc = EsifGetGpuRaplEnergy(domainPtr, &gpuRaplEnergy);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Failed to obtain RAPL Energy value for GPU component, continuing w/ only CPU counters. GPU Error: %s\n", esif_rc_str(rc));
+		gpuRaplEnergy = 0;
+		rc = ESIF_OK;
+	}
+
+	*(UInt32*)responsePtr->buf_ptr = (cpuRaplEnergy + gpuRaplEnergy);
+exit:
+	return rc;
+}
+
+static eEsifError EsifGetCpuRaplEnergy(
+	const EsifUpDomainPtr domainPtr,
+	UInt32* cpuRaplEnergy)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple energyTuple = { GET_RAPL_ENERGY_CPU_SUR, 0, 255 };
+	UInt32 energyValue = 0;
+	EsifData energyData = { ESIF_DATA_UINT32, &energyValue, sizeof(energyValue), 0 };
+
+	energyTuple.domain = domainPtr->domain;
+	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &energyTuple, NULL, &energyData);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	*cpuRaplEnergy = energyValue;
+exit:
+	return rc;
+}
+
+static eEsifError EsifGetGpuRaplEnergy(
+	const EsifUpDomainPtr domainPtr,
+	UInt32* gpuRaplEnergy)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple energyTuple = { GET_RAPL_ENERGY_GPU_SUR, 0, 255 };
+	UInt32 energyValue = 0;
+	EsifData energyData = { ESIF_DATA_UINT32, &energyValue, sizeof(energyValue), 0 };
+
+	energyTuple.domain = domainPtr->domain;
+	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &energyTuple, NULL, &energyData);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	*gpuRaplEnergy = energyValue;
+exit:
+	return rc;
+}
 
 static eEsifError EsifSetActionDelegateSampleBehavior(
 	const EsifUpDomainPtr domainPtr,

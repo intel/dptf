@@ -47,6 +47,7 @@ public:
 	void unregisterHandler(const std::string commandName) override;
 	virtual std::string getLastSuccessfulCommandMessage() const override;
 	virtual eEsifError getLastReturnCode() const override;
+	bool isCommandRegistered(const std::string& command);
 
 private:
 	void throwIfBadArguments(const CommandArguments& arguments);

@@ -18,7 +18,6 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <errno.h>
 #include <unistd.h>
@@ -291,4 +290,3 @@ static ESIF_INLINE void esif_ccb_file_enum_close(esif_ccb_file_enum_t find_handl
 	esif_ccb_free(find_handle);
 }
 
-#endif /* LINUX USER */

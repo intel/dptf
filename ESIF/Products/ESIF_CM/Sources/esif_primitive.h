@@ -110,11 +110,9 @@ struct esif_specific_action_request {
 	struct esif_data *rsp_ptr;
 };
 
-#ifdef ESIF_ATTR_USER
 typedef struct esif_primitive_tuple EsifPrimitiveTuple, *EsifPrimitiveTuplePtr;
 typedef struct esif_primitive_action_selector EsifPrimitiveActionSelector, *EsifPrimitiveActionSelectorPtr;
 typedef struct esif_specific_action_request EsifSpecificActionRequest, *EsifSpecificActionRequestPtr;
-#endif
 
 
 #pragma pack(pop)
@@ -126,57 +124,12 @@ extern "C" {
 struct esif_lp;
 struct esif_ipc_primitive;
 
-#ifdef ESIF_ATTR_KERNEL
-
-void esif_execute_ipc_primitive(struct esif_ipc_primitive *prim_ptr);
-
-enum esif_rc esif_execute_primitive(
-	struct esif_lp *lp_ptr,
-	const struct esif_primitive_tuple *tuple_ptr,
-	const struct esif_data *req_data_ptr,
-	struct esif_data *rsp_data_ptr,
-	const u16 *action_index_ptr
-);
-
-/*
- * Simple helper functions to execute primitives that takes no special
- * parameters.
- */
-enum esif_rc esif_get_simple_primitive(
-	struct esif_lp *lp_ptr,
-	u16 id,
-	u16 domain,
-	u16 instance,
-	enum esif_data_type esif_type,
-	void *buffer_ptr,
-	u32 buffer_size
-);
-
-enum esif_rc esif_set_simple_primitive(
-	struct esif_lp *lp_ptr,
-	u16 id,
-	u16 domain,
-	u16 instance,
-	enum esif_data_type esif_type,
-	void *buffer_ptr,
-	u32 buffer_size
-);
-
-char *esif_primitive_domain_str(
-	u16 domain,
-	char *str_ptr
-	);
-
-u32 esif_ipc_primitive_get_data_len(struct esif_ipc_primitive *primitive_ptr);
-
-#else
 char *esif_primitive_domain_str(
 	u16 domain,
 	char *str,
 	u8 str_len
 	);
 
-#endif
 #ifdef __cplusplus
 }
 #endif

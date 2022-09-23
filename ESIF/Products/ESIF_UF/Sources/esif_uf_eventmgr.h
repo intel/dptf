@@ -81,23 +81,6 @@
 #define ESIF_UF_EVENT_QUEUE_NAME "UfQueue"
 #define ESIF_UF_EVENT_QUEUE_TIMEOUT ESIF_QUEUE_TIMEOUT_INFINITE /* No timeout */
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "win\dppe.h"
-#include "win\cem_csensormanager.h"
-#include "win\support_app.h"
-
-#define register_for_power_notification(guid_ptr) register_for_power_notification_win(guid_ptr)
-#define unregister_power_notification(guid_ptr) unregister_power_notification_win(guid_ptr)
-
-#define register_for_system_metrics_notification(guid_ptr) register_for_system_metrics_notification_win(guid_ptr)
-#define unregister_system_metrics_notification(guid_ptr) unregister_system_metrics_notification_win(guid_ptr)
-
-#define esif_enable_code_event(eventType) enable_code_event_win(eventType)
-#define esif_disable_code_event(eventType) disable_code_event_win(eventType)
-
-#define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) esif_send_initial_event_win (participantId, domainId, eventType)
-
-#elif defined(ESIF_ATTR_OS_LINUX)
 #include "lin/esif_uf_sensor_manager_os_lin.h"
 
 #define register_for_power_notification(guid_ptr) register_for_system_metric_notification_lin(guid_ptr)
@@ -110,14 +93,6 @@
 #define esif_disable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
 
 #define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) (ESIF_E_NOT_IMPLEMENTED)
-#else
-#define register_for_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
-#define unregister_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
-
-#define register_for_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
-#define unregister_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
-
-#endif
 
 typedef eEsifError (ESIF_CALLCONV * EVENT_OBSERVER_CALLBACK)(
 	esif_context_t context,

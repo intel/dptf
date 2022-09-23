@@ -53,6 +53,8 @@
 
 #pragma once
 
+#include "esif_sdk.h"
+
 /*
  * Class GUIDs
  */

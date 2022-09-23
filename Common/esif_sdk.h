@@ -99,7 +99,6 @@ typedef u8  esif_ver_t;                     /* Version      */
 /* Primitive Instance */
 #define ESIF_INSTANCE_NO_PERSIST	254
 
-#ifdef ESIF_ATTR_USER
 
 #pragma pack(push, 1)
 
@@ -119,4 +118,3 @@ typedef struct esif_app_broadcast_header_s {
 
 #pragma pack(pop)
 
-#endif /* USER */

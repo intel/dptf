@@ -31,14 +31,6 @@
 #include "esif_command.h"
 #include "esif_ccb_string.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 #define ESIF_PARTICIPANT0_INDEX	0
 
@@ -247,6 +239,7 @@ eEsifError EsifUpPm_ParticipantActivityLoggingEnable(EsifUpPtr upPtr)
 					case ESIF_DOMAIN_TYPE_WWAN:
 					case ESIF_DOMAIN_TYPE_POWER:
 					case ESIF_DOMAIN_TYPE_CHIPSET:
+					case ESIF_DOMAIN_TYPE_VPU:
 					{
 						UInt32 capMask = EsifUp_GetDomainCapabilityMask(domainPtr);
 						EsifData capData = { ESIF_DATA_UINT32, &capMask, sizeof(capMask), sizeof(capMask) };

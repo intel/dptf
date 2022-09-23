@@ -50,23 +50,10 @@
 ** POSSIBILITY OF SUCH DAMAGE.
 **
 *******************************************************************************/
-#ifdef ESIF_ATTR_USER
 # define ESIF_TRACE_ID	ESIF_TRACEMODULE_UF
-#endif
 
 #include "esif_hash_table.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-/*
- *
- * The Windows banned-API check header must be included after all other headers,
- * or issues can be identified
- * against Windows SDK/DDK included headers which we have no control over.
- *
- */
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 #define ESIF_DEBUG_MODULE ESIF_DEBUG_MOD_HASH
 

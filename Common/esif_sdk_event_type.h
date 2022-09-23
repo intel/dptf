@@ -335,7 +335,6 @@ static ESIF_INLINE char *esif_event_type_str(esif_event_type_t type)
 	return ESIF_NOT_AVAILABLE;
 }
 
-#ifdef ESIF_ATTR_USER
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_event_type_t esif_event_type_str2enum(const esif_string name)
 {
@@ -483,5 +482,4 @@ static ESIF_INLINE esif_event_type_t esif_event_type_str2enum(const esif_string 
 	}
 	return ESIF_EVENT_NONE;
 }
-#endif
 #endif

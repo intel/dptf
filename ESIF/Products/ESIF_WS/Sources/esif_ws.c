@@ -28,18 +28,6 @@
 #include "esif_sdk_event_guid.h"
 #include "esif_lib_istring.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
-{
-	UNREFERENCED_PARAMETER(hModule);
-	UNREFERENCED_PARAMETER(ul_reason_for_call);
-	UNREFERENCED_PARAMETER(lpReserved);
-	return TRUE;
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // ESIF/App Inferface Variables
@@ -477,19 +465,10 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 			if (rc == ESIF_OK) {
 				if (!self->config.docRoot[0]) {
 					// Use OS-Specific UI Document Root Path instead of fPathHome when running In-Process
-					#if defined(ESIF_ATTR_OS_ANDROID)
-						esif_ccb_strcpy(self->config.docRoot, "/vendor/etc/dptf/ui", sizeof(self->config.docRoot));
-					#elif defined(ESIF_ATTR_OS_CHROME) 
+					#if   defined(ESIF_ATTR_OS_CHROME) 
 						esif_ccb_strcpy(self->config.docRoot, "/usr/share/dptf/ui", sizeof(self->config.docRoot));
-					#elif defined(ESIF_ATTR_OS_LINUX)
+					#else
 						esif_ccb_strcpy(self->config.docRoot, "/usr/share/dptf/ui", sizeof(self->config.docRoot));
-					#elif defined(ESIF_ATTR_OS_WINDOWS)
-						esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
-						char *sep = esif_ccb_strrchr(self->config.docRoot, *ESIF_PATH_SEP);
-						if (sep) {
-							sep[1] = 0;
-							esif_ccb_strcat(self->config.docRoot, "ui", sizeof(self->config.docRoot));
-						}
 					#endif
 				}
 
@@ -513,15 +492,6 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 			if (rc == ESIF_OK) {
 				WebServerPtr server = g_WebServer;
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-				// Enable Remote Connections in Win10X by default
-				char sysdir[MAX_PATH] = {0};
-				if (GetSystemDirectoryA(sysdir, sizeof(sysdir))) {
-					if (esif_ccb_strnicmp(sysdir, "C:", 2) != 0 && (esif_ccb_strcmp(self->config.ipAddr, WS_DEFAULT_IPADDR) == 0 || self->config.ipAddr[0] == 0)) {
-						esif_ccb_strcpy(self->config.ipAddr, WS_REMOTE_IPADDR, sizeof(self->config.ipAddr));
-					}
-				}
-#endif
 
 				// If in-process using legacy appname, lookup and use last known URL. Do Not Fail AppCreate on Error
 				if (!self->config.isClient && esif_ccb_stricmp(self->config.appName, WS_APP_LEGACYNAME) == 0 && self->ifaceSet.esifIface.fSendCommandFuncPtr) {

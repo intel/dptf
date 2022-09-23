@@ -25,11 +25,12 @@
 class DomainTemperatureInterface
 {
 public:
-	virtual ~DomainTemperatureInterface() {};
+	virtual ~DomainTemperatureInterface(){};
 
 	virtual TemperatureStatus getTemperatureStatus() = 0;
 	virtual TemperatureThresholds getTemperatureThresholds() = 0;
-	virtual void setTemperatureThresholds(const TemperatureThresholds& temperatureThresholds,
+	virtual void setTemperatureThresholds(
+		const TemperatureThresholds& temperatureThresholds,
 		const TemperatureThresholds& lastSetTemperatureThresholds) = 0;
 	virtual Temperature getPowerShareTemperatureThreshold() = 0;
 	virtual DptfBuffer getCalibrationTable() = 0;

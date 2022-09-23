@@ -513,7 +513,6 @@ void esif_sha_finish(esif_sha_t *self)
 	}
 }
 
-#ifdef ESIF_ATTR_USER
 
 // Convert a completed SHA1 or SHA256 Hash into a string
 const char *esif_sha_tostring(esif_sha_t *self, char *buffer, size_t buf_len)
@@ -543,4 +542,3 @@ const char *esif_hash_tostring(u8 hash_bytes[], size_t hash_len, char *buffer, s
 	return NULL;
 }
 
-#endif

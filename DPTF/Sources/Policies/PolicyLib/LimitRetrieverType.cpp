@@ -17,6 +17,8 @@
 ******************************************************************************/
 
 #include "LimitRetrieverType.h"
+#include "StringConverter.h"
+using namespace std;
 
 namespace LimitRetrieverType
 {
@@ -32,6 +34,22 @@ namespace LimitRetrieverType
 			return "";
 		default:
 			throw dptf_exception("LimitRetrieverType::Type is invalid.");
+		}
+	}
+	LimitRetrieverType::Type FromString(const std::string& value)
+	{
+		const string cleanedValue = StringConverter::toUpper(StringConverter::trimWhitespace(value));
+		if (cleanedValue == "MAX"s)
+		{
+			return LimitRetrieverType::Maximum;
+		}
+		else if (cleanedValue == "MIN"s)
+		{
+			return LimitRetrieverType::Minimum;
+		}
+		else
+		{
+			return LimitRetrieverType::Fixed;
 		}
 	}
 }

@@ -111,10 +111,8 @@ void esif_ht_exit(void);
 #endif
 
 /* TODO */
-#ifdef ESIF_ATTR_USER
 typedef struct esif_ht EsifHashTable2, *EsifHashTable2Ptr,
 	**EsifHashTable2PtrLocation;
-#endif
 
 /*****************************************************************************/
 /*****************************************************************************/

@@ -117,7 +117,7 @@ void DiagParticipantCommand::throwIfReportNameIsInvalid(const CommandArguments& 
 		}
 
 		auto reportName = arguments[2].getDataAsString();
-		if (IFileIO::fileNameHasIllegalChars(reportName))
+		if (IFileIO::fileNameContainsIllegalCharacters(reportName))
 		{
 			string description = string("Invalid characters used in report name given.");
 			setResultMessage(description);

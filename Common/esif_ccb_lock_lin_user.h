@@ -18,7 +18,6 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <pthread.h>
 #include <errno.h>
@@ -120,4 +119,3 @@ static ESIF_INLINE void esif_ccb_read_unlock(esif_ccb_lock_t *lockPtr)
 	if (pthread_rwlock_unlock(lockPtr) != 0) {}
 }
 
-#endif /* LINUX */

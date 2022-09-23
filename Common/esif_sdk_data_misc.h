@@ -73,7 +73,7 @@ typedef struct EsifPpmParamValues_s
 
 typedef struct EsifPpmParamValuesHeader_s
 {
-	u32 revision; // 1,2, …
+	u32 revision; // 1,2, ...
 	u32 numberElement;
 	EsifPpmParamValues ppmParamValuesArray[DEFAULT_PARAM_COUNT];	// Additional items may be present following this
 } EsifPpmParamValuesHeader;
@@ -143,7 +143,7 @@ struct loadable_action_devices {
 #define OCMB_REQUEST_VERSION OCMB_REQUEST_VERSION_1
 
 struct ocmb_affinity_data {
-	u16 group; 
+	u16 group;
 	u64 affinity_mask; /* 0 indicates no affinity required */
 	u32 data; /* Only used for SETs.  GET data returned in response */
 	/*
@@ -177,7 +177,6 @@ struct ocmb_request {
 
 #define OFFSET_PTR(ptr, offset, type) ((type)(((char *)(ptr)) + (offset)))
 
-#ifdef ESIF_ATTR_USER
 
 /*
  *  ESIF Data is used to marshall most data between ESIF and the
@@ -265,4 +264,3 @@ struct esif_data_rfprofile
 
 #define SOCWC_NUMBER_WORKLOAD_CLASSIFICATIONS	5
 
-#endif /* ESIF_ATTR_USER */

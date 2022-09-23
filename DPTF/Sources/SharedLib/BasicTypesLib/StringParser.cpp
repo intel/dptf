@@ -82,6 +82,20 @@ std::string StringParser::removeString(const std::string& input, const std::stri
 	return inputCopy;
 }
 
+std::string StringParser::removeAllString(const std::string& input, const std::string& substring)
+{
+	string inputCopy = input;
+	std::size_t foundPosition = inputCopy.find(substring);
+
+	while (foundPosition != std::string::npos)
+	{
+		inputCopy.erase(foundPosition, substring.length());
+		foundPosition = inputCopy.find(substring);
+	}
+
+	return inputCopy;
+}
+
 std::string StringParser::removeCharacter(const std::string& input, char character)
 {
 	string inputCopy = input;

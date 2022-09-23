@@ -18,6 +18,7 @@
 #include "TableObjectDeleteCommand.h"
 #include "DptfManagerInterface.h"
 #include "DataManager.h"
+#include "ParticipantManagerInterface.h"
 using namespace std;
 
 TableObjectDeleteCommand::TableObjectDeleteCommand(DptfManagerInterface* dptfManager)
@@ -36,13 +37,39 @@ string TableObjectDeleteCommand::getCommandName() const
 
 void TableObjectDeleteCommand::execute(const CommandArguments& arguments)
 {
+	setDefaultResultMessage();
+
 	throwIfBadArguments(arguments);
 	throwIfTableObjectNotExist(arguments);
 
 	auto tableName = arguments[1].getDataAsString();
 	string uuid = Constants::EmptyString;
 	string all = Constants::EmptyString;
-	if (arguments.size() > 3)
+	Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(TableObjectType::ToType(tableName));
+
+	if (isParticipantTable)
+	{
+		// tableobject delete vsct VIR1
+		// tableobject delete vsct VIR1 all
+		throwIfBadArgumentsForParticipantTable(arguments);
+		throwIfParticipantNotExist(arguments);
+
+		string participantName = arguments[2].getDataAsString();
+		UIntN participantIndex =
+			m_dptfManager->getParticipantManager()->getParticipant(participantName)->getParticipantIndex();
+
+		if (arguments.size() > 3 && arguments[3].getDataAsString() == "all")
+		{
+			m_dptfManager->getDataManager()->deleteAllTableObject(
+				TableObjectType::ToType(tableName), uuid, participantIndex);
+		}
+		else
+		{
+			m_dptfManager->getDataManager()->deleteTableObject(
+				TableObjectType::ToType(tableName), uuid, participantIndex);
+		}
+	}
+	else if (arguments.size() > 3)
 	{
 		if (arguments[3].getDataAsString() == "all")
 		{
@@ -70,6 +97,7 @@ void TableObjectDeleteCommand::execute(const CommandArguments& arguments)
 		// tableobject delete apat
 		m_dptfManager->getDataManager()->deleteTableObject(TableObjectType::ToType(tableName), uuid);
 	}
+
 	setResultCode(ESIF_OK);
 }
 
@@ -103,5 +131,28 @@ void TableObjectDeleteCommand::throwIfTableObjectNotExist(const CommandArguments
 		string description = string("TableObject schema not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
+	}
+}
+
+void TableObjectDeleteCommand::throwIfParticipantNotExist(const CommandArguments& arguments)
+{
+	auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[2].getDataAsString());
+	if (participantExists == false)
+	{
+		string description = string("The participant specified was not found.");
+		setResultMessage(description);
+		throw command_failure(ESIF_E_NOT_FOUND, description);
+	}
+}
+
+void TableObjectDeleteCommand::throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments)
+{
+	if (arguments.size() < 3)
+	{
+		string description = string(
+			"Invalid argument count given to 'tableobject delete' command for a participant table. "
+			"Run 'dptf help' command for more information.");
+		setResultMessage(description);
+		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 }

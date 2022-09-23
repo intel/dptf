@@ -18,7 +18,6 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <pthread.h>
 typedef pthread_t esif_thread_t;	/* Non-Unique Thread Handle */
@@ -116,4 +115,3 @@ static ESIF_INLINE enum esif_rc esif_ccb_thread_close(esif_thread_t* thread_ptr)
 	return rc;
 }
 
-#endif /* LINUX USER */

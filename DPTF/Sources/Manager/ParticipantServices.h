@@ -163,6 +163,7 @@ public:
 	virtual void createEventDomainPowerControlCapabilityChanged() override final;
 	virtual void createEventPowerLimitChanged() override final;
 	virtual void createEventPerformanceCapabilitiesChanged() override final;
+	virtual void createEventPowerLimitTimeWindowChanged() override final;
 
 	virtual void sendDptfEvent(ParticipantEvent::Type participantEvent, UIntN domainId, esif_data eventData)
 		override final;

@@ -18,7 +18,6 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <errno.h>
 #include <netinet/in.h>
@@ -75,4 +74,3 @@ static int ESIF_INLINE esif_ccb_socket_shutdown(esif_ccb_socket_t socket, int ho
 
 #define esif_ccb_socketpair(af, typ, prot, sock)	socketpair(af, typ, prot, sock)
 
-#endif /* LINUX USER */

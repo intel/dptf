@@ -38,14 +38,6 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 #include "esif_sdk_sha.c"	// Compile SHA code into this module
 
@@ -1782,10 +1774,11 @@ esif_error_t DataVault_SetValue(
 			} 
 
 			// Replace the File Offset stored in buf_ptr with a copy of the data for updated NOCACHE values
-			if (FLAGS_TEST(keypair->flags, ESIF_SERVICE_CONFIG_NOCACHE) && keypair->value.buf_len == 0) {
+			if ((FLAGS_TEST(keypair->flags, ESIF_SERVICE_CONFIG_NOCACHE) || (NULL == keypair->value.buf_ptr && value->data_len > 0)) && keypair->value.buf_len == 0) {
 				keypair->value.buf_len = esif_ccb_max(1, value->data_len);
 				keypair->value.buf_ptr = esif_ccb_malloc(value->buf_len);
 			}
+
 			keypair->flags = flags;
 			keypair->value.type     = value->type;
 			keypair->value.data_len = value->data_len;

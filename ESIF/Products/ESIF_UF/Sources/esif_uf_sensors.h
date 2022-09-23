@@ -191,19 +191,6 @@ static ESIF_INLINE char* GetPlatTypeStr(PlatformType platType)
 	return str;
 }
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#include "win\dppe.h"
-#include "win\cem_csensormanager.h"
-#include "win\support_app.h"
-
-#define esif_register_sensors(eventType) esif_register_sensors_win(eventType)
-#define esif_unregister_sensors(eventType) esif_unregister_sensors_win(eventType)
-#define esif_is_face_detection_capable_sensor() esif_is_face_detection_capable_sensor_win()
-#define esif_get_bp_sensor_instance(ret) esif_get_bp_sensor_instance_win(ret)
-#define esif_set_bp_sensor_instance(arg) esif_set_bp_sensor_instance_win(arg)
-#define esif_is_bp_capable_sensor() esif_is_bp_capable_sensor_win()
-
-#elif defined(ESIF_ATTR_OS_LINUX)
 #include "lin/esif_uf_sensor_manager_os_lin.h"
 
 #define esif_register_sensors(eventType) esif_register_sensor_lin(eventType)
@@ -213,7 +200,6 @@ static ESIF_INLINE char* GetPlatTypeStr(PlatformType platType)
 #define esif_set_bp_sensor_instance(arg) (ESIF_E_NOT_IMPLEMENTED)
 #define esif_is_bp_capable_sensor() (ESIF_E_NOT_IMPLEMENTED)
 
-#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -18,7 +18,6 @@
 
 #pragma once
 
-#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <cpuid.h>
 
@@ -31,4 +30,3 @@ static ESIF_INLINE void esif_ccb_cpuid(esif_ccb_cpuid_t *cpuidPtr)
 		&cpuidPtr->edx);
 }
 
-#endif /* LINUX USER */

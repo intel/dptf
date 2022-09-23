@@ -4,9 +4,6 @@
 #ifndef __7Z_TYPES_H
 #define __7Z_TYPES_H
 
-#ifdef _WIN32
-/* #include <windows.h> */
-#endif
 
 #include <stddef.h>
 
@@ -43,20 +40,12 @@ EXTERN_C_BEGIN
 typedef int SRes;
 
 
-#ifdef _WIN32
-
-/* typedef DWORD WRes; */
-typedef unsigned WRes;
-#define MY_SRes_HRESULT_FROM_WRes(x) HRESULT_FROM_WIN32(x)
-
-#else
 
 typedef int WRes;
 #define MY__FACILITY_WIN32 7
 #define MY__FACILITY__WRes MY__FACILITY_WIN32
 #define MY_SRes_HRESULT_FROM_WRes(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (MY__FACILITY__WRes << 16) | 0x80000000)))
 
-#endif
 
 
 #ifndef RINOK
@@ -109,11 +98,7 @@ typedef int BoolInt;
 #define False 0
 
 
-#ifdef _WIN32
-#define MY_STD_CALL __stdcall
-#else
 #define MY_STD_CALL
-#endif
 
 #ifdef _MSC_VER
 
@@ -354,21 +339,12 @@ struct ISzAlloc
 
 
 
-#ifdef _WIN32
-
-#define CHAR_PATH_SEPARATOR '\\'
-#define WCHAR_PATH_SEPARATOR L'\\'
-#define STRING_PATH_SEPARATOR "\\"
-#define WSTRING_PATH_SEPARATOR L"\\"
-
-#else
 
 #define CHAR_PATH_SEPARATOR '/'
 #define WCHAR_PATH_SEPARATOR L'/'
 #define STRING_PATH_SEPARATOR "/"
 #define WSTRING_PATH_SEPARATOR L"/"
 
-#endif
 
 EXTERN_C_END
 

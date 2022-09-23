@@ -53,32 +53,12 @@
 
 #pragma once
 
-#if !defined(ESIF_ATTR_KERNEL) && !defined(ESIF_ATTR_USER)
-/* User Mode Build */
-#define ESIF_ATTR_USER
-#endif
 
-#if defined(_WIN32)
-#if !defined(ESIF_ATTR_OS_WINDOWS)
-/* Windows OS */
-#define ESIF_ATTR_OS_WINDOWS
-#endif
-#else
-#if !defined(ESIF_ATTR_OS_LINUX) && !defined(ESIF_ATTR_OS_CHROME) && !defined(ESIF_ATTR_OS_ANDROID)
-/* Linux Derived OS */
-#define ESIF_ATTR_OS_LINUX
-#endif
-#endif
 
 #ifdef ESIF_ATTR_OS_CHROME
 /* Linux Derived OS */
 #define ESIF_ATTR_OS_LINUX
 #define ESIF_ATTR_OS	"Chrome"  /* OS Is Chromium */
-#endif
-#ifdef ESIF_ATTR_OS_ANDROID
-/* Linux Derived OS */
-#define ESIF_ATTR_OS_LINUX
-#define ESIF_ATTR_OS	"Android" /* OS Is Android */
 #endif
 #if defined(ESIF_ATTR_OS_LINUX) && !defined(_GNU_SOURCE)
 /* -std=gnu99 support */
@@ -90,110 +70,13 @@
 #endif
 
 /* OS Agnostic */
-#ifdef ESIF_ATTR_USER
 #include <stdio.h>
 #include <stdlib.h>
-#else
-#include <stddef.h>
-#endif
-
-#ifdef ESIF_ATTR_OS_WINDOWS
-
-/* Windows OS */
-#pragma strict_gs_check(on)
-
-#ifdef ESIF_ATTR_USER
-#define _WINSOCKAPI_ /* Override for Winsock */
-#include <windows.h>
-
-/* Avoids Serialization Warnings*/
-#define ESIF_SERIAL_FENCE()	_mm_lfence()
-
-#else
-#include <ntddk.h>
-#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)	/* Invalid ESIF Handle */
-#endif
-
-/* Add Linux Base Types for Windows */
-typedef unsigned char u8;	/* A BYTE  */
-typedef unsigned short u16;	/* A WORD  */
-typedef unsigned int u32;	/* A DWORD */
-typedef unsigned long long u64;	/* A QWORD */
-
-typedef	char *esif_string;		/* NULL-teriminated ANSI string */
-typedef HANDLE esif_os_handle_t;/* opaque OS Handle (not a pointer) */
-typedef u64 esif_handle_t;	/* opaque ESIF 64-bit handle (may NOT be a pointer) */
-typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
-
-#define ESIF_ATTR_OS		"Windows"				/* OS Is Windows */
-#define ESIF_INLINE			__inline				/* Inline Function Directive */
-#define ESIF_FUNC			__FUNCTION__			/* Current Function Name */
-#define ESIF_CALLCONV		__cdecl					/* SDK Calling Convention */
-#define ESIF_PATH_SEP		"\\"					/* Path Separator String */
-#define ESIF_EXPORT			__declspec(dllexport)	/* Used for Exported Symbols */
-#define ESIF_INVALID_HANDLE	((esif_handle_t)(-1))	/* Invalid ESIF Handle */
-
-#define ESIF_HANDLE_DEFAULT ((esif_handle_t)(0))        /* Reserved ESIF handle */
-#define ESIF_HANDLE_PRIMARY_PARTICIPANT ((esif_handle_t)(1))   /* Reserved ESIF primary participant handle */
-#define ESIF_HANDLE_MATCH_ANY_EVENT ((esif_handle_t)(-2)) /* Reserved ESIF handle */
-
-#define	ESIF_WS_LIBRARY_NAME	"ipf_ws"	/* Legacy Library/App Name for deprecated in-process web server*/
-
-#define esif_ccb_isfullpath(fname)	(fname[0] == '\\' || (isalpha(fname[0]) && fname[1] == ':'))
-
-#ifdef __cplusplus
-#define ESIF_ELEMENT(x)  /* C99 Designated Initializers unsupported in C++ */
-#else
-#define ESIF_ELEMENT(x)	x =	/* Support C99 Designated Initializers */
-#endif
-
-/* Avoids "conditional constant is an expression" warnings for do...while(0) loops */
-#define ESIF_CONSTEXPR(expr)  __pragma(warning(push)) __pragma(warning(disable:4127)) (expr) __pragma(warning(pop))
-
-/* Sleep Interface */
-#define esif_ccb_sleep(sec)		Sleep(sec * 1000)
-#define esif_ccb_sleep_msec(msec)	Sleep(msec)
-
-/* Deduce Platform based on predefined compiler flags */
-#ifdef _WIN64
-#define ESIF_ATTR_64BIT
-#endif
-
-/* Deduce Debug Build for Windows. Non-Windows can define this in Makefile */
-#ifdef _DEBUG
-#define ESIF_ATTR_DEBUG
-#endif
-
-#ifdef ESIF_ATTR_DEBUG
-#ifdef ESIF_ATTR_USER
-#define ESIF_ASSERT(x)			\
-	do {				\
-		if ESIF_CONSTEXPR(!(x))	\
-			DebugBreak();	\
-	} while ESIF_CONSTEXPR(0)
-
-#else /* !ESIF_ATTR_USER */
-#define ESIF_ASSERT(x) ASSERT(x)
-#endif /* !ESIF_ATTR_USER */
-#else /* !ESIF_ATTR_DEBUG */
-#define ESIF_ASSERT(x) (0)
-#endif /* !ESIF_ATTR_DEBUG */
 
 
-#ifdef ESIF_ATTR_USER
-/* Byte Ordering Utilities (Winsock2.h) */
-#define esif_ccb_htons(val)		htons(val)
-#define esif_ccb_htonl(val)		htonl(val)
-#define esif_ccb_htonll(val)	htonll(val)
-#endif
-
-#endif /* WINDOWS */
-
-#ifdef ESIF_ATTR_OS_LINUX
 
 /* All Linux Derived OS */
 
-#ifdef ESIF_ATTR_USER
 #include <unistd.h>	/* POSIX API */
 
 /* Common Windows Symbols */
@@ -206,7 +89,6 @@ typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 #include <x86intrin.h>
 #define ESIF_SERIAL_FENCE()	_mm_lfence()
 
-#endif
 
 /* Add Linux Base Types */
 typedef unsigned char u8;
@@ -238,18 +120,8 @@ typedef u64 esif_handle_t;	/* opaque ESIF 64-bit handle (may not be a pointer) *
 typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 
 #ifdef ESIF_ATTR_DEBUG
-# ifdef ESIF_ATTR_USER
 #  include <assert.h>
 #  define ESIF_ASSERT(x)   assert(x)
-# else
-#  define ESIF_ASSERT(x)	\
-	   do {			\
-			  if (x)		\
-					 break;	\
-			  printk(KERN_EMERG "!ESIF_ASSERT! [%s@%s#%d]: %s\n", ESIF_FUNC, __FILE__, __LINE__, #x); \
-			  BUG();		\
-	   } while (0)
-# endif
 #else
 # define ESIF_ASSERT(x)
 #endif
@@ -274,7 +146,6 @@ typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 /* Used for constant expressions, such as do...while(0) loops */
 #define ESIF_CONSTEXPR(expr)  (expr)
 
-#ifdef ESIF_ATTR_USER
 /* Byte Ordering Utilities */
 #include <arpa/inet.h> /* htonl */
 #define esif_ccb_htons(val)		htons(val)
@@ -286,9 +157,7 @@ static ESIF_INLINE u64 esif_ccb_htonll(u64 value)
 	u32 lo = htonl((u32)value);
 	return (((u64)lo) << 32) | hi;
 }
-#endif
 
-#endif /* LINUX */
 
 /*
  * OS Agnostic

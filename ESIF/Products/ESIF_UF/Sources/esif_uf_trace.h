@@ -75,25 +75,11 @@ typedef u8		esif_traceroute_t;
 #define ESIF_TRACEMASK_MAX		32
 #define ESIF_TRACEMAPPING_MAX	256
 
-#ifdef ESIF_ATTR_OS_WINDOWS
 
-/* Avoid Klocworks "suspicious semicolon" warnings */
-#define ESIF_ALWAYSFALSE (0)
-#define ESIF_TRACENULL(fmt, ...) (0)
-#define ESIF_TRACEFUNC(fmt, ...) CMD_OUT(fmt, ##__VA_ARGS__)
-#define ESIF_FILENAME __FILE__
-
-/* OS Trace is only available for Windows components */
-#define ESIF_FEAT_OPT_OS_TRACE
-
-#endif /* ESIF_ATTR_OS_WINDOWS */
-
-#ifdef ESIF_ATTR_OS_LINUX
 #define ESIF_ALWAYSFALSE (0)
 #define ESIF_TRACENULL(fmt, ...)
 #define ESIF_TRACEFUNC(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #define ESIF_FILENAME __FILE__
-#endif /* LINUX */
 
 /* 
  * ESIF_TRACE_ID must be #defined in each source file before any #includes

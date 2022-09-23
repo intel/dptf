@@ -19,32 +19,9 @@
 #include "esif.h"
 #include "esif_uf_trace.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-/*
- *
- * The Windows banned-API check header must be included after all other headers,
- * or issues can be identified
- * against Windows SDK/DDK included headers which we have no control over.
- *
- */
-#define _SDL_BANNED_RECOMMENDED
-#include "win\banned.h"
-#endif
 
 #include "esif_uf_log.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-#endif
-#ifdef ESIF_ATTR_OS_LINUX
-# ifdef ESIF_ATTR_OS_ANDROID
-#  include <android/log.h>
-#  define IDENT    "DPTF"
-#  define ESIF_PRIORITY_FATAL   ANDROID_LOG_FATAL
-#  define ESIF_PRIORITY_ERROR   ANDROID_LOG_ERROR
-#  define ESIF_PRIORITY_WARNING ANDROID_LOG_WARN
-#  define ESIF_PRIORITY_INFO    ANDROID_LOG_INFO
-#  define ESIF_PRIORITY_DEBUG   ANDROID_LOG_DEBUG
-# else
 #  include <syslog.h>
 #  define IDENT    "DPTF"
 #  define OPTION   LOG_PID
@@ -54,8 +31,6 @@
 #  define ESIF_PRIORITY_WARNING LOG_WARNING
 #  define ESIF_PRIORITY_INFO    LOG_INFO
 #  define ESIF_PRIORITY_DEBUG   LOG_DEBUG
-# endif
-#endif
 
 int g_traceLevel = ESIF_TRACELEVEL_DEFAULT;
 
@@ -222,79 +197,6 @@ int EsifUfTraceMessageArgs(
 		}
 	}
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-	if (g_traceinfo[level].routes & (ESIF_TRACEROUTE_DEBUGGER)) {
-		size_t  msglen=0;
-		char *buffer=0;
-		int  offset=0;
-
-		va_copy(args, arglist);
-		msglen = esif_ccb_vscprintf(msg, args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(appname, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + TRACE_MESSAGE_PADDING;
-		va_end(args);
-		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
-		buffer = (char *)esif_ccb_malloc(msglen);
-
-		if (NULL != buffer) {
-			if (detailed_message)
-				rc =  esif_ccb_sprintf(msglen, buffer, fmtDetail, appname, g_traceinfo[level].label, module_name, func, file, line, msec);
-			else
-				rc =  esif_ccb_sprintf(msglen, buffer, fmtInfo, appname, g_traceinfo[level].label, module_name, msec);
-
-			offset = rc;
-			va_copy(args, arglist);
-			rc += esif_ccb_vsprintf(msglen-offset, buffer+offset, msg, args);
-			va_end(args);
-			if (rc && buffer[rc-1]!='\n')
-				esif_ccb_strcat(buffer, "\n", msglen);
-
-			OutputDebugStringA(buffer); 
-			esif_ccb_free(buffer);
-		}
-	}
-	if (g_traceinfo[level].routes & (ESIF_TRACEROUTE_EVENTLOG)) {
-		size_t  msglen=0;
-		char *buffer=0;
-		char *replaced=0;
-		int  offset=0;
-
-		appname  = "";
-		fmtInfo  = "%sESIF(%s) TYPE: %s MODULE: %s TIME %llu ms\n\n";
-		fmtDetail= "%sESIF(%s) TYPE: %s MODULE: %s FUNC: %s FILE: %s LINE: %d TIME: %llu ms\n\n";
-
-		va_copy(args, arglist);
-		msglen = esif_ccb_vscprintf(msg,args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(appname, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + sizeof(ESIF_UF_VERSION) + TRACE_MESSAGE_PADDING;
-		va_end(args);
-		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
-		buffer = (char *)esif_ccb_malloc(msglen);
-
-		if (NULL != buffer) {
-			char *alt_module_name = esif_str_replace(module_name, "><", "+");
-
-			if (detailed_message)
-				rc = esif_ccb_sprintf(msglen, buffer, fmtDetail, appname, ESIF_UF_VERSION, g_traceinfo[level].label, (alt_module_name ? alt_module_name : module_name), func, file, line, msec);
-			else
-				rc = esif_ccb_sprintf(msglen, buffer, fmtInfo, appname, ESIF_UF_VERSION, g_traceinfo[level].label, (alt_module_name ? alt_module_name : module_name), msec);
-
-			offset = rc;
-			va_copy(args, arglist);
-			rc += esif_ccb_vsprintf(msglen-(offset), buffer+offset, msg, args);
-			va_end(args);
-			if (rc && buffer[rc-1]=='\n')
-				buffer[--rc] = 0;
-
-			// Escape any "%" in message before writing to EventLog
-			if ((replaced = esif_str_replace(buffer, "%", "%%")) != NULL) {
-				esif_ccb_free(buffer);
-				buffer = replaced;
-				replaced = NULL;
-			}
-			report_event_to_event_log(g_traceinfo[level].level, buffer);
-			esif_ccb_free(buffer);
-			esif_ccb_free(alt_module_name);
-		}
-	}
-#endif
-#ifdef ESIF_ATTR_OS_LINUX
 	if (g_traceinfo[level].routes & (ESIF_TRACEROUTE_EVENTLOG|ESIF_TRACEROUTE_DEBUGGER)) {
 		size_t  msglen=0;
 		char *buffer=0;
@@ -345,17 +247,12 @@ int EsifUfTraceMessageArgs(
 				priority = ESIF_PRIORITY_DEBUG;
 				break;
 			}
-		#ifdef ESIF_ATTR_OS_ANDROID
-			__android_log_write(priority, IDENT, buffer);
-		#else
 			openlog(IDENT, OPTION, FACILITY);
 			syslog(priority, "%s", buffer);
 			closelog();
-		#endif
 			esif_ccb_free(buffer);
 		}
 	}
-#endif
 exit:
 	esif_ccb_free(module_name);
 	return rc;
