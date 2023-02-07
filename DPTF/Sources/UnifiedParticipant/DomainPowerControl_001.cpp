@@ -248,7 +248,6 @@ void DomainPowerControl_001::setPowerLimitTimeWindow(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
-	getParticipantServices()->createEventPowerLimitTimeWindowChanged();
 }
 
 void DomainPowerControl_001::setPowerLimitTimeWindowIgnoringCaps(

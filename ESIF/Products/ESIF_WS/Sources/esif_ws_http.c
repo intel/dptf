@@ -29,6 +29,10 @@
 #include "esif_ws_http.h"
 #include "esif_ws_version.h"
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#define _SDL_BANNED_RECOMMENDED
+#include "win\banned.h"
+#endif
 
 #include "esif_sdk_sha.c"		// Compile SHA code into this module
 

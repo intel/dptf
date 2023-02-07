@@ -19,10 +19,7 @@
 #include "Domain.h"
 #include "EsifDataString.h"
 #include "EsifDataGuid.h"
-#include "PolicyServicesInterfaceContainer.h"
-#include "EsifServicesInterface.h"
-#include "PolicyManagerInterface.h"
-#include "ParticipantManagerInterface.h"
+#include "DptfStatusInterface.h"
 
 Domain::Domain(DptfManagerInterface* dptfManager)
 	: m_domainCreated(false)
@@ -100,6 +97,7 @@ void Domain::createDomain(
 		m_domainFunctionalityVersions = DomainFunctionalityVersions(domainDataPtr->fCapabilityBytes);
 		m_arbitrator = new Arbitrator();
 
+		m_dptfManager->getDptfStatus()->clearCache();
 		m_theRealParticipant->createDomain(
 			m_domainGuid,
 			m_participantIndex,
@@ -124,6 +122,7 @@ void Domain::destroyDomain(void)
 	{
 		try
 		{
+			m_dptfManager->getDptfStatus()->clearCache();
 			m_theRealParticipant->destroyDomain(m_domainGuid);
 		}
 		catch (...)
@@ -165,6 +164,7 @@ std::string Domain::getDomainName(void) const
 
 void Domain::clearDomainCachedData(void)
 {
+	m_dptfManager->getDptfStatus()->clearCache();
 	clearDomainCachedDataCoreControl();
 	clearDomainCachedDataDisplayControl();
 	clearDomainCachedDataPerformanceControl();
@@ -570,12 +570,6 @@ void Domain::setPerformanceControl(UIntN policyIndex, UIntN performanceControlIn
 	if (shouldSetPerformanceControlIndex)
 	{
 		m_theRealParticipant->setPerformanceControl(m_participantIndex, m_domainIndex, newIndex);
-		const auto policyName = m_dptfManager->getPolicyManager()->getPolicyPtr(policyIndex)->getName();
-		const auto participantName = m_theRealParticipant->getName();
-		m_dptfManager->getEsifServices()->writeMessageDebug(
-			" Policy : " + std::string(policyName)
-			+ " -- Participant : " + std::string(participantName)
-			+ " -- Control PerformanceControl : " + std::to_string(performanceControlIndex));
 		clearDomainCachedDataPerformanceControl();
 	}
 	performanceControlArbitrator->commitPolicyRequest(policyIndex, performanceControlIndex);
@@ -717,12 +711,6 @@ void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType
 	if (shouldSetPowerLimit)
 	{
 		m_theRealParticipant->setPowerLimit(m_participantIndex, m_domainIndex, controlType, newPowerLimit);
-		const auto policyName = m_dptfManager->getPolicyManager()->getPolicyPtr(policyIndex)->getName();
-		const auto participantName = m_theRealParticipant->getName();
-		m_dptfManager->getEsifServices()->writeMessageDebug(
-			" Policy : " + std::string(policyName) + " -- Participant : "
-			+ std::string(participantName) + " -- ControlType : " + std::to_string(controlType)
-			+ " -- Request new Power Limit : " + std::to_string(newPowerLimit));
 		clearDomainCachedDataPowerControl();
 	}
 	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, powerLimit);

@@ -38,30 +38,4 @@ namespace MbtHint
 			return Constants::InvalidString;
 		}
 	}
-
-	MbtHint::Type fromString(std::string mbtHint)
-	{
-		if (mbtHint == toString(MbtHint::Idle))
-		{
-			return MbtHint::Idle;
-		}
-		else if (mbtHint == toString(MbtHint::SemiActive))
-		{
-			return MbtHint::SemiActive;
-		}
-		else if (mbtHint == toString(MbtHint::Bursty))
-		{
-			return MbtHint::Bursty;
-		}
-		else if (mbtHint == toString(MbtHint::Sustained))
-		{
-			return MbtHint::Sustained;
-		}
-		else if (mbtHint == toString(MbtHint::BatteryLife))
-		{
-			return MbtHint::BatteryLife;
-		}
-
-		return MbtHint::Invalid;
-	}
 }

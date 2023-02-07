@@ -18,6 +18,7 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <semaphore.h>
 #include <pthread.h>
@@ -71,3 +72,4 @@ typedef pthread_cond_t esif_ccb_cond_t;
 #define esif_ccb_cond_signal pthread_cond_signal
 #define esif_ccb_cond_broadcast pthread_cond_broadcast
 
+#endif /* LINUX */

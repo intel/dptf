@@ -18,6 +18,7 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <dlfcn.h>
 #include <ctype.h>
@@ -247,3 +248,4 @@ static ESIF_INLINE Bool esif_ccb_library_isloaded(esif_lib_t lib)
 	return (NULL != lib && NULL != lib->handle);
 }
 
+#endif /* LINUX USER */

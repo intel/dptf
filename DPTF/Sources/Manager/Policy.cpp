@@ -813,14 +813,6 @@ void Policy::executePowerLimitChanged(void)
 	}
 }
 
-void Policy::executePowerLimitTimeWindowChanged(void)
-{
-	if (isEventRegistered(PolicyEvent::PowerLimitTimeWindowChanged))
-	{
-		m_theRealPolicy->powerLimitTimeWindowChanged();
-	}
-}
-
 void Policy::executePerformanceCapabilitiesChanged(UIntN participantIndex)
 {
 	if (isEventRegistered(PolicyEvent::PerformanceCapabilitiesChanged))

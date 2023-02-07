@@ -21,7 +21,50 @@
 #include "esif_ccb.h"
 #include "esif_ccb_sem.h"
 
+#if defined(ESIF_ATTR_USER)
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+
+static ESIF_INLINE eEsifError EsifTimedEventWait(
+	esif_ccb_event_t *waitEventPtr,
+	esif_ccb_time_t msDelay
+	) 
+{
+	eEsifError rc = ESIF_OK;
+	DWORD apiStatus = 0;
+
+	esif_ccb_write_lock(&waitEventPtr->state_lock);
+
+	if (waitEventPtr->signaled) {
+		esif_ccb_write_unlock(&waitEventPtr->state_lock);
+		goto exit;
+	}
+
+	waitEventPtr->waiters++;
+	esif_ccb_write_unlock(&waitEventPtr->state_lock);
+
+	apiStatus = WaitForSingleObject(waitEventPtr->sem_obj, (DWORD) msDelay);
+	//
+	// If thread released, but not due to signaling; decrement the waiter count
+	//
+	if (apiStatus != WAIT_OBJECT_0) {
+
+		esif_ccb_write_lock(&waitEventPtr->state_lock);
+		if (waitEventPtr->waiters) {
+			waitEventPtr->waiters--;
+		}
+		esif_ccb_write_unlock(&waitEventPtr->state_lock);
+
+		if (apiStatus != WAIT_TIMEOUT) {
+			rc = ESIF_E_UNSPECIFIED;
+		}
+	}
+
+exit:
+	return rc;
+}
+
+#elif defined(ESIF_ATTR_OS_LINUX)
 
 #include "esif_ccb_timer.h"
 
@@ -57,7 +100,9 @@ exit:
 	return rc;
 }
 
+#endif /* LINUX */
 
+#endif /* USER */
 
 
 

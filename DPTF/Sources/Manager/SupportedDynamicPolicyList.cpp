@@ -101,13 +101,12 @@ void SupportedDynamicPolicyList::update(void)
 	}
 	catch (const exception& ex)
 	{
-		MANAGER_LOG_MESSAGE_WARNING_EX(
-			{
-				stringstream message;
-				message << ex.what();
-				ManagerMessage warningMessage = ManagerMessage(m_dptfManager, _file, _line, _function, message.str());
-				return warningMessage;
-			});
+		MANAGER_LOG_MESSAGE_WARNING_EX({
+			stringstream message;
+			message << ex.what();
+			ManagerMessage warningMessage = ManagerMessage(m_dptfManager, _file, _line, _function, message.str());
+			return warningMessage;
+		});
 
 		m_dynamicPolicyList.clear();
 	}

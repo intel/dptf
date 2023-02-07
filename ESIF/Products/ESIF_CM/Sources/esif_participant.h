@@ -132,6 +132,164 @@ struct esif_ipc_event_data_create_participant {
 
 #pragma pack(pop)
 
+#ifdef ESIF_ATTR_KERNEL
+
+#include "esif_dsp.h"
+#include "esif_temp.h"
+#include "esif_power.h"
+#include "esif_time.h"
+#include "esif_percent.h"
+#include "esif_primitive.h"
+#include "esif_lf_domain.h"
+
+/* ESIF LF Participant State Machine Event types */
+enum esif_lp_sm_event {
+	ESIF_LP_SM_EVENT_DSP_LOAD = 0,
+	ESIF_LP_SM_EVENT_DSP_UNLOAD,
+	ESIF_LP_SM_EVENT_SUSPEND,
+	ESIF_LP_SM_EVENT_RESUME,
+};
+
+
+/* ESIF LF Participant State Machine Event Descriptions */
+static ESIF_INLINE esif_string esif_lp_sm_event_str(
+	enum esif_lp_sm_event state)
+{
+	switch (state) {
+	ESIF_CASE(ESIF_LP_SM_EVENT_DSP_LOAD, "DSP_LOAD");
+	ESIF_CASE(ESIF_LP_SM_EVENT_DSP_UNLOAD, "DSP_UNLOAD");
+	ESIF_CASE(ESIF_LP_SM_EVENT_SUSPEND, "LP_SUSPEND");
+	ESIF_CASE(ESIF_LP_SM_EVENT_RESUME, "LP_RESUME");
+	}
+	return ESIF_NOT_AVAILABLE;
+}
+
+
+/* Lower Participant */
+#ifndef ESIF_FEAT_OPT_USE_VIRT_DRVRS
+struct esif_lp {
+
+	/* State control items */
+	u8  instance;			/* Lower Participant Instance */
+	char pi_name[ESIF_NAME_LEN];	/* PI Name */
+	enum esif_lp_state lp_state;	/* Participant state */
+
+	enum esif_participant_enum enumerator; /* Device Enumerator */
+	struct esif_participant_iface *pi_ptr;	/* Particpant INTERFACE */
+
+	struct esif_lp_dsp *dsp_ptr;		/* DSP */
+
+	/* Number Of Qualifiers For A Participant */
+	u8  domain_count;
+	/* Domains For Participants */
+	struct esif_lp_domain  domains[ESIF_DOMAIN_MAX];
+
+	u32 ref_count;			/* Reference count */
+	u8 marked_for_delete;		/* Delete pending flag */
+	esif_ccb_low_priority_thread_lock_t  lp_lock;	/* LP Lock */
+	esif_ccb_low_priority_thread_lock_t  lp_sm_lock;/* For State Machine */
+
+	/* Signals waiters when the LP is no longer in use and may be destroyed */
+	esif_ccb_event_t lp_destroy_event;
+};
+
+/* Takes an additional reference on an LP object */
+enum esif_rc esif_lp_get_ref(
+	struct esif_lp *self
+	);
+
+/* Release a reference on an LP */
+void esif_lp_put_ref(
+	struct esif_lp *self
+	);
+
+/* 
+ * Locks the state of an LP so that it can be used with all state changes
+ * blocked.  Must not be called by any function which will call
+ * esif_lp_handle_event
+ */
+void esif_lp_lock_state(
+	struct esif_lp *self
+	);
+
+/* 
+ * Unlocks the state of an LP after using it with the state locked by
+ * esif_lp_lock_state
+ */
+void esif_lp_unlock_state(
+	struct esif_lp *self
+	);
+
+/* Get State */
+enum esif_lp_state esif_lp_get_state(
+	/* Lower Participant Intance */
+	const struct esif_lp *self
+	);
+
+/* Set State */
+enum esif_rc esif_lp_handle_event(
+	/* Lower Participant Instance */
+	struct esif_lp *self,
+	/* Particpant State Machine Event Enumeration*/
+	const enum esif_lp_sm_event state,
+	/* Event-dependent context data */
+	void *ctx_ptr
+	);
+
+esif_string esif_lp_get_name(
+	const struct esif_lp *self
+	);
+
+enum esif_rc esif_lp_get_dmn_by_index(
+	const struct esif_lp *self,
+	const u8 index,
+	struct esif_lp_domain **dmn_ptr
+	);
+
+enum esif_rc esif_lp_get_dmn_by_id(
+	const struct esif_lp *self,
+	const u16 id,
+	struct esif_lp_domain **dmn_ptr
+	);
+
+enum esif_rc esif_lp_check_msr_whitelist(
+	const struct esif_lp *self,
+	const u32 msr,
+	const enum whitelist_access req_access
+	);
+
+enum esif_rc esif_lp_check_ocmb_allowlist(
+	const struct esif_lp *self,
+	const u32 cmd,
+	const enum whitelist_access req_access
+	);
+
+enum esif_rc esif_lp_check_mmio_whitelist(
+	const struct esif_lp *self,
+	const u32 offset,
+	const enum whitelist_access req_access
+	);
+
+enum esif_rc esif_lp_load_dsp(
+	struct esif_lp *self,
+	const struct esif_data *cpc_ptr
+	);
+
+void esif_lp_unload_dsp(
+	struct esif_lp *self
+	);
+
+enum esif_rc esif_lp_suspend(
+	struct esif_lp *self
+	);
+
+enum esif_rc esif_lp_resume(
+	struct esif_lp *self
+	);
+
+#endif /* ESIF_FEAT_OPT_USE_VIRT_DRVRS */
+#endif /* ESIF ATTR_KERNEL          */
+#ifdef ESIF_ATTR_USER
 
 #include "esif_sdk_iface_app.h"
 #include "esif_uf_fpc.h"
@@ -390,6 +548,7 @@ static ESIF_INLINE void EsifUp_SetArbitrationContext(EsifUpPtr self, void *arbCt
 #ifdef __cplusplus
 }
 #endif
+#endif /* ESIF_ATTR_USER */
 #endif /* _ESIF_PARTICIPANT_H_ */
 
 /******************************************************************************/

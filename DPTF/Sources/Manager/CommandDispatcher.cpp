@@ -39,21 +39,23 @@ CommandDispatcher::~CommandDispatcher()
 void CommandDispatcher::dispatch(const CommandArguments& arguments)
 {
 	throwIfBadArguments(arguments);
-	const string command = arguments[0].getDataAsString();
-	const auto it = m_registeredCommands.find(command);
+	m_lastSuccessfulCommandMessage = defaultCommandMessage;
+	m_lastCommandReturnCode = ESIF_OK;
+	string command = arguments[0].getDataAsString();
+	auto it = m_registeredCommands.find(command);
 	if (it != m_registeredCommands.end())
 	{
 		it->second->execute(arguments);
 		m_lastCommandReturnCode = it->second->getLastExecutionResultCode();
-		m_lastSuccessfulCommandMessage = it->second->getLastExecutionMessage();
-		if ((m_lastCommandReturnCode == ESIF_OK) && (m_lastSuccessfulCommandMessage.empty()))
+
+		if (m_lastCommandReturnCode == ESIF_OK)
 		{
-			m_lastSuccessfulCommandMessage = defaultCommandMessage;
+			m_lastSuccessfulCommandMessage = it->second->getLastExecutionMessage();
 		}
 	}
 	else
 	{
-		const string message = command + string(" not supported.");
+		string message = command + string(" not supported.");
 		throw command_failure(ESIF_E_NOT_SUPPORTED, message);
 	}
 }
@@ -80,12 +82,6 @@ string CommandDispatcher::getLastSuccessfulCommandMessage() const
 eEsifError CommandDispatcher::getLastReturnCode() const
 {
 	return m_lastCommandReturnCode;
-}
-
-bool CommandDispatcher::isCommandRegistered(const std::string& command)
-{
-	const auto findResult = m_registeredCommands.find(command);
-	return findResult != m_registeredCommands.end();
 }
 
 void CommandDispatcher::throwIfBadArguments(const CommandArguments& arguments)

@@ -154,7 +154,6 @@ public:
 	virtual void executePolicyActiveControlPointRelationshipTableChanged(void) = 0;
 	virtual void executePolicyPowerShareAlgorithmTableChanged(void) = 0;
 	virtual void executePowerLimitChanged(void) = 0;
-	virtual void executePowerLimitTimeWindowChanged(void) = 0;
 	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) = 0;
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) = 0;
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
@@ -300,7 +299,6 @@ public:
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) override;
 	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) override;
 	virtual void executePowerLimitChanged(void) override;
-	virtual void executePowerLimitTimeWindowChanged(void) override;
 	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) override;
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osMixedRealityMode) override;

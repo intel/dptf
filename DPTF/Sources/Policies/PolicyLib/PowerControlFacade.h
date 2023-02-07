@@ -82,7 +82,6 @@ public:
 	virtual Percentage getLivePowerLimitDutyCyclePL3() override;
 	virtual Bool isSocPowerFloorEnabled() override;
 	virtual Bool isSocPowerFloorSupported() override;
-	virtual void updatePowerLimitTimeWindowPL1(const TimeSpan& timeWindow) override;
 
 private:
 	PolicyServicesInterfaceContainer m_policyServices;

@@ -56,9 +56,23 @@
 #include "esif_ccb.h"
 #include "esif_ccb_memory.h"
 
+#if defined(ESIF_ATTR_KERNEL)
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_string_win_kern.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
+#include "esif_ccb_string_lin_kern.h"
+#endif
+
+#elif defined(ESIF_ATTR_USER)
+
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_string_win_user.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_string_lin_user.h"
+#endif
 
+#endif /* USER */
 
 /* OS/Kernel Agnostic */
 

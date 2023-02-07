@@ -41,11 +41,11 @@ CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(
 CPPFLAGS += -DESIF_ATTR_USER 
 CPPFLAGS += -DESIF_ATTR_DAEMON
 CPPFLAGS += -DESIF_FEAT_OPT_COMPRESS
+#CPPFLAGS += -DESIF_FEAT_EPP_MAILBOX
+#CPPFLAGS += -DESIF_FEAT_SYSFS_POLL
 
 CFLAGS  += -Wno-multichar
 CFLAGS  += -Werror
-#Compile with -g by default and strip it at the end
-CFLAGS   += -g
 
 # Compile Flags added for security purposes
 CFLAGS  += -fPIE
@@ -69,9 +69,9 @@ LDFLAGS += -pie
 # Secure Compile options if GCC version >= 4.9
 GCC_STRONG := $(shell expr `($(CC) -dumpfullversion 2>/dev/null || $(CC) -dumpversion) | cut -d'.' -f1,2,3 | sed -e 's/\.\([0-9]\)$$/0\1/' | sed -e 's/\.//g' ` \>= 409)
 ifeq ($(GCC_STRONG), 1)
-	   CFLAGS += -fstack-protector-strong
+       CFLAGS += -fstack-protector-strong
 else
-	   CFLAGS += -fstack-protector
+       CFLAGS += -fstack-protector
 endif
 
 
@@ -80,12 +80,14 @@ ifeq ($(OS), Android)
 $(error For Android build please use Android.mk in ESIF_UF/Androidx86/jni directory)
 else ifeq ($(OS), Chrome)
 	CPPFLAGS += -DESIF_ATTR_OS_CHROME
+	# CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
 	CPPFLAGS += -std=gnu99
 ifeq ($(OPT_GMIN), 1)
 	OPT_DBUS = 1
 endif
 else
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX
+	# CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
 	CPPFLAGS += -std=gnu99
 
 	# make PLAT=<x64|x86>
@@ -111,9 +113,16 @@ ifeq ($(OPT_DBUS), 1)
 	LDFLAGS += $(shell $(PKG_CONFIG) --libs dbus-1)
 endif
 
+ifneq ($(OS), Chrome)
+# make BUILD=Debug
+# -s  flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
+	CFLAGS   += -g
 	CPPFLAGS += -DESIF_ATTR_DEBUG
 	CPPFLAGS += -DESIF_ATTR_MEMTRACE
+else
+	CFLAGS += -s     
+endif
 endif
 
 $(info ++++ )
@@ -190,15 +199,9 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_json.o
 	$(CC) -c $(CFLAGS) $(EXTRA_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 all: esif_ufd
-ifeq ($(OS), Linux)
-    ifeq ($(BUILD), Release)
-		cp esif_ufd esif_ufd.debug
-		strip --strip-unneeded esif_ufd
-		objcopy --add-gnu-debuglink=esif_ufd.debug esif_ufd
-    endif
-endif
+
 esif_ufd: $(OBJ)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 
 clean:
-	rm -f $(OBJ) esif_ufd esif_ufd.debug
+	rm -f $(OBJ) esif_ufd

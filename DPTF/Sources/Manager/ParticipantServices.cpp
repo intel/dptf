@@ -22,7 +22,6 @@
 #include "WIDomainPerformanceControlCapabilityChanged.h"
 #include "WIDomainPowerControlCapabilityChanged.h"
 #include "WIPowerLimitChanged.h"
-#include "WIPowerLimitTimeWindowChanged.h"
 #include "WIPerformanceCapabilitiesChanged.h"
 #include "EsifServicesInterface.h"
 #include "ManagerMessage.h"
@@ -319,12 +318,6 @@ void ParticipantServices::createEventDomainPowerControlCapabilityChanged()
 void ParticipantServices::createEventPowerLimitChanged()
 {
 	auto wi = std::make_shared<WIPowerLimitChanged>(m_dptfManager);
-	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
-}
-
-void ParticipantServices::createEventPowerLimitTimeWindowChanged()
-{
-	auto wi = std::make_shared<WIPowerLimitTimeWindowChanged>(m_dptfManager);
 	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 

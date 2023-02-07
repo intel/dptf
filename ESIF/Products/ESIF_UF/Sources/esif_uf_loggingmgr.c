@@ -2220,7 +2220,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	case ESIF_CAPABILITY_TYPE_MANAGER:
 		esif_ccb_sprintf_concat(dataLength, logString, "OS Power Source,OS Battery Percent,OS Dock Mode,OS Game Mode,OS Lid State,OS Power Slider,OS User Interaction,"
 			"OS User Presence,OS Screen State,Device Orientation,In Motion,System Cooling Mode,OS Platform Type,"
-			"Display Orientation,OS Power Scheme Personality,OS Mixed Reality Mode,Platform User Presence,Foreground Background Ratio,Collaboration State,");
+			"Display Orientation,OS Power Scheme Personality,OS Mixed Reality Mode,Platform User Presence,Foreground Background Ratio,PPM Package,Collaboration State,");
 		break;
 	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
 		esif_ccb_sprintf_concat(dataLength, logString, "SOC Workload,");
@@ -2488,10 +2488,10 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_MANAGER:
 		{
 			if (capabilityPtr->data.managerStatus.osPowerSource == ESIF_INVALID_DATA) {
-				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			}
 			else {
-				esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,",
+				esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,%u,",
 					capabilityPtr->data.managerStatus.osPowerSource,
 					capabilityPtr->data.managerStatus.batteryPercent,
 					capabilityPtr->data.managerStatus.dockMode,
@@ -2510,6 +2510,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 					capabilityPtr->data.managerStatus.mixedRealityMode,
 					capabilityPtr->data.managerStatus.platformUserPresence,
 					capabilityPtr->data.managerStatus.foregroundBackgroundRatio,
+					capabilityPtr->data.managerStatus.ppmPackage,
 					capabilityPtr->data.managerStatus.collaboration
 				);
 			}

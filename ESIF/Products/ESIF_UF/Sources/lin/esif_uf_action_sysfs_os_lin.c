@@ -252,7 +252,6 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_BATTERY_HIGH_FREQUENCY_IMPEDANCE = 'FHBR',
 	ESIF_SYSFS_GET_BATTERY_CURRENT_DISCHARGE_CAPABILITY = 'PPMC',
 	ESIF_SYSFS_GET_BATTERY_NO_LOAD_VOLTAGE = 'LNBV',
-	ESIF_SYSFS_GET_PARTICIPANT_UNIQUE_ID = 'DIU_',
 	ESIF_SYSFS_GET_RFPROFILE_SSC = 'FSRG',
 	ESIF_SYSFS_GET_RFPROFILE_SSC_PCH = 'PSSG',
 	ESIF_SYSFS_GET_BATTERY_MAX_PEAK_CURRENT = 'ppmc',
@@ -343,6 +342,9 @@ static void UpdateFineGrainSupportedStatus(const EsifString devicePathPtr);
 static void UpdateStepSize(const EsifString devicePathPtr);
 static void UpdateFpsSupportedStatus(const EsifString devicePathPtr);
 
+#ifdef ESIF_ATTR_OS_ANDROID
+static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
+#endif
 
 // Get crystal clock freq
 static eEsifError GetCrystalClockFrequency(UInt32 *crystalFreq)
@@ -517,7 +519,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	size_t actionContext = 0;
 	EsifUpDataPtr metaPtr = NULL;
 	char batPwrSysfsPath[MAX_SYSFS_PATH] = { 0 };
-	char participantUidSysfsPath[MAX_SYSFS_PATH] = { 0 };
 	UInt32 sscPercentage = 0;
 	UInt32 sscRegisterValue = 0;
 	static UInt32 raplEnergyUnit = 0;
@@ -900,31 +901,12 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 					goto exit;
 				}
 
-				if (SysfsGetInt64(batPwrSysfsPath, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+                                if (SysfsGetInt64(batPwrSysfsPath, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
-				}
+                                }
 				*(u32 *) responsePtr->buf_ptr = (u32) sysval;
                                 break;
-			case ESIF_SYSFS_GET_PARTICIPANT_UNIQUE_ID:
-				if(esif_ccb_strstr(deviceFullPathPtr, "cooling_device") || esif_ccb_strstr(deviceFullPathPtr, "thermal_zone"))
-				{
-					esif_ccb_sprintf(sizeof(participantUidSysfsPath),participantUidSysfsPath, "%s/device/%s", deviceFullPathPtr, "firmware_node");
-				}
-				else {
-					esif_ccb_sprintf(sizeof(participantUidSysfsPath),participantUidSysfsPath, "%s/%s", deviceFullPathPtr, "firmware_node");
-				}
-				if (SysfsGetString(participantUidSysfsPath, parm2, sysvalstring, sizeof(sysvalstring)) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					goto exit;
-				}
-				responsePtr->data_len = esif_ccb_strlen(sysvalstring, MAX_SYSFS_PATH);
-				if (responsePtr->buf_len < responsePtr->data_len) {
-					rc = ESIF_E_NEED_LARGER_BUFFER;
-					goto exit;
-				}
-				esif_ccb_sprintf(responsePtr->buf_len, (char *) responsePtr->buf_ptr, "%s", sysvalstring);
-				break;
 			case ESIF_SYSFS_GET_RFPROFILE_SSC:
 				if (SysfsGetInt64(parm1, "spread_spectrum_clk_enable" , &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 					rc = ESIF_E_INVALID_HANDLE;
@@ -3308,6 +3290,10 @@ static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr)
 	char cur_node_name[MAX_SYSFS_PATH] = { 0 };
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
 
+#ifdef ESIF_ATTR_OS_ANDROID
+	// Notify JHS that DPTF is up
+	NotifyJhs(upPtr, requestPtr);
+#endif
 	// Check validity of _OSC request
 	if (ESIF_DATA_STRUCTURE != requestPtr->type ||
 		sizeof(struct esif_data_complex_osc) != requestPtr->buf_len) {

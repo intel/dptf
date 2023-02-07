@@ -28,11 +28,6 @@ public
 *.tmp_proj
 *.aps
 *.vssettings
-*.tlog
-*.recipe
-*.log
-*.idb
-*.pdb
 .vs
 x64
 Win32
@@ -82,4 +77,3 @@ ppm_compiler
 /ESIF/Products/IPF_UI/Sources/solution/ipf_ui_solution/bin
 /ESIF/Products/IPF_UI/index.html
 /IPF/Linux
-/DPTF/Windows/Solution/.klocwork/

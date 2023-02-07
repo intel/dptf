@@ -39,4 +39,15 @@
 // More information can be found here:  http://msdn.microsoft.com/en-us/library/e5ewb1h3(v=vs.80).aspx
 //
 
+#if defined(ESIF_ATTR_OS_WINDOWS) && defined(_DEBUG)
+
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#define DEBUG_NEW new (_NORMAL_BLOCK, __FILE__, __LINE__)
+#define new DEBUG_NEW
+
+#define DEBUG_MEMORY_LEAK_INIT() _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
+#else
 #define DEBUG_MEMORY_LEAK_INIT()
+#endif

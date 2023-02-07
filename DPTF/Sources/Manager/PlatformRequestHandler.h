@@ -6,14 +6,7 @@
 #include "ArbitratorOscRequest.h"
 #include <functional>
 
-class dptf_export PlatformRequestHandlerInterface : public RequestHandlerInterface
-{
-public:
-	PlatformRequestHandlerInterface() = default;
-	virtual std::shared_ptr<XmlNode> getXml() = 0;
-};
-
-class dptf_export PlatformRequestHandler : public PlatformRequestHandlerInterface
+class dptf_export PlatformRequestHandler : public RequestHandlerInterface
 {
 public:
 	PlatformRequestHandler(DptfManagerInterface* dptfManager);
@@ -21,7 +14,7 @@ public:
 
 	virtual Bool canProcessRequest(const PolicyRequest& policyRequest) override;
 	virtual DptfRequestResult processRequest(const PolicyRequest& policyRequest) override;
-	virtual std::shared_ptr<XmlNode> getXml() override;
+	std::shared_ptr<XmlNode> getXml();
 
 private:
 	DptfManagerInterface* m_dptfManager;

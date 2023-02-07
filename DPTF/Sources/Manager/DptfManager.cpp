@@ -24,6 +24,7 @@
 #include "UniqueIdGenerator.h"
 #include "IndexContainer.h"
 #include "esif_sdk_iface_app.h"
+#include "DptfStatus.h"
 #include "EsifDataString.h"
 #include "EsifAppServices.h"
 #include "StringParser.h"
@@ -31,6 +32,7 @@
 #include "HelpCommand.h"
 #include "DiagCommand.h"
 #include "ReloadCommand.h"
+#include "StatusCommand.h"
 #include "TableObjectCommand.h"
 #include "ConfigCommand.h"
 #include "ManagerLogger.h"
@@ -38,8 +40,6 @@
 #include "EsifLibrary.h"
 #include "DataManager.h"
 #include "SystemModeManager.h"
-#include "UiCommand.h"
-#include "CaptureCommand.h"
 
 DptfManager::DptfManager(void)
 	: m_dptfManagerCreateStarted(false)
@@ -55,6 +55,7 @@ DptfManager::DptfManager(void)
 	, m_commandDispatcher(nullptr)
 	, m_commands()
 	, m_fileIo(nullptr)
+	, m_dptfStatus(nullptr)
 	, m_indexContainer(nullptr)
 	, m_dataManager(nullptr)
 	, m_systemModeManager(nullptr)
@@ -119,6 +120,8 @@ void DptfManager::createDptfManager(
 		m_participantManager = new ParticipantManager(this);
 		m_commandDispatcher = new CommandDispatcher();
 		m_fileIo = std::make_shared<FileIO>();
+		createCommands();
+		registerCommands();
 
 		m_dataManager = new DataManager(this);
 
@@ -133,13 +136,12 @@ void DptfManager::createDptfManager(
 		m_requestDispatcher = std::make_shared<RequestDispatcher>();
 		m_platformRequestHandler = std::make_shared<PlatformRequestHandler>(this);
 
+		m_dptfStatus = new DptfStatus(this);
+
 		m_policyManager->createAllPolicies(m_dptfPolicyDirectoryPath);
 
 		registerDptfFrameworkEvents();
 		m_systemModeManager->registerFrameworkEvents();
-
-		createCommands();
-		registerCommands();
 
 		m_dptfManagerCreateFinished = true;
 
@@ -211,6 +213,11 @@ ICommandDispatcher* DptfManager::getCommandDispatcher() const
 	return m_commandDispatcher;
 }
 
+DptfStatusInterface* DptfManager::getDptfStatus(void)
+{
+	return m_dptfStatus;
+}
+
 IndexContainerInterface* DptfManager::getIndexContainer(void) const
 {
 	return m_indexContainer;
@@ -262,6 +269,7 @@ void DptfManager::shutDown(void)
 	deleteIndexContainer();
 	destroyUniqueIdGenerator();
 	destroyFrameworkEventInfo();
+	deleteDptfStatus();
 	DELETE_MEMORY_TC(m_commandDispatcher);
 	DELETE_MEMORY_TC(m_dataManager);
 }
@@ -313,6 +321,11 @@ void DptfManager::destroyAllParticipants(void)
 	catch (...)
 	{
 	}
+}
+
+void DptfManager::deleteDptfStatus()
+{
+	DELETE_MEMORY_TC(m_dptfStatus);
 }
 
 void DptfManager::deleteWorkItemQueueManager(void)
@@ -548,10 +561,9 @@ void DptfManager::createCommands()
 	m_commands.push_back(std::make_shared<HelpCommand>(this));
 	m_commands.push_back(std::make_shared<DiagCommand>(this, m_fileIo));
 	m_commands.push_back(std::make_shared<ReloadCommand>(this));
+	m_commands.push_back(std::make_shared<StatusCommand>(this));
 	m_commands.push_back(std::make_shared<TableObjectCommand>(this));
 	m_commands.push_back(std::make_shared<ConfigCommand>(this));
-	m_commands.push_back(std::make_shared<UiCommand>(this));
-	m_commands.push_back(std::make_shared<CaptureCommand>(this, m_fileIo));
 }
 
 std::shared_ptr<EventCache> DptfManager::getEventCache(void) const

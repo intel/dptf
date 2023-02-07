@@ -100,6 +100,100 @@ static ESIF_INLINE esif_string esif_pm_participant_state_str(
  ** KERNEL - Lower Framework Lower Participant (esif_lf_pm.c)
  *******************************************************************************
  */
+#ifdef ESIF_ATTR_KERNEL
+
+struct lf_pm_iterator {
+	u8 handle;
+	u8 ref_taken;
+	u32 marker;
+};
+
+#define lf_pm_iterator_t struct lf_pm_iterator
+
+#define LF_PM_ITERATOR_MARKER 'LFPM'
+
+/*
+ * Get LP Instance By ID
+ * NOTE: Code should call esif_lp_put_ref after done using LP
+ */
+struct esif_lp *esif_lf_pm_get_lp_by_instance_id(
+	const u8 id
+	);
+
+/*
+* This function gets the real participant 0 and does not use symbolic linking
+* to the external DPTF IETM.
+*/
+struct esif_lp *esif_lf_pm_get_participant_0(void);
+	
+/*
+ * Get By participant type and takes a reference to the LP
+ * NOTE: Code should call esif_lp_put_ref after done using LP
+ */
+struct esif_lp *esif_lf_pm_get_lp_by_type(
+	enum esif_domain_type part_type
+	);
+
+/*
+ * Get LP By PI Pointer and takes a reference to the LP
+ * NOTE: Code should call esif_lp_put_ref after done using LP
+ */
+struct esif_lp *esif_lf_pm_get_lp_by_pi(
+	/* Participant Interface */
+	const struct esif_participant_iface *pi_ptr
+	);
+
+/*
+* Get LP By Name and takes a reference to the LP
+* NOTE: Code should call esif_lp_put_ref after done using LP
+*/
+struct esif_lp *esif_lf_pm_get_lp_by_name(
+	const char *name
+);
+
+/*
+ * Used to iterate through the available participants.
+ * First call esif_lf_pm_init_iterator to initialize the iterator.
+ * Next, call esif_lf_pm_get_next_lp using the iterator.  Repeat until
+ * esif_lf_pm_get_next_lp fails. The call will release the reference of the
+ * participant from the previous call.  If you stop iteration part way through
+ * all participants, the caller is responsible for releasing the reference on
+ * the last participant returned.  Iteration is complete when
+ * ESIF_E_ITERATION_DONE is returned.
+ */
+enum esif_rc esif_lf_pm_init_iterator(
+	lf_pm_iterator_t *iterator_ptr
+	);
+
+/* See esif_lf_pm_init_iterator for usage */
+enum esif_rc esif_lf_pm_get_next_lp(
+	lf_pm_iterator_t *iterator_ptr,
+	struct esif_lp **lp_ptr
+	);
+
+/* Register Participant */
+enum esif_rc esif_lf_pm_register_participant(
+	/* Participant Interface */
+	struct esif_participant_iface *pi_ptr,
+	u8 *instance_ptr
+	);
+
+/* Unregister Participant */
+enum esif_rc esif_lf_pm_unregister_participant(
+	struct esif_participant_iface *pi_ptr
+	);
+
+/* Unregister All Participants */
+void esif_lf_pm_unregister_all_participants(void);
+
+/* Participant Manager Init */
+enum esif_rc esif_lf_pm_init(void);
+
+/* Participant Manager Exit */
+void esif_lf_pm_exit(void);
+
+
+#endif	/* ESIF_ATTR_KERNEL */
 
 /*
  *******************************************************************************
@@ -107,6 +201,7 @@ static ESIF_INLINE esif_string esif_pm_participant_state_str(
  *******************************************************************************
  */
 
+#ifdef ESIF_ATTR_USER
 
 typedef struct UfPmIterator_s {
 	u32 marker;
@@ -225,6 +320,7 @@ eEsifError EsifUpPm_ParticipantActivityLoggingEnable(EsifUpPtr upPtr);
 }
 #endif
 
+#endif /* ESIF_ATTR_USER */
 #endif /* _ESIF_PM_H_    */
 
 /*****************************************************************************/

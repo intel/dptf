@@ -18,7 +18,6 @@
 
 #include <ctype.h>
 #include "StringConverter.h"
-#include <algorithm>
 
 using namespace std;
 
@@ -76,7 +75,6 @@ std::string StringConverter::trimWhitespace(const std::string& input)
 	std::string trimmedString = input;
 	trimmedString.erase(0, trimmedString.find_first_not_of(delimiters));
 	trimmedString.erase(trimmedString.find_last_not_of(delimiters) + 1);
-	trimmedString.erase(std::find(trimmedString.begin(), trimmedString.end(), '\0'), trimmedString.end());
 	return trimmedString;
 }
 

@@ -15,7 +15,6 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#pragma once
 #include "CommandHandler.h"
 #include "CommandDispatcher.h"
 

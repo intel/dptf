@@ -18,6 +18,7 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include "esif_ccb_memory.h"
 #include <ctype.h>
@@ -236,3 +237,4 @@ static ESIF_INLINE char *esif_ccb_strncpy(
 	return dst;
 }
 
+#endif /* LINUX USER */

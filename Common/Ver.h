@@ -20,5 +20,5 @@
 
 #define VER_MAJOR        1
 #define VER_MINOR        0
-#define VER_HOTFIX       11100
-#define VER_BUILD        29358
+#define VER_HOTFIX       11001
+#define VER_BUILD        28546

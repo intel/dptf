@@ -88,6 +88,7 @@ static ESIF_INLINE esif_string esif_participant_enum_str(
 	return ESIF_NOT_AVAILABLE;
 }
 
+#ifdef ESIF_ATTR_USER
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_participant_enum_t esif_participant_enum_str2enum(const esif_string name)
 {
@@ -123,4 +124,5 @@ static ESIF_INLINE esif_participant_enum_t esif_participant_enum_str2enum(const 
 	}
 	return (esif_participant_enum_t)(-1);
 }
+#endif
 #endif

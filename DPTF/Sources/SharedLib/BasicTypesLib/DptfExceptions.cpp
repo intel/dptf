@@ -158,7 +158,7 @@ dptf_out_of_range::dptf_out_of_range(const std::string& description)
 {
 }
 
-command_failure::command_failure(esif_error_t errorCode, const std::string& description)
+command_failure::command_failure(esif_error_t errorCode, std::string& description)
 	: dptf_exception(description)
 	, m_errorCode(errorCode)
 {

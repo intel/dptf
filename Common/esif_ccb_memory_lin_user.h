@@ -18,6 +18,7 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <memory.h>
 #include <malloc.h>
@@ -96,6 +97,7 @@ static ESIF_INLINE void *esif_ccb_realloc(
 }
 
 #endif /* ESIF_ATTR_MEMTRACE */
+#endif /* _ESIF_CCB_MEMORY_H_ */
 
 /*****************************************************************************/
 /*****************************************************************************/

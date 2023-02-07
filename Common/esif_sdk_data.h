@@ -100,6 +100,8 @@ union esif_data_variant {
 
 #pragma pack(pop)
 
+#ifdef ESIF_ATTR_USER
 
 typedef struct esif_data EsifData, *EsifDataPtr, *EsifDataArray, **EsifDataPtrLocation;
 
+#endif /* USER */

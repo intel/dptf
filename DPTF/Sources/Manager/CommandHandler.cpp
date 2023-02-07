@@ -36,7 +36,7 @@ CommandHandler::~CommandHandler()
 {
 }
 
-string CommandHandler::getLastExecutionMessage() const
+string CommandHandler::getLastExecutionMessage()
 {
 	return m_resultMessage;
 }
@@ -46,12 +46,7 @@ void CommandHandler::setResultMessage(const string& message)
 	m_resultMessage = message;
 }
 
-void CommandHandler::setDefaultResultMessage()
-{
-	m_resultMessage = defaultSuccessMessage;
-}
-
-eEsifError CommandHandler::getLastExecutionResultCode() const
+eEsifError CommandHandler::getLastExecutionResultCode()
 {
 	return m_resultCode;
 }

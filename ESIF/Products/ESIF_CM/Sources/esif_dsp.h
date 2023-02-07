@@ -78,8 +78,156 @@ enum esif_dsp_parameter_type {
 	ESIF_DSP_PARAMETER_TYPE_ARGUMENT = 6,
 };
 
+#ifdef ESIF_ATTR_KERNEL
+
+/* Compact Primitive Catalog */
+
+#include "esif.h"
+#include "esif_cpc.h"
+
+#define THIS const struct esif_lp_dsp *THIS
+
+/* Lower Framework DSP
+ * Kernel version of DSP is a subset of the full DSP and is known as a Compact
+ * Primitive Catalog. The CPC contains only the abosulte essentials for the
+ * kernel driver.
+ */
+struct esif_lp_dsp {
+/* private: */
+
+	/* Pointers Will Point Into Raw CPC Block Of Memory */
+	esif_flags_t   *capability_ptr;		/* Enhanced Capability */
+	esif_string    code_ptr;		/* Code Short Name     */
+	u8             *domain_count_ptr;	/* Domain Count        */
+	struct domain  *domains_ptr;		/* Domains             */
+	u8  *ver_major_ptr;	/* DSP Content Major   */
+	u8  *ver_minor_ptr;	/* DSP Content Minor   */
+
+	/* Raw Cannonical Data For DSP Pointeers  */
+	struct esif_lp_cpc      *cpc_ptr;
+	/* DSP Hash Table Will Contain Pointers Into CPC */
+	struct esif_ht  *ht_ptr;
+	struct esif_link_list   *algo_ptr;	/* Algorithm */
+	struct esif_link_list   *evt_ptr;	/* Event */
+
+	void *table;    /* Add'l Static Or Dynamic Table(s) */
+	u32 table_size; /* Table(s) Size Of Each */
+
+/* public: */
+
+	esif_string (*get_code)(THIS);
+	u8 (*get_domain_count)(THIS);
+
+	esif_flags_t (*get_domain_capability)(
+		THIS,
+		u8 domain_index
+		);
+	enum esif_domain_type (*get_domain_type)(
+		THIS,
+		u8 domain_index
+		);
+	u16 (*get_domain_id)(
+		THIS,
+		u8 domain_index
+		);
+	esif_string (*get_domain_desc)(
+		THIS,
+		u8 domain_index
+		);
+	esif_string (*get_domain_name)(
+		THIS,
+		u8 domain_index
+		);
+
+	u8 (*get_ver_major)(THIS);
+	u8 (*get_ver_minor)(THIS);
+
+	u32 (*get_temp_tc1)(
+		THIS,
+		const enum esif_action_type action
+		);
+	u32 (*get_percent_xform)(
+		THIS,
+		const enum esif_action_type action
+		);
+	enum esif_rc  (*insert_primitive)(
+		THIS,
+		struct esif_cpc_primitive *primitive_ptr
+		);
+	enum esif_rc  (*insert_algorithm)(
+		THIS,
+		struct esif_cpc_algorithm *algorithm_ptr
+		);
+	enum esif_rc  (*insert_event)(
+		THIS,
+		struct esif_cpc_event *event_ptr
+		);
+	struct esif_lp_primitive  *(*get_primitive)(
+		THIS,
+		const struct esif_primitive_tuple *tuple_ptr
+		);
+	struct esif_lp_action  *(*get_action)(
+		THIS,
+		struct esif_lp_primitive *primitive_ptr,
+		u8 index
+		);
+	struct esif_cpc_algorithm  *(*get_algorithm)(
+		THIS,
+		const enum esif_action_type action_type
+		);
+	u32 (*dsp_has_algorithm)(
+		THIS,
+		const enum esif_algorithm_type
+		);
+	struct esif_cpc_event  *(*get_event)(
+		THIS,
+		u32 event
+		);
+};
+
+#undef THIS
+
+/* Create DSP */
+enum esif_rc esif_dsp_create(
+	const struct esif_data *cpc_ptr,
+	struct esif_lp_dsp **dsp_ptr
+	);
+
+void esif_dsp_destroy(struct esif_lp_dsp * dsp_ptr);
+
+/* Init / Exit */
+enum esif_rc esif_dsp_init(void);
+void esif_dsp_exit(void);
+
+esif_flags_t get_domain_capability(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+esif_string get_domain_desc(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+u16 get_domain_id(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+esif_string get_domain_name(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+enum esif_domain_type get_domain_type(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+#endif /* ESIF_ATTR_KERNEL */
 
 
+#ifdef ESIF_ATTR_USER
 #include "esif_primitive.h"
 #include "esif_uf_fpc.h"
 
@@ -287,6 +435,7 @@ void EsifDspMgrExit (void);
 }
 #endif
 
+#endif	/* ESIF_ATTR_USER */
 #endif /* _ESIF_DSP_H_ */
 
 /******************************************************************************/

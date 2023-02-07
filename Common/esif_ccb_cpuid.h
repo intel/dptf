@@ -53,8 +53,6 @@
 
 #pragma once
 
-#include "esif_ccb.h"
-
 /*
  * C/C++ OS-Agnostic Universal Implementation of the cpuid intrinsic.
  */
@@ -125,5 +123,17 @@ typedef struct esif_ccb_cpuid_s {
 
 #pragma pack(pop)
 
+#if defined(ESIF_ATTR_KERNEL)
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_cpuid_win_kern.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
+#include "esif_ccb_cpuid_lin_kern.h"
+#endif
+#elif defined(ESIF_ATTR_USER)
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_cpuid_win_user.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_cpuid_lin_user.h"
+#endif
 
+#endif /* USER */

@@ -18,16 +18,20 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_USER)
+
 #include "esif_ccb.h"
-
-
 #include "esif_ccb_rc.h"
 
 #define THREAD_DEBUG(fmt, ...) /* NOOP */
 
 typedef void *(ESIF_CALLCONV * work_func_t)(void *); /* Worker Function */
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_thread_win_user.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_thread_lin_user.h"
+#endif
 
 /*
 ** esif_wthread_t - A Waitable Thread object that encapsulates esif_thread_t into a new object that can have more than
@@ -111,3 +115,4 @@ static ESIF_INLINE esif_thread_id_t esif_ccb_wthread_id(esif_wthread_t *self)
 	return id;
 }
 
+#endif /* USER */
