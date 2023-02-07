@@ -15,7 +15,6 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#pragma once
 #include "CommandHandler.h"
 
 class dptf_export TableObjectGetCommand : public CommandHandler
@@ -29,7 +28,5 @@ public:
 private:
 	void throwIfBadArguments(const CommandArguments& arguments);
 	void throwIfTableObjectNotExist(const CommandArguments& arguments);
-	void throwIfParticipantNotExist(const CommandArguments& arguments);
-	void throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments);
 	std::string getTableObjectXmlString(const CommandArguments& arguments);
 };

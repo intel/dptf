@@ -178,7 +178,7 @@ public:
 class command_failure : public dptf_exception
 {
 public:
-	command_failure(esif_error_t errorCode, const std::string& description);
+	command_failure(esif_error_t errorCode, std::string& description);
 	esif_error_t getErrorCode() const;
 
 private:

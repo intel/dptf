@@ -18,9 +18,14 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_USER)
+
 #include "esif_ccb.h"
-
-
 #include "esif_ccb_rc.h"
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_random_win_user.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_random_lin_user.h"
+#endif
+#endif /* USER */

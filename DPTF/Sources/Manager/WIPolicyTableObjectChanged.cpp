@@ -24,12 +24,10 @@
 WIPolicyTableObjectChanged::WIPolicyTableObjectChanged(
 	DptfManagerInterface* dptfManager,
 	TableObjectType::Type tableType,
-	std::string uuid,
-	UIntN participantIndex)
+	std::string uuid)
 	: WorkItem(dptfManager, FrameworkEvent::PolicyTableObjectChanged)
 	, m_tableType(tableType)
 	, m_uuid(uuid)
-	, m_participantIndex(participantIndex)
 {
 }
 
@@ -43,7 +41,6 @@ void WIPolicyTableObjectChanged::onExecute(void)
 
 	auto policyManager = getPolicyManager();
 	auto policyIndexes = policyManager->getPolicyIndexes();
-
 	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
@@ -56,66 +53,23 @@ void WIPolicyTableObjectChanged::onExecute(void)
 
 			switch (m_tableType)
 			{
-			case TableObjectType::Acpr:
-				policy->executePolicyActiveControlPointRelationshipTableChanged();
-				break;
 			case TableObjectType::Apat:
 				policy->executePolicyAdaptivePerformanceActionsTableChanged();
 				break;
 			case TableObjectType::Apct:
 				policy->executePolicyAdaptivePerformanceConditionsTableChanged();
 				break;
-			case TableObjectType::Art:
-				policy->executePolicyActiveRelationshipTableChanged();
-				break;
 			case TableObjectType::Ddrf:
 				policy->executePolicyDdrfTableChanged();
-				break;
-			case TableObjectType::Epot:
-				policy->executePolicyEnergyPerformanceOptimizerTableChanged();
 				break;
 			case TableObjectType::Itmt:
 				policy->executePolicyIntelligentThermalManagementTableChanged();
 				break;
-			case TableObjectType::Odvp:
-				policy->executePolicyOemVariablesChanged();
-				break;
-			case TableObjectType::Pbat:
-				policy->executePolicyPowerBossActionsTableChanged();
-				break;
-			case TableObjectType::Pbct:
-				policy->executePolicyPowerBossConditionsTableChanged();
-				break;
-			case TableObjectType::Pbmt:
-				policy->executePolicyPowerBossMathTableChanged();
-				break;
-			case TableObjectType::Pida:
-				policy->executePolicyPidAlgorithmTableChanged();
-				break;
-			case TableObjectType::Psh2:
-				policy->executePolicyPowerShareAlgorithmTable2Changed();
-				break;
-			case TableObjectType::Psha:
-				policy->executePolicyPowerShareAlgorithmTableChanged();
-				break;
-			case TableObjectType::Psvt:
-				policy->executePolicyPassiveTableChanged();
+			case TableObjectType::Epot:
+				policy->executePolicyEnergyPerformanceOptimizerTableChanged();
 				break;
 			case TableObjectType::Tpga:
 				policy->executePolicyTpgaTableChanged();
-				break;
-			case TableObjectType::Trt:
-				policy->executePolicyThermalRelationshipTableChanged();
-				break;
-			case TableObjectType::Vsct:
-				policy->executeDomainVirtualSensorCalibrationTableChanged(m_participantIndex);
-				break;
-			case TableObjectType::Vspt:
-				policy->executeDomainVirtualSensorPollingTableChanged(m_participantIndex);
-				break;
-			case TableObjectType::Vtmt:
-				policy->executePolicyVoltageThresholdMathTableChanged();
-				break;
 			default:
 				break;
 			}

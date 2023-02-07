@@ -75,5 +75,4 @@ public:
 	virtual Percentage getLivePowerLimitDutyCyclePL3() = 0;
 	virtual Bool isSocPowerFloorEnabled() = 0;
 	virtual Bool isSocPowerFloorSupported() = 0;
-	virtual void updatePowerLimitTimeWindowPL1(const TimeSpan& timeWindow) = 0;
 };

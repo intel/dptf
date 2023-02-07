@@ -57,6 +57,15 @@
 
 typedef u64 esif_ccb_time_t; /* Agnostic */
 
+#if defined(ESIF_ATTR_KERNEL)
+
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_time_win_kern.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
+#include "esif_ccb_time_lin_kern.h"
+#endif /* KERNEL */
+
+#elif defined(ESIF_ATTR_USER)
 
 #define MAX_CTIME_LEN	30	/* max length of ctime string */
 
@@ -66,5 +75,10 @@ typedef struct esif_ccb_realtime_s {
 	u64 clocktime;	/* standard local time_t seconds since 01/01/1970 */
 } esif_ccb_realtime_t;
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_time_win_user.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_time_lin_user.h"
+#endif
 
+#endif /* USER */

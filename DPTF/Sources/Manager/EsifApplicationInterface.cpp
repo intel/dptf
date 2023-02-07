@@ -38,7 +38,7 @@
 #include "EsifAppBroadcastProcessing.h"
 
 // Minimum Required IPF SDK Version for this App to load (i.e., NULL, "1.0.0", IPF_SDK_VERSION, Specific Version, etc.)
-#define IPFSDK_MINIMUM_VERSION_REQUIRED IPF_SDK_VERSION
+#define IPFSDK_MINIMUM_VERSION_REQUIRED "1.0.0"
 
 //
 // Macros must be used to reduce the code and still allow writing out the file name, line number, and function name
@@ -443,6 +443,15 @@ extern "C"
 
 		eEsifError rc = ESIF_E_UNSPECIFIED;
 
+		try
+		{
+			auto workItem = std::make_shared<WIDptfGetStatus>(dptfManager, command, appStatusIn, appStatusOut, &rc);
+			dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
+		}
+		catch (...)
+		{
+		}
+
 		return rc;
 	}
 
@@ -736,6 +745,14 @@ extern "C"
 			case FrameworkEvent::DomainTemperatureThresholdCrossed:
 				wi = std::make_shared<WIDomainTemperatureThresholdCrossed>(dptfManager, participantIndex, domainIndex);
 				break;
+			case FrameworkEvent::DomainVirtualSensorCalibrationTableChanged:
+				wi = std::make_shared<WIDomainVirtualSensorCalibrationTableChanged>(
+					dptfManager, participantIndex, domainIndex);
+				break;
+			case FrameworkEvent::DomainVirtualSensorPollingTableChanged:
+				wi = std::make_shared<WIDomainVirtualSensorPollingTableChanged>(
+					dptfManager, participantIndex, domainIndex);
+				break;
 			case FrameworkEvent::DomainVirtualSensorRecalcChanged:
 				wi = std::make_shared<WIDomainVirtualSensorRecalcChanged>(dptfManager, participantIndex, domainIndex);
 				break;
@@ -805,6 +822,9 @@ extern "C"
 				wi = std::make_shared<WIDomainEppSensitivityHintChanged>(
 					dptfManager, participantIndex, domainIndex, (MbtHint::Type)uint32param);
 				break;
+			case FrameworkEvent::PolicyActiveRelationshipTableChanged:
+				wi = std::make_shared<WIPolicyActiveRelationshipTableChanged>(dptfManager);
+				break;
 			case FrameworkEvent::PolicyCoolingModePolicyChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyCoolingModePolicyChanged>(dptfManager, (CoolingMode::Type)uint32param);
@@ -855,6 +875,9 @@ extern "C"
 				wi = std::make_shared<WIPolicyOperatingSystemPowerSliderChanged>(
 					dptfManager, OsPowerSlider::toType(uint32param));
 				break;
+			case FrameworkEvent::PolicyPassiveTableChanged:
+				wi = std::make_shared<WIPolicyPassiveTableChanged>(dptfManager);
+				break;
 			case FrameworkEvent::PolicySensorOrientationChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicySensorOrientationChanged>(
@@ -868,6 +891,24 @@ extern "C"
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicySensorSpatialOrientationChanged>(
 					dptfManager, (SensorSpatialOrientation::Type)uint32param);
+				break;
+			case FrameworkEvent::PolicyThermalRelationshipTableChanged:
+				wi = std::make_shared<WIPolicyThermalRelationshipTableChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyOemVariablesChanged:
+				wi = std::make_shared<WIPolicyOemVariablesChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyPowerBossConditionsTableChanged:
+				wi = std::make_shared<WIPolicyPowerBossConditionsTableChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyPowerBossActionsTableChanged:
+				wi = std::make_shared<WIPolicyPowerBossActionsTableChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyPowerBossMathTableChanged:
+				wi = std::make_shared<WIPolicyPowerBossMathTableChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyVoltageThresholdMathTableChanged:
+				wi = std::make_shared<WIPolicyVoltageThresholdMathTableChanged>(dptfManager);
 				break;
 			case FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged:
 			{
@@ -895,8 +936,20 @@ extern "C"
 			case FrameworkEvent::PolicyEmergencyCallModeTableChanged:
 				wi = std::make_shared<WIPolicyEmergencyCallModeTableChanged>(dptfManager);
 				break;
+			case FrameworkEvent::PolicyPidAlgorithmTableChanged:
+				wi = std::make_shared<WIPolicyPidAlgorithmTableChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyActiveControlPointRelationshipTableChanged:
+				wi = std::make_shared<WIPolicyActiveControlPointRelationshipTableChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyPowerShareAlgorithmTableChanged:
+				wi = std::make_shared<WIPolicyPowerShareAlgorithmTableChanged>(dptfManager);
+				break;
 			case FrameworkEvent::PolicyWorkloadHintConfigurationChanged:
 				wi = std::make_shared<WIPolicyWorkloadHintConfigurationChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyPowerShareAlgorithmTable2Changed:
+				wi = std::make_shared<WIPolicyPowerShareAlgorithmTable2Changed>(dptfManager);
 				break;
 			case FrameworkEvent::DptfAppUnloading:
 				break;

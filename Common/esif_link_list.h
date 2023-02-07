@@ -129,8 +129,10 @@ struct esif_link_list {
 
 #pragma pack(pop)
 
+#ifdef ESIF_ATTR_USER
 typedef struct esif_link_list EsifLinkList, *EsifLinkListPtr;
 typedef struct esif_link_list_node EsifLinkListNode, *EsifLinkListNodePtr;
+#endif
 
 typedef void (*link_list_data_destroy_func)(void *data_ptr);
 

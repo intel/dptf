@@ -66,3 +66,9 @@
 // FIXME:  these pragma's are temporary while stubbing the header files and source files.
 //         and should be removed once we fill in the code.
 //
+#ifdef ESIF_ATTR_OS_WINDOWS
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4702) // unreachable code
+#pragma warning(disable : 4251) // needs to have dll-interface to be used by clients of class
+#pragma strict_gs_check(on)
+#endif

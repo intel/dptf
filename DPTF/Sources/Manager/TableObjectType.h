@@ -23,28 +23,14 @@ namespace TableObjectType
 {
 	enum Type
 	{
-		Acpr,
 		Apat,
 		Apct,
-		Art,
-		Ddrf,
 		Dynamic_Idsp,
-		Epot,
+		Ddrf,
 		Itmt,
-		Odvp,
-		Pbat,
-		Pbct,
-		Pbmt,
-		Pida,
-		Psh2,
-		Psha,
-		Psvt,
-		SwOemVariables,
+		Epot,
 		Tpga,
-		Trt,
-		Vsct,
-		Vspt,
-		Vtmt
+		SwOemVariables
 	};
 
 	std::string ToString(TableObjectType::Type type);

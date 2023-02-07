@@ -955,13 +955,6 @@ void PolicyBase::powerLimitChanged(void)
 	onPowerLimitChanged();
 }
 
-void PolicyBase::powerLimitTimeWindowChanged(void)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Limit Time Window Changed."; });
-	onPowerLimitTimeWindowChanged();
-}
-
 void PolicyBase::performanceCapabilitiesChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
@@ -1431,11 +1424,6 @@ void PolicyBase::onEnergyPerformanceOptimizerTableChanged(void)
 }
 
 void PolicyBase::onPowerLimitChanged(void)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onPowerLimitTimeWindowChanged(void)
 {
 	throw not_implemented();
 }

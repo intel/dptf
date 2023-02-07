@@ -53,8 +53,7 @@
 
 #pragma once
 
-#include "esif_sdk.h"
-
+#ifdef ESIF_ATTR_USER
 
 #include "esif_sdk_iface.h"
 #include "esif_sdk_data.h"
@@ -360,3 +359,4 @@ ESIF_EXPORT eEsifError GetApplicationInterfaceV2(AppInterfaceSetPtr theIface);
 
 #define GET_APPLICATION_INTERFACE_FUNCTION "GetApplicationInterfaceV2"
 
+#endif /* USER */

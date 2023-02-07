@@ -29,6 +29,7 @@ class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
 class PolicyManagerInterface;
 class ParticipantManagerInterface;
+class DptfStatusInterface;
 class DataManagerInterface;
 class SystemModeManagerInterface;
 
@@ -64,6 +65,7 @@ public:
 	virtual PolicyManagerInterface* getPolicyManager(void) const override;
 	virtual ParticipantManagerInterface* getParticipantManager(void) const override;
 	virtual ICommandDispatcher* getCommandDispatcher() const override;
+	virtual DptfStatusInterface* getDptfStatus(void) override;
 	virtual IndexContainerInterface* getIndexContainer(void) const override;
 	virtual DataManagerInterface* getDataManager(void) const override;
 	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
@@ -119,6 +121,9 @@ private:
 	std::shared_ptr<EventCache> m_eventCache;
 	std::shared_ptr<UserPreferredCache> m_userPreferredCache;
 
+	// Creates XML needed for requests from the UI
+	DptfStatusInterface* m_dptfStatus;
+
 	IndexContainerInterface* m_indexContainer;
 
 	DataManagerInterface* m_dataManager;
@@ -131,6 +136,7 @@ private:
 
 	void shutDown(void);
 	void disableAndEmptyAllQueues(void);
+	void deleteDptfStatus(void);
 	void destroyAllPolicies(void);
 	void destroyAllParticipants(void);
 	void deleteWorkItemQueueManager(void);

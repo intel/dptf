@@ -18,7 +18,6 @@
 #include "TableObjectGetCommand.h"
 #include "DptfManagerInterface.h"
 #include "DataManager.h"
-#include "ParticipantManagerInterface.h"
 using namespace std;
 
 TableObjectGetCommand::TableObjectGetCommand(DptfManagerInterface* dptfManager)
@@ -40,22 +39,9 @@ void TableObjectGetCommand::execute(const CommandArguments& arguments)
 	throwIfBadArguments(arguments);
 	throwIfTableObjectNotExist(arguments);
 
-	try
-	{
-		auto results = getTableObjectXmlString(arguments);
-		setResultMessage(results);
-		setResultCode(ESIF_OK);
-	}
-	catch (const command_failure& cf)
-	{
-		throw cf;
-	}
-	catch (...)
-	{
-		string message = string("Error generating TableObject XML.");
-		setResultMessage(message);
-		throw command_failure(ESIF_E_UNSPECIFIED, message);
-	}
+	auto results = getTableObjectXmlString(arguments);
+	setResultMessage(results);
+	setResultCode(ESIF_OK);
 }
 
 string TableObjectGetCommand::getTableObjectXmlString(const CommandArguments& arguments)
@@ -64,40 +50,29 @@ string TableObjectGetCommand::getTableObjectXmlString(const CommandArguments& ar
 	string uuid = Constants::EmptyString;
 	auto dataManager = m_dptfManager->getDataManager();
 	auto tableType = TableObjectType::ToType(tableName);
-	Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(TableObjectType::ToType(tableName));
+	auto revision = dataManager->getLatestSupportedTableRevision(tableType);
 
-	if (isParticipantTable)
-	{
-		// tableobject get vsct VIR1
-		throwIfBadArgumentsForParticipantTable(arguments);
-		throwIfParticipantNotExist(arguments);
-
-		string participantName = arguments[2].getDataAsString();
-		UIntN participantIndex =
-			m_dptfManager->getParticipantManager()->getParticipant(participantName)->getParticipantIndex();
-
-		return dataManager->getTableObject(tableType, uuid, participantIndex).getXmlString();
-	}
-	else if (arguments.size() > 3)
+	if (arguments.size() > 3)
 	{
 		auto dvName = arguments[2].getDataAsString();
 		auto dvType = DataVaultType::ToType(dvName);
 		auto key = arguments[3].getDataAsString();
 
 		// tableobject get itmt override /shared/tables/itmt/test
-		return dataManager->getTableObjectBasedOnAlternativeDataSourceAndKey(tableType, dvType, key).getXmlString();
+		return dataManager->getTableObjectBasedOnAlternativeDataSourceAndKey(tableType, dvType, key)
+			.getXmlString(revision);
 	}
 	else if (arguments.size() == 3)
 	{
 		uuid = arguments[2].getDataAsString();
 
 		// tableobject get apat uuid
-		return dataManager->getTableObject(tableType, uuid).getXmlString();
+		return dataManager->getTableObject(tableType, uuid).getXmlString(revision);
 	}
 	else
 	{
 		// tableobject get apat
-		return dataManager->getTableObject(tableType, uuid).getXmlString();
+		return dataManager->getTableObject(tableType, uuid).getXmlString(revision);
 	}
 }
 
@@ -131,28 +106,5 @@ void TableObjectGetCommand::throwIfTableObjectNotExist(const CommandArguments& a
 		string description = string("TableObject schema not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
-	}
-}
-
-void TableObjectGetCommand::throwIfParticipantNotExist(const CommandArguments& arguments)
-{
-	auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[2].getDataAsString());
-	if (participantExists == false)
-	{
-		string description = string("The participant specified was not found.");
-		setResultMessage(description);
-		throw command_failure(ESIF_E_NOT_FOUND, description);
-	}
-}
-
-void TableObjectGetCommand::throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments)
-{
-	if (arguments.size() < 3)
-	{
-		string description = string(
-			"Invalid argument count given to 'tableobject get' command for a participant table. "
-			"Run 'dptf help' command for more information.");
-		setResultMessage(description);
-		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 }

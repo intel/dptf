@@ -17,9 +17,9 @@
 ******************************************************************************/
 #pragma once
 
+#include "esif_sdk.h"
 #include "esif_ccb.h"
 #include "esif_ccb_rc.h"
-#include "esif_sdk.h"
 #include "esif_sdk_data.h"
 #include "esif_sdk_event_type.h"
 #include "esif_sdk_action_type.h"

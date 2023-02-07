@@ -310,11 +310,6 @@ std::string Participant::getParticipantName(void) const
 	return m_participantName;
 }
 
-UIntN Participant::getParticipantIndex(void) const
-{
-	return m_participantIndex;
-}
-
 std::string Participant::getDomainName(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1421,7 +1416,7 @@ void Participant::setPowerSharePolicyPower(UIntN domainIndex, const Power& power
 }
 
 std::map<ParticipantSpecificInfoKey::Type, Temperature> Participant::getParticipantSpecificInfo(
-	const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) const
+	const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
 	throwIfRealParticipantIsInvalid();
 	return m_theRealParticipant->getParticipantSpecificInfo(m_participantIndex, requestedInfo);
@@ -1482,3 +1477,4 @@ UInt32 Participant::getSocDgpuPerformanceHintPoints(UIntN domainIndex)
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getSocDgpuPerformanceHintPoints();
 }
+

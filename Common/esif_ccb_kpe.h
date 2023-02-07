@@ -62,6 +62,43 @@
  * MACRO DEFINITIONS
  */
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#include <initguid.h>
+#include <wdm.h>
+
+#ifdef ESIF_ATTR_DEBUG
+#define KPE_TRACE_MSG(fmt, ...) DbgPrint("[%s@%s#%d]: " fmt, \
+	ESIF_FUNC, __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define KPE_TRACE_MSG(fmt, ...) (0)
+#endif
+
+#define PNP_INTERFACE_VERSION_KPE	2
+
+/*
+ * The following GUID is used to register for PnP notification for when the
+ * DPTF driver arrives/leaves:
+ * {EE27098E-1B22-472A-89D8-5CCCE16B1356}
+ */
+DEFINE_GUID(GUID_PNP_INTERFACE_ESIF_LF,
+0xee27098e, 0x1b22, 0x472a, 0x89, 0xd8, 0x5c, 0xcc, 0xe1, 0x6b, 0x13, 0x56);
+
+/*
+ * The following GUID is used to query for the KPE interface once the DPTF
+ * driver is present:
+ * {286F08C0-C9BE-4C6E-A0A3-152D3F167D78}
+ */
+DEFINE_GUID(GUID_PNP_INTERFACE_KPE,
+0x286f08c0, 0xc9be, 0x4c6e, 0xa0, 0xa3, 0x15, 0x2d, 0x3f, 0x16, 0x7d, 0x78);
+
+typedef struct _PNP_INTERFACE_KPE {
+	INTERFACE  InterfaceHeader;
+	enum esif_rc (*esif_lf_register_driver)(struct esif_driver_iface *diPtr);
+	enum esif_rc (*esif_lf_unregister_driver)(struct esif_driver_iface *diPtr);
+} PNP_INTERFACE_KPE, *PPNP_INTERFACE_KPE;
+
+
+#else /* NOT ESIF_ATTR_OS_WINDOWS */
 #ifdef ESIF_ATTR_DEBUG
 #define KPE_TRACE_MSG(fmt, ...) printk("[%s@%s#%d]: " fmt, \
 	ESIF_FUNC, __FILE__, __LINE__, ##__VA_ARGS__)
@@ -72,5 +109,6 @@
 enum esif_rc esif_lf_register_driver(struct esif_driver_iface *diPtr);
 enum esif_rc esif_lf_unregister_driver(struct esif_driver_iface *diPtr);
 
+#endif /* NOT ESIF_ATTR_OS_WINDOWS */
 
 

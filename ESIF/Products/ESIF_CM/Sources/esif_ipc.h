@@ -73,9 +73,29 @@
 
 
 /* IOCTLS May There Be Few */
+#ifdef ESIF_ATTR_OS_LINUX
 #define ESIF_IOCTL_IPC_NOOP _IO('A', 0)
 #define ESIF_IOCTL_IPC      _IOWR('A', 1, u8*)
+#endif
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+
+#ifdef ESIF_ATTR_USER
+/* Need to disable this otherwise RS4 EWDK 17074 causes warning about deprecated memcpy and RtlCopyMemory in Microsoft code (winioctl.h) */
+#pragma warning(disable:4995)
+#include <winioctl.h>
+#pragma warning(default:4995)
+#endif
+
+#define ESIF_IPC_CODE(x) CTL_CODE(FILE_DEVICE_NETWORK, x, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define ESIF_IOCTL_IPC_NOOP			ESIF_IPC_CODE(0)
+#define ESIF_IOCTL_IPC				ESIF_IPC_CODE(1)
+#define ESIF_IOCTL_IPC_IPC_SUSPEND      	ESIF_IPC_CODE(2)
+#define ESIF_IOCTL_IPC_IPC_RESUME		ESIF_IPC_CODE(3)
+#define ESIF_IOCTL_ENABLE_EVENT_DOORBELL	ESIF_IPC_CODE(4)
+#define ESIF_IOCTL_IETM_ACPI_ACCESS_INFO	ESIF_IPC_CODE(5)
+
+#endif
 
 /* IPC Types May There Be Few */
 enum esif_ipc_type {
@@ -107,10 +127,30 @@ struct esif_ipc {
 	/* Data Is Here ... */
 };
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+struct esif_ipc_event_enable {
+	HANDLE eventDoorbell;
+	HANDLE eventLfExit;
+};
+
+struct esif_ipc_ietm_access_info {
+	size_t size;
+	size_t pdoNameOffset;
+	size_t pathOffset;
+	// PDO name and path data begins here...
+};
+
+#endif
 
 #pragma pack(pop)
 
+#ifdef ESIF_ATTR_USER
+#if defined(ESIF_ATTR_OS_WINDOWS)
+typedef struct esif_ipc_event_enable EsifIpcEventEnable, *EsifIpcEventEnablePtr;
+typedef struct esif_ipc_ietm_access_info EsifIpcIetmAccessInfo, *EsifIpcIetmAccessInfoPtr;
+#endif
 typedef struct esif_ipc EsifIpc, *EsifIpcPtr, **EsifIpcPtrLocation;
+#endif
 
 /*
  * IPC Primitive
@@ -140,8 +180,10 @@ struct esif_ipc_primitive {
 
 #pragma pack(pop)
 
+#ifdef ESIF_ATTR_USER
 typedef struct esif_ipc_primitive EsifIpcPrimitive, *EsifIpcPrimitivePtr,
 	**EsifPrimitivePtrLoction;
+#endif
 
 /* Primitive Source Is Always Upper Framework Or UNICAST */
 static ESIF_INLINE esif_string esif_primitive_src_str(u8 src_id)
@@ -255,6 +297,23 @@ enum esif_rc esif_os_ipc_execute(esif_os_handle_t handle,
 }
 #endif
 
+#ifdef ESIF_ATTR_KERNEL
+
+/*
+ * Kernel Decleration
+ */
+
+/* Receive IPC */
+struct esif_ipc *esif_ipc_process(struct esif_ipc *ipc_ptr);
+
+/* Init / Exit */
+enum esif_rc esif_ipc_init(esif_device_t device);
+enum esif_rc esif_os_ipc_init(esif_device_t device);
+
+void esif_ipc_exit(esif_device_t device);
+void esif_os_ipc_exit(esif_device_t device);
+
+#endif	/* ESIF_ATTR_KERNEL */
 #endif	/* _ESIF_IPC_H_ */
 
 /*****************************************************************************/

@@ -26,30 +26,18 @@ public:
 	virtual ~IFileIO(void){};
 	virtual void writeData(const std::string& filePath, const std::string& data) = 0;
 	virtual void writeData(const std::string& filePath, const DptfBuffer& data) = 0;
-	static Bool fileNameContainsIllegalCharacters(const std::string& fileName);
-	static Bool filePathContainsIllegalCharacters(const std::string& filePath);
+	static Bool fileNameHasIllegalChars(const std::string& fileName);
 	static std::string generatePathWithTrailingSeparator(const std::string& folderPath);
-
-private:
-	static Bool filePathStartsWithIllegalCharacter(const std::string& filePath);
-	static Bool filePathContainsColonOutsideOfDriveSection(const std::string& filePath);
-	static Bool filePathContainsIllegalCharacterOutsideOfDriveSection(const std::string& filePath);
-	static Bool filePathEndsWithOtherwiseAllowedCharacter(const std::string& filePath);
-	static Bool filePathContainsDoubleSlashes(const std::string& filePath);
-	static Bool isControlCharacter(const char c);
-	static Bool filePathContainsControlCharacters(const std::string& filePath);
 };
 
 class dptf_export FileIO : public IFileIO
 {
 public:
-	FileIO() = default;
-	virtual ~FileIO() = default;
+	FileIO();
+	virtual ~FileIO();
 	virtual void writeData(const std::string& filePath, const std::string& data) override;
 	virtual void writeData(const std::string& filePath, const DptfBuffer& data) override;
 
 private:
-	static void throwIfFileNotOpened(const std::fstream& fp, const std::string& filePath);
-	static void throwIfFilePathHasIllegalCharacters(const std::string& filePath);
-	static void throwIfFilePathIsSymbolicLink(const std::string& filePath);
+	void throwIfFileNotOpened(const std::fstream& fp, const std::string& filePath);
 };

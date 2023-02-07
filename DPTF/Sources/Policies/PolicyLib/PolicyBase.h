@@ -140,7 +140,6 @@ public:
 	virtual void onActiveControlPointRelationshipTableChanged(void);
 	virtual void onPowerShareAlgorithmTableChanged(void);
 	virtual void onPowerLimitChanged(void);
-	virtual void onPowerLimitTimeWindowChanged(void);
 	virtual void onPerformanceCapabilitiesChanged(UIntN participantIndex);
 	virtual void onWorkloadHintConfigurationChanged(void);
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
@@ -258,7 +257,6 @@ public:
 	virtual void intelligentThermalManagementTableChanged(void) override final;
 	virtual void energyPerformanceOptimizerTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
-	virtual void powerLimitTimeWindowChanged(void) override final;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) override final;
 	virtual void workloadHintConfigurationChanged(void) override final;
 	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) override final;

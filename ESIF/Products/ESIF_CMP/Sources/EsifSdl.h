@@ -27,10 +27,19 @@
 #ifndef __ESIF_SDL_H
 #define __ESIF_SDL_H
 
+#ifdef _WIN32
+#include <windows.h>
+#define _SDL_BANNED_RECOMMENDED
+#include "win/banned.h" /* Flag SDL Banned Functions during Build */
+#endif
 
 /* OS Abstraction Layer and Replacements for SDL-deprecated functions */
+#ifdef _WIN32
+#define MyMemcpy(dst, src, len)	memcpy_s(dst, len, src, len)
+#else /* Linux-based OS*/
 #include <memory.h>
 #define MyMemcpy(dst, src, len)	memcpy(dst, src, len)
+#endif
 
 /* Define this flag to build with optional SDL enhancements to original LZMA SDK code.
  * This flag is required to satisfy Intel SDL Requirements for passing Klocwork scans.

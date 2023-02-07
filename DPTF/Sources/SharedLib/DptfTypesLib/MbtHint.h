@@ -34,5 +34,4 @@ namespace MbtHint
 	};
 
 	std::string toString(MbtHint::Type mbtHint);
-	MbtHint::Type fromString(std::string mbtHint);
 }

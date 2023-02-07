@@ -95,9 +95,8 @@ public:
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) override final;
 	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt64 getPlatformCpuId() override final;
+
 	virtual void clearPpmPackageSettings(void) override final;
-	virtual UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) override final; 
-	virtual UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) override final; 
 
 private:
 	TimeSpan m_defaultSamplePeriod;

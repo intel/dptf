@@ -32,6 +32,7 @@ class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
 class PolicyManagerInterface;
 class ParticipantManagerInterface;
+class DptfStatusInterface;
 class DataManagerInterface;
 class SystemModeManagerInterface;
 
@@ -56,6 +57,7 @@ public:
 	virtual PolicyManagerInterface* getPolicyManager(void) const = 0;
 	virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
 	virtual ICommandDispatcher* getCommandDispatcher() const = 0;
+	virtual DptfStatusInterface* getDptfStatus(void) = 0;
 	virtual IndexContainerInterface* getIndexContainer(void) const = 0;
 	virtual DataManagerInterface* getDataManager(void) const = 0;
 	virtual std::string getDptfHomeDirectoryPath(void) const = 0;

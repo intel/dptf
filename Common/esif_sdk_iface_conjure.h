@@ -53,8 +53,7 @@
 
 #pragma once
 
-#include "esif_sdk.h"
-
+#ifdef ESIF_ATTR_USER
 
 #include "esif_sdk_data.h"
 #include "esif_sdk_iface.h"
@@ -154,3 +153,4 @@ typedef struct _t_EsifConjureInterface {
 
 #pragma pack(pop)
 
+#endif /* USER */

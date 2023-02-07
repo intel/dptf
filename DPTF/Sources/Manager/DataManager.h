@@ -27,32 +27,25 @@ class dptf_export DataManagerInterface
 {
 public:
 	virtual ~DataManagerInterface(){};
-	virtual TableObject getTableObject(
-		TableObjectType::Type tableType,
-		std::string uuid,
-		UIntN participantIndex = Constants::Esif::NoParticipant) = 0;
+	virtual TableObject getTableObject(TableObjectType::Type tableType, std::string uuid) = 0;
 	virtual void setTableObject(
-		const DptfBuffer& tableData,
+		UInt32 tableDataLength,
+		UInt8* tableData,
 		TableObjectType::Type tableType,
-		std::string uuid,
-		UIntN participantIndex = Constants::Esif::NoParticipant) = 0;
-	virtual void deleteTableObject(
-		TableObjectType::Type tableType,
-		std::string uuid,
-		UIntN participantIndex = Constants::Esif::NoParticipant) = 0;
-	virtual void deleteAllTableObject(
-		TableObjectType::Type tableType,
-		std::string uuid,
-		UIntN participantIndex = Constants::Esif::NoParticipant) = 0;
+		std::string uuid) = 0;
+	virtual void deleteTableObject(TableObjectType::Type tableType, std::string uuid) = 0;
+	virtual void deleteAllTableObject(TableObjectType::Type tableType, std::string uuid) = 0;
 	virtual Bool tableObjectExists(TableObjectType::Type tableType) = 0;
 	virtual std::map<TableObjectType::Type, TableObject> getTableObjectMap() = 0;
+	virtual UInt32 getLatestSupportedTableRevision(TableObjectType::Type) = 0;
 
 	virtual TableObject getTableObjectBasedOnAlternativeDataSourceAndKey(
 		TableObjectType::Type tableType,
 		DataVaultType::Type dvType,
 		std::string key) = 0;
 	virtual void setTableObjectBasedOnAlternativeDataSourceAndKey(
-		const DptfBuffer& tableData,
+		UInt32 tableDataLength,
+		UInt8* tableData,
 		TableObjectType::Type tableType,
 		DataVaultType::Type dvType,
 		std::string key) = 0;
@@ -61,8 +54,6 @@ public:
 	virtual void deleteTableObjectKeyForNoPersist(TableObjectType::Type tableType) = 0;
 
 	virtual void deleteConfigKey(DataVaultType::Type dvType, std::string key) = 0;
-
-	virtual Bool isParticipantTable(TableObjectType::Type tableType) = 0;
 };
 
 class DataManager : public DataManagerInterface
@@ -71,24 +62,25 @@ public:
 	DataManager(DptfManagerInterface* dptfManager);
 	~DataManager(void);
 
-	virtual TableObject getTableObject(TableObjectType::Type tableType, std::string uuid, UIntN participantIndex)
-		override;
+	virtual TableObject getTableObject(TableObjectType::Type tableType, std::string uuid) override;
 	virtual void setTableObject(
-		const DptfBuffer& tableData,
+		UInt32 tableDataLength,
+		UInt8* tableData,
 		TableObjectType::Type tableType,
-		std::string uuid,
-		UIntN participantIndex) override;
-	virtual void deleteTableObject(TableObjectType::Type tableType, std::string, UIntN participantIndex) override;
-	virtual void deleteAllTableObject(TableObjectType::Type tableType, std::string, UIntN participantIndex) override;
+		std::string uuid) override;
+	virtual void deleteTableObject(TableObjectType::Type tableType, std::string) override;
+	virtual void deleteAllTableObject(TableObjectType::Type tableType, std::string) override;
 	virtual Bool tableObjectExists(TableObjectType::Type tableType) override;
 	virtual std::map<TableObjectType::Type, TableObject> getTableObjectMap() override;
+	virtual UInt32 getLatestSupportedTableRevision(TableObjectType::Type tableType) override;
 
 	virtual TableObject getTableObjectBasedOnAlternativeDataSourceAndKey(
 		TableObjectType::Type tableType,
 		DataVaultType::Type dvType,
 		std::string key) override;
 	virtual void setTableObjectBasedOnAlternativeDataSourceAndKey(
-		const DptfBuffer& tableData,
+		UInt32 tableDataLength,
+		UInt8* tableData,
 		TableObjectType::Type tableType,
 		DataVaultType::Type dvType,
 		std::string key) override;
@@ -98,34 +90,12 @@ public:
 
 	virtual void deleteConfigKey(DataVaultType::Type dvType, std::string key) override;
 
-	virtual Bool isParticipantTable(TableObjectType::Type tableType) override;
-
 private:
 	DptfManagerInterface* m_dptfManager;
 	std::map<TableObjectType::Type, TableObject> m_tableObjectMap;
+	std::map<TableObjectType::Type, UInt32> m_tableRevisions;
 
-	void sendTableChangedEvent(TableObjectType::Type tableObjectType, std::string uuid, UIntN participantIndex);
+	void sendTableChangedEvent(TableObjectType::Type tableObjectType, std::string uuid);
+	void loadTableRevisions();
 	void loadTableObjectMap();
-	void loadAcprTableObject();
-	void loadApatTableObject();
-	void loadApctTableObject();
-	void loadArtTableObject();
-	void loadDynamicIdspTableObject();
-	void loadDdrfTableObject();
-	void loadEpotTableObject();
-	void loadItmtTableObject();
-	void loadOdvpTableObject();
-	void loadPbatTableObject();
-	void loadPbctTableObject();
-	void loadPbmtTableObject();
-	void loadPidaTableObject();
-	void loadPsh2TableObject();
-	void loadPshaTableObject();
-	void loadPsvtTableObject();
-	void loadSwOemVariablesTableObject();
-	void loadTpgaTableObject();
-	void loadTrtTableObject();
-	void loadVsctTableObject();
-	void loadVsptTableObject();
-	void loadVtmtTableObject();
 };

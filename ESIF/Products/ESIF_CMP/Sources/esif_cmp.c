@@ -29,6 +29,15 @@
 
 #include "EsifSdl.h" /* Always include last */
 
+#ifdef _WIN32
+BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
+{
+	UNUSED_VAR(hInstance);
+	UNUSED_VAR(dwReason);
+	UNUSED_VAR(lpReserved);
+	return TRUE;
+}
+#endif
 
 // Standard LZMA File Header
 #define LZMA_PROPS_SIZE	5	// [XX YY YY YY YY] Where XX = Encoded -lc -lp -pb options, YY = Encoded -d option

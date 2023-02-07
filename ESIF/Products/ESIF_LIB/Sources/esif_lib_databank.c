@@ -37,6 +37,14 @@
 # include "static_dv.h"	// Static DV converted to Byte array
 #endif
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+//
+// The Windows banned-API check header must be included after all other headers, or issues can be identified
+// against Windows SDK/DDK included headers which we have no control over.
+//
+#define _SDL_BANNED_RECOMMENDED
+#include "win\banned.h"
+#endif
 
 static struct {
 	StringPtr		name;

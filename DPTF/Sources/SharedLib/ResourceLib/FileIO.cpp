@@ -17,25 +17,21 @@
 ******************************************************************************/
 
 #include "FileIO.h"
-#include "esif_ccb_file.h"
 #include <fstream>
-#include <algorithm>
 using namespace std;
 
-const string separatorForward = "/"; // accepted by both Windows and Linux
-const string separatorBackward = "\\"; // used only by Windows
-const string illegalFileNameCharacters = "/\\";
-const string illegalFilePathCharacters = "*<>:|?\"";
+string separatorForward = "/"; // accepted by both Windows and Linux
+string separatorBackward = "\\"; // used only by Windows
 
 bool hasEndingPathSeparator(const std::string& folderPath)
 {
-	if (folderPath.empty())
+	if (folderPath.size() == 0)
 	{
 		return true;
 	}
 	else
 	{
-		const auto lastCharacter = string(1, folderPath.at(folderPath.size() - 1));
+		auto lastCharacter = string(1, folderPath.at(folderPath.size() - 1));
 		if ((lastCharacter == separatorForward) || (lastCharacter == separatorBackward))
 		{
 			return true;
@@ -63,61 +59,9 @@ std::string getCommonSeparator(const std::string& folderPath)
 	}
 }
 
-bool IFileIO::fileNameContainsIllegalCharacters(const std::string& fileName)
+bool IFileIO::fileNameHasIllegalChars(const std::string& fileName)
 {
-	const auto containsIllegalFileNameCharacter = fileName.find_first_of(illegalFileNameCharacters, 0) != string::npos;
-	const auto containsIllegalFilePathCharacter = fileName.find_first_of(illegalFilePathCharacters, 0) != string::npos;
-	return (containsIllegalFileNameCharacter || containsIllegalFilePathCharacter);
-}
-
-Bool IFileIO::filePathStartsWithIllegalCharacter(const std::string& filePath)
-{
-	const auto posStartChar = filePath.find_first_of(illegalFilePathCharacters);
-	return (posStartChar == 0);
-}
-
-Bool IFileIO::filePathContainsColonOutsideOfDriveSection(const std::string& filePath)
-{
-	// 'C:' is allowed, but : outside of 2nd char is not
-	const auto posDrive = filePath.find_first_of(':');
-	return ((posDrive != std::string::npos) && (posDrive != 1));
-}
-
-Bool IFileIO::filePathContainsIllegalCharacterOutsideOfDriveSection(const std::string& filePath)
-{
-	const auto posIllegalCharacter = filePath.find_last_of(illegalFilePathCharacters);
-	return ((posIllegalCharacter != std::string::npos) && (posIllegalCharacter != 1));
-}
-
-Bool IFileIO::filePathEndsWithOtherwiseAllowedCharacter(const std::string& filePath)
-{
-	return ((filePath.back() == '\\') || (filePath.back() == '/') || (filePath.back() == '.') || (filePath.back() == ' '));
-}
-
-Bool IFileIO::filePathContainsDoubleSlashes(const std::string& filePath)
-{
-	return (filePath.find("\\\\") != std::string::npos) || (filePath.find("//") != std::string::npos);
-}
-
-Bool IFileIO::isControlCharacter(const char c)
-{
-	return iscntrl(c);
-}
-
-Bool IFileIO::filePathContainsControlCharacters(const std::string& filePath)
-{
-	return std::any_of(filePath.cbegin(), filePath.cend(), isControlCharacter);
-}
-
-Bool IFileIO::filePathContainsIllegalCharacters(const std::string& filePath)
-{
-	return
-		filePathStartsWithIllegalCharacter(filePath) ||
-		filePathContainsColonOutsideOfDriveSection(filePath) || 
-		filePathContainsIllegalCharacterOutsideOfDriveSection(filePath) || 
-		filePathEndsWithOtherwiseAllowedCharacter(filePath) || 
-		filePathContainsDoubleSlashes(filePath) || 
-		filePathContainsControlCharacters(filePath);
+	return fileName.find_first_of("*<>:/\\|?", 0) != string::npos;
 }
 
 std::string IFileIO::generatePathWithTrailingSeparator(const std::string& folderPath)
@@ -132,10 +76,16 @@ std::string IFileIO::generatePathWithTrailingSeparator(const std::string& folder
 	}
 }
 
+FileIO::FileIO()
+{
+}
+
+FileIO::~FileIO()
+{
+}
+
 void FileIO::writeData(const std::string& filePath, const std::string& data)
 {
-	throwIfFilePathHasIllegalCharacters(filePath);
-	throwIfFilePathIsSymbolicLink(filePath);
 	fstream fp;
 	fp.open(filePath, ios::out);
 	throwIfFileNotOpened(fp, filePath);
@@ -145,8 +95,6 @@ void FileIO::writeData(const std::string& filePath, const std::string& data)
 
 void FileIO::writeData(const std::string& filePath, const DptfBuffer& data)
 {
-	throwIfFilePathHasIllegalCharacters(filePath);
-	throwIfFilePathIsSymbolicLink(filePath);
 	fstream fp;
 	fp.open(filePath, ios::out);
 	throwIfFileNotOpened(fp, filePath);
@@ -159,21 +107,5 @@ void FileIO::throwIfFileNotOpened(const std::fstream& fp, const std::string& fil
 	if (!fp.is_open())
 	{
 		throw file_open_create_failure(string("Failed to open path \"") + filePath + string("\""));
-	}
-}
-
-void FileIO::throwIfFilePathHasIllegalCharacters(const std::string& filePath)
-{
-	if (filePathContainsIllegalCharacters(filePath))
-	{
-		throw file_open_create_failure(string("File path contains illegal characters."));
-	}
-}
-
-void FileIO::throwIfFilePathIsSymbolicLink(const std::string& filePath)
-{
-	if (esif_ccb_issymlink(filePath.c_str()))
-	{
-		throw file_open_create_failure(string("File path given is a symbolic link."));
 	}
 }

@@ -20,6 +20,7 @@
 #include "WorkItemQueueManagerInterface.h"
 #include "WIParticipantDestroy.h"
 #include "EsifServicesInterface.h"
+#include "DptfStatusInterface.h"
 #include "MapOps.h"
 #include "Utility.h"
 #include "ManagerLogger.h"
@@ -60,6 +61,7 @@ void ParticipantManager::createParticipant(
 		// create an instance of the participant class and save at the first available index.
 		// When this completes the actual participant will be instantiated and the functionality will
 		// be available through the interface function pointers.
+		m_dptfManager->getDptfStatus()->clearCache();
 		m_participants[participantIndex] = std::make_shared<Participant>(m_dptfManager);
 		m_participants[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
 	}
@@ -77,6 +79,7 @@ void ParticipantManager::destroyAllParticipants(void)
 		try
 		{
 			// Queue up a work item and wait for the return.
+			m_dptfManager->getDptfStatus()->clearCache();
 			auto workItem = std::make_shared<WIParticipantDestroy>(m_dptfManager, *index);
 			m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 		}
@@ -105,6 +108,7 @@ void ParticipantManager::destroyParticipant(UIntN participantIndex)
 		{
 			try
 			{
+				m_dptfManager->getDptfStatus()->clearCache();
 				requestedParticipant->second->destroyParticipant();
 			}
 			catch (...)
@@ -140,6 +144,7 @@ Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex) const
 
 void ParticipantManager::clearAllParticipantCachedData()
 {
+	m_dptfManager->getDptfStatus()->clearCache();
 	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
 	{
 		if (p->second != nullptr)

@@ -67,7 +67,220 @@ extern esif_ccb_lock_t g_mempool_lock;
 }
 #endif
 
+#ifdef ESIF_ATTR_KERNEL
 
+#include "esif_lf_trace.h"
+
+#define MPOOL_DEBUG 12
+
+#define MEMPOOL_DEBUG(format, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_ELF, MPOOL_DEBUG, format, ##__VA_ARGS__)
+
+struct esif_ccb_mempool {
+#ifdef ESIF_ATTR_OS_LINUX
+	struct kmem_cache  *cache;
+#endif /* Linux */
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+	/* TODO: Look aside List? */
+#endif /* Windows */
+	esif_string  name_ptr;		/* Name                         */
+	u32          pool_tag;		/* Pool Tag                     */
+	u32          object_size;	/* Size Of Pool Object In Bytes */
+	u32          alloc_count;	/* Object Allocation Count      */
+	u32          free_count;	/* Object Free Count            */
+};
+
+
+/* Memory Pool Create */
+/* WARNING:  This function may not be called from paged code in kernel */
+static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
+	enum esif_mempool_type pool_type,
+	u32 pool_tag,
+	u32 object_size
+	)
+{
+	struct esif_ccb_mempool *pool_ptr = NULL;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	pool_ptr = (struct esif_ccb_mempool *)
+			esif_ccb_malloc(sizeof(*pool_ptr));
+
+	if (NULL == pool_ptr)
+		return NULL;
+
+	pool_ptr->name_ptr    = esif_mempool_str(pool_tag);
+	pool_ptr->pool_tag    = pool_tag;
+	pool_ptr->alloc_count = 0;
+	pool_ptr->free_count  = 0;
+	pool_ptr->object_size = object_size;
+
+#ifdef ESIF_ATTR_OS_LINUX
+	pool_ptr->cache = kmem_cache_create(pool_ptr->name_ptr,
+					    pool_ptr->object_size,
+					    0,
+					    SLAB_HWCACHE_ALIGN,
+					    NULL);
+#endif
+#ifdef ESIF_ATTR_OS_WINDOWS
+/* TODO  Look aside List? */
+#endif
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	g_mempool[pool_type] = pool_ptr;
+	memstat_inc(&g_memstat.memPoolAllocs);
+
+	MEMPOOL_DEBUG("Memory Pool %s Create Object Size=%d\n",
+		pool_ptr->name_ptr,
+		pool_ptr->object_size);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+
+exit:
+	return pool_ptr;
+}
+
+
+/* Memory Pool Destroy */
+/* WARNING:  This function may not be in paged code in kernel */
+static ESIF_INLINE void esif_ccb_mempool_destroy(
+	enum esif_mempool_type pool_type
+	)
+{
+	struct esif_ccb_mempool *pool_ptr = NULL;
+	int remain = 0;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
+	if (NULL == pool_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
+
+	remain = pool_ptr->alloc_count - pool_ptr->free_count;
+	MEMPOOL_DEBUG("Memory Pool %s Destroy alloc=%d free=%d remain=%d\n",
+		      pool_ptr->name_ptr,
+		      pool_ptr->alloc_count,
+		      pool_ptr->free_count,
+		      remain);
+
+#ifdef ESIF_ATTR_OS_LINUX
+	if (NULL != pool_ptr->cache)
+		kmem_cache_destroy(pool_ptr->cache);
+#endif
+#ifdef ESIF_ATTR_OS_WINDOWS
+	/* Nothing To Do */
+#endif
+	g_mempool[pool_type] = NULL;
+	memstat_inc(&g_memstat.memPoolFrees);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+
+	esif_ccb_free(pool_ptr);
+exit:
+	;
+}
+
+
+/* Memory Pool Alloc */
+/* WARNING:  This function may not be called from paged code in kernel */
+static ESIF_INLINE void *esif_ccb_mempool_alloc(
+	enum esif_mempool_type pool_type
+	)
+{
+	struct esif_ccb_mempool *pool_ptr = NULL;
+	void *mem_ptr = NULL;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+	if (NULL == pool_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
+
+#ifdef ESIF_ATTR_OS_LINUX
+	mem_ptr = kmem_cache_alloc(pool_ptr->cache, GFP_ATOMIC);
+#endif
+#ifdef ESIF_ATTR_OS_WINDOWS
+	mem_ptr = EsifExAllocatePool(ESIF_POOL_NON_PAGED,
+					pool_ptr->object_size,
+					pool_ptr->pool_tag);
+#endif
+
+	if (NULL == mem_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
+
+	pool_ptr->alloc_count++;
+	memstat_inc(&g_memstat.memPoolObjAllocs);
+
+	MEMPOOL_DEBUG("MP Entry Allocated(%d)=%p From Mempool %s\n",
+		pool_ptr->alloc_count,
+		mem_ptr,
+		pool_ptr->name_ptr);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+exit:
+	return mem_ptr;
+}
+
+
+/* Memory Pool Free */
+/* WARNING:  This function may not be called from paged code in kernel */
+static ESIF_INLINE void esif_ccb_mempool_free(
+	enum esif_mempool_type pool_type,
+	void *mem_ptr
+	)
+{
+	struct esif_ccb_mempool *pool_ptr = NULL;
+
+	if ((NULL == mem_ptr) || (pool_type >= ESIF_MEMPOOL_TYPE_MAX))
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
+	if (NULL == pool_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
+
+#ifdef ESIF_ATTR_OS_LINUX
+	kmem_cache_free(pool_ptr->cache, mem_ptr);
+#endif
+#ifdef ESIF_ATTR_OS_WINDOWS
+	ExFreePoolWithTag(mem_ptr, pool_ptr->pool_tag);
+#endif
+
+	pool_ptr->free_count++;
+	memstat_inc(&g_memstat.memPoolObjFrees);
+
+	MEMPOOL_DEBUG("MP Entry Freed(%d)=%p From Mempool %s\n",
+		pool_ptr->free_count,
+		mem_ptr, pool_ptr->name_ptr);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+exit:
+	;
+}
+
+
+#endif /* ESIF_ATTR_KERNEL */
+
+#ifdef ESIF_ATTR_USER
 
 #include "esif.h"
 #include "esif_uf_trace.h"
@@ -241,6 +454,7 @@ exit:
 }
 
 
+#endif /* ESIF_ATTR_USER */
 
 
 /* NOTE:  This function is common to user and kernel mode */

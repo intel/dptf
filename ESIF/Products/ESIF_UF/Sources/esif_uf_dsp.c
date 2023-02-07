@@ -31,6 +31,14 @@
 #define MAX_CPC_OFFSET  0x7ffffffd
 #define MAX_FPC_OFFSET  0x7ffffffd
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+//
+// The Windows banned-API check header must be included after all other headers, or issues can be identified
+// against Windows SDK/DDK included headers which we have no control over.
+//
+#define _SDL_BANNED_RECOMMENDED
+#include "win\banned.h"
+#endif
 
 // Verify EDP Header
 Bool esif_verify_edp(struct edp_dir *edp, size_t size)

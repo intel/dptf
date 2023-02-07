@@ -56,8 +56,22 @@
 #include "esif_ccb.h"
 #include "esif_ccb_rc.h"
 
+#if defined(ESIF_ATTR_KERNEL)
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_sem_win_kern.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
+#include "esif_ccb_sem_lin_kern.h"
+#endif /* KERNEL */
+
+#elif defined(ESIF_ATTR_USER)
+
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#include "esif_ccb_sem_win_user.h"
+#elif defined(ESIF_ATTR_OS_LINUX)
 #include "esif_ccb_sem_lin_user.h"
+#endif
+#endif /* USER */
 
 #include "esif_ccb_lock.h"
 
@@ -80,6 +94,9 @@ static ESIF_INLINE void esif_ccb_event_init(esif_ccb_event_t *event_ptr)
 }
 
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#pragma warning(suppress: 28167)
+#endif
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
@@ -105,6 +122,9 @@ static ESIF_INLINE void esif_ccb_event_uninit(esif_ccb_event_t *event_ptr)
 }
 
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#pragma warning(suppress: 28167)
+#endif
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
@@ -127,6 +147,9 @@ exit:
 }
 
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#pragma warning(suppress: 28167)
+#endif
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
@@ -159,6 +182,9 @@ static ESIF_INLINE void esif_ccb_event_reset(esif_ccb_event_t *event_ptr)
  * Special use case function which allows all waiters to proceed, but does not
  * change the signaled state.
  */
+#if defined(ESIF_ATTR_OS_WINDOWS)
+#pragma warning(suppress: 28167)
+#endif
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */

@@ -56,6 +56,7 @@
 #include "esif_sdk_data.h"
 #include "esif_sdk_data_misc.h"
 
+#ifdef ESIF_ATTR_USER
 
 #pragma pack(push, 1)
 
@@ -258,6 +259,7 @@ typedef struct _t_EsifManagerStatusData {
 	UInt32 mixedRealityMode;
 	UInt32 platformUserPresence;
 	UInt32 foregroundBackgroundRatio;
+	UInt32 ppmPackage;
 	UInt32 collaboration;
 	EsifPpmParamValues ppmParamValues;
 } EsifManagerStatusData, * EsifManagerStatusDataPtr;
@@ -307,3 +309,4 @@ typedef struct _t_EsifCapabilityData {
 
 #pragma pack(pop)
 
+#endif /* ESIF_ATTR_USER */

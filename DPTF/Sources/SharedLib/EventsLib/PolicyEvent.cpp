@@ -74,12 +74,15 @@ namespace PolicyEvent
 			CASE(DomainFanCapabilityChanged)
 			CASE(DomainSocWorkloadClassificationChanged)
 			CASE(DomainEppSensitivityHintChanged)
+			CASE(PolicyActiveRelationshipTableChanged)
 			CASE(PolicyCoolingModePolicyChanged)
 			CASE(PolicyForegroundApplicationChanged)
 			CASE(PolicyInitiatedCallback)
+			CASE(PolicyPassiveTableChanged)
 			CASE(PolicySensorOrientationChanged)
 			CASE(PolicySensorMotionChanged)
 			CASE(PolicySensorSpatialOrientationChanged)
+			CASE(PolicyThermalRelationshipTableChanged)
 			CASE(PolicyOperatingSystemPowerSourceChanged)
 			CASE(PolicyOperatingSystemLidStateChanged)
 			CASE(PolicyOperatingSystemBatteryPercentageChanged)
@@ -92,16 +95,24 @@ namespace PolicyEvent
 			CASE(PolicyOperatingSystemScreenStateChanged)
 			CASE(PolicyOperatingSystemBatteryCountChanged)
 			CASE(PolicyOperatingSystemPowerSliderChanged)
+			CASE(PolicyOemVariablesChanged)
+			CASE(PolicyPowerBossConditionsTableChanged)
+			CASE(PolicyPowerBossActionsTableChanged)
+			CASE(PolicyPowerBossMathTableChanged)
+			CASE(PolicyVoltageThresholdMathTableChanged)
 			CASE(DptfPolicyLoadedUnloadedEvent)
 			CASE(DptfPolicyActivityLoggingEnabled)
 			CASE(DptfPolicyActivityLoggingDisabled)
 			CASE(PolicyOperatingSystemPowerSchemePersonalityChanged)
 			CASE(PolicyEmergencyCallModeTableChanged)
+			CASE(PolicyPidAlgorithmTableChanged)
+			CASE(PolicyActiveControlPointRelationshipTableChanged)
+			CASE(PolicyPowerShareAlgorithmTableChanged)
 			CASE(PowerLimitChanged)
-			CASE(PowerLimitTimeWindowChanged)
 			CASE(PerformanceCapabilitiesChanged)
 			CASE(PolicyWorkloadHintConfigurationChanged)
 			CASE(PolicyOperatingSystemGameModeChanged)
+			CASE(PolicyPowerShareAlgorithmTable2Changed)
 			CASE(PolicyPlatformUserPresenceChanged)
 			CASE(PolicyExternalMonitorStateChanged)
 			CASE(PolicyUserInteractionChanged)
@@ -119,11 +130,14 @@ namespace PolicyEvent
 	Bool RequiresEsifEventRegistration(PolicyEvent::Type policyEventType)
 	{
 		return (
-			(policyEventType == PolicyEvent::PolicyCoolingModePolicyChanged)
+			(policyEventType == PolicyEvent::PolicyActiveRelationshipTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyCoolingModePolicyChanged)
 			|| (policyEventType == PolicyEvent::PolicyForegroundApplicationChanged)
+			|| (policyEventType == PolicyEvent::PolicyPassiveTableChanged)
 			|| (policyEventType == PolicyEvent::PolicySensorOrientationChanged)
 			|| (policyEventType == PolicyEvent::PolicySensorMotionChanged)
 			|| (policyEventType == PolicyEvent::PolicySensorSpatialOrientationChanged)
+			|| (policyEventType == PolicyEvent::PolicyThermalRelationshipTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSourceChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemLidStateChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryPercentageChanged)
@@ -136,10 +150,19 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemScreenStateChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryCountChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSliderChanged)
+			|| (policyEventType == PolicyEvent::PolicyOemVariablesChanged)
+			|| (policyEventType == PolicyEvent::PolicyPowerBossConditionsTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyPowerBossActionsTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyPowerBossMathTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyVoltageThresholdMathTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged)
 			|| (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyPidAlgorithmTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyActiveControlPointRelationshipTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemGameModeChanged)
+			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTable2Changed)
 			|| (policyEventType == PolicyEvent::PolicyPlatformUserPresenceChanged)
 			|| (policyEventType == PolicyEvent::PolicyExternalMonitorStateChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserInteractionChanged)
@@ -234,6 +257,8 @@ namespace PolicyEvent
 			return "DomainSocWorkloadClassificationChanged";
 		case PolicyEvent::DomainEppSensitivityHintChanged:
 			return "DomainEppSensitivityHintChanged";
+		case PolicyEvent::PolicyActiveRelationshipTableChanged:
+			return "PolicyActiveRelationshipTableChanged";
 		case PolicyEvent::PolicyCoolingModePolicyChanged:
 			return "PolicyCoolingModePolicyChanged";
 		case PolicyEvent::PolicyForegroundApplicationChanged:
@@ -250,8 +275,6 @@ namespace PolicyEvent
 			return "PolicySensorSpatialOrientationChanged";
 		case PolicyEvent::PolicyThermalRelationshipTableChanged:
 			return "PolicyThermalRelationshipTableChanged";
-		case PolicyEvent::PolicyActiveRelationshipTableChanged:
-			return "PolicyActiveRelationshipTableChanged";
 		case PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged:
 			return "PolicyAdaptivePerformanceConditionsTableChanged";
 		case PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged:
@@ -316,8 +339,6 @@ namespace PolicyEvent
 			return "PolicyEnergyPerformanceOptimizerTableChanged";
 		case PolicyEvent::PowerLimitChanged:
 			return "PowerLimitChanged";
-		case PolicyEvent::PowerLimitTimeWindowChanged:
-			return "PowerLimitTimeWindowChanged";
 		case PolicyEvent::PerformanceCapabilitiesChanged:
 			return "PerformanceCapabilitiesChanged";
 		case PolicyEvent::PolicyWorkloadHintConfigurationChanged:

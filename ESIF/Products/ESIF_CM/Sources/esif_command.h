@@ -291,6 +291,9 @@ void esif_execute_ipc_command(struct esif_ipc_command *cmd_ptr);
 enum esif_rc esif_command_init(void);
 void esif_command_exit(void);
 
+#ifdef ESIF_ATTR_KERNEL
+u32 esif_ipc_command_get_data_len(struct esif_ipc_command *cmd_ptr);
+#endif
 
 #ifdef __cplusplus
 }

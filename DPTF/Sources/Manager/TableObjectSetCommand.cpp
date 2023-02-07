@@ -19,13 +19,12 @@
 #include "DptfManagerInterface.h"
 #include "DataManager.h"
 #include "esif_ccb_string.h"
-#include "ParticipantManagerInterface.h"
-#include "TableObjectBinaryTableParser.h"
+#include "esif_ccb_memtrace.h"
 using namespace std;
 
 #define REVISION_INDICATOR_LENGTH 2
-#define MODE_INDICATOR_LENGTH 2
 #define COLUMN_MAX_SIZE 64
+#define MIN_BUFFER_LENGTH 1
 
 TableObjectSetCommand::TableObjectSetCommand(DptfManagerInterface* dptfManager)
 	: CommandHandler(dptfManager)
@@ -43,8 +42,6 @@ string TableObjectSetCommand::getCommandName() const
 
 void TableObjectSetCommand::execute(const CommandArguments& arguments)
 {
-	setDefaultResultMessage();
-
 	throwIfBadArguments(arguments);
 	throwIfTableObjectNotExist(arguments);
 
@@ -59,21 +56,8 @@ void TableObjectSetCommand::setTableObjectXmlString(const CommandArguments& argu
 	string uuid = Constants::EmptyString;
 	string dvName = Constants::EmptyString;
 	string key = Constants::EmptyString;
-	UIntN participantIndex = Constants::Esif::NoParticipant;
-	Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(TableObjectType::ToType(tableName));
 
-	if (isParticipantTable)
-	{
-		// tableobject set vsct VIR1 "value"
-		throwIfBadArgumentsForParticipantTable(arguments);
-		throwIfParticipantNotExist(arguments);
-
-		string participantName = arguments[2].getDataAsString();
-		participantIndex =
-			m_dptfManager->getParticipantManager()->getParticipant(participantName)->getParticipantIndex();
-		tableString = arguments[3].getDataAsString();
-	}
-	else if (arguments.size() == 4)
+	if (arguments.size() == 4)
 	{
 		// tableobject set apat "value" uuid
 		uuid = arguments[3].getDataAsString();
@@ -86,9 +70,9 @@ void TableObjectSetCommand::setTableObjectXmlString(const CommandArguments& argu
 	}
 	auto textInput = tableString.c_str();
 
-	if (esif_ccb_strlen(textInput, REVISION_INDICATOR_LENGTH + 1) > 0)
+	if (esif_ccb_strlen(textInput, REVISION_INDICATOR_LENGTH + 1) > REVISION_INDICATOR_LENGTH)
 	{
-		convertToBinaryAndSet(TableObjectType::ToType(tableName), textInput, uuid, dvName, key, participantIndex);
+		convertToBinaryAndSet(TableObjectType::ToType(tableName), textInput, uuid, dvName, key);
 	}
 }
 
@@ -97,48 +81,14 @@ void TableObjectSetCommand::convertToBinaryAndSet(
 	const char* textInput,
 	string uuid,
 	string dvName,
-	string key,
-	UIntN participantIndex)
+	string key)
 {
 	auto table = m_dptfManager->getDataManager()->getTableObjectMap().find(tableType)->second;
-	char revisionNumString[REVISION_INDICATOR_LENGTH + 1];
-	UInt64 revisionNumInt = 0;
-
-	if (table.hasRevisionField())
-	{
-		esif_ccb_memcpy(&revisionNumString, textInput, REVISION_INDICATOR_LENGTH);
-		revisionNumString[REVISION_INDICATOR_LENGTH] = '\0';
-		revisionNumInt = extractInteger(revisionNumString);
-	}
-
-	if (table.isUsingEsifDataVariant(revisionNumInt))
-	{
-		convertToEsifDataVariantBinaryAndSet(tableType, textInput, uuid, dvName, key, participantIndex);
-	}
-	else
-	{
-		convertToNonEsifDataVariantBinaryAndSet(tableType, textInput, uuid, dvName, key, participantIndex);
-	}
-
-}
-
-void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
-	TableObjectType::Type tableType,
-	const char* textInput,
-	string uuid,
-	string dvName,
-	string key,
-	UIntN participantIndex)
-{
-	TableObject table = findTableObjectByType(tableType);
-	auto fieldsMap = table.getFieldsMap();
-	vector<TableObjectField> fields;
+	auto fields = table.getFields();
 	size_t numberOfFields = 0;
 	int fieldIndex = 0;
 	char revisionNumString[REVISION_INDICATOR_LENGTH + 1];
 	UInt64 revisionNumInt = 0;
-	char modeNumString[MODE_INDICATOR_LENGTH + 1];
-	UInt64 modeNumInt = 0;
 	UInt32 totalDataOutputLength = 0;
 	UInt32 stringType = ESIF_DATA_STRING;
 	UInt32 numberType = ESIF_DATA_UINT64;
@@ -159,64 +109,23 @@ void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
 
 	try
 	{
-		if (table.hasRevisionField())
-		{
-			esif_ccb_memcpy(&revisionNumString, textInput, REVISION_INDICATOR_LENGTH);
-			revisionNumString[REVISION_INDICATOR_LENGTH] = '\0';
-			textInput += REVISION_INDICATOR_LENGTH + 1;
-			revisionNumInt = extractInteger(revisionNumString);
-			totalDataOutputLength += sizeof(numberType) + sizeof(revisionNumInt);
-			tableData = (u8*)esif_ccb_malloc(totalDataOutputLength);
-			throwIfFailedToAllocateMemory(tableData);
-
-			dataOutput = tableData;
-			esif_ccb_memcpy(dataOutput, &numberType, sizeof(numberType));
-			dataOutput += sizeof(numberType);
-			counter += sizeof(numberType);
-			esif_ccb_memcpy(dataOutput, &revisionNumInt, sizeof(revisionNumInt));
-			dataOutput += sizeof(revisionNumInt);
-			counter += sizeof(revisionNumInt);
-
-			if (fieldsMap.find(revisionNumInt) != fieldsMap.end())
-			{
-				fields = fieldsMap.find(revisionNumInt)->second;
-			}
-		}
-		else if (fieldsMap.find(0) != fieldsMap.end())
-		{
-			fields = fieldsMap.find(0)->second;
-		}
-		else
-		{
-			string description = string(
-				"Invalid/Unsupported revision detected"
-				"Run 'dptf help' command for more information.");
-			setResultMessage(description);
-			throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
-		}
-
-		if (table.hasModeField())
-		{
-			esif_ccb_memcpy(&modeNumString, textInput, MODE_INDICATOR_LENGTH);
-			modeNumString[MODE_INDICATOR_LENGTH] = '\0';
-			textInput += MODE_INDICATOR_LENGTH + 1;
-
-			modeNumInt = extractInteger(modeNumString);
-			totalDataOutputLength += sizeof(numberType) + (UInt32)sizeof(modeNumInt);
-			newTableData = (u8*)esif_ccb_realloc(tableData, totalDataOutputLength);
-			throwIfFailedToAllocateMemory(newTableData);
-			tableData = newTableData;
-			dataOutput = tableData;
-			dataOutput += counter;
-			esif_ccb_memcpy(dataOutput, &numberType, sizeof(numberType));
-			dataOutput += sizeof(numberType);
-			counter += sizeof(numberType);
-			esif_ccb_memcpy(dataOutput, &modeNumInt, sizeof(modeNumInt));
-			dataOutput += sizeof(modeNumInt);
-			counter += sizeof(modeNumInt);
-		}
+		esif_ccb_memcpy(&revisionNumString, textInput, REVISION_INDICATOR_LENGTH);
+		revisionNumString[REVISION_INDICATOR_LENGTH] = '\0';
+		textInput += REVISION_INDICATOR_LENGTH + 1;
+		revisionNumInt = extractInteger(revisionNumString);
+		totalDataOutputLength += sizeof(numberType) + sizeof(revisionNumInt);
+		tableData = (u8*)esif_ccb_malloc(totalDataOutputLength);
+		throwIfFailedToAllocateMemory(tableData);
 
 		numberOfFields = fields.size();
+		dataOutput = tableData;
+		esif_ccb_memcpy(dataOutput, &numberType, sizeof(numberType));
+		dataOutput += sizeof(numberType);
+		counter += sizeof(numberType);
+		esif_ccb_memcpy(dataOutput, &revisionNumInt, sizeof(revisionNumInt));
+		dataOutput += sizeof(revisionNumInt);
+		counter += sizeof(revisionNumInt);
+
 		tableRow = esif_ccb_strtok((char*)textInput, rowDelimiter, &rowToken);
 
 		while (tableRow != NULL)
@@ -238,17 +147,7 @@ void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
 						*temp = 0;
 					}
 
-					esif_data_type targetType;
-					if (fields[fieldIndex].m_isPowerLimit)
-					{
-						targetType = (extractInteger(tableColumnValue) > 0 || strcmp(tableColumnValue, "0") == 0)
-										 ? ESIF_DATA_UINT64
-										 : ESIF_DATA_STRING;
-					}
-					else
-					{
-						targetType = fields[fieldIndex].m_fieldDataType;
-					}
+					auto targetType = fields[fieldIndex].m_fieldDataType;
 
 					switch (targetType)
 					{
@@ -287,7 +186,7 @@ void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
 						counter += sizeof(columnValueNumber);
 						break;
 					default:
-						throw command_failure(ESIF_E_NOT_FOUND, "TableObject field type not recognized."s);
+						break;
 					}
 				}
 
@@ -302,12 +201,7 @@ void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
 			tableRow = esif_ccb_strtok(NULL, rowDelimiter, &rowToken);
 		}
 
-		if (tableData)
-		{
-			DptfBuffer tableDataBuffer(totalDataOutputLength);
-			tableDataBuffer.put(0, tableData, totalDataOutputLength);
-			setTableData(tableDataBuffer, tableType, uuid, dvName, key, participantIndex);
-		}
+		setTableData(totalDataOutputLength, tableData, tableType, uuid, dvName, key);
 	}
 	catch (command_failure& cmd_failure)
 	{
@@ -320,28 +214,6 @@ void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
 
 	esif_ccb_free(tableData);
 	esif_ccb_free(tableColumnValue);
-}
-
-void TableObjectSetCommand::convertToNonEsifDataVariantBinaryAndSet(
-	TableObjectType::Type tableType,
-	const char* textInput,
-	string uuid,
-	string dvName,
-	string key,
-	UIntN participantIndex)
-{
-	const auto tableObjectMap = m_dptfManager->getDataManager()->getTableObjectMap();
-	const auto table = tableObjectMap.find(tableType);
-	if (table != tableObjectMap.end())
-	{
-		TableObjectBinaryTableParser tableParser(table->second, textInput);
-		DptfBuffer tableData = tableParser.extractTable();
-		setTableData(tableData, tableType, uuid, dvName, key, participantIndex);
-	}
-	else
-	{
-		throw dptf_exception("Unable to find table object definition for "s + TableObjectType::ToString(tableType));
-	}
 }
 
 UInt32 TableObjectSetCommand::extractInteger(const esif_string str)
@@ -362,40 +234,37 @@ UInt32 TableObjectSetCommand::extractInteger(const esif_string str)
 }
 
 void TableObjectSetCommand::setTableData(
-	const DptfBuffer& tableData,
+	UInt32 totalDataOutputLength,
+	UInt8* tableData,
 	TableObjectType::Type tableType,
 	string uuid,
 	string dvName,
-	string key,
-	UIntN participantIndex)
+	string key)
 {
+	UInt32 tableDataLength = MIN_BUFFER_LENGTH;
+	UInt8* finalTableData = NULL;
+
+	if (totalDataOutputLength)
+	{
+		tableDataLength = totalDataOutputLength;
+	}
+
+	finalTableData = (u8*)esif_ccb_malloc(tableDataLength);
+	throwIfFailedToAllocateMemory(finalTableData);
+	esif_ccb_memcpy((u8*)finalTableData, (u8*)tableData, tableDataLength);
+
 	if (dvName != Constants::EmptyString && key != Constants::EmptyString)
 	{
 		auto dvType = DataVaultType::ToType(dvName);
 		m_dptfManager->getDataManager()->setTableObjectBasedOnAlternativeDataSourceAndKey(
-			tableData, tableType, dvType, key);
+			tableDataLength, finalTableData, tableType, dvType, key);
 	}
 	else
 	{
-		m_dptfManager->getDataManager()->setTableObject(
-			tableData, tableType, uuid, participantIndex);
-	}
-}
-
-TableObject TableObjectSetCommand::findTableObjectByType(TableObjectType::Type type) const
-{
-	auto dataManager = m_dptfManager->getDataManager();
-	if (dataManager)
-	{
-		auto tableObjectMap = dataManager->getTableObjectMap();
-		auto tableObject = tableObjectMap.find(type);
-		if (tableObject != tableObjectMap.end())
-		{
-			return tableObject->second;
-		}
+		m_dptfManager->getDataManager()->setTableObject(tableDataLength, finalTableData, tableType, uuid);
 	}
 
-	throw dptf_exception("Could not find TableObject for type "s + TableObjectType::ToString(type));
+	esif_ccb_free(finalTableData);
 }
 
 void TableObjectSetCommand::throwIfBadArguments(const CommandArguments& arguments)
@@ -449,28 +318,5 @@ void TableObjectSetCommand::throwIfFailedToAllocateMemory(UInt8* tableData)
 		string description = string("Failed to allocate memory in 'tableobject set' command.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NO_MEMORY, description);
-	}
-}
-
-void TableObjectSetCommand::throwIfParticipantNotExist(const CommandArguments& arguments)
-{
-	auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[2].getDataAsString());
-	if (participantExists == false)
-	{
-		string description = string("The participant specified was not found.");
-		setResultMessage(description);
-		throw command_failure(ESIF_E_NOT_FOUND, description);
-	}
-}
-
-void TableObjectSetCommand::throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments)
-{
-	if (arguments.size() < 4)
-	{
-		string description = string(
-			"Invalid argument count given to 'tableobject set' command for a participant table. "
-			"Run 'dptf help' command for more information.");
-		setResultMessage(description);
-		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 }

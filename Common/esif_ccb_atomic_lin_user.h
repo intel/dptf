@@ -18,6 +18,7 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 /* Linux User: Use native x86/x64 type and __atomic builtin functions [gcc 4.7.0 or higher] */
 
@@ -68,3 +69,4 @@ typedef volatile atomic_basetype atomic_t;
 #define atomic_sub(i, v)	__atomic_fetch_sub(v, i, __ATOMIC_SEQ_CST)
 #endif /* !DISABLE */
 
+#endif /* LINUX USER */

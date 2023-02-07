@@ -49,6 +49,15 @@
 #include "esif_ccb_timer.h"
 #include "esif_uf_ccb_imp_spec.h"
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#include <share.h>
+//
+// The Windows banned-API check header must be included after all other headers, or issues can be identified
+// against Windows SDK/DDK included headers which we have no control over.
+//
+#define _SDL_BANNED_RECOMMENDED
+#include "win\banned.h"
+#endif
 
 /* Native memory allocation functions for use by memtrace functions only */
 #define native_malloc(siz)          malloc(siz)
@@ -160,7 +169,14 @@ int EsifLogFile_Open(EsifLogType type, const char *filename, int append)
 		esif_ccb_fclose(g_EsifLogFile[type].handle);
 
 	EsifLogFile_GetFullPath(fullpath, sizeof(fullpath), filename);
+#ifdef ESIF_ATTR_OS_WINDOWS
+	mode[1] = 'c';
+	g_EsifLogFile[type].handle = _fsopen(fullpath, mode, _SH_DENYWR);
+	if (g_EsifLogFile[type].handle == NULL)
+		rc = errno;
+#else
 	g_EsifLogFile[type].handle = esif_ccb_fopen(fullpath, mode, &rc);
+#endif
 	if (g_EsifLogFile[type].handle != NULL) {
 		esif_ccb_free(g_EsifLogFile[type].filename);
 		g_EsifLogFile[type].filename = esif_ccb_strdup((char *)fullpath);
@@ -298,7 +314,12 @@ EsifLogType EsifLogType_FromString(const char *name)
 	return result;
 }
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+extern enum esif_rc ESIF_CALLCONV write_to_srvr_cnsl_intfc_varg(const char *pFormat, va_list args);
+# define EsifConsole_vprintf(fmt, args)		write_to_srvr_cnsl_intfc_varg(fmt, args)
+#else
 # define EsifConsole_vprintf(fmt, args)		vprintf(fmt, args)
+#endif
 
 int EsifConsole_WriteTo(u32 writeto, const char *format, ...)
 {

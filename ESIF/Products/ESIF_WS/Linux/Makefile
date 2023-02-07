@@ -49,8 +49,6 @@ endif
 CFLAGS  += -fno-strict-overflow
 CFLAGS  += -fno-delete-null-pointer-checks
 CFLAGS  += -fwrapv
-#Compile with -g by default and strip it at the end
-CFLAGS   += -g
 
 # Linker Flags added for security purposes
 LDFLAGS += -z noexecstack 
@@ -87,9 +85,14 @@ else
 	endif
 endif
 
+ifneq ($(OS), Chrome)
 # make BUILD=Debug
+# -s flag added for stripping the binaries
 ifeq ($(BUILD), Debug)
-	CPPFLAGS += -DESIF_ATTR_DEBUG
+	CFLAGS   += -g
+else
+	CFLAGS   += -s
+endif
 endif
 
 $(info ++++ )
@@ -118,15 +121,9 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
 	$(CC) -c $(CFLAGS) $(EXTRA_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 all: esif_ws
-ifeq ($(OS), Linux)
-    ifeq ($(BUILD), Release)
-		cp esif_ws.so esif_ws.so.debug
-		strip --strip-unneeded esif_ws.so
-		objcopy --add-gnu-debuglink=esif_ws.so.debug esif_ws.so
-    endif
-endif
+
 esif_ws: $(OBJ)
 	$(CC) $(CFLAGS) -shared $(EXTRA_CFLAGS) $(LDFLAGS) -o $@.so $^ $(LDLIBS)
 
 clean:
-	rm -f $(OBJ) *.so *.debug
+	rm -f $(OBJ) *.so

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 // Use getrandom() for GLIBC 2.25 and higher (Ubuntu 18.04)
 #if defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 25))	// getrandom
@@ -73,3 +74,4 @@ static ESIF_INLINE esif_error_t esif_ccb_random(void *buffer, size_t buf_len)
 }
 
 
+#endif /* LINUX USER */

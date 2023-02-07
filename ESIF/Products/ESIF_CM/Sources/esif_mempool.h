@@ -54,7 +54,9 @@
 #ifndef _ESIF_MEMPOOL_H_
 #define _ESIF_MEMPOOL_H_
 
+#ifdef ESIF_ATTR_USER
     #include "esif.h"
+#endif
 
 /* Memory Pools */
 enum esif_mempool_type {

@@ -23,5 +23,7 @@ INTEL_DPTF_ROOT_PATH:= $(call my-dir)
 include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/ESIF_UF/Androidx86/jni/Android.mk
 include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/ESIF_CMP/Android/Android.mk
 include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/ESIF_WS/Android/Android.mk
-include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/UPE_IOC/Android/Android.mk
+#include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/UPE_IOC/Android/Android.mk
+#include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/UPE_JAVA/Android/Android.mk
+#include $(INTEL_DPTF_ROOT_PATH)/ESIF/Products/JHS/Android.mk
 include $(INTEL_DPTF_ROOT_PATH)/DPTF/Androidx86/jni/Android.mk

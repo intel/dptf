@@ -396,4 +396,6 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 
 #define esif_rc_str(type) esif_error_str(type)
 
+#ifdef ESIF_ATTR_USER
 typedef enum esif_rc eEsifError;
+#endif

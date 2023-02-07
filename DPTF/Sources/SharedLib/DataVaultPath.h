@@ -78,6 +78,5 @@ namespace DataVaultPath
 		static const std::string Hwpf = DataVaultPathBasePaths::FeaturesRoot + "/hwpf";
 		static const std::string PowerShare2Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
 		static const std::string Psh2GfxPerfHintDisabled = DataVaultPathBasePaths::FeaturesRoot + "/psh2_gfx_perf_hint_disabled";
-		static const std::string EpoCustomizationDisabled = DataVaultPathBasePaths::FeaturesRoot + "/epo_customization_disabled";
 	};
 };

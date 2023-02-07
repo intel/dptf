@@ -28,6 +28,10 @@
 #include "esif_ws_http.h"
 #include "esif_ws_socket.h"
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#define _SDL_BANNED_RECOMMENDED
+#include "win\banned.h"
+#endif
 
 // Use Non-Blocking Socket I/O
 #ifdef MSG_NOSIGNAL

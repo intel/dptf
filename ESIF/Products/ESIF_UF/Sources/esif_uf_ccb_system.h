@@ -22,7 +22,15 @@
 #include "esif_sdk_data.h"
 #include "esif_uf_ccb_thermalapi.h"
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#include "powrprof.h"
+#include "win\dppe.h"
+#endif
 
+#ifdef ESIF_ATTR_OS_ANDROID
+#include <cutils/android_reboot.h>
+#include <cutils/properties.h>
+#endif
 
 #define MAX_SYSTEM_CMD	256
 
@@ -38,7 +46,11 @@ static ESIF_INLINE void esif_ccb_system(const char *cmd)
 // Reboot
 static ESIF_INLINE void esif_ccb_reboot()
 {
+#if defined(ESIF_ATTR_OS_WINDOWS)
+	esif_ccb_system("shutdown /r /t 0");
+#else
 	esif_ccb_system("reboot");
+#endif
 }
 
 /* Convert GUID format from
@@ -69,8 +81,18 @@ static ESIF_INLINE void esif_ccb_shutdown(
 	EsifString namePtr
 	)
 {
-#if   defined(ESIF_ATTR_OS_CHROME)
+#if defined(ESIF_ATTR_OS_WINDOWS)
+	esif_ccb_report_thermal_event(
+		ENVIRONMENTAL_EVENT_SHUTDOWN,
+		temperature,
+		tripPointTemperature,
+		namePtr
+		);
+	esif_ccb_system("shutdown /s /f /t 0");
+#elif defined(ESIF_ATTR_OS_CHROME)
 	esif_ccb_system("shutdown -P now");
+#elif defined(ESIF_ATTR_OS_ANDROID)
+	property_set(ANDROID_RB_PROPERTY, "thermal-shutdown");
 #else
 	esif_ccb_system("shutdown -h now");
 #endif
@@ -85,7 +107,21 @@ static ESIF_INLINE void esif_ccb_hibernate(
 	EsifString namePtr
 	)
 {
-#if   defined(ESIF_ATTR_OS_CHROME)
+#if defined(ESIF_ATTR_OS_WINDOWS)
+	esif_ccb_report_thermal_event(
+		ENVIRONMENTAL_EVENT_HIBERNATE,
+		temperature,
+		tripPointTemperature,
+		namePtr
+		);
+	/*
+	** TODO: Remove this code later as this is only a temporary solution for
+	** problems related to attempting a hibernate too soon after a resume in
+	** Windows.
+	*/
+	esif_ccb_sleep_msec(SUSPEND_DELAY_IN_MILLISECONDS);
+	SetSuspendState(1, 1, 0);
+#elif defined(ESIF_ATTR_OS_CHROME)
 	/* NA */
 #else
 	esif_ccb_system("pm-hibernate");
@@ -96,13 +132,37 @@ static ESIF_INLINE void esif_ccb_hibernate(
 // Enter S3 or CS
 static ESIF_INLINE void esif_ccb_suspend()
 {
-#if   defined(ESIF_ATTR_OS_CHROME)
+#if defined(ESIF_ATTR_OS_WINDOWS)
+	/*
+	** TODO: Remove this code later as this is only a temporary solution for
+	** problems related to attempting a sleep too soon after a resume in
+	** Windows.
+	*/
+	esif_ccb_sleep_msec(SUSPEND_DELAY_IN_MILLISECONDS);
+	SetSuspendState(0, 1, 0);
+#elif defined(ESIF_ATTR_OS_CHROME)
 	esif_ccb_system("powerd_dbus_suspend");
+#elif defined(ESIF_ATTR_OS_ANDROID)
+	esif_ccb_system("input keyevent 26");
 #else
 	esif_ccb_system("pm-suspend");
 #endif
 }
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#define esif_ccb_disable_all_power_settings \
+	esif_ccb_disable_all_power_settings_win
+
+#define esif_ccb_enable_power_setting(req_ptr) \
+	esif_ccb_enable_power_setting_win(req_ptr)
+
+#define esif_ccb_disable_power_setting(req_ptr) \
+	esif_ccb_disable_power_setting_win(req_ptr)
+
+#define esif_ccb_remove_power_setting(req_ptr) \
+	esif_ccb_remove_power_setting_win(req_ptr)
+
+#else
 #define esif_ccb_disable_all_power_settings \
 	ESIF_E_ACTION_NOT_IMPLEMENTED
 
@@ -115,6 +175,7 @@ static ESIF_INLINE void esif_ccb_suspend()
 #define esif_ccb_remove_power_setting(req_ptr) \
 	ESIF_E_ACTION_NOT_IMPLEMENTED
 
+#endif
 
 /*****************************************************************************/
 /*****************************************************************************/

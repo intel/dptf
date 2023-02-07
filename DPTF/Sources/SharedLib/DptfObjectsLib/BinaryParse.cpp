@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #include "BinaryParse.h"
-#include "StringParser.h"
 
 UInt64 BinaryParse::extractBits(UInt16 startBit, UInt16 stopBit, UInt64 data)
 {
@@ -36,22 +35,21 @@ UInt64 BinaryParse::extractBits(UInt16 startBit, UInt16 stopBit, UInt64 data)
 
 std::string BinaryParse::normalizeAcpiScope(const std::string& acpiScope)
 {
-	std::string parsedScope = StringParser::removeCharacter(acpiScope, '\0');
-	if (parsedScope == Constants::InvalidString || parsedScope == Constants::NotAvailableString)
+	if (acpiScope == Constants::InvalidString || acpiScope == Constants::NotAvailableString)
 	{
-		return parsedScope;
+		return acpiScope;
 	}
 
 	std::stringstream normalizedAcpiScope;
 	UIntN charsSinceLastDot(0);
-	for (UIntN pos = 0; pos < parsedScope.size(); pos++)
+	for (UIntN pos = 0; pos < acpiScope.size(); pos++)
 	{
-		if (parsedScope[pos] == '\\')
+		if (acpiScope[pos] == '\\')
 		{
-			normalizedAcpiScope << parsedScope[pos];
+			normalizedAcpiScope << acpiScope[pos];
 			charsSinceLastDot = 0;
 		}
-		else if (parsedScope[pos] == '.')
+		else if (acpiScope[pos] == '.')
 		{
 			IntN underscoresToAdd = 4 - charsSinceLastDot;
 			while (underscoresToAdd > 0)
@@ -59,17 +57,22 @@ std::string BinaryParse::normalizeAcpiScope(const std::string& acpiScope)
 				normalizedAcpiScope << '_';
 				underscoresToAdd--;
 			}
-			normalizedAcpiScope << parsedScope[pos];
+			normalizedAcpiScope << acpiScope[pos];
 			charsSinceLastDot = 0;
+		}
+		else if (acpiScope[pos] == '\0')
+		{
+			charsSinceLastDot++;
+			continue;
 		}
 		else
 		{
-			normalizedAcpiScope << parsedScope[pos];
+			normalizedAcpiScope << acpiScope[pos];
 			charsSinceLastDot++;
 		}
 	}
 
-	if (parsedScope.size() > 0)
+	if (acpiScope.size() > 0)
 	{
 		IntN underscoresToAdd = 4 - charsSinceLastDot;
 		while (underscoresToAdd > 0)
