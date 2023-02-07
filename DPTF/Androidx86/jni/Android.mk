@@ -51,11 +51,11 @@ include $(TOP_PATH)/SharedLib/ResourceLib/Android.mk
 include $(TOP_PATH)/PolicyLib/Android.mk
 include $(TOP_PATH)/UnifiedParticipant/Android.mk
 include $(TOP_PATH)/Policies/ActivePolicy/Android.mk
-include $(TOP_PATH)/Policies/ConditionalLogicLib/Android.mk
-include $(TOP_PATH)/Policies/AdaptivePerformancePolicy/Android.mk
+#include $(TOP_PATH)/Policies/ConditionalLogicLib/Android.mk
+#include $(TOP_PATH)/Policies/AdaptivePerformancePolicy/Android.mk
 include $(TOP_PATH)/Policies/CriticalPolicy/Android.mk
-include $(TOP_PATH)/Policies/EmergencyCallModePolicy/Android.mk
-include $(TOP_PATH)/Policies/PassivePolicy2/Android.mk
-include $(TOP_PATH)/Policies/VirtualSensorPolicy/Android.mk
+#include $(TOP_PATH)/Policies/EmergencyCallModePolicy/Android.mk
+#include $(TOP_PATH)/Policies/PassivePolicy2/Android.mk
+#include $(TOP_PATH)/Policies/VirtualSensorPolicy/Android.mk
 include $(TOP_PATH)/Manager/Android.mk
 include $(TOP_PATH)/Resources/Android.mk

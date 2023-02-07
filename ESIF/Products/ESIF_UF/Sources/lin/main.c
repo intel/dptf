@@ -1162,7 +1162,13 @@ static void EsifSysfsReadExit()
 {
 	gSysfsReadQuit = ESIF_TRUE;
 
+#ifdef ESIF_ATTR_OS_ANDROID
+        // Android NDK does not support pthread_cancel()
+        // Use pthread_kill() to emualte
+        pthread_kill(g_udev_thread, SIGUSR1);
+#else
 	pthread_cancel(gSysfsReadThread);
+#endif
 	esif_ccb_thread_join(&gSysfsReadThread);
 }
 
