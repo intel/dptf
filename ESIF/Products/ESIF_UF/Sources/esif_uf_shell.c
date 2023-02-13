@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -107,7 +107,7 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define MIN_PARAMETERS_FOR_APP_STATUS 2
 
 /* Participant Creation Defaults */
-#define DYNAMIC_PARTICIPANT_VERSION ESIF_PARTICIPANT_VERSION
+#define DYNAMIC_PARTICIPANT_VERSION ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION
 #define DYNAMIC_PARTICIPANT_FLAGS 0X0
 
 #define DYNAMIC_PARTICIPANT_PCIE_NAME "PCIE"
@@ -116,11 +116,35 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define DYNAMIC_PARTICIPANT_PCIE_PTYPE "45" // ESIF_DOMAIN_TYPE_PCIE
 #define DYNAMIC_PARTICIPANT_PCIE_FLAGS "0"
 
+#define DYNAMIC_PARTICIPANT_DISPLAY_NAME "DPLY"
+#define DYNAMIC_PARTICIPANT_DISPLAY_DESCRIPTION "Display Participant"
+#define DYNAMIC_PARTICIPANT_DISPLAY_HID "INT3406" // Use the ACPI ID previously exposed via BIOS
+#define DYNAMIC_PARTICIPANT_DISPLAY_PTYPE "10" // ESIF_DOMAIN_TYPE_DISPLAY
+#define DYNAMIC_PARTICIPANT_DISPLAY_FLAGS "0"
+
 #define DYNAMIC_PARTICIPANT_VPU_NAME "VPU"
 #define DYNAMIC_PARTICIPANT_VPU_DESCRIPTION "VPU Participant"
 #define DYNAMIC_PARTICIPANT_VPU_HID "INTVPU"
 #define DYNAMIC_PARTICIPANT_VPU_PTYPE "46" // ESIF_DOMAIN_TYPE_VPU
 #define DYNAMIC_PARTICIPANT_VPU_FLAGS "0"
+
+#define DYNAMIC_PARTICIPANT_WIFI_NAME "WIFI"
+#define DYNAMIC_PARTICIPANT_WIFI_DESCRIPTION "WiFi Participant"
+#define DYNAMIC_PARTICIPANT_WIFI_HID "INTWIFI"
+#define DYNAMIC_PARTICIPANT_WIFI_PTYPE "7" // ESIF_DOMAIN_TYPE_WIRELESS
+#define DYNAMIC_PARTICIPANT_WIFI_FLAGS "0"
+
+#define DYNAMIC_PARTICIPANT_IDG2_NAME "IDG2"
+#define DYNAMIC_PARTICIPANT_IDG2_DESCRIPTION "IDG2 Participant"
+#define DYNAMIC_PARTICIPANT_IDG2_HID "INT340D"
+#define DYNAMIC_PARTICIPANT_IDG2_PTYPE "43" // ESIF_DOMAIN_TYPE_IDGFX2
+#define DYNAMIC_PARTICIPANT_IDG2_FLAGS "0"
+
+#define DYNAMIC_PARTICIPANT_MCP_NAME "MCP"
+#define DYNAMIC_PARTICIPANT_MCP_DESCRIPTION "MCP Participant"
+#define DYNAMIC_PARTICIPANT_MCP_HID "INT3530"
+#define DYNAMIC_PARTICIPANT_MCP_PTYPE "38" // ESIF_DOMAIN_TYPE_DGFXMCP
+#define DYNAMIC_PARTICIPANT_MCP_FLAGS "0"
 
 
 /* Friends */
@@ -160,7 +184,11 @@ static const char *g_shellStartScript = NULL;
 static eEsifError esif_shell_get_participant_id(char *participantNameOrId, esif_handle_t *targetParticipantIdPtr);
 static void esif_shell_get_primitive_alias(esif_primitive_type_t primitiveId, UInt8 instance, char* primitiveAlias, int buffer_len);
 esif_error_t CreatePcieParticipant();
+esif_error_t CreateDisplayParticipant();
 esif_error_t CreateVpuParticipant();
+esif_error_t CreateWifiParticipant();
+esif_error_t CreateIdg2Participant();
+esif_error_t CreateMcpParticipant();
 
 // Global Shell lock to limit parse_cmd to one thread at a time
 static esif_ccb_mutex_t g_shellLock;
@@ -764,6 +792,29 @@ esif_error_t CreatePcieParticipant()
 #endif
 
 
+
+esif_error_t CreateDisplayParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_DISPLAY_NAME,
+		DYNAMIC_PARTICIPANT_DISPLAY_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_DISPLAY_HID,
+		DYNAMIC_PARTICIPANT_DISPLAY_PTYPE,
+		DYNAMIC_PARTICIPANT_DISPLAY_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+
+	return rc;
+}
+
+
+
 #if defined(ESIF_FEAT_OPT_VPU_SUPPORT_ENABLED)
 
 esif_error_t CreateVpuParticipant()
@@ -792,6 +843,67 @@ esif_error_t CreateVpuParticipant()
 	return ESIF_OK;
 }
 #endif
+
+esif_error_t CreateWifiParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_WIFI_NAME,
+		DYNAMIC_PARTICIPANT_WIFI_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_WIFI_HID,
+		DYNAMIC_PARTICIPANT_WIFI_PTYPE,
+		DYNAMIC_PARTICIPANT_WIFI_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+
+	return rc;
+}
+
+esif_error_t CreateIdg2Participant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_IDG2_NAME,
+		DYNAMIC_PARTICIPANT_IDG2_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_IDG2_HID,
+		DYNAMIC_PARTICIPANT_IDG2_PTYPE,
+		DYNAMIC_PARTICIPANT_IDG2_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+
+	return rc;
+}
+
+
+esif_error_t CreateMcpParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_MCP_NAME,
+		DYNAMIC_PARTICIPANT_MCP_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_MCP_HID,
+		DYNAMIC_PARTICIPANT_MCP_PTYPE,
+		DYNAMIC_PARTICIPANT_MCP_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+
+	return rc;
+}
 
 
 // Destroy all Persisted Dynamic Participants (that have been created)
@@ -826,14 +938,19 @@ esif_error_t DestroyDynamicParticipants()
 					}
 					EsifUp_PutRef(upPtr);
 
-					if (isConjured && EsifUpPm_DestroyParticipant(partname) == ESIF_OK) {
-						CMD_OUT("Participant %s destroyed.\n", partname);
+					if (isConjured) {
+						esif_uf_shell_unlock();
+						rc = EsifUpPm_DestroyParticipant(partname);
+						esif_uf_shell_lock();
+						if (rc == ESIF_OK) {
+							CMD_OUT("Participant %s destroyed.\n", partname);
 
-						// Reset Default Participant to IETM if we just destroyed it
-						if (g_dstName && esif_ccb_stricmp(partname, g_dstName) == 0) {
-							g_dst = ESIF_HANDLE_PRIMARY_PARTICIPANT;
-							esif_ccb_free(g_dstName);
-							g_dstName = esif_ccb_strdup(ESIF_PARTICIPANT_DPTF_NAME);
+							// Reset Default Participant to IETM if we just destroyed it
+							if (g_dstName && esif_ccb_stricmp(partname, g_dstName) == 0) {
+								g_dst = ESIF_HANDLE_PRIMARY_PARTICIPANT;
+								esif_ccb_free(g_dstName);
+								g_dstName = esif_ccb_strdup(ESIF_PARTICIPANT_DPTF_NAME);
+							}
 						}
 					}
 				}
@@ -4969,11 +5086,17 @@ static char* esif_shell_cmd_addpart(EsifShellCmdPtr shell)
 	if (EsifUpPm_DoesAvailableParticipantExistByName(newParticipantName)) {
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Participant %s already created.\n", newParticipantName);
 	}
-	else if ((rc = EsifUpPm_RegisterParticipant(origin, &newParticipantData, &newInstance)) == ESIF_OK) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Participant %s created.\n", newParticipantName);
-	}
 	else {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Error Creating Participant %s (%s)\n", newParticipantName, esif_rc_str(rc));
+		esif_uf_shell_unlock();
+		rc = EsifUpPm_RegisterParticipant(origin, &newParticipantData, &newInstance);
+		esif_uf_shell_lock();
+
+		if (rc == ESIF_OK) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Participant %s created.\n", newParticipantName);
+		}
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Error Creating Participant %s (%s)\n", newParticipantName, esif_rc_str(rc));
+		}
 	}
 
 exit:
@@ -5551,7 +5674,9 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 			// participant destroy <name> = Destroy Participant only
 			if (esif_ccb_stricmp(argv[1], "destroy") == 0) {
 				// Synchronously Destroy Participant so name can be reused
+				esif_uf_shell_unlock();
 				rc = EsifUpPm_DestroyParticipant(partname);
+				esif_uf_shell_lock();
 			}
 			// participant delete <name> = Delete Persisted Dynamic Participant and Destroy Participant
 			else {
@@ -5586,7 +5711,9 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 
 						if (ESIF_PARTICIPANT_ENUM_CONJURE == enumerator) {
 							// Synchronously Destroy Participant so name can be reused
+							esif_uf_shell_unlock();
 							rc = EsifUpPm_DestroyParticipant(partname);
+							esif_uf_shell_lock();
 						}
 					}
 				}
@@ -6957,7 +7084,7 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "\n"
 						 "IPF - Intel(R) Innovation Platform Framework\n"
-						 "Copyright (c) 2013-2022 Intel Corporation All Rights Reserved\n"
+						 "Copyright (c) 2013-2023 Intel Corporation All Rights Reserved\n"
 						 "\n"
 						 "ipf_uf - IPF Upper Framework (UF)\n"
 						 "Version:  %s\n"
@@ -8268,12 +8395,24 @@ static char *esif_shell_cmd_event(EsifShellCmdPtr shell)
 		opt++;
 	}
 
-	// Event Type
-	event_type = (eEsifEventType)esif_atoi(argv[opt++]);
+	// Event Type = EventID --OR-- EventName
+	if (isdigit(argv[opt][0])) {
+		event_type = (eEsifEventType)esif_atoi(argv[opt++]);
+	}
+	else {
+		event_type = esif_event_type_str2enum(argv[opt++]);
+		if (event_type == ESIF_EVENT_NONE) {
+			rc = ESIF_E_EVENT_NOT_FOUND;
+			goto exit;
+		}
+	}
 
 	// Optional Participant ID
 	if (argc > opt) {
-		participant_id = (esif_handle_t)esif_atoi64(argv[opt++]);
+		rc = esif_shell_get_participant_id(argv[opt++], &participant_id);
+		if (rc != ESIF_OK) {
+			goto exit;
+		}
 	}
 
 	// Optional Domain ID
@@ -8411,7 +8550,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2022 Intel Corporation All Rights Reserved\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2023 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
 		"Key:  <>-Required parameters\n"
 		"      []-Optional parameters\n"
@@ -8424,6 +8563,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"format <xml|text>                        Command Output Format (Default=text)\n"
 		"info                                     Get Kernel Version\n"
 		"about                                    List IPF Information\n"
+		"sdk                                      Get the SDK version\n"
+		"                                         Alias: sdk-version ('\\n' not appended)\n"
 		"capture [-overwrite] [filename]          Write all DPTF settings to .txt file in XML format [overwrite will replace existing file]\n"
 		"rem                                      Comment/Remark - ignored\n"
 		"repeat <count>                           Repeat Next Command N Times\n"
@@ -8437,9 +8578,11 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"load    <filename> [load parameters...]  Load and Execute Command File\n"
 		"loadtst <filename> [load parameters...]  Like 'load' but uses DSP DV for file\n"
 		"cat     <filename> [load parameters...]  Display Command File\n"
+		"cattst  <filename> [load parameters...]  Like 'cat' but uses DSP DV for file\n"
 		"proof   <filename> [load parameters...]  Prove Command File Replace Tokens\n"
 		"Load parameters replace tokens ($1...$9) in file. $dst$ replaced by file path\n"
 		"Use 'proof' to check parameter replacements\n"
+		"prooftst <filename> [load parameters...] Like 'proof' but uses DSP DV for file\n"
 		"\n"
 		"test <id | all>                          Test By ID or ALL Will Run All Tests\n"
 		"soe  <on|off>                            Stop On Error\n"
@@ -8463,8 +8606,10 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"infofpc <filename> [pattern]             Get Dst FPC Information\n"
 		"\n"
 		"PARTICIPANT COMMANDS:\n"
-		"participants                              List Active Participants\n"
+		"participants                             List Active Participants\n"
+		"                                         Alias: parts\n"
 		"participantsk                            List Kernel Participants\n"
+		"                                         Alias: partsk\n"
 		"participant create <options>             Create Persisted Dynamic Participant. Options:\n"
 		"  CONJURE <name> \"desc\" <hid> <ptype>    Create Persisted Dynamic Upper Framework Participant\n"
 		"  ACPI <name> \"desc\" <hid> <ptype>       Create Persisted Dynamic Kernel ACPI Participant\n"
@@ -8472,14 +8617,16 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"participant delete  NAME                 Delete and Destroy Persisted Dynamic Participant\n"
 		"participant destroy NAME                 Destroy Upper Framework Participant\n"
 		"participant  <id>                        Get Participant Information\n"
+		"                                         Alias: part\n"
 		"participantk <id>                        Get Kernel Participant Information\n"
+		"                                         Alias: partk\n"
 		"addpart <options>                        Add a new Upper Framework Participant. Options:\n"
 		"  <name> \"desc\" <hid> <ptype> [flags]\n"
 		"addpartk <options>                       Add a new Kernel Participant. Options: \n"
 		"  PCI <name> \"desc\" <vid> <did>\n"
 		"  ACPI <name> \"desc\" <hid> <ptype>\n"
-		"delpartk <name>                          Removes a Conjured Kernel Participant"
-		"dst  <id>                                Set Target Participant By ID\n"
+		"delpartk <name>                          Removes a Conjured Kernel Participant\n"
+		"dst <id>                                 Set Target Participant By ID\n"
 		"dstn <name>                              Set Target Participant By Name\n"
 		"domains                                  List Active Domains For Participant\n"
 		"\n"
@@ -8587,19 +8734,21 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	#endif
 		"APPLICATION MANAGEMENT:\n"
 		"apps                                     List all IPF hosted Applications\n"
-		"appstart   <application>                 Start an IPF Application [in-process]\n"
-		"appstop    <application>                 Stop an IPF Application\n"
-		"appstatus  <application>                 App Status\n"
-		"appenable  <application>                 App Enable\n"
-		"appabout   <application>                 App About\n"
+		"appstart [appname=]<app> [--libfile]     Start an IPF Application [in-process]\n"
+		"                                         If 'libfile' is not specified, 'app'\n"
+		"                                         is used as the library name\n"
+		"appstop    <app>                         Stop an IPF App\n"
+		"appstatus  <app>                         App Status\n"
+		"appenable  <app>                         App Enable\n"
+		"appabout   <app>                         App About\n"
 		"\n"
 		"ACTION MANAGEMENT:\n"
 		"actions                                  List all DSP Actions\n"
 		"actionsk                                 Get Kernel DSP Action Information\n"
 		"actionsu                                 Get User-Mode DSP Action Information\n"
 		"actionstart <action>                     Start a Loadable DSP Action\n"
-		"actionstop  <action>                     Stop a Loadable DSP Action\n"
-		"devices	 <action>					  List the devices enumerated and managed by a UPE\n"
+		"actionstop <action>                      Stop a Loadable DSP Action\n"
+		"devices <action>                         List the devices enumerated and managed by a UPE\n"
 		"driversk                                 List Kernel Participant Extensions\n"
 		"driverk <id>                             Get Kernel Participant Extension Info\n"
 		"upes                                     List User-mode Participant Extensions\n"
@@ -8611,6 +8760,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"\n"
 		"ARBITRATION MANAGEMENT:\n"
 		"arbitrator  <command>...                 See 'arbitrator help'\n"
+		"                                         Alias: arb\n"
 		"\n"
 		"USER-MODE PARTICIPANT DATA LOGGING:\n"
 		"participantlog "PARTICIPANTLOG_CMD_START_STR" [all |[PID DID capMask]...]\n"
@@ -9891,6 +10041,19 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 						}
 					}
 					esif_uf_shell_unlock();
+
+					// Wait for any pending appstarts to complete before stopping any apps
+					UInt32 startingApps = 0;
+					do {
+						esif_ccb_read_lock(&g_appMgr.fLock);
+						startingApps = g_appMgr.creationRefCount;
+						esif_ccb_read_unlock(&g_appMgr.fLock);
+						if (startingApps) {
+							esif_ccb_sleep_msec(100);
+						}
+					} while (startingApps);
+
+					// Stop all Restartable (in-process) Apps
 					for (idx = 0; idx < ESIF_MAX_APPS && loadedApps[idx] != NULL; idx++) {
 						esif_ccb_sprintf(sizeof(cmdline), cmdline, "appstop %s", loadedApps[idx]);
 						parse_cmd(cmdline, g_isRest, ESIF_TRUE);
@@ -13040,6 +13203,8 @@ char *esif_shell_exec_command(
 		return NULL;
 	}
 
+	ESIF_TRACE_DEBUG("Executing command: %s\n", line);
+
 	esif_uf_shell_lock();
 
 	// Create output buffer if necessary
@@ -13452,6 +13617,10 @@ eEsifError esif_shell_dispatch_cmd(
 							*output_ptr[0] = 0;
 							rc = esif_shell_dispatch(argc, argv, output_ptr);
 						}
+					}
+					else
+					{
+						rc = ESIF_E_NOT_FOUND;
 					}
 					EsifAppMgr_PutRef(appPtr);
 				}

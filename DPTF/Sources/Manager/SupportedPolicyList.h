@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,30 +24,35 @@
 class dptf_export ISupportedPolicyList
 {
 public:
-	virtual UIntN getCount(void) const = 0;
-	virtual Guid get(UIntN index) const = 0;
+	
 	virtual Bool isPolicySupported(const Guid& guid) const = 0;
 	virtual void update(void) = 0;
-	virtual ~ISupportedPolicyList() {}
+	virtual std::set<Guid> getGuids() const = 0;
+	virtual UInt64 getCount() const = 0;
+	virtual ~ISupportedPolicyList() = default;
 };
 
 class dptf_export SupportedPolicyList : public ISupportedPolicyList
 {
 public:
-	SupportedPolicyList(DptfManagerInterface* dptfManager);
+	SupportedPolicyList(DptfManagerInterface* dptfManager, const std::set<Guid>& defaultGuids);
+	virtual ~SupportedPolicyList() = default;
 
-	virtual UIntN getCount(void) const override;
-	Guid operator[](UIntN index) const;
-	virtual Guid get(UIntN index) const override;
-	virtual Bool isPolicySupported(const Guid& guid) const override;
-	virtual void update(void) override;
-	virtual ~SupportedPolicyList() {}
+	Bool isPolicySupported(const Guid& guid) const override;
+	void update(void) override;
+	std::set<Guid> getGuids() const override;
+	UInt64 getCount() const override;
 
 private:
 	DptfManagerInterface* m_dptfManager;
-	std::vector<Guid> m_guid;
-	Bool isBufferValid(const DptfBuffer& buffer) const;
-	std::vector<Guid> parseBufferForPolicyGuids(const DptfBuffer& buffer);
+	std::set<Guid> m_supportedPolicies;
+	std::set<Guid> m_defaultGuids;
+
+	void addDefaultPoliciesIfEmpty(std::set<Guid>& supportedPolicies) const;
+	void addSystemPolicy(std::set<Guid>& supportedPolicies) const;
+	static Bool isIdspDataValid(const DptfBuffer& buffer);
+	void throwIfIdspDataValid(const DptfBuffer& buffer) const;
+	std::set<Guid> readPoliciesFromIdsp() const;
 	void postMessageWithSupportedGuids() const;
 	EsifServicesInterface* getEsifServices() const;
 };

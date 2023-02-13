@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,20 +17,21 @@
 ******************************************************************************/
 
 #include "ParticipantMessage.h"
+using namespace std;
 
 ParticipantMessage::ParticipantMessage(
-	const std::string& fileName,
+	const string& fileName,
 	UIntN lineNumber,
-	const std::string& executingFunctionName)
+	const string& executingFunctionName)
 	: DptfMessage(fileName, lineNumber, executingFunctionName)
 {
 }
 
 ParticipantMessage::ParticipantMessage(
-	const std::string& fileName,
+	const string& fileName,
 	UIntN lineNumber,
-	const std::string& executingFunctionName,
-	const std::string& message,
+	const string& executingFunctionName,
+	const string& message,
 	UIntN domainIndex)
 	: DptfMessage(fileName, lineNumber, executingFunctionName)
 {

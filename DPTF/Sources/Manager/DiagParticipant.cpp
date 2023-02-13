@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 **
 ******************************************************************************/
 #include "DiagParticipantCommand.h"
-#include "FileIO.h"
+#include "FileIo.h"
 #include "DptfManagerInterface.h"
 #include "ParticipantManagerInterface.h"
 #include "TimeOps.h"
 
 using namespace std;
 
-DiagParticipantCommand::DiagParticipantCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
+DiagParticipantCommand::DiagParticipantCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
@@ -46,7 +46,7 @@ void DiagParticipantCommand::execute(const CommandArguments& arguments)
 
 	auto diagnostics = getParticipantDiagnosticReport(arguments);
 	auto fullReportPath = generateReportPath(arguments);
-	m_fileIo->writeData(fullReportPath, diagnostics);
+	m_fileIo->write(fullReportPath, diagnostics);
 }
 
 string DiagParticipantCommand::getParticipantDiagnosticReport(const CommandArguments& arguments)
@@ -69,7 +69,7 @@ string DiagParticipantCommand::generateReportPath(const CommandArguments& argume
 		reportName = TimeOps::generateTimestampNowAsString() + ".xml";
 	}
 
-	return FileIO::generatePathWithTrailingSeparator(reportPath) + reportName;
+	return FileIo::generatePathWithTrailingSeparator(reportPath) + reportName;
 }
 
 Bool DiagParticipantCommand::reportNameProvided(const CommandArguments& arguments) const
@@ -117,7 +117,7 @@ void DiagParticipantCommand::throwIfReportNameIsInvalid(const CommandArguments& 
 		}
 
 		auto reportName = arguments[2].getDataAsString();
-		if (IFileIO::fileNameContainsIllegalCharacters(reportName))
+		if (IFileIo::fileNameContainsIllegalCharacters(reportName))
 		{
 			string description = string("Invalid characters used in report name given.");
 			setResultMessage(description);

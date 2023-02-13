@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,8 +27,8 @@ CaptureDataGenerator::CaptureDataGenerator(DptfManagerInterface* dptfManager)
 {
 }
 
-void CaptureDataGenerator::logMessage(const std::string& message) const
+void CaptureDataGenerator::logMessage(const string& message) const
 {
 	m_dptfManager->getEsifServices()->writeMessageWarning(
-		"DTT Capture Command: "s + std::string{message}, MessageCategory::Default);
+		"DTT Capture Command: "s + string{message}, MessageCategory::Default);
 }

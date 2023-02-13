@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -58,6 +58,9 @@ public:
 	virtual void setHighestFanSpeedPercentage() override;
 	virtual void setValueWithinCapabilities() override;
 
+	// fan operating Mode
+	virtual Bool setFanOperatingMode(const UInt32 fanOperatingMode) override;
+
 	// properties
 	virtual const ActiveControlStaticCaps& getCapabilities() override;
 	virtual const ActiveControlDynamicCaps& getDynamicCapabilities() override;
@@ -66,6 +69,7 @@ public:
 	virtual UIntN getSmallestNonZeroFanSpeed() override;
 	virtual Bool hasValidActiveControlSet() override;
 	virtual ActiveControlSet getActiveControlSet() override;
+	virtual UInt32 getFanOperatingMode() override;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXml() override;

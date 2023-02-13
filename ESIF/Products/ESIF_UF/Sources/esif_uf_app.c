@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -119,6 +119,7 @@ static AppParticipantDataMapPtr EsifApp_FindEmptyDataMap(
 	const EsifAppPtr self
 	);
 
+static eEsifError EsifApp_BeforeAccessWaitCleanup(EsifAppPtr self);
 static void EsifApp_WaitForAccessCompletion(EsifAppPtr self);
 
 static void EsifApp_ClearParticipantDataMap(AppParticipantDataMapPtr participantDataMapPtr);
@@ -180,6 +181,7 @@ eEsifError EsifApp_Create(
 	}
 
 	esif_ccb_event_init(&self->deleteEvent);
+	esif_ccb_event_init(&self->accessCompleteEvent);
 	esif_ccb_lock_init(&self->objLock);
 	self->refCount = 1;
 
@@ -238,6 +240,7 @@ void EsifApp_Destroy(
 	esif_ccb_free(self->fAppIntroPtr);
 	esif_ccb_free(self->fLibNamePtr);
 	self->isRestartable = ESIF_FALSE;
+	esif_ccb_event_uninit(&self->accessCompleteEvent);
 	esif_ccb_event_uninit(&self->deleteEvent);
 	esif_ccb_lock_uninit(&self->objLock);
 	EsifHandleMgr_PutHandle(self->fHandle);
@@ -717,7 +720,7 @@ static AppParticipantDataPtr CreateParticipantData(
 	}
 
 	/* Common */
-	appDataPtr->fVersion = upDataPtr->fVersion;
+	appDataPtr->fVersion = ESIF_PARTICIPANT_VERSION;
 	ASSIGN_DATA_GUID(appDataPtr->fDriverType, upDataPtr->fDriverType);
 	ASSIGN_DATA_GUID(appDataPtr->fDeviceType, upDataPtr->fDriverType);
 	ASSIGN_DATA_STRING(appDataPtr->fName, upDataPtr->fName, sizeof(upDataPtr->fName));
@@ -1006,10 +1009,14 @@ eEsifError EsifApp_Start(EsifAppPtr self)
 	* An app may be stopped while it is still creating.  Many items must be
 	* created outside locks, so there may be a race for sections being created
 	* and destroyed.  So, we double back after creation and see if we need to
-	* stop again to clean everything up.
+	* stop again to clean everything up. (Cannot do full 'stop" as we hold an
+	* extra reference during creation and will block waiting for access
+	* completion.) Because we hold the additional reference, the thread
+	* stopping the app will wait until we release our reference and then
+	* perform the additional cleanup we do not do here.
 	*/
 	if (self->stoppingApp) {
-		EsifApp_Stop(self);
+		EsifApp_BeforeAccessWaitCleanup(self);
 		rc = ESIF_E_NO_CREATE;
 	}
 
@@ -1160,16 +1167,13 @@ exit:
 }
 
 
-eEsifError EsifApp_Stop(EsifAppPtr self)
+static eEsifError EsifApp_BeforeAccessWaitCleanup(EsifAppPtr self)
 {
 	eEsifError rc = ESIF_OK;
 	esif_guid_t guid = APP_UNLOADING;
 	EsifData dataGuid = { ESIF_DATA_GUID, &guid, sizeof(guid), sizeof(guid) };
 
-	if (NULL == self) {
-		rc = ESIF_E_PARAMETER_IS_NULL;
-		goto exit;
-	}
+	ESIF_ASSERT(self != NULL);
 
 	// Disable policy activity logging
 	if (self->policyLoggingEnabled) {
@@ -1188,10 +1192,25 @@ eEsifError EsifApp_Stop(EsifAppPtr self)
 	* elements must be accessed outside locks, we provide an indication to the app so
 	* that it may rollback changes as needed and signall access completion
 	*/
-	self->stoppingApp = ESIF_TRUE; 
+	self->stoppingApp = ESIF_TRUE;
 
 	rc = EsifApp_DestroyParticipants(self);
 	ESIF_TRACE_DEBUG("EsifUpManagerDestroyParticipantsInApp completed.\n");
+
+	return rc;
+}
+
+
+eEsifError EsifApp_Stop(EsifAppPtr self)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (NULL == self) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	EsifApp_BeforeAccessWaitCleanup(self);
 
 	/* Wait for any calls into the app to complete */
 	EsifApp_WaitForAccessCompletion(self);

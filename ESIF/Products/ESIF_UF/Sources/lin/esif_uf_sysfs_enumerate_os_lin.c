@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -105,8 +105,11 @@ static eEsifError GetManagerSysfsPath();
 static void EnumerateSysfsReadAttributes(char *ACPI_name,char *participant_path);
 static void AddSysfsReadTableEntry(char *ACPI_name, char *sysfsAtrributePath, Int32 eventType);
 static eEsifError EnumerateCoresBasedOnPerformance();
+static Bool IsIETMDevice(const char *hidDevice);
+static Bool IsTCPUPlatformDevice(const char *hidDevice);
 
 char g_ManagerSysfsPath[MAX_SYSFS_PATH] = { 0 };
+char g_TCPUSysfsPath[MAX_SYSFS_PATH] = { 0 };
 
 struct participantInfo {
 	char sysfsType[MAX_ZONE_NAME_LEN];
@@ -152,7 +155,7 @@ static void createParticipantsFromThermalSysfs(void)
 					}
 				}
 
-				newParticipantCreate(ESIF_PARTICIPANT_VERSION,
+				newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
 					*classGuidPtr,
 					ESIF_PARTICIPANT_ENUM_SYSFS,
 					0x0, // flags
@@ -183,7 +186,7 @@ void SysfsRegisterParticipants ()
 	char *spDevice = SYSFS_DPTF_HID;
 	const esif_guid_t classGuid = ESIF_PARTICIPANT_PLAT_CLASS_GUID;
 
-	sysPart.version = ESIF_PARTICIPANT_VERSION;
+	sysPart.version = ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION;
 	sysPart.enumerator = ESIF_PARTICIPANT_ENUM_SYSFS;
 	sysPart.flags = 1;
 	sysPart.send_event = NULL;
@@ -202,6 +205,9 @@ void SysfsRegisterParticipants ()
 	if ( rc!= ESIF_OK) {
 		ESIF_TRACE_WARN("\n Failure in enumerating Cores");
 	}
+	// Initialize TCPU sysfs path to 0
+	esif_ccb_memset(g_TCPUSysfsPath,0,sizeof(g_TCPUSysfsPath));
+
 	scanThermal();
 	scanPCI();
 	scanPlat();
@@ -350,6 +356,7 @@ static Int32 scanPCI(void)
 		}
 
 		char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
+		esif_ccb_sprintf(sizeof(g_TCPUSysfsPath), g_TCPUSysfsPath, "%s", participant_path);
 		/* map to thermal zone (try pkg thermal zone first)*/
 		for (UInt32 thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
 			thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
@@ -360,7 +367,7 @@ static Int32 scanPCI(void)
 			}
 		}
 
-		newParticipantCreate(ESIF_PARTICIPANT_VERSION,
+		newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
 			classGuid,
 			ESIF_PARTICIPANT_ENUM_SYSFS,
 			0x0,
@@ -386,15 +393,33 @@ exit:
 	return returnCode;
 }
 
+static Int32 PlatformDeviceFilter(const struct dirent *entry)
+{
+	Int32 returnValue = 0;
+	char *inputStr = esif_ccb_strdup(entry->d_name);
+	if ( inputStr == NULL ) {
+		ESIF_TRACE_ERROR("\nNO MEMORY");
+		goto exit;
+	}
+	// Returns first token 
+	// e.g If string INT3401:00 we extract only INT3401
+	char *hidStr = strtok(inputStr, ":");
+
+	if (esif_ccb_strcmp(esif_acpi_device_str(hidStr), ESIF_NOT_AVAILABLE) != 0) {
+		ESIF_TRACE_DEBUG("Platform Device Found: %s\n", inputStr);
+		returnValue = 1;
+	}
+exit:
+	esif_ccb_free(inputStr);
+	return returnValue;
+};
 
 static int scanPlat(void)
 {
+	int returnCode = -1;
 	DIR *dir;
 	struct dirent **namelist;
-	int n;
-	int prefix_len = esif_ccb_strlen(DPTF_PARTICIPANT_PREFIX,ESIF_NAME_LEN);
-	char *dptf_prefix = DPTF_PARTICIPANT_PREFIX;
-	int i;
+	int n = 0;
 	char participant_path[MAX_SYSFS_PATH] = { 0 };
 	char firmware_path[MAX_SYSFS_PATH] = { 0 };
 	char participant_scope[ESIF_SCOPE_LEN] = { 0 };
@@ -404,95 +429,104 @@ static int scanPlat(void)
 
 	dir = opendir(SYSFS_PLATFORM);
 	if (!dir) {
-		ESIF_TRACE_DEBUG("No platform sysfs\n");
-		return -1;
+		ESIF_TRACE_INFO("No platform sysfs\n");
+		returnCode = -1;
+		goto exit;
 	}
-	n = scandir(SYSFS_PLATFORM, &namelist, 0, alphasort);
+
+	n = scandir(SYSFS_PLATFORM, &namelist, PlatformDeviceFilter, alphasort);
 	if (n < 0) {
-		//no scan
+		ESIF_TRACE_WARN("No Matching Platform Device path exists\n");
+		returnCode = -1;
+		goto exit;
 	}
-	else {
-		while (n--) {
-			for (i=0;i < prefix_len;i++) {
-				if (namelist[n]->d_name[i] != dptf_prefix[i]) {
-					goto exit_participant;
-				}
-			}
 
-			esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PLATFORM,namelist[n]->d_name);
-			esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
+	while (n--) {
 
-			if (SysfsGetString(firmware_path,"hid", hid, sizeof(hid)) < 1) {
-				esif_ccb_strncpy(hid,SYSFS_DEFAULT_HID,HID_LEN);
-			}
-			// Check if it is a DTT Platform Device, If not, skip that device
-			if ( IsSupportedDttPlatformDevice(hid) == ESIF_FALSE ) {
-				goto exit_participant;
-			}
+		esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PLATFORM,namelist[n]->d_name);
+		esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
 
-			if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
-				int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
-				if (scope_len < ACPI_DEVICE_NAME_LEN) {
-					continue;
-				}
-				char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
-				if (esif_ccb_strlen(ACPI_name,ESIF_SCOPE_LEN) == ACPI_DEVICE_NAME_LEN
-					&& 	esif_ccb_strcmp(ACPI_name, ACPI_DPTF)==0) {
-					// DPTF (IETM) participant has already been created prior to the scanPlat() call
-					goto exit_participant;
-				}
-
-				char *ACPI_alias = NULL;
-				ACPI_alias = esif_ccb_malloc(MAX_ZONE_NAME_LEN);
-				if (ACPI_alias == NULL) {
-					//no memory
-					goto exit_participant;
-				}
-
-				/* map to thermal zone */
-				get_participant_name_alias(ACPI_name, ACPI_alias);
-				if (match_thermal_zone(ACPI_alias, participant_path) == ESIF_TRUE) {
-					newParticipantCreate(ESIF_PARTICIPANT_VERSION,
-							classGuid,
-							ESIF_PARTICIPANT_ENUM_SYSFS,
-							0x0,
-							ACPI_name,
-							ACPI_name,
-							"N/A",
-							hid,
-							participant_path,
-							participant_scope,
-							ptype);
-				}
-				// For devices with no mapping in thermal zone,
-				else {
-					newParticipantCreate(ESIF_PARTICIPANT_VERSION,
-							classGuid,
-							ESIF_PARTICIPANT_ENUM_SYSFS,
-							0x0,
-							ACPI_name,
-							ACPI_name,
-							"N/A",
-							hid,
-							participant_path,
-							participant_scope,
-							ptype);
-					ESIF_TRACE_INFO("Participant created with HID : %s", hid);
-					EnumerateSysfsReadAttributes(ACPI_name,participant_path);
-
-				}
-				esif_ccb_free(ACPI_alias);
-			}
-
-exit_participant:
-			esif_ccb_free(namelist[n]);
+		if (SysfsGetString(firmware_path,"hid", hid, sizeof(hid)) < 1) {
+			esif_ccb_strncpy(hid,SYSFS_DEFAULT_HID,HID_LEN);
 		}
-		esif_ccb_free(namelist);
-	}
-	closedir(dir);
 
-	return 0;
+		if (IsIETMDevice(hid)) {
+			// DPTF (IETM) participant has already been created prior to the scanPlat() call
+			ESIF_TRACE_INFO("\nIETM Device found. Skipping...");
+			goto exit_participant;
+		}
+
+		if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) < 1) {
+			ESIF_TRACE_ERROR("\n Error reading path for in paht : %s" , firmware_path);
+			goto exit_participant;
+		}
+
+		int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
+		if (scope_len < ACPI_DEVICE_NAME_LEN) {
+			ESIF_TRACE_ERROR("\n Invalid ACPI Scope Length in participant Scope: %s" , participant_scope);
+			goto exit_participant;;
+		}
+
+		char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
+		char *ACPI_alias = NULL;
+		ACPI_alias = esif_ccb_malloc(MAX_ZONE_NAME_LEN);
+		if (ACPI_alias == NULL) {
+			//no memory
+			ESIF_TRACE_ERROR("\nNO MEMORY");
+			goto exit_participant;
+		}
+
+		// Check if it is TCPU Participant device by comparing the HID to INT3401
+		if ( gSocParticipantFound == ESIF_FALSE && IsTCPUPlatformDevice(hid) == ESIF_TRUE) {
+			esif_ccb_sprintf(sizeof(g_TCPUSysfsPath), g_TCPUSysfsPath, "%s", participant_path);
+			gSocParticipantFound = ESIF_TRUE;
+		}
+
+		/* map to thermal zone */
+		get_participant_name_alias(ACPI_name, ACPI_alias);
+		if (match_thermal_zone(ACPI_alias, participant_path) == ESIF_TRUE) {
+			newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
+					classGuid,
+					ESIF_PARTICIPANT_ENUM_SYSFS,
+					0x0,
+					ACPI_name,
+					ACPI_name,
+					"N/A",
+					hid,
+					participant_path,
+					participant_scope,
+					ptype);
+		}
+		// For devices with no mapping in thermal zone,
+		else {
+			newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
+					classGuid,
+					ESIF_PARTICIPANT_ENUM_SYSFS,
+					0x0,
+					ACPI_name,
+					ACPI_name,
+					"N/A",
+					hid,
+					participant_path,
+					participant_scope,
+					ptype);
+			ESIF_TRACE_INFO("Participant created with HID : %s", hid);
+			EnumerateSysfsReadAttributes(ACPI_name,participant_path);
+		}
+		esif_ccb_free(ACPI_alias);
+exit_participant:
+		esif_ccb_free(namelist[n]);
+	}
+	esif_ccb_free(namelist);
+	returnCode = 0;
+exit:
+	if (dir != NULL) {
+		closedir(dir);
+	}
+
+	return returnCode;
 }
+
 static void AddSysfsReadTableEntry(char *ACPI_name, char *sysfsAtrributePath, Int32 eventType)
 {
 	ESIF_ASSERT(ACPI_name != NULL);
@@ -714,6 +748,31 @@ static Bool IsSupportedDttPlatformDevice(const char *hidDevice)
 	return isSupported;
 }
 
+static Bool IsIETMDevice(const char *hidDevice)
+{
+	const char **hids = esif_enum_ietm_hid();
+	if (hids == NULL) {
+		return ESIF_FALSE;
+	}
+
+	for (size_t i = 0; hids != NULL && hids[i] != NULL; i++) {
+		if (esif_ccb_strcmp(hidDevice, hids[i]) == 0) {
+			// Found the manager participant return true
+			ESIF_TRACE_INFO("\n Found Manager Device ");
+			return ESIF_TRUE;
+		}
+	}
+	return ESIF_FALSE;
+}
+
+static Bool IsTCPUPlatformDevice(const char *hidDevice)
+{
+	if (esif_ccb_strcmp(hidDevice, ESIF_ACPI_DEVICE_INT3401) == 0) {
+		ESIF_TRACE_INFO("\n TCPU Platform Device Found ");
+		return ESIF_TRUE;
+	}
+	return ESIF_FALSE;
+}
 
 Int32 CpuSysfsFilter(const struct dirent * entry)
 {
@@ -836,6 +895,7 @@ eEsifError EnumerateCoresBasedOnPerformance()
 			continue;
 		}
 		AddEntryToSystemCpuIndexTable(&g_systemCpuIndexTable, cpuIndex, highestPerformance);
+		esif_ccb_free(namelist[i]);
 	}
 	g_systemCpuIndexTable.numberOfCpus = numCores;
 	g_systemCpuIndexTable.isInitialized = ESIF_TRUE;

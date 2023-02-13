@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,6 @@ using namespace std;
 
 PolicyListCaptureDataGenerator::PolicyListCaptureDataGenerator(DptfManagerInterface* dptfManager)
 	: CaptureDataGenerator(dptfManager)
-	, m_policyManager(m_dptfManager->getPolicyManager())
 {
 
 }
@@ -33,13 +32,14 @@ Example:
 	<fld>78563412-BBAA-DDCC-EEFF-ABCDEF123456</fld>
 </idsp>
 */
+
 std::shared_ptr<XmlNode> PolicyListCaptureDataGenerator::generate() const
 {
-	const auto supportedPolicyList = m_policyManager->getSupportedPolicyList();
+	const auto supportedPolicyList = m_dptfManager->getPolicyManager()->getSupportedPolicyList();
 	const auto categoryRoot = XmlNode::createWrapperElement("idsp");
-	for (UIntN policy = 0; policy < supportedPolicyList->getCount(); ++policy)
+
+	for (const auto& policyGuid : supportedPolicyList->getGuids())
 	{
-		const auto policyGuid = supportedPolicyList->get(policy);
 		categoryRoot->addChild(XmlNode::createDataElement("fld", policyGuid.toClassicString()));
 	}
 

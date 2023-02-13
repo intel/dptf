@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,7 +53,7 @@ typedef unsigned char Byte, *BytePtr, **BytePtrLocation;
 #define FLAGS_TESTVALID(flags, mask)	(((flags) & (mask)) == (flags))	// Test flags contains only valid bits in mask
 
 // Limits
-#define MAXAUTOLEN      65536		// Max length of strings when creating with ESIFAUTOLEN
+#define MAXAUTOLEN      ESIF_MAX_COMMAND	// Max length of strings when creating with ESIFAUTOLEN
 
 #define IGNORE_RESULT(expr)		do { if (expr) {} } while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 

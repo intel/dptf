@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -138,7 +138,7 @@ static eEsifError ConjureDestroy (void *cnjHandle)
 }
 
 
-esif_handle_t RegisterParticipant(const EsifParticipantIfacePtr piPtr)
+esif_handle_t RegisterParticipant(const struct _t_EsifParticipantIface *piPtr)
 {
 	esif_handle_t participantInstance = (esif_handle_t)ESIF_INVALID_HANDLE;
 

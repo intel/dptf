@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -76,7 +76,7 @@ public:
 	virtual void destroyParticipant(void) = 0;
 	virtual void enableParticipant(void) = 0;
 	virtual void disableParticipant(void) = 0;
-	virtual Bool isParticipantEnabled(void) = 0;
+	virtual Bool isParticipantEnabled(void) = 0;	
 
 	// Domain
 	virtual void createDomain(
@@ -106,6 +106,10 @@ public:
 	virtual void clearCachedResults() = 0;
 	virtual void clearTemperatureControlCachedData() = 0;
 	virtual void clearBatteryStatusControlCachedData() = 0;
+	virtual void setRfProfileOverride(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DptfBuffer& rfProfileBufferData) = 0; 
 
 	// Event handlers
 	virtual void connectedStandbyEntry(void) = 0;
@@ -136,6 +140,8 @@ public:
 	virtual void domainFanCapabilityChanged(void) = 0;
 	virtual void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) = 0;
 	virtual void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint) = 0;
+	virtual void domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction) = 0;
+	virtual void domainFanOperatingModeChanged(void) = 0;
 };
 
 //

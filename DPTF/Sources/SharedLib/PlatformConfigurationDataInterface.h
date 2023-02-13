@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,10 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "SensorOrientation.h"
-#include "OnOffToggle.h"
-#include "SensorSpatialOrientation.h"
-#include "PpmPackage.h"
+#include "EnvironmentProfile.h"
 
 class PlatformConfigurationDataInterface
 {
@@ -61,7 +58,7 @@ public:
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl) = 0;
 	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) const = 0;
 	virtual Temperature getProcessorTjMax(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual DptfBuffer getPowerBossConditionsTable(void) = 0;
 	virtual DptfBuffer getPowerBossActionsTable(void) = 0;
@@ -95,7 +92,7 @@ public:
 	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) = 0;
 	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual UInt64 getPlatformCpuId() = 0;
+	virtual EnvironmentProfile getEnvironmentProfile() const = 0;
 	virtual void clearPpmPackageSettings(void) = 0;
 	virtual UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) = 0;

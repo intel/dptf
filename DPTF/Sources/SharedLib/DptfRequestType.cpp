@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,6 +35,8 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "ActiveControlGetStatus";
 	case ActiveControlGetControlSet:
 		return "ActiveControlGetControlSet";
+	case ActiveControlGetFanOperatingMode:
+		return "ActiveControlGetFanOperatingMode";
 	case ActiveControlSetFanSpeed:
 		return "ActiveControlSetFanSpeed";
 	case ActiveControlSetDynamicCaps:
@@ -43,6 +45,8 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "ActiveControlSetFanCapsLock";
 	case ActiveControlSetFanDirection:
 		return "ActiveControlSetFanDirection";
+	case ActiveControlSetFanOperatingMode:
+		return "ActiveControlSetFanOperatingMode";
 	case BatteryStatusGetMaxBatteryPower:
 		return "BatteryStatusGetMaxBatteryPower";
 	case BatteryStatusGetBatteryStatus:
@@ -66,13 +70,15 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 	case PlatformNotificationSetOsc:
 		return "PlatformNotificationSetOsc";
 	case PlatformNotificationSetApplicationAliveResponse:
-		"PlatformNotificationSetApplicationAliveResponse";
+		return "PlatformNotificationSetApplicationAliveResponse";
 	case PlatformNotificationSetPolicySystemMode:
-		"PlatformNotificationSetPolicySystemMode";
+		return "PlatformNotificationSetPolicySystemMode";
 	case PlatformNotificationAppBroadcastSend:
-		"PlatformNotificationAppBroadcastSend";
+		return "PlatformNotificationAppBroadcastSend";
+	case PlatformNotificationFanOperatingModeChanged:
+		return "PlatformNotificationFanOperatingModeChanged";
 	case SocWorkloadClassificationGetSocWorkload:
-		"SocWorkloadClassificationGetSocWorkload";
+		return "SocWorkloadClassificationGetSocWorkload";
 	case ProcessorControlSetUnderVoltageThreshold:
 		return "ProcessorControlSetUnderVoltageThreshold";
 	case ProcessorControlSetTccOffsetTemperature:
@@ -103,6 +109,10 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "DynamicEppGetDynamicEppSupport";
 	case DynamicEppSetDynamicEppSupport:
 		return "DynamicEppSetDynamicEppSupport";
+	case SocWorkloadClassificationGetExtendedWorkloadPrediction:
+		return "SocWorkloadClassificationGetExtendedWorkloadPrediction";
+	case DataGetConfigurationFileContent:
+		return "DataGetConfigurationFileContent";
 	default:
 		throw dptf_exception("Invalid request type given to ToString");
 	}

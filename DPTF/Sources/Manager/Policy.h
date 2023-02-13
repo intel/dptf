@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -62,7 +62,7 @@ public:
 
 	virtual void executeIgccBroadcastReceived(
 		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
-	virtual void executeSwOemVariablesChanged(const DptfBuffer& swOemVariablesData) = 0;
+	virtual void executeSwOemVariablesChanged(void) = 0;
 	virtual void executeConnectedStandbyEntry(void) = 0;
 	virtual void executeConnectedStandbyExit(void) = 0;
 	virtual void executeSuspend(void) = 0;
@@ -109,6 +109,14 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		MbtHint::Type mbtHint) = 0;
+	virtual void executeDomainExtendedWorkloadPredictionChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction) = 0;
+	virtual void executeDomainFanOperatingModeChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		FanOperatingMode::Type fanOperatingMode) = 0;
 	virtual void executePolicyActiveRelationshipTableChanged(void) = 0;
 	virtual void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
 	virtual void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
@@ -167,6 +175,7 @@ public:
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) = 0;
 	virtual void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) = 0;
 	virtual void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) = 0;
+	virtual void executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource) = 0;
 };
 
 class dptf_export Policy : public IPolicy
@@ -206,7 +215,7 @@ public:
 	// Event handlers
 	virtual void executeIgccBroadcastReceived(
 		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
-	virtual void executeSwOemVariablesChanged(const DptfBuffer& swOemVariablesData) override;
+	virtual void executeSwOemVariablesChanged(void) override;
 	virtual void executeConnectedStandbyEntry(void) override;
 	virtual void executeConnectedStandbyExit(void) override;
 	virtual void executeSuspend(void) override;
@@ -253,6 +262,14 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		MbtHint::Type mbtHint) override;
+	virtual void executeDomainExtendedWorkloadPredictionChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction) override;
+	virtual void executeDomainFanOperatingModeChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		FanOperatingMode::Type fanOperatingMode) override;
 	virtual void executePolicyActiveRelationshipTableChanged(void) override;
 	virtual void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) override;
 	virtual void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) override;
@@ -311,6 +328,7 @@ public:
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) override;
 	virtual void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) override;
 	virtual void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override;
+	virtual void executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource) override;
 
 private:
 	// hide the copy constructor and assignment operator.

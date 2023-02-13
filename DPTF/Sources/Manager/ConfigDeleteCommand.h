@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,8 +15,10 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#pragma once
 #include "CommandHandler.h"
 
+// TODO: move this to another command called "dv delete" or "datavault delete" ?
 class dptf_export ConfigDeleteCommand : public CommandHandler
 {
 public:

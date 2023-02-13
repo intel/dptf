@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public:
 	Bool operator==(const PowerControlDynamicCaps& rhs) const;
 	Bool operator!=(const PowerControlDynamicCaps& rhs) const;
 	std::shared_ptr<XmlNode> getXml(void) const;
-	PowerControlDynamicCaps getDefaultPpccPl3RowValues() const;
+	PowerControlDynamicCaps getDefaultPpccRowValues(PowerControlType::Type PowerControlType) const;
 	PowerControlDynamicCaps getDefaultPpccPl4RowValues(Power pl4PowerLimit) const;
 	PowerControlDynamicCaps getPpccPlRowValues(struct EsifDataBinaryPpccPackage* currentRow) const;
 

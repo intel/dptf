@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -70,30 +70,4 @@
 #define ESIF_FLAG_DPTFZ 0x1	/* Participant Is Actually A DPTF Zone */
 #define ESIF_FLAG_EXTERN_DPTFZ 0x2	/* Participant Is Actually A DPTF Zone exposed by an external driver */
 #define ESIF_FLAG_ACCESS_ACPI_VIA_HAL 0x4	/* Participant is using the ACPI HAL target with absolute paths */
-
-
-#pragma pack(push,1)
-
-/* Upper Framework Initiated Participant INTERFACE */
-typedef struct _t_EsifParticipantIface {
-	esif_ver_t			version;				/* Version */
-	esif_guid_t			class_guid;			/* Class GUID */
-	enum esif_participant_enum enumerator; /* Device Enumerator If Any */
-	esif_flags_t		flags;				/* Flags If Any */
-	char				name[ESIF_NAME_LEN];		/* Friendly Name */
-	char				desc[ESIF_DESC_LEN];		/* Description */
-	char				driver_name[ESIF_NAME_LEN];	/* Driver Name */
-	char				device_name[ESIF_NAME_LEN];	/* Device Name */
-	char				device_path[ESIF_PATH_LEN];	/* Device Path /sys/bus/platform...*/
-	char				object_id[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g.\_UF.CNJR.WIDI  */
-	u32					acpi_type;
-	/* EVENT Send Event From Conjure To Framework */
-	enum esif_rc (ESIF_CALLCONV *send_event)(struct _t_EsifParticipantIface *pi,
-				   enum esif_event_type type, void *data);
-	/* EVENT Receive Event From Framework To Conjure */
-	enum esif_rc (ESIF_CALLCONV *recv_event)(enum esif_event_type type, void *data);
-} EsifParticipantIface, *EsifParticipantIfacePtr,
-**EsifParticipantIfacePtrLocation;
-
-#pragma pack(pop)
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#pragma once
 #include "CommandHandler.h"
 #include "CommandDispatcher.h"
 
@@ -31,9 +32,9 @@ private:
 	std::list<std::shared_ptr<CommandHandler>> m_subCommands;
 
 	void createSubCommands();
-	void registerSubCommands();
+	void registerSubCommands() const;
 
-	void throwIfInvalidCommand(const CommandArguments& arguments);
-	void throwIfInvalidArgumentData(const CommandArguments& arguments);
-	void throwIfInvalidArgumentCount(const CommandArguments& arguments);
+	void throwIfInvalidCommand(const CommandArguments& arguments) const;
+	static void throwIfInvalidArgumentData(const CommandArguments& arguments);
+	static void throwIfInvalidArgumentCount(const CommandArguments& arguments);
 };

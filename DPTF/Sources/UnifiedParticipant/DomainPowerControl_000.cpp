@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -165,6 +165,11 @@ void DomainPowerControl_000::setSocPowerFloorState(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	Bool socPowerFloorState)
+{
+	throw not_implemented();
+}
+
+void DomainPowerControl_000::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,11 +66,14 @@ namespace DomainType
 		Nvdgx,
 		Pcie,
 		Vpu,
+		Manager,
 		All,
 		Max
 	};
 
 	std::string toString(DomainType::Type type);
+	DomainType::Type fromString(const std::string& typeName);
+
 }
 
 namespace DefaultScope

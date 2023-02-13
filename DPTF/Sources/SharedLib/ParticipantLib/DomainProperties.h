@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,6 +41,7 @@ public:
 	DomainType::Type getDomainType(void) const;
 	std::string getName(void) const;
 	std::string getDescription(void) const;
+	DomainFunctionalityVersions getDomainFunctionalityVersions(void) const;
 
 	Bool implementsActiveControlInterface(void) const;
 	Bool implementsActivityStatusInterface(void) const;

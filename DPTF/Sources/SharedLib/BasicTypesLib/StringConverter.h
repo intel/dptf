@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,7 +28,13 @@ public:
 	static UInt64 toUInt64(const std::string& input);
 	static Int32 toInt32(const std::string& input);
 	static double toDouble(const std::string& input);
+	static std::string toHexString(UInt8 value);
+	static std::string toHexString(UInt16 value);
+	static std::string toHexString(UInt32 value);
+	static std::string toHexString(UInt64 value);
 	static std::string toUpper(const std::string& input);
 	static std::string toLower(const std::string& input);
 	static std::string trimWhitespace(const std::string& input);
+	static std::string trimQuotes(const std::string& input);
+	static std::string clone(const std::string& input);
 };

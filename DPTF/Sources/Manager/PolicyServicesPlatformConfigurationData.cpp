@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "esif_sdk_data_misc.h"
 #include "TableObjectType.h"
 #include "DataManager.h"
-#include "esif_ccb_cpuid.h"
+#include "EnvironmentProfile.h"
 
 PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData(
 	DptfManagerInterface* dptfManager,
@@ -189,8 +189,8 @@ void PolicyServicesPlatformConfigurationData::setSwOemVariables(const DptfBuffer
 {
 	throwIfNotWorkItemThread();
 
-	getDptfManager()->getDataManager()->setTableObject(
-		swOemVariablesData, TableObjectType::SwOemVariables, Constants::EmptyString);
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(
+		swOemVariablesData, TableObjectType::SwOemVariables);
 }
 
 UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIndex, UIntN domainIndex)
@@ -245,7 +245,7 @@ UInt32 PolicyServicesPlatformConfigurationData::getProcessorConfigTdpLock(UIntN 
 		esif_primitive_type::GET_CONFIG_TDP_LOCK, participantIndex, domainIndex);
 }
 
-Power PolicyServicesPlatformConfigurationData::getProcessorTdp(UIntN participantIndex, UIntN domainIndex)
+Power PolicyServicesPlatformConfigurationData::getProcessorTdp(UIntN participantIndex, UIntN domainIndex) const
 {
 	throwIfNotWorkItemThread();
 
@@ -639,12 +639,15 @@ void PolicyServicesPlatformConfigurationData::setPpmPackage(DptfBuffer package)
 	throwIfNotWorkItemThread();
 	EsifPpmParamValuesHeader* pkgHeader = (EsifPpmParamValuesHeader*)package.get();
 	UInt32 numParams = pkgHeader->numberElement;
-	UInt32 ppmParameterSize =
-		(numParams - 1) * sizeof(EsifPpmParamValues); // One less since package already accounts for one parameter
-	UInt32 ppmPackageSize = sizeof(EsifPpmParamValuesHeader) + ppmParameterSize;
+	if (numParams > 0)
+	{
+		UInt32 ppmParameterSize =
+			(numParams - 1) * sizeof(EsifPpmParamValues); // One less since package already accounts for one parameter
+		UInt32 ppmPackageSize = sizeof(EsifPpmParamValuesHeader) + ppmParameterSize;
 
-	getEsifServices()->primitiveExecuteSet(
-		esif_primitive_type::SET_PPM_PARAM_VALUES, ESIF_DATA_STRUCTURE, pkgHeader, ppmPackageSize, ppmPackageSize);
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_PPM_PARAM_VALUES, ESIF_DATA_STRUCTURE, pkgHeader, ppmPackageSize, ppmPackageSize);
+	}
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPpmPackage(DptfBuffer requestpackage)
@@ -660,6 +663,10 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPpmPackage(DptfBuffer req
 		Constants::Esif::NoDomain,
 		Constants::Esif::NoInstance);
 
+	if (buffer.size() < sizeof(EsifPpmParamValues))
+	{
+		throw invalid_data("Invalid EsifPpmParamValues from GET_PPM_PARAM_VALUES");
+	}
 	return buffer;
 }
 
@@ -802,16 +809,11 @@ UInt32 PolicyServicesPlatformConfigurationData::getTpgPowerStateWithoutCache(UIn
 		esif_primitive_type::GET_TPG_POWER_STATE, participantIndex, domainIndex);
 }
 
-UInt64 PolicyServicesPlatformConfigurationData::getPlatformCpuId()
+EnvironmentProfile PolicyServicesPlatformConfigurationData::getEnvironmentProfile() const
 {
 	throwIfNotWorkItemThread();
 
-	esif_ccb_cpuid_t cpuInfo = {0};
-	cpuInfo.leaf = ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE;
-	esif_ccb_cpuid(&cpuInfo);
-	UInt64 platformCpuId = cpuInfo.eax & CPUID_FAMILY_MODEL_MASK;
-
-	return platformCpuId;
+	return getDptfManager()->getEnvironmentProfile();
 }
 
 UInt32 PolicyServicesPlatformConfigurationData::getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,8 +26,8 @@
 #include "esif_sdk_iface_app.h"
 #include "EsifDataString.h"
 #include "EsifAppServices.h"
-#include "StringParser.h"
 #include <memory>
+#include <string>
 #include "HelpCommand.h"
 #include "DiagCommand.h"
 #include "ReloadCommand.h"
@@ -35,11 +35,19 @@
 #include "ConfigCommand.h"
 #include "ManagerLogger.h"
 #include "PlatformRequestHandler.h"
-#include "EsifLibrary.h"
 #include "DataManager.h"
 #include "SystemModeManager.h"
 #include "UiCommand.h"
 #include "CaptureCommand.h"
+#include "DttConfiguration.h"
+#include "PlatformCpuIdCommand.h"
+#include "EnvironmentProfiler.h"
+#include "PoliciesCommand.h"
+
+using namespace std;
+
+const string DttConfigurationName{"dtt"s};
+const DttConfigurationQuery DttConfigurationDefaultPoliciesQuery{"/DefaultPolicies/.*"s};
 
 DptfManager::DptfManager(void)
 	: m_dptfManagerCreateStarted(false)
@@ -54,20 +62,18 @@ DptfManager::DptfManager(void)
 	, m_participantManager(nullptr)
 	, m_commandDispatcher(nullptr)
 	, m_commands()
-	, m_fileIo(nullptr)
 	, m_indexContainer(nullptr)
 	, m_dataManager(nullptr)
 	, m_systemModeManager(nullptr)
-	, m_dptfHomeDirectoryPath(Constants::EmptyString)
-	, m_dptfPolicyDirectoryPath(Constants::EmptyString)
-	, m_dptfReportDirectoryPath(Constants::EmptyString)
+	, m_fileIo(nullptr)
+	, m_environmentProfile(0)
 {
 }
 
 void DptfManager::createDptfManager(
 	const esif_handle_t esifHandle,
 	EsifInterfacePtr esifInterfacePtr,
-	const std::string& dptfHomeDirectoryPath,
+	const string& dptfHomeDirectoryPath,
 	eLogType currentLogVerbosityLevel,
 	Bool dptfEnabled)
 {
@@ -79,77 +85,19 @@ void DptfManager::createDptfManager(
 
 	try
 	{
-		// HomePath is a Directory writable by this process, so use for ReportPath too
-		std::string homePath = dptfHomeDirectoryPath;
-		std::string reportPath = dptfHomeDirectoryPath;
-
-		// Determine Policy Path by getting this Library's Full Pathname
-		EsifLibrary dptfLib;
-		dptfLib.load();
-		std::string policyPath = dptfLib.getLibDirectory();
-		dptfLib.unload();
-		if (!policyPath.empty())
-		{
-			m_dptfPolicyDirectoryPath = policyPath;
-		}
-
-		if (homePath.back() != *ESIF_PATH_SEP)
-		{
-			homePath += ESIF_PATH_SEP;
-		}
-		if (policyPath.back() != *ESIF_PATH_SEP)
-		{
-			policyPath += ESIF_PATH_SEP;
-		}
-		if (reportPath.back() != *ESIF_PATH_SEP)
-		{
-			reportPath += ESIF_PATH_SEP;
-		}
-		m_dptfHomeDirectoryPath = homePath;
-		m_dptfPolicyDirectoryPath = policyPath;
-		m_dptfReportDirectoryPath = reportPath;
-		m_dptfEnabled = dptfEnabled;
-
-		EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
-		m_eventCache = std::make_shared<EventCache>();
-		m_userPreferredCache = std::make_shared<UserPreferredCache>();
-		m_indexContainer = new IndexContainer();
-		m_esifAppServices = new EsifAppServices(esifInterfacePtr);
-		m_esifServices = new EsifServices(this, esifHandle, m_esifAppServices, currentLogVerbosityLevel);
-		m_participantManager = new ParticipantManager(this);
-		m_commandDispatcher = new CommandDispatcher();
-		m_fileIo = std::make_shared<FileIO>();
-
-		m_dataManager = new DataManager(this);
-
-		m_policyManager = new PolicyManager(this);
-
-		m_systemModeManager = new SystemModeManager(this);
-
-		// Make sure to create these AFTER creating the ParticipantManager and PolicyManager
-		m_workItemQueueManager = new WorkItemQueueManager(this);
-		m_workItemQueueManagerCreated = true;
-
-		m_requestDispatcher = std::make_shared<RequestDispatcher>();
-		m_platformRequestHandler = std::make_shared<PlatformRequestHandler>(this);
-
-		m_policyManager->createAllPolicies(m_dptfPolicyDirectoryPath);
-
-		registerDptfFrameworkEvents();
-		m_systemModeManager->registerFrameworkEvents();
-
+		createBasicObjects(dptfHomeDirectoryPath, currentLogVerbosityLevel, dptfEnabled);
+		createBasicServices(esifHandle, esifInterfacePtr, currentLogVerbosityLevel);
 		createCommands();
-		registerCommands();
-
+		createPolicies();
+		registerForEvents();
+		notifyAppsThatDttHasLoaded();
 		m_dptfManagerCreateFinished = true;
-
-		m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppLoaded, Constants::Invalid, Constants::Invalid, eventData);
 	}
-	catch (std::exception& ex)
+	catch (exception& ex)
 	{
-		std::stringstream message;
-		message << "The DPTF application has failed to start." << std::endl;
-		message << ex.what() << std::endl;
+		stringstream message;
+		message << "The DPTF application has failed to start." << endl;
+		message << ex.what() << endl;
 		esifInterfacePtr->fWriteLogFuncPtr(
 			esifHandle,
 			ESIF_INVALID_HANDLE,
@@ -163,6 +111,93 @@ void DptfManager::createDptfManager(
 		shutDown();
 		throw dptf_exception("Failed to start DPTF");
 	}
+}
+
+void DptfManager::createBasicObjects(
+	const string& dptfHomeDirectoryPath,
+	eLogType currentLogVerbosityLevel,
+	Bool dptfEnabled)
+{
+	m_dptfEnabled = dptfEnabled;
+	m_filePathDirectory = make_shared<FilePathDirectory>(dptfHomeDirectoryPath);
+	m_fileIo = make_shared<FileIo>();
+	m_commandDispatcher = new CommandDispatcher();
+	m_indexContainer = new IndexContainer();
+	m_eventCache = make_shared<EventCache>();
+	m_userPreferredCache = make_shared<UserPreferredCache>();
+	m_messageLogFilter = make_shared<LogMessageFilter>();
+	m_messageLogFilter->setLevel(currentLogVerbosityLevel);
+	m_requestDispatcher = make_shared<RequestDispatcher>();
+	const EnvironmentProfiler environmentProfiler;
+	m_environmentProfile = environmentProfiler.generate();
+}
+
+void DptfManager::createBasicServices(
+	const esif_handle_t esifHandle,
+	EsifInterfacePtr esifInterfacePtr,
+	eLogType currentLogVerbosityLevel)
+{
+	m_esifAppServices = new EsifAppServices(esifInterfacePtr);
+	m_esifServices = new EsifServices(this, esifHandle, m_esifAppServices, currentLogVerbosityLevel);
+	m_messageLogger = make_shared<EsifMessageLogger>(m_messageLogFilter, m_esifServices);
+	m_configurationManager = ConfigurationFileManager::makeDefault(
+		m_messageLogger, m_fileIo, m_filePathDirectory->getConfigurationFilePaths());
+	m_configurationManager->loadFiles();
+	m_requestDispatcher->registerHandler(
+		DptfRequestType::DataGetConfigurationFileContent, m_configurationManager.get());
+	m_participantManager = new ParticipantManager(this); // required by work item queue manager
+	m_workItemQueueManager = new WorkItemQueueManager(this);
+	m_workItemQueueManagerCreated = true;
+	m_platformRequestHandler = make_shared<PlatformRequestHandler>(this);
+	m_dataManager = new DataManager(this);
+	m_systemModeManager = new SystemModeManager(this);
+}
+
+void DptfManager::createPolicies()
+{
+	const auto defaultPolicies = readDefaultEnabledPolicies();
+	m_policyManager = new PolicyManager(this, defaultPolicies);
+	m_policyManager->createAllPolicies(m_filePathDirectory->getPath(FilePathDirectory::Path::InstallFolder));
+}
+
+set<Guid> DptfManager::readDefaultEnabledPolicies() const
+{
+	try
+	{
+		const auto configFileContent = m_configurationManager->getContent(DttConfigurationName);
+		const DttConfiguration config(configFileContent);
+		const auto segments = config.getSegmentsWithValue(m_environmentProfile.cpuIdWithoutStepping);
+		set<Guid> result;
+		if (!segments.empty())
+		{
+			const auto keys = segments.front().getKeysThatMatch(DttConfigurationDefaultPoliciesQuery);
+			for (const auto& key : keys)
+			{
+				const auto policyGuidString = segments.front().getValueAsString(key);
+				const auto policyGuid = Guid::fromFormattedString(policyGuidString);
+				result.emplace(policyGuid);
+			}
+		}
+		return result;
+	}
+	catch (const exception& ex)
+	{
+		MANAGER_LOG_MESSAGE_WARNING_EX({return ManagerMessage(this,_file,_line,_function,
+			"Failed to load DTT configuration: "s + string(ex.what()));});
+		return {};
+	}
+}
+
+void DptfManager::registerForEvents()
+{
+	registerDptfFrameworkEvents();
+	m_systemModeManager->registerFrameworkEvents();
+}
+
+void DptfManager::notifyAppsThatDttHasLoaded()
+{
+	constexpr EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
+	m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppLoaded, Constants::Invalid, Constants::Invalid, eventData);
 }
 
 DptfManager::~DptfManager(void)
@@ -226,27 +261,32 @@ SystemModeManagerInterface* DptfManager::getSystemModeManager(void) const
 	return m_systemModeManager;
 }
 
-std::string DptfManager::getDptfHomeDirectoryPath(void) const
+shared_ptr<ConfigurationFileManagerInterface> DptfManager::getConfigurationManager() const
 {
-	return m_dptfHomeDirectoryPath;
+	return m_configurationManager;
 }
 
-std::string DptfManager::getDptfPolicyDirectoryPath(void) const
+EnvironmentProfile DptfManager::getEnvironmentProfile() const
 {
-	return m_dptfPolicyDirectoryPath;
+	return m_environmentProfile;
 }
 
-std::string DptfManager::getDptfReportDirectoryPath(void) const
+string DptfManager::getDptfPolicyDirectoryPath(void) const
 {
-	return m_dptfReportDirectoryPath;
+	return m_filePathDirectory->getPath(FilePathDirectory::Path::InstallFolder);
+}
+
+string DptfManager::getDptfReportDirectoryPath(void) const
+{
+	return m_filePathDirectory->getPath(FilePathDirectory::Path::LogFolder);
 }
 
 void DptfManager::shutDown(void)
 {
-	EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 	m_dptfShuttingDown = true;
 	m_dptfEnabled = false;
 
+	constexpr EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 	m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppUnloaded, Constants::Invalid, Constants::Invalid, eventData);
 	unregisterDptfFrameworkEvents();
 
@@ -266,7 +306,7 @@ void DptfManager::shutDown(void)
 	DELETE_MEMORY_TC(m_dataManager);
 }
 
-void DptfManager::disableAndEmptyAllQueues(void)
+void DptfManager::disableAndEmptyAllQueues(void) const
 {
 	try
 	{
@@ -283,7 +323,7 @@ void DptfManager::disableAndEmptyAllQueues(void)
 	}
 }
 
-void DptfManager::destroyAllPolicies(void)
+void DptfManager::destroyAllPolicies(void) const
 {
 	try
 	{
@@ -299,7 +339,7 @@ void DptfManager::destroyAllPolicies(void)
 	}
 }
 
-void DptfManager::destroyAllParticipants(void)
+void DptfManager::destroyAllParticipants(void) const
 {
 	try
 	{
@@ -373,7 +413,7 @@ void DptfManager::destroyFrameworkEventInfo(void)
 	}
 }
 
-void DptfManager::registerDptfFrameworkEvents(void)
+void DptfManager::registerDptfFrameworkEvents(void) const
 {
 	// FIXME:  Do these belong here?
 	//  DptfConnectedStandbyEntry
@@ -450,9 +490,17 @@ void DptfManager::registerDptfFrameworkEvents(void)
 	catch (...)
 	{
 	}
+
+	try
+	{
+		m_esifServices->registerEvent(FrameworkEvent::DptfAppBroadcastPrivileged);
+	}
+	catch (...)
+	{
+	}
 }
 
-void DptfManager::unregisterDptfFrameworkEvents(void)
+void DptfManager::unregisterDptfFrameworkEvents(void) const
 {
 	try
 	{
@@ -525,6 +573,14 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
 	catch (...)
 	{
 	}
+
+	try
+	{
+		m_esifServices->unregisterEvent(FrameworkEvent::DptfAppBroadcastPrivileged);
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfManager::registerCommands()
@@ -545,28 +601,31 @@ void DptfManager::unregisterCommands()
 
 void DptfManager::createCommands()
 {
-	m_commands.push_back(std::make_shared<HelpCommand>(this));
-	m_commands.push_back(std::make_shared<DiagCommand>(this, m_fileIo));
-	m_commands.push_back(std::make_shared<ReloadCommand>(this));
-	m_commands.push_back(std::make_shared<TableObjectCommand>(this));
-	m_commands.push_back(std::make_shared<ConfigCommand>(this));
-	m_commands.push_back(std::make_shared<UiCommand>(this));
-	m_commands.push_back(std::make_shared<CaptureCommand>(this, m_fileIo));
+	m_commands.push_back(make_shared<HelpCommand>(this));
+	m_commands.push_back(make_shared<DiagCommand>(this, m_fileIo));
+	m_commands.push_back(make_shared<ReloadCommand>(this));
+	m_commands.push_back(make_shared<TableObjectCommand>(this));
+	m_commands.push_back(make_shared<ConfigCommand>(this));
+	m_commands.push_back(make_shared<UiCommand>(this));
+	m_commands.push_back(make_shared<CaptureCommand>(this, m_fileIo));
+	m_commands.push_back(make_shared<PlatformCpuIdCommand>(this));
+	m_commands.push_back(make_shared<PoliciesCommand>(this));
+	registerCommands();
 }
 
-std::shared_ptr<EventCache> DptfManager::getEventCache(void) const
+shared_ptr<EventCache> DptfManager::getEventCache(void) const
 {
 	return m_eventCache;
 }
 
-std::shared_ptr<UserPreferredCache> DptfManager::getUserPreferredCache(void) const
+shared_ptr<UserPreferredCache> DptfManager::getUserPreferredCache(void) const
 {
 	return m_userPreferredCache;
 }
 
 void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 {
-	UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
+	const UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
 
 	for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 	{
@@ -575,7 +634,7 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 		{
 			try
 			{
-				auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+				const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
 				policy->bindDomain(participantIndex, domainIndex);
 			}
 			catch (dptf_exception& ex)
@@ -610,7 +669,7 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 
 void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 {
-	UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
+	const UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
 
 	for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 	{
@@ -619,7 +678,7 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 		{
 			try
 			{
-				auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+				const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
 				policy->unbindDomain(participantIndex, domainIndex);
 			}
 			catch (dptf_exception& ex)
@@ -659,7 +718,7 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 	{
 		try
 		{
-			auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+			const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
 			policy->bindParticipant(participantIndex);
 		}
 		catch (dptf_exception& ex)
@@ -696,7 +755,7 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 	{
 		try
 		{
-			auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+			const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
 			policy->unbindParticipant(participantIndex);
 		}
 		catch (dptf_exception& ex)
@@ -728,7 +787,7 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 
 void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 {
-	auto policy = m_policyManager->getPolicyPtr(policyIndex);
+	const auto policy = m_policyManager->getPolicyPtr(policyIndex);
 	auto participantIndexes = m_participantManager->getParticipantIndexes();
 	for (auto participantIndex = participantIndexes.begin(); participantIndex != participantIndexes.end();
 		 ++participantIndex)
@@ -737,7 +796,7 @@ void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 		{
 			policy->bindParticipant(*participantIndex);
 
-			UIntN domainCount = m_participantManager->getParticipantPtr(*participantIndex)->getDomainCount();
+			const UIntN domainCount = m_participantManager->getParticipantPtr(*participantIndex)->getDomainCount();
 
 			for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 			{
@@ -772,12 +831,18 @@ void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 	}
 }
 
-std::shared_ptr<RequestDispatcherInterface> DptfManager::getRequestDispatcher() const
+shared_ptr<RequestDispatcherInterface> DptfManager::getRequestDispatcher() const
 {
 	return m_requestDispatcher;
 }
 
-std::shared_ptr<RequestHandlerInterface> DptfManager::getPlatformRequestHandler() const
+shared_ptr<RequestHandlerInterface> DptfManager::getPlatformRequestHandler() const
 {
 	return m_platformRequestHandler;
+}
+
+void DptfManager::setCurrentLogVerbosityLevel(eLogType level)
+{
+	m_esifServices->setCurrentLogVerbosityLevel(level);
+	m_messageLogFilter->setLevel(level);
 }

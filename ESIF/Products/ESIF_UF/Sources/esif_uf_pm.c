@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,7 @@
 #include "esif_uf_handlemgr.h"
 #include "esif_command.h"
 #include "esif_ccb_string.h"
+#include "esif_sdk_iface_conjure.h"
 
 
 #define ESIF_PARTICIPANT0_INDEX	0
@@ -158,11 +159,13 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	);
 
 static eEsifError EsifUpPm_ActionChangeHandler(
-	EsifDataPtr eventDataPtr
-	);
+	EsifDataPtr eventDataPtr,
+	Bool isArrival
+);
 
 static void EsifUpPm_SuspendDynamicUfParticipants();
 static void EsifUpPm_ResumeDynamicUfParticipants();
+static esif_error_t EsifUpPm_CreateLPfromUFMeta(EsifParticipantIface *upDataPtr);
 
 
 static void *ESIF_CALLCONV EsifUfPollWorkerThread(void *ptr)
@@ -469,7 +472,9 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	struct esif_ipc_event_data_create_participant *creationDataPtr = NULL;
+	EsifEventDataCreateParticipant *creationDataPtr = NULL;
+	EsifLpData *lpCreationDataPtr = NULL;
+	EsifParticipantIface *upCreationDataPtr = NULL;
 	esif_handle_t newInstance = ESIF_INVALID_HANDLE;
 
 	UNREFERENCED_PARAMETER(context);
@@ -488,19 +493,54 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 			goto exit;
 		}
 		if (eventDataPtr->data_len < sizeof(*creationDataPtr)) {
-			rc = 	ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 			goto exit;
 		}
 
-		creationDataPtr = (struct esif_ipc_event_data_create_participant *) eventDataPtr->buf_ptr;
-
-		rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, creationDataPtr, &newInstance);
-		if (ESIF_OK != rc) {
-			ESIF_TRACE_INFO("Failed to add participant %s to participant manager; %s(%u)", creationDataPtr->name, esif_rc_str(rc), rc);
+		creationDataPtr = (EsifEventDataCreateParticipant *)eventDataPtr->buf_ptr;
+		if (creationDataPtr->hdr.version != ESIF_EVENT_DATA_PARTICIPANT_CREATE_HDR_VERSION) {
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 			goto exit;
 		}
 
-		ESIF_TRACE_INFO("\nCreate new UF participant: %s, instance = %d\n", creationDataPtr->name, newInstance);
+		switch (creationDataPtr->hdr.dataType) {
+		case ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_LP:
+			lpCreationDataPtr = (EsifLpData *)(&creationDataPtr->data);
+
+			rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, lpCreationDataPtr, &newInstance);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_INFO("Failed to add participant %s to participant manager; %s(%u)", lpCreationDataPtr->name, esif_rc_str(rc), rc);
+				goto exit;
+			}
+
+			ESIF_TRACE_INFO("\nCreated new LF participant: %s, instance = %d\n", lpCreationDataPtr->name, newInstance);
+			break;
+
+		case ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_UP:
+			upCreationDataPtr = (EsifParticipantIface *)(&creationDataPtr->data);
+
+			rc = EsifUpPm_RegisterParticipant(eParticipantOriginUF, upCreationDataPtr, &newInstance);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_INFO("Failed to add participant %s to participant manager; %s(%u)", upCreationDataPtr->name, esif_rc_str(rc), rc);
+				break;
+			}
+
+			ESIF_TRACE_INFO("\nCreated new UF participant: %s, instance = %d\n", upCreationDataPtr->name, newInstance);
+			break;
+
+		case ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_UP_W_LP:
+			upCreationDataPtr = (EsifParticipantIface *)(&creationDataPtr->data);
+
+			rc = EsifUpPm_CreateLPfromUFMeta(upCreationDataPtr);
+			if (ESIF_OK == rc) {
+				ESIF_TRACE_INFO("\nRequest sent for LF participant: %s, instance = %d\n", upCreationDataPtr->name, newInstance);
+			}
+			break;
+
+		default:
+			rc = ESIF_E_NOT_SUPPORTED;
+			break;
+		}
 		break;
 
 	case ESIF_EVENT_PARTICIPANT_SUSPEND:
@@ -533,8 +573,11 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 		break;
 
 	case ESIF_EVENT_ACTION_LOADED:
+			EsifUpPm_ActionChangeHandler(eventDataPtr, ESIF_TRUE);
+		break;
+
 	case ESIF_EVENT_ACTION_UNLOADED:
-			EsifUpPm_ActionChangeHandler(eventDataPtr);
+			EsifUpPm_ActionChangeHandler(eventDataPtr, ESIF_FALSE);
 		break;
 
 	case ESIF_EVENT_DISPLAY_OFF:
@@ -553,7 +596,8 @@ exit:
 }
 
 static eEsifError EsifUpPm_ActionChangeHandler(
-	EsifDataPtr eventDataPtr
+	EsifDataPtr eventDataPtr,
+	Bool isArrival
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -579,7 +623,9 @@ static eEsifError EsifUpPm_ActionChangeHandler(
 	// Create participants based on the arrival of KPE actions
 	// (Best effort only)
 	//
-	CreateActionAssociatedParticipants(actionType);
+	if (isArrival) {
+		CreateActionAssociatedParticipants(actionType);
+	}
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
 
@@ -1410,6 +1456,80 @@ Bool EsifUpPm_IsActionUsedByParticipants(
 	esif_ccb_read_unlock(&g_uppMgr.fLock);
 
 	return isUsed;
+}
+
+static esif_error_t EsifUpPm_CreateLPfromUFMeta(EsifParticipantIface * upDataPtr)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	struct esif_ipc_command *cmdPtr = NULL;
+	struct esif_command_participant_create *reqDataPtr = NULL;
+	struct esif_ipc_event_data_create_participant *dataPtr = NULL;
+	UInt32 dataLen = sizeof(*reqDataPtr);
+	struct esif_ipc *ipcPtr = NULL;
+	esif_guid_t guid = ESIF_PARTICIPANT_CONJURE_CLASS_GUID;
+
+	if (upDataPtr) {
+		rc = ESIF_OK;
+	}
+
+	if (ESIF_OK == rc) {
+		if (EsifUpPm_DoesAvailableParticipantExistByName(upDataPtr->name)) {
+			rc = ESIF_E_MAXIMUM_CAPACITY_REACHED;
+			ESIF_TRACE_DEBUG("Participant %s already created.\n", upDataPtr->name);
+		}
+	}
+	if (ESIF_OK == rc) {
+		ipcPtr = esif_ipc_alloc_command(&cmdPtr, dataLen);
+
+		if ((NULL == ipcPtr) || (NULL == cmdPtr)) {
+			rc = ESIF_E_NO_MEMORY;
+			ESIF_TRACE_WARN("Allocation failure for %u bytes\n", dataLen);
+		}
+	}
+
+	if (ESIF_OK == rc) {
+		//
+		// Initialize the command portion of the data
+		//
+		cmdPtr->type = ESIF_COMMAND_TYPE_PARTICIPANT_CREATE;
+		cmdPtr->req_data_type = ESIF_DATA_STRUCTURE;
+		cmdPtr->req_data_offset = 0;
+		cmdPtr->req_data_len = dataLen;
+		cmdPtr->rsp_data_type = ESIF_DATA_VOID;
+		cmdPtr->rsp_data_offset = 0;
+		cmdPtr->rsp_data_len = 0;
+
+		//
+		// Initialize the data payload to create the participant
+		//
+		reqDataPtr = (struct esif_command_participant_create *)(cmdPtr + 1);
+		dataPtr = &reqDataPtr->creation_data;
+
+		dataPtr->version = ESIF_PARTICIPANT_VERSION;
+		dataPtr->enumerator = ESIF_PARTICIPANT_ENUM_CONJURE;
+		esif_ccb_memcpy(dataPtr->class_guid, &guid, sizeof(dataPtr->class_guid));
+
+		esif_ccb_strcpy(dataPtr->name, upDataPtr->name, sizeof(dataPtr->name));
+		esif_ccb_strcpy(dataPtr->desc, upDataPtr->desc, sizeof(dataPtr->desc));
+
+		esif_ccb_strcpy(dataPtr->acpi_device, upDataPtr->device_name, sizeof(dataPtr->acpi_device));
+		esif_ccb_sprintf(sizeof(dataPtr->acpi_scope), dataPtr->acpi_scope, "\\_LP_.%s", upDataPtr->name);
+		dataPtr->acpi_type = upDataPtr->acpi_type;
+
+		rc = ipc_execute(ipcPtr);
+		if (rc != ESIF_OK || cmdPtr->return_code != ESIF_OK) {
+			rc = (rc != ESIF_OK ? rc : cmdPtr->return_code);
+		}
+		else {
+			ESIF_TRACE_DEBUG("Kernel Participant %s created.\n", upDataPtr->name);
+		}
+	}
+
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_INFO("Failure creating kernel participant; err = %s(%d)\n", esif_rc_str(rc), rc);
+	}
+	esif_ipc_free(ipcPtr);
+	return rc;
 }
 
 

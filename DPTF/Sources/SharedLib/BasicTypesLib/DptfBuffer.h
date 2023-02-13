@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,13 +26,14 @@ class DptfBuffer
 {
 public:
 	DptfBuffer(void);
-	DptfBuffer(UInt32 sizeInBytes);
+	DptfBuffer(size_t sizeInBytes);
 	~DptfBuffer(void);
 
 	static DptfBuffer fromExistingByteArray(UInt8* byteArray, UInt32 numberOfBytes);
 	static DptfBuffer fromExistingByteVector(std::vector<UInt8> byteVector);
 	static DptfBuffer fromBool(Bool value);
-	void allocate(UInt32 sizeInBytes);
+	static DptfBuffer fromString(const std::string& value);
+	void allocate(size_t sizeInBytes);
 	UInt8* get(void) const;
 	const UInt8 get(UInt32 byteNumber) const;
 	void set(UInt32 byteNumber, UInt8 byteValue);
@@ -44,9 +45,11 @@ public:
 	void append(UInt8* data, UInt32 sizeInBytes);
 	UInt8 lastByte() const;
 	std::string toString() const;
+	Bool notEmpty() const;
 
 	Bool operator==(const DptfBuffer& rhs) const;
 	UInt8 operator[](UInt32 byteNumber) const;
+	operator const std::vector<UInt8>&(void) const;
 
 private:
 	std::vector<UInt8> m_buffer;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,23 +19,21 @@
 #include "DptfManagerInterface.h"
 #include "CaptureDataGenerator.h"
 #include "XmlNode.h"
+#include "DataManager.h"
 
-class dptf_export ParticipantTripPointsCaptureDataGenerator : public CaptureDataGenerator
+class dptf_export PolicyTablesCaptureDataGenerator : public CaptureDataGenerator
 {
 public:
-	ParticipantTripPointsCaptureDataGenerator(DptfManagerInterface* dptfManager);
+	PolicyTablesCaptureDataGenerator(DptfManagerInterface* dptfManager);
 	std::shared_ptr<XmlNode> generate() const override;
 
 private:
-	ParticipantManagerInterface* m_participantManager;
-	void addParticipantDetails(UIntN participantId, std::shared_ptr<XmlNode> root) const;
-	void addBasicInfo(const UIntN participantId, const std::shared_ptr<XmlNode>& root) const;
-	void addTripPoints(const UIntN participantId, const std::shared_ptr<XmlNode>& root) const;
-	void addTripPoint(
-		std::pair<ParticipantSpecificInfoKey::Type, Temperature> specInfo,
-		const UIntN participantId,
+	void addDefaultPolicyTableDetails(TableObjectType::Type tableType, const std::shared_ptr<XmlNode>& root) const;
+	void addDefaultTableResults(TableObjectType::Type tableType, const std::shared_ptr<XmlNode>& root) const;
+	void addNamedPolicyTableDetails(TableObjectType::Type tableType, const std::shared_ptr<XmlNode>& root) const;
+	void addNamedTableResults(
+		std::string TableName,
+		TableObjectType::Type tableType,
 		const std::shared_ptr<XmlNode>& root) const;
-	void addHysteresis(const UIntN participantId, const std::shared_ptr<XmlNode>& root) const;
-	bool hasTemperatureControls(UIntN participantId) const;
-	std::set<UIntN> getDomainsWithTemperatureThresholdControls(UIntN participantId) const;
+	std::vector<std::string> getNamedTables(TableObjectType::Type tableType) const;
 };

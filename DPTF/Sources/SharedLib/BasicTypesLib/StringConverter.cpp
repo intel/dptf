@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,13 +16,13 @@
 **
 ******************************************************************************/
 
-#include <ctype.h>
+#include <cctype>
 #include "StringConverter.h"
 #include <algorithm>
 
 using namespace std;
 
-UInt32 StringConverter::toUInt32(const std::string& input)
+UInt32 StringConverter::toUInt32(const string& input)
 {
 	UInt32 integer(0);
 	istringstream stream(input);
@@ -34,7 +34,7 @@ UInt32 StringConverter::toUInt32(const std::string& input)
 	return integer;
 }
 
-UInt64 StringConverter::toUInt64(const std::string& input)
+UInt64 StringConverter::toUInt64(const string& input)
 {
 	UInt64 integer(0);
 	istringstream stream(input);
@@ -46,41 +46,53 @@ UInt64 StringConverter::toUInt64(const std::string& input)
 	return integer;
 }
 
-std::string StringConverter::toUpper(const std::string& input)
+string StringConverter::toUpper(const string& input)
 {
-	std::string upperCaseString;
+	stringstream stream;
 
-	for (auto i = input.begin(); i != input.end(); i++)
+	for (const char i : input)
 	{
-		upperCaseString += (char)toupper(*i);
+		stream << (char)toupper(i);
 	}
 
-	return upperCaseString;
+	return stream.str();
 }
 
-std::string StringConverter::toLower(const std::string& input)
+string StringConverter::toLower(const string& input)
 {
-	std::string lowerCaseString;
-
-	for (auto i = input.begin(); i != input.end(); i++)
+	stringstream stream;
+	for (const char i : input)
 	{
-		lowerCaseString += (char)tolower(*i);
+		stream << (char)tolower(i);
 	}
-
-	return lowerCaseString;
+	return stream.str();
 }
 
-std::string StringConverter::trimWhitespace(const std::string& input)
+string StringConverter::trimWhitespace(const string& input)
 {
-	std::string delimiters = " \f\n\r\t\v";
-	std::string trimmedString = input;
+	const string delimiters = " \f\n\r\t\v";
+	string trimmedString = input;
 	trimmedString.erase(0, trimmedString.find_first_not_of(delimiters));
 	trimmedString.erase(trimmedString.find_last_not_of(delimiters) + 1);
-	trimmedString.erase(std::find(trimmedString.begin(), trimmedString.end(), '\0'), trimmedString.end());
+	trimmedString.erase(find(trimmedString.begin(), trimmedString.end(), '\0'), trimmedString.end());
 	return trimmedString;
 }
 
-Int32 StringConverter::toInt32(const std::string& input)
+string StringConverter::trimQuotes(const string& input)
+{
+	string trimmedString = input;
+	while (!trimmedString.empty() && ((trimmedString.front() == '\"') || (trimmedString.front() == '\'')))
+	{
+		trimmedString.erase(0, 1);
+	}
+	while (!trimmedString.empty() && ((trimmedString.back() == '\"') || (trimmedString.back() == '\'')))
+	{
+		trimmedString.pop_back();
+	}
+	return trimmedString;
+}
+
+Int32 StringConverter::toInt32(const string& input)
 {
 	Int32 integer(0);
 	istringstream stream(input);
@@ -92,7 +104,7 @@ Int32 StringConverter::toInt32(const std::string& input)
 	return integer;
 }
 
-double StringConverter::toDouble(const std::string& input)
+double StringConverter::toDouble(const string& input)
 {
 	double value(0);
 	istringstream stream(input);
@@ -102,4 +114,39 @@ double StringConverter::toDouble(const std::string& input)
 		throw dptf_exception("Failed to convert string \"" + input + "\" to double value.");
 	}
 	return value;
+}
+
+string StringConverter::toHexString(UInt8 value)
+{
+	stringstream stream;
+	stream << "0x" << uppercase << hex << (UInt32)value;
+	return stream.str();
+}
+
+string StringConverter::toHexString(UInt16 value)
+{
+	stringstream stream;
+	stream << "0x" << uppercase << hex << value;
+	return stream.str();
+}
+
+string StringConverter::toHexString(UInt32 value)
+{
+	stringstream stream;
+	stream << "0x" << uppercase << hex << value;
+	return stream.str();
+}
+
+string StringConverter::toHexString(UInt64 value)
+{
+	stringstream stream;
+	stream << "0x" << uppercase << hex << value;
+	return stream.str();
+}
+
+std::string StringConverter::clone(const std::string& input)
+{
+	std::string clonedString{};
+	for_each(input.begin(), input.end(), [&clonedString](char c){clonedString.push_back(c);});
+	return clonedString;
 }

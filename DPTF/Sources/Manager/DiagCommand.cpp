@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 
 using namespace std;
 
-DiagCommand::DiagCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
+DiagCommand::DiagCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {

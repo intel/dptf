@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -469,6 +469,7 @@ static eEsifError EsifAppMgr_EnquePartChange(
 lockExit:
 	esif_ccb_write_unlock(&g_appMgr.fLock);
 exit:
+	ESIF_TRACE_DEBUG("Participant-app state request queued(%d): rc = %d\n", isCreate, rc);
 	if (rc != ESIF_OK) {
 		if (refTaken) {
 			EsifUp_PutRef(upPtr);
@@ -564,6 +565,8 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 		goto exit;
 	}
 
+	ESIF_TRACE_DEBUG("Creating app %s\n", appName);
+
 	esif_ccb_write_lock(&g_appMgr.fLock);
 	g_appMgr.creationRefCount++;
 
@@ -627,6 +630,8 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 	    (rc != ESIF_E_APP_ALREADY_STARTED) &&
 		(rc != ESIF_I_INIT_PAUSED)) {
 
+		ESIF_TRACE_DEBUG("Failure creating app %s\n", appName);
+
 		/* If the app has NOT already been destroyed; destroy it */
 		if (g_appMgr.fEntries[availableIndex] == newEntryPtr) {
 			g_appMgr.fEntries[availableIndex] = NULL;
@@ -639,6 +644,7 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 	}
 lockExit:
 	g_appMgr.creationRefCount--;
+	ESIF_TRACE_DEBUG("Done creating app %s\n", appName);
 	esif_ccb_write_unlock(&g_appMgr.fLock);
 	esif_queue_signal_event(g_appMgr.partQueuePtr);
 exit:
@@ -892,16 +898,21 @@ static void *ESIF_CALLCONV EsifAppMgr_PartQueueThread(void *ctxPtr)
 		* after it is done creating the app
 		*/
 		if (isProcessing) {
+			ESIF_TRACE_DEBUG("Requeuing participant-app state request\n");
 			esif_ccb_sleep_msec(ESIF_UF_APPMGR_QUEUE_DELAY_TIME);
 			esif_queue_requeue(g_appMgr.partQueuePtr, queueItemPtr);
 			continue;
 		}
 
 		if (queueItemPtr->isCreate) {
+			ESIF_TRACE_DEBUG("Creating participant in all apps\n");
 			EsifAppMgr_CreateParticipantInAllAppsPriv(queueItemPtr->upPtr);
+			ESIF_TRACE_DEBUG("Participant created in all apps\n");
 		}
 		else {
+			ESIF_TRACE_DEBUG("Destroying participant in all apps\n");
 			EsifAppMgr_DestroyParticipantInAllAppsPriv(queueItemPtr->upPtr);
+			ESIF_TRACE_DEBUG("Participant destroyed in all apps\n");
 		}
 
 		EsifUp_PutRef(queueItemPtr->upPtr);

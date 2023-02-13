@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -392,8 +392,6 @@ static eEsifError EsifActMgr_LoadDelayLoadAction(
 	EsifActMgrEntryPtr entryPtr = NULL;
 	enum esif_action_type possType = 0;
 	EsifString libName = NULL;
-
-	UNREFERENCED_PARAMETER(type);
 
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
 
@@ -1003,6 +1001,11 @@ eEsifError EsifActMgrInit()
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
 		0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOAD_REQUEST,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
 
 	/* Action manager must be initialized before this call */
 	EsifActMgr_InitActions();
@@ -1017,6 +1020,11 @@ void EsifActMgrExit()
 	ESIF_TRACE_ENTRY_INFO();
 
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_UNLOAD_REQUEST,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
@@ -1050,6 +1058,9 @@ static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
 	)
 {
 	eEsifError rc = ESIF_OK;
+	esif_action_type_t actionType = 0;
+	EsifActMgrEntryPtr entryPtr = NULL;
+	EsifString libName = NULL;
 
 	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(participantId);
@@ -1064,6 +1075,29 @@ static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
 	switch (fpcEventPtr->esif_event) {
 	case ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE:
 		EsifActMgr_StopUnusedUpes();
+		break;
+
+	case ESIF_EVENT_ACTION_UNLOAD_REQUEST:
+		 
+		if (eventDataPtr && eventDataPtr->buf_ptr && (eventDataPtr->buf_len >= sizeof(actionType))) {
+			actionType = *((esif_action_type_t *)eventDataPtr->buf_ptr);
+			ESIF_TRACE_INFO("Action unload request for %d\n", actionType);
+
+			// Get the library name of the UPE to unload based on action type
+			esif_ccb_write_lock(&g_actMgr.mgrLock);
+			entryPtr = EsifActMgr_GetActionEntry_Locked(actionType);
+			if (entryPtr && entryPtr->libName) {
+				libName = esif_ccb_strdup(entryPtr->libName);
+			}
+			esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+			if (libName != NULL) {
+				ESIF_TRACE_INFO("Unloading UPE library %s\n", libName);
+				EsifActMgr_StopUpe(libName);
+				EsifActMgr_RegisterDelayedLoadAction(actionType); // Register as a loadable action after removal
+				esif_ccb_free(libName);
+			}
+		}
 		break;
 	default:
 		break;
@@ -1109,6 +1143,16 @@ static eEsifError EsifActMgr_InitActions()
 	return ESIF_OK;
 }
 
+void EsifActMgr_LoadAutomaticActions(void)
+{
+	//
+	// Always load specific UPE's in order for them to perform participant discovery.
+	// UPE's which are unable to enumerate any participants will request UPE unload
+	// via ESIF_EVENT_ACTION_UNLOAD_REQUEST events.
+	//
+	EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_NVAPI);
+	EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_NVME);
+}
 
 static void EsifActMgr_UninitActions()
 {

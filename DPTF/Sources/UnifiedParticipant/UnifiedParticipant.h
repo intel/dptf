@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -84,6 +84,9 @@ public:
 	virtual void clearCachedResults() override;
 	virtual void clearTemperatureControlCachedData() override;
 	virtual void clearBatteryStatusControlCachedData() override;
+	virtual void setRfProfileOverride(
+		UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
+		override; 
 
 	// Event handlers
 	virtual void connectedStandbyEntry(void) override;
@@ -114,6 +117,8 @@ public:
 	virtual void domainFanCapabilityChanged(void) override;
 	virtual void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) override;
 	virtual void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint) override;
+	virtual void domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction) override;
+	virtual void domainFanOperatingModeChanged(void) override;
 
 	// Activity Status
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
@@ -185,6 +190,8 @@ public:
 		UIntN domainIndex,
 		PerformanceControlDynamicCaps newCapabilities) override;
 	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	virtual void setPerfPreferenceMax(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
+	virtual void setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
 
 	// Power Controls
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
@@ -240,6 +247,7 @@ public:
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle) override;
 	virtual void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) override;
+	virtual void clearPowerLimit(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 	virtual TimeSpan getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex) override;
 
@@ -410,6 +418,7 @@ private:
 	Bool m_activeControlEventsRegistered;
 	Bool m_socWorkloadClassificationEventsRegistered;
 	Bool m_eppSensitivityHintEventsRegistered;
+	Bool m_extendedWorkloadPredictionEventsRegistered;
 
 	void updateDomainEventRegistrations(void);
 	Bool updateDomainEventRegistration(

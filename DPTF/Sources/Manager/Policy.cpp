@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,6 +50,7 @@
 #include "PolicyServicesDptfServiceRequest.h"
 #include "ManagerLogger.h"
 #include "ManagerMessage.h"
+#include "StringConverter.h"
 using namespace std;
 
 Policy::Policy(DptfManagerInterface* dptfManager)
@@ -152,8 +153,8 @@ void Policy::createPolicy(
 	}
 	else
 	{
-		m_guid = m_theRealPolicy->getGuid();
-		m_policyName = m_theRealPolicy->getName();
+		m_guid = m_theRealPolicy->getGuid().clone();
+		m_policyName = StringConverter::clone(m_theRealPolicy->getName());
 	}
 
 	// Now we need to check the guid provided by the policy and make sure it is in the list of policies that are to
@@ -176,7 +177,6 @@ void Policy::createPolicy(
 
 	m_theRealPolicyCreated = true;
 	m_theRealPolicy->create(true, m_policyServices, newPolicyIndex, m_dynamicPolicyUuidString, dynamicPolicyName);
-	m_policyName = m_theRealPolicy->getName();
 	sendPolicyLogDataIfLoggingEnabled(true);
 }
 
@@ -278,7 +278,7 @@ string Policy::getDynamicPolicyUuidString(void) const
 
 void Policy::executeIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
 {
-	if (isEventRegistered(PolicyEvent::PolicyAppBroadcastUnprivileged))
+	if (isEventRegistered(PolicyEvent::DptfAppBroadcastUnprivileged))
 	{
 		m_theRealPolicy->igccBroadcastReceived(broadcastNotificationData);
 	}
@@ -455,6 +455,29 @@ void Policy::executeDomainEppSensitivityHintChanged(UIntN participantIndex, UInt
 	if (isEventRegistered(PolicyEvent::DomainEppSensitivityHintChanged))
 	{
 		m_theRealPolicy->domainEppSensitivityHintChanged(participantIndex, domainIndex, mbtHint);
+	}
+}
+
+void Policy::executeDomainExtendedWorkloadPredictionChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
+{
+	if (isEventRegistered(PolicyEvent::DomainExtendedWorkloadPredictionChanged))
+	{
+		m_theRealPolicy->domainExtendedWorkloadPredictionChanged(
+			participantIndex, domainIndex, extendedWorkloadPrediction);
+	}
+}
+
+void Policy::executeDomainFanOperatingModeChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	FanOperatingMode::Type fanOperatingMode)
+{
+	if (isEventRegistered(PolicyEvent::DomainFanOperatingModeChanged))
+	{
+		m_theRealPolicy->domainFanOperatingModeChanged(participantIndex, domainIndex, fanOperatingMode);
 	}
 }
 
@@ -665,11 +688,11 @@ void Policy::executePolicyOemVariablesChanged(void)
 	}
 }
 
-void Policy::executeSwOemVariablesChanged(const DptfBuffer& swOemVariablesData)
+void Policy::executeSwOemVariablesChanged()
 {
-	if (isEventRegistered(PolicyEvent::PolicyAppBroadcastPrivileged))
+	if (isEventRegistered(PolicyEvent::PolicySwOemVariablesChanged))
 	{
-		m_theRealPolicy->swOemVariablesChanged(swOemVariablesData);
+		m_theRealPolicy->swOemVariablesChanged();
 	}
 }
 
@@ -1132,7 +1155,7 @@ void Policy::executePolicyCollaborationChanged(OnOffToggle::Type collaboration)
 {
 	if (isEventRegistered(PolicyEvent::PolicyCollaborationChanged))
 	{
-		m_theRealPolicy->collaborationChanged(collaboration);
+		m_theRealPolicy->collaborationModeChanged(collaboration);
 	}
 }
 
@@ -1141,5 +1164,13 @@ void Policy::executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerSta
 	if (isEventRegistered(PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged))
 	{
 		m_theRealPolicy->thirdPartyGraphicsPowerStateChanged(tpgPowerStateOff);
+	}
+}
+
+void Policy::executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource)
+{
+	if (isEventRegistered(PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged))
+	{
+		m_theRealPolicy->thirdPartyGraphicsTPPLimitChanged(tppPowerSource);
 	}
 }

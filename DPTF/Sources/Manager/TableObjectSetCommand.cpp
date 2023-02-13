@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -85,10 +85,18 @@ void TableObjectSetCommand::setTableObjectXmlString(const CommandArguments& argu
 		key = arguments[4].getDataAsString();
 	}
 	auto textInput = tableString.c_str();
+	auto tableType = TableObjectType::ToType(tableName);
+	auto tableObjectMap = m_dptfManager->getDataManager()->getTableObjectMap();
+	auto tableObject = tableObjectMap.find(tableType);
 
-	if (esif_ccb_strlen(textInput, REVISION_INDICATOR_LENGTH + 1) > 0)
+	if (tableObject != tableObjectMap.end())
 	{
-		convertToBinaryAndSet(TableObjectType::ToType(tableName), textInput, uuid, dvName, key, participantIndex);
+		auto table = tableObject->second;
+
+		if (esif_ccb_strlen(textInput, REVISION_INDICATOR_LENGTH + 1) > 0 || table.hasRevisionField() == false)
+		{
+			convertToBinaryAndSet(tableType, textInput, uuid, dvName, key, participantIndex);
+		}
 	}
 }
 
@@ -302,12 +310,14 @@ void TableObjectSetCommand::convertToEsifDataVariantBinaryAndSet(
 			tableRow = esif_ccb_strtok(NULL, rowDelimiter, &rowToken);
 		}
 
+		DptfBuffer tableDataBuffer(totalDataOutputLength);
+
 		if (tableData)
 		{
-			DptfBuffer tableDataBuffer(totalDataOutputLength);
 			tableDataBuffer.put(0, tableData, totalDataOutputLength);
-			setTableData(tableDataBuffer, tableType, uuid, dvName, key, participantIndex);
 		}
+
+		setTableData(tableDataBuffer, tableType, uuid, dvName, key, participantIndex);		
 	}
 	catch (command_failure& cmd_failure)
 	{

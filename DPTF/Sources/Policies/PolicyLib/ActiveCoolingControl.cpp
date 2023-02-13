@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -295,6 +295,21 @@ ActiveControlSet ActiveCoolingControl::getActiveControlSet()
 	return ActiveControlSet::createFromFps(result.getData());
 }
 
+UInt32 ActiveCoolingControl::getFanOperatingMode()
+{
+	if (supportsActiveCoolingControls())
+	{
+		DptfRequest request(DptfRequestType::ActiveControlGetFanOperatingMode, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
+		return result.getDataAsUInt32();
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the active control fan interface.");
+	}
+}
+
 void ActiveCoolingControl::setValueWithinCapabilities()
 {
 	auto status = getStatus();
@@ -320,4 +335,19 @@ Percentage ActiveCoolingControl::snapToCapabilitiesBounds(Percentage fanSpeed)
 		}
 	}
 	return fanSpeed;
+}
+
+Bool ActiveCoolingControl::setFanOperatingMode(const UInt32 fanOperatingMode)
+{
+	if (supportsActiveCoolingControls())
+	{
+		DptfRequest request(DptfRequestType::ActiveControlSetFanOperatingMode, m_participantIndex, m_domainIndex);
+		request.setDataFromUInt32(fanOperatingMode);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		return result.isSuccessful();
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the active cooling control interface.");
+	}
 }

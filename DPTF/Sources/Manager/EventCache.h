@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,6 +33,7 @@
 #include "OsSessionState.h"
 #include "UserInteraction.h"
 #include "IgccBroadcastData.h"
+#include "FanOperatingMode.h"
 
 class EventCache
 {
@@ -63,7 +64,9 @@ public:
 	CachedValue<Bool> externalMonitorState;
 	CachedValue<UserInteraction::Type> userInteraction;
 	CachedValue<SystemMode::Type> systemMode;
-	CachedValue<IgccBroadcastData::IgccToDttNotificationPackage> appBroadcastNotificationData;
+	CachedValue<IgccBroadcastData::IgccToDttNotificationPackage> igccAppBroadcastNotificationData;
 	CachedValue<OnOffToggle::Type> collaborationMode;
 	CachedValue<OnOffToggle::Type> tpgPowerState;
+	CachedValue<FanOperatingMode::Type> fanOperatingMode;
+	CachedValue<OsPowerSource::Type> tppPowerSource;
 };

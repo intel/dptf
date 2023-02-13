@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -171,6 +171,7 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DomainFanCapabilityChanged, 0, FAN_CAPABILITIES_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainSocWorkloadClassificationChanged, 0, WORKLOAD_CLASSIFICATION_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainEppSensitivityHintChanged, 0, DTT_EPP_SENSITIVITY_HINT_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainExtendedWorkloadPredictionChanged, 0, EXTENDED_WORKLOAD_PREDICTION_CHANGED);
 
 	// Policy events
 	INIT_EVENT(PolicyCreate, 31);
@@ -209,8 +210,12 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT(PolicySystemModeChanged, 0);
 	INIT_EVENT(PolicyTableObjectChanged, 0);
 	INIT_EVENT_WITH_GUID(PolicyThirdPartyGraphicsPowerStateChanged, 0, TPG_POWER_STATE_CHANGED);
-	INIT_EVENT_WITH_GUID(PolicyAppBroadcastUnprivileged, 0, APP_BROADCAST_UNPRIVILEGED);
-	INIT_EVENT_WITH_GUID(PolicyAppBroadcastPrivileged, 0, APP_BROADCAST);
+	INIT_EVENT_WITH_GUID(PolicyOemVariablesChanged, 0, OEM_VARS_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyThirdPartyGraphicsTPPLimitChanged, 0, TPG_TPP_LIMIT_CHANGED);
+	INIT_EVENT_WITH_GUID(DptfAppBroadcastUnprivileged, 0, APP_BROADCAST_UNPRIVILEGED);
+	INIT_EVENT_WITH_GUID(DptfAppBroadcastPrivileged, 0, APP_BROADCAST);
+	INIT_EVENT(DomainFanOperatingModeChanged, 0);
+	INIT_EVENT(PolicySwOemVariablesChanged, 0);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);

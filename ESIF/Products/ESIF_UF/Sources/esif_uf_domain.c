@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -156,7 +156,7 @@ eEsifError EsifUpDomain_InitDomain(
 
 	self->domain = fpcDomainPtr->descriptor.domain;
 	self->domainPriority = fpcDomainPtr->descriptor.priority;
-	esif_ccb_strcpy(self->domainGuid,fpcDomainPtr->descriptor.guid,sizeof(self->domainGuid));
+	esif_ccb_memcpy(self->domainGuid,fpcDomainPtr->descriptor.guid,sizeof(self->domainGuid));
 	esif_ccb_strcpy(self->domainStr,
 		esif_primitive_domain_str(self->domain, domainBuf, sizeof(domainBuf)),
 		sizeof(self->domainStr));

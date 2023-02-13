@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "esif_dsp.h"		/* Device Support Package */
 #include "esif_uf_cnjmgr.h"	/* Conjure Manager */
 #include "esif_uf_appmgr.h"
+#include "esif_participant.h"
 
 
 /* Conjure Well Known Function */
@@ -31,7 +32,7 @@ typedef eEsifError (ESIF_CALLCONV *GetIfaceFuncPtr)(EsifConjureInterfacePtr);
 /* Friends */
 extern EsifCnjMgr g_cnjMgr;
 
-static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePtr piPtr, esif_handle_t *participantIdPtr)
+static eEsifError ESIF_CALLCONV RegisterParticipant(const struct _t_EsifParticipantIface *piPtr, esif_handle_t *participantIdPtr)
 {
 	eEsifError rc    = ESIF_OK;
 	char guid_str[ESIF_GUID_PRINT_SIZE];
@@ -58,7 +59,7 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 		"Device Path:    %s\n"
 		"Object ID:      %s\n\n",
 		piPtr->version,
-		esif_guid_print(&piPtr->class_guid, guid_str),
+		esif_guid_print((esif_guid_t *)&piPtr->class_guid, guid_str),
 		esif_participant_enum_str(piPtr->enumerator),
 		piPtr->enumerator,
 		piPtr->flags,
@@ -70,7 +71,7 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 		piPtr->object_id);
 
 	/* if participant exists, simply return current id */
-	up_ptr = EsifUpPm_GetAvailableParticipantByName(piPtr->name);
+	up_ptr = EsifUpPm_GetAvailableParticipantByName((char *)piPtr->name);
 	if (NULL != up_ptr) {
 		*participantIdPtr = EsifUp_GetInstance(up_ptr);
 		ESIF_TRACE_WARN("Participant %s has already existed in upper framework\n", piPtr->name);

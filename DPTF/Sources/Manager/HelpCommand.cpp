@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,49 +38,46 @@ void HelpCommand::execute(const CommandArguments& arguments)
 {
 	// TODO:  possibly require each command to report its own help and this
 	// command would just compile all of the helps for each command
-	const string message =
-		"DPTF Help Command. Version " VERSION_STR " [" ESIF_ATTR_OS " " ESIF_PLATFORM_TYPE " " ESIF_BUILD_TYPE "]"
-		"\n"
-		"Key:  <>  Required parameters\n"
-		"      []  Optional parameters\n"
-		"\n"
-		"help                                  Shows help info for available commands\n"
-		"reload policies                       Reloads all policies\n"
-		"diag all                              Runs diagnostics on all policies and\n"
-		"                                      participants\n"
-		"diag policy <policy name> [file name]\n"
-		"                                      Runs diagnostics on a policy\n"
-		"diag part <participant name> [file name]\n"
-		"                                      Runs diagnostics on a participant\n"
-		"dptf tableobject get <tablename> [dynamic policy uuid]\n"
-		"                                      Gets table from DataVault\n"
-		"dptf tableobject get <tablename> <datavault> <key>\n"
-		"                                      Gets table from alternative DataVault source and key\n"
-		"dptf tableobject get <tablename> <participant name>\n"
-		"                                      Gets participant table from DataVault\n"
-		"dptf tableobject set <tablename> <value> [dynamic policy uuid]\n"
-		"                                      Sets table value to DataVault\n"
-		"dptf tableobject set <tablename> <value> <datavault> <key>\n"
-		"                                      Sets table value to alternative DataVault source and key\n"
-		"dptf tableobject set <tablename> <participant name> <value>\n"
-		"                                      Sets participant table value to DataVault\n"
-		"dptf tableobject delete <tablename> [dynamic policy uuid]\n"
-		"                                      Deletes table from DataVault\n"
-		"dptf tableobject delete <tablename> [dynamic policy uuid] <all>\n"
-		"                                      Deletes table from all DataVaults\n"
-		"dptf tableobject delete <tablename> <participant name>\n"
-		"                                      Deletes participant table from DataVault\n"
-		"dptf tableobject delete <tablename> <participant name> <all>\n"
-		"                                      Deletes participant table from all DataVault\n"
-		"dptf config delete <datavault> <key>\n"
-		"                                      Deletes DataVault key\n"
-		"dptf ui getgroups\n"
-		"                                      Returns list of high level groups for UI menu\n"
-		"dptf ui getmodulesingroup <group ID>\n"
-		"                                      Returns list of module IDs for the groupID given\n"
-		"dptf ui getmoduledata <group ID> <module ID>\n"
-		"                                      Returns detailed XML data for a given group ID and module ID\n"
-		"dptf capture [file name]              Export settings to file specified\n";
 
-	setResultMessage(message);
+	const string title = "DTT Help Command. Version " VERSION_STR " [" ESIF_ATTR_OS " " ESIF_PLATFORM_TYPE " " ESIF_BUILD_TYPE "]";
+	const string key = R"(\
+Key:  <>  Required parameters\
+      []  Optional parameters\
+)";
+	const string commands = getCommandHelpText();
+
+	setResultMessage(title + key + commands);
+}
+
+std::string HelpCommand::getCommandHelpText() const
+{
+	return R"(\
+help                                                      Shows help info for available commands\
+reload policies                                           Reloads all policies\
+policies enabled                                          Returns a list of policies that are currently enabled\
+diag all                                                  Runs diagnostics on all policies and participants\
+diag policy <policy name> [file name]                     Runs diagnostics on a policy\
+diag part <participant name> [file name]                  Runs diagnostics on a participant\
+tableobject get <tablename> [dynamic policy uuid]         Gets table from DataVault\
+tableobject get <tablename> <datavault> <key>             Gets table from alternative DataVault source and key\
+tableobject get <tablename> <participant name>            Gets participant table from DataVault\
+tableobject set <tablename> <value> [uuid]                Sets table value to DataVault\
+tableobject set <tablename> <value> <datavault> <key>     Sets table value to alternative DataVault source and key\
+tableobject set <tablename> <participant name> <value>    Sets participant table value to DataVault\
+tableobject delete <tablename> [uuid]                     Deletes table from DataVault\
+tableobject delete <tablename> [uuid] <all>               Deletes table from all DataVaults\
+tableobject delete <tablename> <participant name>         Deletes participant table from DataVault\
+tableobject delete <tablename> <participant name> <all>   Deletes participant table from all DataVaults\
+config delete <datavault> <key>                           Deletes DataVault key\
+config filterdb <configuration name> <regex>              Displays filtered active configuration segment matching regex as key/value pairs\
+config list                                               Shows all loaded configurations\
+config print <configuration name>                         Displays contents of a configuration as JSON\
+config printdb <configuration name>                       Displays contents of a configuration as key/value pairs\
+config reload                                             Rescans directories for configurations\
+ui getgroups                                              Returns groups for top level UI menu\
+ui getmodulesingroup <group ID>                           Returns module IDs for group ID\
+ui getmoduledata <group ID> <module ID>                   Returns XML data for group ID and module ID\
+capture [file name]                                       Export settings to file\
+getCpuId                                                  Returns platform CPU ID without stepping\
+)";
 }

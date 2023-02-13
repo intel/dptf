@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -61,7 +61,7 @@
 /* Convert GUID to NUL-terminated string */
 static ESIF_INLINE char *esif_guid_tostring(esif_guid_t guid, char *buf_ptr, size_t buf_len)
 {
-	char *result = "NA";
+	char *result = (char *)"NA"; /* Fix for Linux compiler warning */
 	if (guid && buf_ptr && buf_len >= ESIF_GUIDSTR_LEN) {
 		esif_ccb_sprintf(buf_len, buf_ptr,
 			"%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -195,6 +195,8 @@ typedef u8		Bool;	/* C BOOLEAN */
 
 #define ESIF_HANDLE_FMT "0x%016llX"
 #define OS_HANDLE_FMT "%llu"
+
+#define ESIF_MAX_COMMAND	(64*1024)	/* Max Command Argument Length allowed via fSendCommandFuncPtr */
 
 /*
  * Macros required for esif_rc and esif_sdk headers

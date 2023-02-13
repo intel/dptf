@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,13 +19,16 @@
 #pragma once
 
 #include "Dptf.h"
+#include "EnvironmentProfiler.h"
 #include "PolicyServices.h"
 #include "PlatformConfigurationDataInterface.h"
 
 class PolicyServicesPlatformConfigurationData final : public PolicyServices, public PlatformConfigurationDataInterface
 {
 public:
-	PolicyServicesPlatformConfigurationData(DptfManagerInterface* dptfManager, UIntN policyIndex);
+	PolicyServicesPlatformConfigurationData(
+		DptfManagerInterface* dptfManager,
+		UIntN policyIndex);
 
 	virtual UInt32 readConfigurationUInt32(const std::string& key) override final;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) override final;
@@ -59,7 +62,7 @@ public:
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl)
 		override final;
 	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) const override final;
 	virtual Temperature getProcessorTjMax(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual DptfBuffer getPowerBossConditionsTable(void) override final;
 	virtual DptfBuffer getPowerBossActionsTable(void) override final;
@@ -94,7 +97,7 @@ public:
 	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) override final;
 	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt64 getPlatformCpuId() override final;
+	EnvironmentProfile getEnvironmentProfile() const override final;
 	virtual void clearPpmPackageSettings(void) override final;
 	virtual UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) override final; 
 	virtual UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) override final; 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,11 @@
 ******************************************************************************/
 #include "ConfigCommand.h"
 #include "ConfigDeleteCommand.h"
+#include "ConfigFilterDbCommand.h"
+#include "ConfigListCommand.h"
+#include "ConfigPrintCommand.h"
+#include "ConfigPrintDbCommand.h"
+#include "ConfigReloadCommand.h"
 using namespace std;
 
 ConfigCommand::ConfigCommand(DptfManagerInterface* dptfManager)
@@ -35,13 +40,18 @@ ConfigCommand::~ConfigCommand()
 void ConfigCommand::createSubCommands()
 {
 	m_subCommands.push_back(make_shared<ConfigDeleteCommand>(m_dptfManager));
+	m_subCommands.push_back(make_shared<ConfigListCommand>(m_dptfManager));
+	m_subCommands.push_back(make_shared<ConfigPrintCommand>(m_dptfManager));
+	m_subCommands.push_back(make_shared<ConfigPrintDbCommand>(m_dptfManager));
+	m_subCommands.push_back(make_shared<ConfigFilterDbCommand>(m_dptfManager));
+	m_subCommands.push_back(make_shared<ConfigReloadCommand>(m_dptfManager));
 }
 
-void ConfigCommand::registerSubCommands()
+void ConfigCommand::registerSubCommands() const
 {
-	for (auto c = m_subCommands.begin(); c != m_subCommands.end(); ++c)
+	for (const auto& subCommand : m_subCommands)
 	{
-		m_configCommandDispatcher->registerHandler((*c)->getCommandName(), *c);
+		m_configCommandDispatcher->registerHandler(subCommand->getCommandName(), subCommand);
 	}
 }
 
@@ -52,23 +62,33 @@ string ConfigCommand::getCommandName() const
 
 void ConfigCommand::execute(const CommandArguments& arguments)
 {
-	throwIfInvalidArgumentCount(arguments);
-	throwIfInvalidArgumentData(arguments);
-	throwIfInvalidCommand(arguments);
+	try
+	{
+		throwIfInvalidArgumentCount(arguments);
+		throwIfInvalidArgumentData(arguments);
+		throwIfInvalidCommand(arguments);
 
-	CommandArguments subArguments = arguments;
-	subArguments.remove(0);
-	m_configCommandDispatcher->dispatch(subArguments);
-	setResultMessage(m_configCommandDispatcher->getLastSuccessfulCommandMessage());
+		CommandArguments subArguments = arguments;
+		subArguments.remove(0);
+		m_configCommandDispatcher->dispatch(subArguments);
+
+		setResultCode(ESIF_OK);
+		setResultMessage(m_configCommandDispatcher->getLastSuccessfulCommandMessage());
+	}
+	catch (const command_failure& e)
+	{
+		setResultCode(e.getErrorCode());
+		setResultMessage(e.getDescription());
+	}
 }
 
-void ConfigCommand::throwIfInvalidCommand(const CommandArguments& arguments)
+void ConfigCommand::throwIfInvalidCommand(const CommandArguments& arguments) const
 {
-	auto subCommandText = arguments[1].getDataAsString();
+	const auto subCommandText = arguments[1].getDataAsString();
 	Bool commandExists = false;
-	for (auto it = m_subCommands.begin(); it != m_subCommands.end(); ++it)
+	for (const auto& subCommand : m_subCommands)
 	{
-		if (subCommandText == (*it)->getCommandName())
+		if (subCommandText == subCommand->getCommandName())
 		{
 			commandExists = true;
 			break;
@@ -76,8 +96,7 @@ void ConfigCommand::throwIfInvalidCommand(const CommandArguments& arguments)
 	}
 	if (commandExists == false)
 	{
-		string description = string("Subcommand given for 'config' command not found.");
-		setResultMessage(description);
+		const auto description = "Subcommand given for 'config' command not found."s;
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
 }
@@ -86,8 +105,7 @@ void ConfigCommand::throwIfInvalidArgumentData(const CommandArguments& arguments
 {
 	if (arguments[1].isDataTypeString() == false)
 	{
-		string description = string("Invalid argument type given to 'config' command. Expected a string.");
-		setResultMessage(description);
+		const auto description = "Invalid argument type given to 'config' command. Expected a string."s;
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
 }
@@ -96,10 +114,8 @@ void ConfigCommand::throwIfInvalidArgumentCount(const CommandArguments& argument
 {
 	if (arguments.size() < 2)
 	{
-		string description = string(
-			"Invalid argument count given to 'config' command. "
-			"Run 'dptf help' command for more information.");
-		setResultMessage(description);
+		const auto description = R"(\
+			Invalid argument count given to 'config' command. Run 'dptf help' command for more information.)";
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,21 +17,23 @@
 ******************************************************************************/
 #include "CaptureCommand.h"
 #include "DptfManagerInterface.h"
-#include "ParticipantTripPointsCaptureDataGenerator.h"
+#include "ParticipantCaptureDataGenerator.h"
 #include "ParticipantListCaptureDataGenerator.h"
 #include "PolicyListCaptureDataGenerator.h"
 #include "WorkItemQueueManagerInterface.h"
 #include "TimeOps.h"
+#include "PolicyTablesCaptureDataGenerator.h"
 
 using namespace std;
 
-CaptureCommand::CaptureCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
+CaptureCommand::CaptureCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
 	m_dataGenerators.emplace_back(make_shared<PolicyListCaptureDataGenerator>(dptfManager));
 	m_dataGenerators.emplace_back(make_shared<ParticipantListCaptureDataGenerator>(dptfManager));
-	m_dataGenerators.emplace_back(make_shared<ParticipantTripPointsCaptureDataGenerator>(dptfManager));
+	m_dataGenerators.emplace_back(make_shared<ParticipantCaptureDataGenerator>(dptfManager));
+	m_dataGenerators.emplace_back(make_shared<PolicyTablesCaptureDataGenerator>(dptfManager));
 }
 
 string CaptureCommand::getCommandName() const
@@ -47,7 +49,7 @@ void CaptureCommand::execute(const CommandArguments& arguments)
 		throwIfBadFileNameGiven(arguments);
 		const auto exportFilePath = generateExportPath(arguments);
 		const auto captureData = generateCaptureData();
-		m_fileIo->writeData(exportFilePath, captureData);
+		m_fileIo->write(exportFilePath, captureData);
 		setResultCode(ESIF_OK);
 		setResultMessage(string("Successfully exported settings to " + exportFilePath));
 	}
@@ -62,7 +64,7 @@ string CaptureCommand::generateExportPath(const CommandArguments& arguments) con
 {
 	const auto exportPath = m_dptfManager->getDptfReportDirectoryPath();
 	const auto exportFileName = getExportFileName(arguments);
-	return FileIO::generatePathWithTrailingSeparator(exportPath) + exportFileName;
+	return FileIo::generatePathWithTrailingSeparator(exportPath) + exportFileName;
 }
 
 Bool CaptureCommand::exportFileNameProvided(const CommandArguments& arguments)
@@ -108,7 +110,7 @@ void CaptureCommand::throwIfBadArgumentCount(const CommandArguments& arguments)
 void CaptureCommand::throwIfBadFileNameGiven(const CommandArguments& arguments)
 {
 	// capture <optional file name>
-	if ((arguments.size() == 2) && (IFileIO::fileNameContainsIllegalCharacters(arguments[1].getDataAsString())))
+	if ((arguments.size() == 2) && (IFileIo::fileNameContainsIllegalCharacters(arguments[1].getDataAsString())))
 	{
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, "Invalid file name given.");
 	}

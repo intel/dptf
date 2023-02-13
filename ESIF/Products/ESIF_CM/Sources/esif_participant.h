@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -130,12 +130,82 @@ struct esif_ipc_event_data_create_participant {
 	u8    pci_prog_if;			/* PCI Hardware Iface */
 };
 
+
+/*
+* This version is a diversion from ESIF_PARTICIPANT_VERSION which is now only
+* used for the version of data reported to apps and client, and not the
+* structure used to create the participant internally
+*/
+#define ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION 6
+
+/* Structure used to create a UF participant in event data */
+struct _t_EsifParticipantIface {
+	esif_ver_t			version;			/* Should be ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION */
+	esif_guid_t			class_guid;			/* Class GUID */
+	enum esif_participant_enum enumerator;  /* Device Enumerator If Any */
+	esif_flags_t		flags;				/* Flags If Any */
+	char				name[ESIF_NAME_LEN];		/* Friendly Name */
+	char				desc[ESIF_DESC_LEN];		/* Description */
+	char				driver_name[ESIF_NAME_LEN];	/* Driver Name */
+	char				device_name[ESIF_NAME_LEN];	/* Device Name */
+	char				device_path[ESIF_PATH_LEN];	/* Device Path /sys/bus/platform...*/
+	char				object_id[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g.\_UF.CNJR.WIDI  */
+	u32					acpi_type;
+	/* EVENT Send Event From Conjure To Framework */
+	enum esif_rc(ESIF_CALLCONV *send_event)(struct _t_EsifParticipantIface *pi,
+		enum esif_event_type type, void *data);
+	/* EVENT Receive Event From Framework To Conjure */
+	enum esif_rc(ESIF_CALLCONV *recv_event)(enum esif_event_type type, void *data);
+
+	/*
+	* Add new fields after this point to maintain compatibility with any existing Phidget
+	* conjure implementaiton where build versions may not match
+	*/
+	
+	/* Storage fields */
+	int scbl;
+	int port;
+};
+
+
+enum esif_event_data_create_participant_type
+{
+	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_INVALID = 0,
+	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_LP = 1, /* Creation notification from LF to UF */
+	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_UP = 2, /* UF creation request */
+	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_UP_W_LP = 3, /* UF request for CNJ ACPI participant */
+};
+
+#define ESIF_EVENT_DATA_PARTICIPANT_CREATE_HDR_VERSION 1
+
+struct esif_event_data_create_participant_hdr
+{
+	esif_ver_t	version; /* Header version - Must be ESIF_EVENT_DATA_PARTICIPANT_CREATE_HDR_VERSION*/
+	enum esif_event_data_create_participant_type dataType;
+};
+
+struct esif_event_data_create_participant {
+
+	struct esif_event_data_create_participant_hdr hdr;
+	union {
+		struct esif_ipc_event_data_create_participant lfData; /* For LP creation */
+		struct _t_EsifParticipantIface ufData; /* For UP/UP_W_LP creation */
+	} data;
+};
+
+
 #pragma pack(pop)
 
 
 #include "esif_sdk_iface_app.h"
 #include "esif_uf_fpc.h"
 #include "esif_uf_domain.h"
+
+typedef struct esif_ipc_event_data_create_participant EsifLpData;
+typedef struct esif_event_data_create_participant EsifEventDataCreateParticipant;
+typedef struct esif_event_data_create_participant_hdr EsifEventDataCreateParticipantHdr;
+typedef enum esif_event_data_create_participant_type EsifEventDataCreateParticipantType;
+typedef struct _t_EsifParticipantIface EsifParticipantIface, *EsifParticipantIfacePtr;
 
 typedef enum {
 	eParticipantOriginLF,
@@ -173,6 +243,11 @@ typedef struct _t_EsifUpData {
 	UInt8   fPciClass;	/* Class 3 bytes: (base class,sub sclass, prog-if) */
 	UInt8   fPciSubClass;	/* Sub Class */
 	UInt8   fPciProgIf;	/* Program Interface */
+
+	/* Storage fields */
+	int fScbl;
+	int fPort;
+
 } EsifUpData, *EsifUpDataPtr, **EsifUpDataPtrLocation;
 
 /* Upper Participant */
@@ -226,7 +301,7 @@ static ESIF_INLINE EsifString EsifUp_GetName(
 	EsifUpPtr self
 	)
 {
-	return (self != NULL) ? self->fMetadata.fName : "UNK";
+	return (self != NULL) ? self->fMetadata.fName : (char *)"UNK";
 }
 
 

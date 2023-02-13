@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 WIDptfIgccBroadcastReceived::WIDptfIgccBroadcastReceived(
 	DptfManagerInterface* dptfManager,
 	IgccBroadcastData::IgccToDttNotificationPackage igccNotificationData)
-	: WorkItem(dptfManager, FrameworkEvent::PolicyAppBroadcastUnprivileged)
+	: WorkItem(dptfManager, FrameworkEvent::DptfAppBroadcastUnprivileged)
 	, m_igccNotificationData(igccNotificationData)
 {
 }
@@ -47,7 +47,7 @@ void WIDptfIgccBroadcastReceived::onExecute(void)
 		{
 			try
 			{
-				getDptfManager()->getEventCache()->appBroadcastNotificationData.set(m_igccNotificationData);
+				getDptfManager()->getEventCache()->igccAppBroadcastNotificationData.set(m_igccNotificationData);
 				auto policy = policyManager->getPolicyPtr(*i);
 				policy->executeIgccBroadcastReceived(m_igccNotificationData);
 			}

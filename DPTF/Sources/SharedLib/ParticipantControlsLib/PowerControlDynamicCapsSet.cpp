@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -69,12 +69,17 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 
 	for (UIntN i = 0; i < rows; i++)
 	{
+		auto needDefaultPl2Row = originalRowCount < 2 && i == 1;
 		auto needDefaultPl3Row = originalRowCount < 3 && i == 2;
 		auto needDefaultPl4Row = originalRowCount < 4 && i == 3;
 		
-		if (needDefaultPl3Row)
+		if (needDefaultPl2Row)
 		{
-			temp = temp.getDefaultPpccPl3RowValues();
+			temp = temp.getDefaultPpccRowValues(PowerControlType::Type::PL2);
+		}
+		else if (needDefaultPl3Row)
+		{
+			temp = temp.getDefaultPpccRowValues(PowerControlType::Type::PL3);
 		}
 		else if (needDefaultPl4Row)
 		{
@@ -103,6 +108,31 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 	}
 
 	return PowerControlDynamicCapsSet(controls);
+}
+
+UIntN PowerControlDynamicCapsSet::getPpccDataRows(const DptfBuffer& buffer)
+{
+	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+	data += sizeof(esif_data_variant); // Ignore revision field
+
+	if (buffer.size() == 0)
+	{
+		throw dptf_exception("Received empty PPCC buffer.");
+	}
+
+	return (buffer.size() - sizeof(esif_data_variant)) / sizeof(EsifDataBinaryPpccPackage);
+}
+
+UInt64 PowerControlDynamicCapsSet::getPpccDataRevision(const DptfBuffer& buffer)
+{
+	union esif_data_variant* obj = (union esif_data_variant*)buffer.get();
+
+	if (buffer.size() == 0)
+	{
+		throw dptf_exception("Received empty PPCC buffer.");
+	}
+
+	return (UInt64)obj->integer.value;
 }
 
 Bool PowerControlDynamicCapsSet::isEmpty() const

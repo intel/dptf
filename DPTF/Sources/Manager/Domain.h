@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -121,6 +121,8 @@ public:
 	void setPerformanceControl(UIntN policyIndex, UIntN performanceControlIndex);
 	void setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
 	void setPerformanceCapsLock(UIntN policyIndex, Bool lock);
+	void setPerfPreferenceMax(UIntN policyIndex, Percentage minMaxRatio);
+	void setPerfPreferenceMin(UIntN policyIndex, Percentage minMaxRatio);
 
 	// Power controls
 	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(void);
@@ -143,6 +145,7 @@ public:
 	Percentage getPowerLimitDutyCycle(PowerControlType::Type controlType);
 	void setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
 	void setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState);
+	void clearPowerLimit();
 	void setPowerCapsLock(UIntN policyIndex, Bool lock);
 	TimeSpan getPowerSharePowerLimitTimeWindow();
 	Bool isPowerShareControl();
@@ -205,6 +208,7 @@ public:
 	UInt64 getDvfsPoints(void);
 	void setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
 	void setProtectRequest(const UInt64 frequencyRate);
+	void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData);
 
 	// Utilization
 	UtilizationStatus getUtilizationStatus(void);

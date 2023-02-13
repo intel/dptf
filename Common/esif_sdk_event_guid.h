@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -1080,4 +1080,31 @@
 #define FACE_ID_CAPABILITY_SUPPORT_CHANGED { \
 	0x70, 0xED, 0x77, 0xE2, 0x0D, 0x42, 0x4B, 0x59, \
 	0xB3, 0x88, 0x9F, 0x96, 0x23, 0xB8, 0x75, 0xBA }
+
+/*
+ * Event Name:  EXTENDED_WORKLOAD_PREDICTION_CHANGED
+ * Event GUID:  3649940C-B779-464D-87D3-45EB8F243A3A
+ * Event Desc:  Extended Workload Prediction Changed
+ */
+#define EXTENDED_WORKLOAD_PREDICTION_CHANGED { \
+	0x36, 0x49, 0x94, 0x0C, 0xB7, 0x79, 0x46, 0x4D, \
+	0x87, 0xD3, 0x45, 0xEB, 0x8F, 0x24, 0x3A, 0x3A }
+
+/*
+ * Event Name:  FAN_SPEED_THRESHOLD_CROSSED
+ * Event GUID:  DFAB16DB-3E0B-4505-9D30-38BDEA71E102
+ * Event Desc:  Fan Speed Threshold Crossed
+ */
+#define FAN_SPEED_THRESHOLD_CROSSED { \
+	0xDF, 0xAB, 0x16, 0xDB, 0x3E, 0x0B, 0x45, 0x05, \
+	0x9D, 0x30, 0x38, 0xBD, 0xEA, 0x71, 0xE1, 0x02 }
+
+/*
+ * Event Name:  TPG_TPP_LIMIT_CHANGED
+ * Event GUID:  370A8B51-F0FF-4A33-89C1-34E62C06908C
+ * Event Desc:  NV Total Package Power Changed
+ */
+#define TPG_TPP_LIMIT_CHANGED { \
+	0x37, 0x0A, 0x8B, 0x51, 0xF0, 0xFF, 0x4A, 0x33, \
+	0x89, 0xC1, 0x34, 0xE6, 0x2C, 0x06, 0x90, 0x8C }
 

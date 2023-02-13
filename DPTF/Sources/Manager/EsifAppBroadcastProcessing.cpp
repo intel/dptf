@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,7 +17,11 @@
 ******************************************************************************/
 
 #include "EsifAppBroadcastProcessing.h"
+#include "NptWwanBandBroadcastData.h"
+#include "esif_sdk.h"
+
 #define MAX_BYTES_SW_OEM_VAR_DATA 8192
+#define MAX_BYTES_NPT_WWAN_DATA 10 * sizeof(esif_data_rfprofile)
 
 EsifAppBroadcastProcessing::EsifAppBroadcastProcessing()
 {
@@ -53,6 +57,21 @@ std::shared_ptr<WorkItem> EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreat
 			swOemVariablesData = DptfBuffer::fromExistingByteArray(eventData, broadcastNotificationDataHeader->dataLen);
 		}
 		wi = std::make_shared<WIDptfSwOemVariablesBroadcastReceived>(dptfManager, swOemVariablesData);
+	}
+	else if (NPT_WWAN_BAND_BROADCAST_GUID == broadcastGuid)
+	{		
+		DptfBuffer nptWwanBandBroadcastData;
+		UInt8* eventData = (UInt8*)(broadcastNotificationDataHeader->UUID + sizeof(EsifAppBroadcastHeader));
+		if (broadcastNotificationDataHeader->dataLen >= MAX_BYTES_NPT_WWAN_DATA)
+		{
+			nptWwanBandBroadcastData = DptfBuffer::fromExistingByteArray(eventData, MAX_BYTES_NPT_WWAN_DATA);
+		}
+		else
+		{
+			nptWwanBandBroadcastData = DptfBuffer::fromExistingByteArray(eventData, broadcastNotificationDataHeader->dataLen);
+		}
+		wi = std::make_shared<WIDptfNptWwanBandBroadcastReceived>(
+			dptfManager, nptWwanBandBroadcastData);
 	}
 	return wi;
 }

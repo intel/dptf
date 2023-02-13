@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -198,12 +198,16 @@ static ESIF_INLINE Bool esif_event_map(
 		  ESIF_EVENT_EMERGENCY_CALL_MODE_TABLE_CHANGED },
 		{ ENERGY_THRESHOLD_CROSSED,
 		  ESIF_EVENT_ENERGY_THRESHOLD_CROSSED },
+		{ EXTENDED_WORKLOAD_PREDICTION_CHANGED,
+		  ESIF_EVENT_EXTENDED_WORKLOAD_PREDICTION_CHANGED },
 		{ EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED,
 		  ESIF_EVENT_EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED },
 		{ FACE_ID_CAPABILITY_SUPPORT_CHANGED,
 		  ESIF_EVENT_FACE_ID_CAPABILITY_SUPPORT_CHANGED },
 		{ FAN_CAPABILITIES_CHANGED,
 		  ESIF_EVENT_FAN_CAPABILITIES_CHANGED },
+		{ FAN_SPEED_THRESHOLD_CROSSED,
+		  ESIF_EVENT_FAN_SPEED_THRESHOLD_CROSSED },
 		{ FOREGROUND_APP_CHANGED,
 		  ESIF_EVENT_FOREGROUND_APP_CHANGED },
 		{ FOREGROUND_BACKGROUND_RATIO_CHANGED,
@@ -298,6 +302,8 @@ static ESIF_INLINE Bool esif_event_map(
 		  ESIF_EVENT_TEMP_THRESHOLD_CROSSED },
 		{ TPG_POWER_STATE_CHANGED,
 		  ESIF_EVENT_TPG_POWER_STATE_CHANGED },
+		{ TPG_TPP_LIMIT_CHANGED,
+		  ESIF_EVENT_TPG_TPP_LIMIT_CHANGED },
 		{ USER_PRESENCE_CORRELATION_STATUS_CHANGED,
 		  ESIF_EVENT_USER_PRESENCE_CORRELATION_STATUS_CHANGED },
 		{ WINDOWS_LOW_POWER_MODE_ENTRY,

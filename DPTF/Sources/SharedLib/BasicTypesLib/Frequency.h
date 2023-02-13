@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,6 +28,7 @@ public:
 	Frequency(void); // Initialized to invalid by default
 	Frequency(UInt64 frequency);
 	static Frequency createInvalid();
+	static Frequency createFromMegahertz(UInt64 frequencyInMegahertz);
 
 	Bool operator==(const Frequency& rhs) const;
 	Bool operator!=(const Frequency& rhs) const;
@@ -43,6 +44,8 @@ public:
 
 	Bool isValid() const;
 	std::string toString() const;
+	std::string toStringAsMegahertz() const;
+	UInt64 toIntAsMegahertz() const;
 
 private:
 	Bool m_valid;

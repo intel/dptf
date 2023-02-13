@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "DomainActiveControlBase.h"
 #include "CachedValue.h"
+#include "FanCapabilities.h"
 
 class DomainActiveControl_001 : public DomainActiveControlBase
 {
@@ -47,6 +48,8 @@ protected:
 	virtual DptfBuffer getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getActiveControlFanOperatingMode(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getActiveControlFanCapabilities(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
 	virtual void setActiveControlFanDirection(UInt32 fanDirection) override;
 	virtual void setActiveControlDynamicCaps(
@@ -54,6 +57,7 @@ protected:
 		UIntN domainIndex,
 		ActiveControlDynamicCaps newCapabilities) override;
 	virtual void setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	virtual void setActiveControlFanOperatingMode(UInt32 fanOperatingMode) override;
 
 private:
 	// hide the copy constructor and = operator
@@ -67,4 +71,5 @@ private:
 	// Vars
 	CachedValue<ActiveControlStatus> m_initialStatus;
 	Bool m_capabilitiesLocked;
+	FanCapabilities m_fanCapabilities;
 };

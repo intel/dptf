@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,8 @@
 #include "MbtHint.h"
 #include "SystemMode.h"
 #include "IgccBroadcastData.h"
+#include "ExtendedWorkloadPrediction.h"
+#include "FanOperatingMode.h"
 
 class dptf_export PolicyInterface
 {
@@ -150,6 +152,11 @@ public:
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) = 0;
 	virtual void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint) = 0;
+	virtual void domainExtendedWorkloadPredictionChanged(UIntN participantIndex, UIntN domainIndex, ExtendedWorkloadPrediction::Type extendedWorkloadPrediction) = 0;
+	virtual void domainFanOperatingModeChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		FanOperatingMode::Type fanOperatingMode) = 0;
 
 	// Policy Event Handlers
 	virtual void activeRelationshipTableChanged(void) = 0;
@@ -182,7 +189,7 @@ public:
 	virtual void ddrfTableChanged(void) = 0;
 	virtual void tpgaTableChanged(void) = 0;
 	virtual void oemVariablesChanged(void) = 0;
-	virtual void swOemVariablesChanged(const DptfBuffer& swOemVariablesData) = 0;
+	virtual void swOemVariablesChanged(void) = 0;
 	virtual void powerBossConditionsTableChanged(void) = 0;
 	virtual void powerBossActionsTableChanged(void) = 0;
 	virtual void powerBossMathTableChanged(void) = 0;
@@ -203,8 +210,9 @@ public:
 	virtual void externalMonitorStateChanged(Bool externalMonitorStateChanged) = 0;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) = 0;
 	virtual void foregroundRatioChanged(UIntN ratio) = 0;
-	virtual void collaborationChanged(OnOffToggle::Type collaborationModeState) = 0;
+	virtual void collaborationModeChanged(OnOffToggle::Type collaborationModeState) = 0;
 	virtual void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) = 0;
+	virtual void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource) = 0;
 };
 
 //

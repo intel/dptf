@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,4 +63,5 @@ public:
 	virtual UserInteraction::Type getUserInteraction(void) const = 0;
 	virtual SystemMode::Type getSystemMode(void) const = 0;
 	virtual OnOffToggle::Type getTpgPowerState(void) const = 0;
+	virtual OnOffToggle::Type getCollaborationMode(void) const = 0;
 };

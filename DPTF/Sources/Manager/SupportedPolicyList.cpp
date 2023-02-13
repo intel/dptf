@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,9 @@
 #include "esif_sdk_data.h"
 #include "ManagerLogger.h"
 #include "ManagerMessage.h"
+#include <algorithm>
+
+using namespace std;
 
 static const UIntN GuidSize = 16;
 
@@ -33,26 +36,16 @@ typedef struct _AcpiEsifGuid
 	UInt8 uuid[GuidSize];
 } AcpiEsifGuid;
 #pragma pack(pop)
+set<Guid> parseGuids(const size_t guidCount, const AcpiEsifGuid* data);
 
-SupportedPolicyList::SupportedPolicyList(DptfManagerInterface* dptfManager)
+// System Configuration policy always enabled
+const Guid SystemConfigurationPolicy{0x65, 0x10, 0x95, 0x92, 0x27, 0x64, 0x30, 0x4B, 0x97, 0x37, 0x13, 0xCC, 0x70, 0xEF, 0xA2, 0x1A};
+
+SupportedPolicyList::SupportedPolicyList(DptfManagerInterface* dptfManager, const set<Guid>& defaultGuids)
 	: m_dptfManager(dptfManager)
+	, m_defaultGuids(defaultGuids)
 {
 	update();
-}
-
-UIntN SupportedPolicyList::getCount(void) const
-{
-	return static_cast<UIntN>(m_guid.size());
-}
-
-Guid SupportedPolicyList::operator[](UIntN index) const
-{
-	return get(index);
-}
-
-Guid SupportedPolicyList::get(UIntN index) const
-{
-	return m_guid.at(index);
 }
 
 Bool SupportedPolicyList::isPolicySupported(const Guid& guid) const
@@ -63,72 +56,73 @@ Bool SupportedPolicyList::isPolicySupported(const Guid& guid) const
 
 #else
 
-	Bool supported = false;
-
-	for (auto it = m_guid.begin(); it != m_guid.end(); it++)
-	{
-		if (*it == guid)
-		{
-			supported = true;
-			break;
-		}
-	}
-
-	return supported;
+	return (m_supportedPolicies.end() != m_supportedPolicies.find(guid));
 
 #endif
 }
 
 void SupportedPolicyList::update(void)
 {
-	try
-	{
-		DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
-		if (isBufferValid(buffer))
-		{
-			m_guid = parseBufferForPolicyGuids(buffer);
-		}
-		else
-		{
-			m_guid.clear();
-			std::stringstream message;
-			message << "Received invalid data length [" << buffer.size()
-				<< "] from primitive call: GET_SUPPORTED_POLICIES";
-			throw dptf_exception(message.str());
-		}
-	}
-	catch (const std::exception& ex)
-	{
-		MANAGER_LOG_MESSAGE_WARNING_EX({
-			std::stringstream message;
-			message << ex.what();
-			ManagerMessage warningMessage = ManagerMessage(m_dptfManager, _file, _line, _function, message.str());
-			return warningMessage;
-			});
-
-		m_guid.clear();
-	}
-
+	set<Guid> supportedPolicies = readPoliciesFromIdsp();
+	addDefaultPoliciesIfEmpty(supportedPolicies);
+	addSystemPolicy(supportedPolicies);
+	m_supportedPolicies = supportedPolicies;
 	postMessageWithSupportedGuids();
 }
 
-Bool SupportedPolicyList::isBufferValid(const DptfBuffer& buffer) const
+void SupportedPolicyList::addDefaultPoliciesIfEmpty(set<Guid>& supportedPolicies) const
 {
-	return ((buffer.size() % sizeof(AcpiEsifGuid)) == 0);
+	if (supportedPolicies.empty())
+	{
+		MANAGER_LOG_MESSAGE_INFO(
+			{ return ManagerMessage(m_dptfManager, _file, _line, _function, "Using default policies."); });
+		for (const auto& g : m_defaultGuids)
+		{
+			supportedPolicies.emplace(g);
+		}
+	}
 }
 
-std::vector<Guid> SupportedPolicyList::parseBufferForPolicyGuids(const DptfBuffer& buffer)
+void SupportedPolicyList::addSystemPolicy(set<Guid>& supportedPolicies) const
 {
-	UInt32 guidCount = buffer.size() / sizeof(AcpiEsifGuid);
-	AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(buffer.get());
+	supportedPolicies.emplace(SystemConfigurationPolicy);
+}
 
-	std::vector<Guid> guids;
+set<Guid> SupportedPolicyList::getGuids() const
+{
+	return m_supportedPolicies;
+}
+
+UInt64 SupportedPolicyList::getCount() const
+{
+	return m_supportedPolicies.size();
+}
+
+set<Guid> SupportedPolicyList::readPoliciesFromIdsp() const
+{
+	try
+	{
+		const auto buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
+		throwIfIdspDataValid(buffer);
+		const auto guidCount = buffer.size() / sizeof(AcpiEsifGuid);
+		const auto acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(buffer.get());
+		return parseGuids(guidCount, acpiEsifGuid);
+	}
+	catch (const exception& ex)
+	{
+		MANAGER_LOG_MESSAGE_WARNING_EX(
+			{ return ManagerMessage(m_dptfManager, _file, _line, _function, string(ex.what())); });
+		return {};
+	}
+}
+
+set<Guid> parseGuids(const size_t guidCount, const AcpiEsifGuid* data)
+{
+	set<Guid> guids;
 	for (UInt32 i = 0; i < guidCount; i++)
 	{
-		UInt8 guidByteArray[GuidSize] = { 0 };
-		esif_ccb_memcpy(guidByteArray, &acpiEsifGuid[i].uuid, GuidSize);
-		guids.push_back(Guid(guidByteArray));
+		guids.emplace(data[i].uuid);
 	}
 	return guids;
 }
@@ -136,12 +130,12 @@ std::vector<Guid> SupportedPolicyList::parseBufferForPolicyGuids(const DptfBuffe
 void SupportedPolicyList::postMessageWithSupportedGuids() const
 {
 	MANAGER_LOG_MESSAGE_INFO({
-		std::stringstream message;
-		if (m_guid.size() > 0)
+		stringstream message;
+		if (!m_supportedPolicies.empty())
 		{
-			for (auto g = m_guid.begin(); g != m_guid.end(); ++g)
+			for (const auto& g : m_supportedPolicies)
 			{
-				message << "Supported GUID: " << g->toString() << "\n";
+				message << "Supported GUID: " << g.toString() << endl;
 			}
 		}
 		else
@@ -153,6 +147,21 @@ void SupportedPolicyList::postMessageWithSupportedGuids() const
 		});
 }
 
+Bool SupportedPolicyList::isIdspDataValid(const DptfBuffer& buffer)
+{
+	return ((buffer.size() % sizeof(AcpiEsifGuid)) == 0);
+}
+
+void SupportedPolicyList::throwIfIdspDataValid(const DptfBuffer& buffer) const
+{
+	if (!isIdspDataValid(buffer))
+	{
+		stringstream message;
+		message << "Received invalid data length ["s << buffer.size() << "]"s
+				<< " from GET_SUPPORTED_POLICIES buffer."s;
+		throw dptf_exception(message.str());
+	}
+}
 
 EsifServicesInterface* SupportedPolicyList::getEsifServices() const
 {

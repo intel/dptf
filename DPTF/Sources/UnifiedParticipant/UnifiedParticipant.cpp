@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,6 +51,7 @@ UnifiedParticipant::UnifiedParticipant(void)
 	, m_activeControlEventsRegistered(false)
 	, m_socWorkloadClassificationEventsRegistered(false)
 	, m_eppSensitivityHintEventsRegistered(false)
+	, m_extendedWorkloadPredictionEventsRegistered(false)
 {
 	// initialize();
 }
@@ -83,6 +84,7 @@ UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
 	, m_activeControlEventsRegistered(false)
 	, m_socWorkloadClassificationEventsRegistered(false)
 	, m_eppSensitivityHintEventsRegistered(false)
+	, m_extendedWorkloadPredictionEventsRegistered(false)
 {
 	// initialize();
 
@@ -124,6 +126,7 @@ void UnifiedParticipant::initialize(void)
 	m_activeControlEventsRegistered = false;
 	m_socWorkloadClassificationEventsRegistered = false;
 	m_eppSensitivityHintEventsRegistered = false;
+	m_extendedWorkloadPredictionEventsRegistered = false;
 }
 
 void UnifiedParticipant::initializeSpecificInfoControl(void)
@@ -388,6 +391,7 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	std::set<ParticipantEvent::Type> radioEvents;
 	radioEvents.insert(ParticipantEvent::Type::DomainRadioConnectionStatusChanged);
 	radioEvents.insert(ParticipantEvent::Type::DomainRfProfileChanged);
+	radioEvents.insert(ParticipantEvent::Type::DptfAppBroadcastPrivileged);
 	m_rfProfileEventsRegistered =
 		updateDomainEventRegistration(rfProfileTotal, m_rfProfileEventsRegistered, radioEvents);
 
@@ -444,6 +448,13 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 		socWorkloadClassificationControlTotal,
 		m_socWorkloadClassificationEventsRegistered,
 		socWorkloadClassificationEvents);
+
+	std::set<ParticipantEvent::Type> extendedWorkloadPredictionEvents;
+	extendedWorkloadPredictionEvents.insert(ParticipantEvent::Type::DomainExtendedWorkloadPredictionChanged);
+	m_extendedWorkloadPredictionEventsRegistered = updateDomainEventRegistration(
+		socWorkloadClassificationControlTotal,
+		m_extendedWorkloadPredictionEventsRegistered,
+		extendedWorkloadPredictionEvents);
 
 	std::set<ParticipantEvent::Type> eppSensitivityHintEvents;
 	eppSensitivityHintEvents.insert(ParticipantEvent::Type::DomainEppSensitivityHintChanged);
@@ -1076,6 +1087,42 @@ void UnifiedParticipant::domainEppSensitivityHintChanged(UInt32 eppSensitivityHi
 	}
 }
 
+void UnifiedParticipant::domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction)
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			// Since SOCWL shares the same caching mechanism, clearing the cache here will impact SOCWL
+			// Revisit caching once this moves to its own control
+			// domain->second->getSocWorkloadClassificationControl()->clearCachedData();
+
+			try
+			{
+				domain->second->getSocWorkloadClassificationControl()->updateExtendedWorkloadPrediction(extendedWorkloadPrediction);
+			}
+			catch (const std::exception& ex)
+			{
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					return "Unable to update Extended Workload Prediction for domain " + std::to_string(domain->first)
+						   + ". Exception: " + std::string(ex.what());
+				});
+			}
+		}
+	}
+}
+
+void UnifiedParticipant::domainFanOperatingModeChanged()
+{
+	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->getActiveControl()->onClearCachedData();
+		}
+	}
+}
 void UnifiedParticipant::domainCoreControlCapabilityChanged(void)
 {
 	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
@@ -2130,6 +2177,13 @@ void UnifiedParticipant::setSocPowerFloorState(UIntN participantIndex, UIntN dom
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
 }
 
+void UnifiedParticipant::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPowerControl()->clearPowerLimit(participantIndex, domainIndex);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
 void UnifiedParticipant::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -2222,4 +2276,33 @@ UInt32 UnifiedParticipant::getSocDgpuPerformanceHintPoints(UIntN participantInde
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getActivityStatusControl()->getSocDgpuPerformanceHintPoints(participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setRfProfileOverride(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DptfBuffer& rfProfileBufferData)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getRfProfileStatusControl()->setRfProfileOverride(
+		participantIndex, domainIndex, rfProfileBufferData);
+}
+
+void UnifiedParticipant::setPerfPreferenceMax(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPerformanceControl()->setPerfPreferenceMax(
+		participantIndex, domainIndex, minMaxRatio);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
+}
+
+void UnifiedParticipant::setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPerformanceControl()->setPerfPreferenceMin(
+		participantIndex, domainIndex, minMaxRatio);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
 }

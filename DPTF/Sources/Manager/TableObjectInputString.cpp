@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,13 +32,13 @@ TableObjectInputString::TableObjectInputString(const std::string& input)
 std::string TableObjectInputString::getRevision() const
 {
 	const auto pieces = StringParser::split(m_input, DELIMITER_REVISION_MODE);
-	if (pieces.size() > 1)
+	if (pieces.empty())
 	{
-		return pieces[0];
+		return {};
 	}
 	else
 	{
-		return {};
+		return pieces[0];
 	}
 }
 

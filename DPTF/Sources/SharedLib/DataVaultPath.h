@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -79,5 +79,7 @@ namespace DataVaultPath
 		static const std::string PowerShare2Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
 		static const std::string Psh2GfxPerfHintDisabled = DataVaultPathBasePaths::FeaturesRoot + "/psh2_gfx_perf_hint_disabled";
 		static const std::string EpoCustomizationDisabled = DataVaultPathBasePaths::FeaturesRoot + "/epo_customization_disabled";
+		static const std::string Psh2ClosedLoopEnabled = DataVaultPathBasePaths::FeaturesRoot + "/psh2_closed_loop_enabled";
+		static const std::string Psh2CPUPerfFloor = DataVaultPathBasePaths::FeaturesRoot + "/psh2_gpu_power_limit_threshold_ratio";
 	};
 };

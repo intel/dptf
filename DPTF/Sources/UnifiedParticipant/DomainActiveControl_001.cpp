@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,7 @@ DomainActiveControl_001::DomainActiveControl_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainActiveControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_capabilitiesLocked(false)
+	, m_fanCapabilities(Constants::Invalid)
 {
 	onClearCachedData();
 	capture();
@@ -67,6 +68,12 @@ DptfBuffer DomainActiveControl_001::getActiveControlSet(UIntN participantIndex, 
 {
 	return getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_FAN_PERFORMANCE_STATES, ESIF_DATA_BINARY, domainIndex);
+}
+
+UInt32 DomainActiveControl_001::getActiveControlFanCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_FAN_MODE_CAPABILITIES, domainIndex);
 }
 
 void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed)
@@ -163,16 +170,50 @@ std::shared_ptr<XmlNode> DomainActiveControl_001::getXml(UIntN domainIndex)
 {
 	auto root = XmlNode::createWrapperElement("active_control");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
-	auto status = ActiveControlStatus::createFromFst(getActiveControlStatus(getParticipantIndex(), domainIndex));
-	root->addChild(status.getXml());
-	auto staticCaps =
-		ActiveControlStaticCaps::createFromFif(getActiveControlStaticCaps(getParticipantIndex(), domainIndex));
-	root->addChild(staticCaps.getXml());
-	auto dynamicCaps =
-		ActiveControlDynamicCaps::createFromFcdc(getActiveControlDynamicCaps(getParticipantIndex(), domainIndex));
-	root->addChild(dynamicCaps.getXml());
-	auto controlSet = ActiveControlSet::createFromFps(getActiveControlSet(getParticipantIndex(), domainIndex));
-	root->addChild(controlSet.getXml());
+	try
+	{
+		auto status = ActiveControlStatus::createFromFst(getActiveControlStatus(getParticipantIndex(), domainIndex));
+		root->addChild(status.getXml());
+	}
+	catch (...)
+	{
+	}
+	try
+	{
+		auto staticCaps =
+			ActiveControlStaticCaps::createFromFif(getActiveControlStaticCaps(getParticipantIndex(), domainIndex));
+		root->addChild(staticCaps.getXml());
+	}
+	catch (...)
+	{
+	}
+	try
+	{
+		auto dynamicCaps =
+			ActiveControlDynamicCaps::createFromFcdc(getActiveControlDynamicCaps(getParticipantIndex(), domainIndex));
+		root->addChild(dynamicCaps.getXml());
+	}
+	catch (...)
+	{
+	}
+	try
+	{
+		auto controlSet = ActiveControlSet::createFromFps(getActiveControlSet(getParticipantIndex(), domainIndex));
+		root->addChild(controlSet.getXml());
+	}
+	catch (...)
+	{
+	}
+	try
+	{
+		if (m_fanCapabilities.getFanCapabilities() != Constants::Invalid)
+		{
+			root->addChild(m_fanCapabilities.getXml());
+		}
+	}
+	catch (...)
+	{
+	}
 	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 	return root;
 }
@@ -191,6 +232,16 @@ void DomainActiveControl_001::capture(void)
 		PARTICIPANT_LOG_MESSAGE_WARNING_EX(
 			{ return "Failed to get the initial active control status. " + ex.getDescription(); });
 	}
+
+	try
+	{
+		m_fanCapabilities.setFanCapabilities(getActiveControlFanCapabilities(getParticipantIndex(), getDomainIndex()));
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Failed to get fan capabilities "; });
+	}
 }
 
 void DomainActiveControl_001::restore(void)
@@ -208,6 +259,8 @@ void DomainActiveControl_001::restore(void)
 			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial active control status. "; });
 		}
 	}
+
+	m_fanCapabilities.setFanCapabilities(0);
 }
 
 ActiveControlSet DomainActiveControl_001::createActiveControlSet(UIntN domainIndex)
@@ -250,4 +303,29 @@ void DomainActiveControl_001::setActiveControlDynamicCaps(
 		buffer.size(),
 		domainIndex,
 		Constants::Esif::NoPersistInstance);
+}
+
+void DomainActiveControl_001::setActiveControlFanOperatingMode(UInt32 fanOperatingMode)
+{
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_FAN_OPERATING_MODE, fanOperatingMode, getDomainIndex());
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			std::stringstream message;
+			message << "Failed to set fan operating mode Threshold for participant index = "
+						   + std::to_string(getParticipantIndex())
+						   + "and domain Index = " + std::to_string(getDomainIndex());
+			return message.str();
+		});
+	}
+}
+
+UInt32 DomainActiveControl_001::getActiveControlFanOperatingMode(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_FAN_OPERATING_MODE, domainIndex);
 }

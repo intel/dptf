@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,7 @@ DptfBuffer::DptfBuffer(void)
 {
 }
 
-DptfBuffer::DptfBuffer(UInt32 sizeInBytes)
+DptfBuffer::DptfBuffer(size_t sizeInBytes)
 {
 	allocate(sizeInBytes);
 }
@@ -56,7 +56,14 @@ DptfBuffer DptfBuffer::fromBool(Bool value)
 	return buffer;
 }
 
-void DptfBuffer::allocate(UInt32 sizeInBytes)
+DptfBuffer DptfBuffer::fromString(const std::string& value)
+{
+	DptfBuffer buffer;
+	buffer.append((UInt8*)value.data(), (UInt32)value.size());
+	return buffer;
+}
+
+void DptfBuffer::allocate(size_t sizeInBytes)
 {
 	m_buffer.clear();
 	m_buffer.resize(sizeInBytes, 0);
@@ -134,6 +141,11 @@ UInt8 DptfBuffer::operator[](UInt32 byteNumber) const
 	}
 }
 
+DptfBuffer::operator const std::vector<UInt8>&(void) const
+{
+	return m_buffer;
+}
+
 void DptfBuffer::put(UInt32 offset, UInt8* data, UInt32 length)
 {
 	if ((offset + length) > size())
@@ -182,6 +194,11 @@ UInt8 DptfBuffer::lastByte() const
 std::string DptfBuffer::toString() const
 {
 	return std::string(m_buffer.begin(), m_buffer.end());
+}
+
+Bool DptfBuffer::notEmpty() const
+{
+	return !m_buffer.empty();
 }
 
 std::ostream& operator<<(std::ostream& os, const DptfBuffer& buffer)

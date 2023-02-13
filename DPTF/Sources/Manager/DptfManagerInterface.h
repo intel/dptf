@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "EventCache.h"
 #include "UserPreferredCache.h"
 #include "CommandDispatcher.h"
+#include "ConfigurationFileManager.h"
 #include "RequestDispatcher.h"
 
 class EsifServicesInterface;
@@ -58,7 +59,6 @@ public:
 	virtual ICommandDispatcher* getCommandDispatcher() const = 0;
 	virtual IndexContainerInterface* getIndexContainer(void) const = 0;
 	virtual DataManagerInterface* getDataManager(void) const = 0;
-	virtual std::string getDptfHomeDirectoryPath(void) const = 0;
 	virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
 	virtual std::string getDptfReportDirectoryPath(void) const = 0;
 	virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
@@ -69,4 +69,7 @@ public:
 	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const = 0;
 	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const = 0;
 	virtual SystemModeManagerInterface* getSystemModeManager() const = 0;
+	virtual std::shared_ptr<ConfigurationFileManagerInterface> getConfigurationManager() const = 0;
+	virtual void setCurrentLogVerbosityLevel(eLogType level) = 0;
+	virtual EnvironmentProfile getEnvironmentProfile() const = 0;
 };

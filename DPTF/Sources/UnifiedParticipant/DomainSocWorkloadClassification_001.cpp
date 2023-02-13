@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,7 @@ DomainSocWorkloadClassification_001::DomainSocWorkloadClassification_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainSocWorkloadClassificationBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_socWorkload(Constants::Invalid)
+	, m_extendedWorkloadPrediction(Constants::Invalid)
 {
 }
 
@@ -52,6 +53,27 @@ UInt32 DomainSocWorkloadClassification_001::getSocWorkloadClassification()
 void DomainSocWorkloadClassification_001::updateSocWorkloadClassification(UInt32 socWorkloadClassification)
 {
 	m_socWorkload = socWorkloadClassification;
+}
+
+UInt32 DomainSocWorkloadClassification_001::getExtendedWorkloadPrediction()
+{
+	m_extendedWorkloadPrediction = Constants::Invalid;
+
+	try
+	{
+		m_extendedWorkloadPrediction = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_EXTENDED_WORKLOAD_PREDICTION, getDomainIndex());
+	}
+	catch (...)
+	{
+	}
+
+	return m_extendedWorkloadPrediction;
+}
+
+void DomainSocWorkloadClassification_001::updateExtendedWorkloadPrediction(UInt32 extendedWorkloadPrediction)
+{
+	m_extendedWorkloadPrediction = extendedWorkloadPrediction;
 }
 
 std::string DomainSocWorkloadClassification_001::getName(void)

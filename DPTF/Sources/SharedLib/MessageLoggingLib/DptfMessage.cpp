@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,8 +18,9 @@
 
 #include "DptfMessage.h"
 #include "DptfVer.h"
+using namespace std;
 
-DptfMessage::DptfMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName)
+DptfMessage::DptfMessage(const string& fileName, UIntN lineNumber, const string& executingFunctionName)
 	: m_dptfVersion(VERSION_STR)
 	, m_dptfBuildDate(__DATE__)
 	, m_dptfBuildTime(__TIME__)
@@ -41,7 +42,7 @@ DptfMessage::DptfMessage(const std::string& fileName, UIntN lineNumber, const st
 {
 	try
 	{
-		m_lineNumber = std::to_string(lineNumber);
+		m_lineNumber = to_string(lineNumber);
 	}
 	catch (...)
 	{
@@ -53,7 +54,7 @@ DptfMessage::~DptfMessage(void)
 {
 }
 
-void DptfMessage::addMessage(const std::string& message)
+void DptfMessage::addMessage(const string& message)
 {
 	try
 	{
@@ -64,7 +65,7 @@ void DptfMessage::addMessage(const std::string& message)
 	}
 }
 
-void DptfMessage::addMessage(const std::string& messageKey, const std::string& messageValue)
+void DptfMessage::addMessage(const string& messageKey, const string& messageValue)
 {
 	try
 	{
@@ -75,18 +76,18 @@ void DptfMessage::addMessage(const std::string& messageKey, const std::string& m
 	}
 }
 
-void DptfMessage::addMessage(const std::string& messageKey, UInt64 messageValue)
+void DptfMessage::addMessage(const string& messageKey, UInt64 messageValue)
 {
 	try
 	{
-		m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, std::to_string(messageValue)));
+		m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, to_string(messageValue)));
 	}
 	catch (...)
 	{
 	}
 }
 
-void DptfMessage::addMessage(const std::string& messageKey, Temperature messageValue)
+void DptfMessage::addMessage(const string& messageKey, Temperature messageValue)
 {
 	try
 	{
@@ -97,7 +98,7 @@ void DptfMessage::addMessage(const std::string& messageKey, Temperature messageV
 	}
 }
 
-void DptfMessage::setExceptionCaught(const std::string& exceptionFunctionName, const std::string& exceptionText)
+void DptfMessage::setExceptionCaught(const string& exceptionFunctionName, const string& exceptionText)
 {
 	m_exceptionFunctionName = exceptionFunctionName;
 	m_exceptionText = exceptionText;

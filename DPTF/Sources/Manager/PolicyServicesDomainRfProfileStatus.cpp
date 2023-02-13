@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,4 +66,15 @@ void PolicyServicesDomainRfProfileStatus::setProtectRequest(
 {
 	throwIfNotWorkItemThread();
 	getParticipantManager()->getParticipantPtr(participantIndex)->setProtectRequest(domainIndex, frequencyRate);
+}
+
+void PolicyServicesDomainRfProfileStatus::setRfProfileOverride(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DptfBuffer& rfProfileBufferData)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setRfProfileOverride(domainIndex, domainIndex, rfProfileBufferData);
 }

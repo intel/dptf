@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -112,7 +112,8 @@
 #define CPUID_FAMILY_MODEL_MTL_S	0x000606C0		// Meteor Lake S
 #define CPUID_FAMILY_MODEL_RPL_S	0x000B0670		// Raptor Lake S
 #define CPUID_FAMILY_MODEL_RPL_P	0x000B06A0		// Raptor Lake P
-
+#define CPUID_FAMILY_MODEL_ADL_N	0x000B06E0		// Alder Lake N
+#define CPUID_FAMILY_MODEL_ADL_P	0x000906A0		// Alder Lake P
 #pragma pack(push, 1)
 
 typedef struct esif_ccb_cpuid_s {

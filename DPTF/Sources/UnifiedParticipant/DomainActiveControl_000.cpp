@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -86,6 +86,21 @@ void DomainActiveControl_000::setActiveControlDynamicCaps(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	ActiveControlDynamicCaps newCapabilities)
+{
+	throw not_implemented();
+}
+
+void DomainActiveControl_000::setActiveControlFanOperatingMode(UInt32 fanOperatingMode)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainActiveControl_000::getActiveControlFanOperatingMode(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainActiveControl_000::getActiveControlFanCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }

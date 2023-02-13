@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,10 +32,12 @@ namespace DptfRequestType
 		ActiveControlGetDynamicCaps,
 		ActiveControlGetStatus,
 		ActiveControlGetControlSet,
+		ActiveControlGetFanOperatingMode,
 		ActiveControlSetFanSpeed,
 		ActiveControlSetDynamicCaps,
 		ActiveControlSetFanCapsLock,
 		ActiveControlSetFanDirection,
+		ActiveControlSetFanOperatingMode,
 
 		// Battery Status
 		BatteryStatusGetMaxBatteryPower,
@@ -67,6 +69,7 @@ namespace DptfRequestType
 
 		// Soc Workload Classification
 		SocWorkloadClassificationGetSocWorkload,
+		SocWorkloadClassificationGetExtendedWorkloadPrediction,
 
 		// Dynamic EPP
 		DynamicEppGetEppSensitivityHint,
@@ -78,6 +81,10 @@ namespace DptfRequestType
 		PlatformNotificationSetApplicationAliveResponse,
 		PlatformNotificationSetPolicySystemMode,
 		PlatformNotificationAppBroadcastSend,
+		PlatformNotificationFanOperatingModeChanged,
+
+		// Data
+		DataGetConfigurationFileContent,
 
 		// END
 		END

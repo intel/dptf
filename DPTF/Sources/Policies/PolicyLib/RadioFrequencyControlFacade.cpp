@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -84,19 +84,21 @@ std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 	Frequency centerFrequency(0);
 	Frequency minFrequency(0);
 	Frequency maxFrequency(0);
-
+	Frequency defaultCenterFrequency(0);
+	Percentage defaultSsc = Percentage::fromWholeNumber(1);
+	Percentage requestedSsc = Percentage::createInvalid();
 	try
 	{
-		auto rfProfileCaps = m_policyServices.domainRfProfileControl->getRfProfileCapabilities(m_participantIndex, m_domainIndex);
+		auto rfProfileCaps =
+			m_policyServices.domainRfProfileControl->getRfProfileCapabilities(m_participantIndex, m_domainIndex);
 		centerFrequency = rfProfileCaps.getCenterFrequency();
 		minFrequency = rfProfileCaps.getMinFrequency();
 		maxFrequency = rfProfileCaps.getMaxFrequency();
+		defaultCenterFrequency = rfProfileCaps.getDefaultCenterFrequency();
 	}
 	catch (...)
 	{
-		POLICY_LOG_MESSAGE_DEBUG({
-			return "Failed to get center frequency";
-			});
+		POLICY_LOG_MESSAGE_DEBUG({ return "Failed to get default center frequency"; });
 	}
 	auto control = XmlNode::createWrapperElement("radio_frequency_control");
 	control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
@@ -106,16 +108,9 @@ std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 	control->addChild(XmlNode::createDataElement("requested_frequency", m_lastSetFrequency.toString()));
 	control->addChild(XmlNode::createDataElement("max_frequency", maxFrequency.toString()));
 	control->addChild(XmlNode::createDataElement("ssc", m_ssc.toString()));
-	if (supportsStatus())
-	{
-		try
-		{
-			control->addChild(getRadioProfile().getXml());
-		}
-		catch (...)
-		{
-		}
-	}
+	control->addChild(XmlNode::createDataElement("default_ssc", defaultSsc.toString()));
+	control->addChild(XmlNode::createDataElement("requested_ssc", requestedSsc.toString()));
+	control->addChild(XmlNode::createDataElement("default_center_frequency", defaultCenterFrequency.toString()));
 	return control;
 }
 

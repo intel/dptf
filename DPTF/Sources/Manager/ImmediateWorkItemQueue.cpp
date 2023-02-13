@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -75,6 +75,9 @@ void ImmediateWorkItemQueue::makeEmtpy(void)
 
 	while (m_queue.empty() == false)
 	{
+		// Signal the semaphore before removing from queue
+		auto currentWorkItem = m_queue.front();
+		currentWorkItem->signal();
 		m_queue.pop_front();
 	}
 

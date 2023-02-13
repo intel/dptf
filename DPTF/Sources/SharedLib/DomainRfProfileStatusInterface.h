@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,4 +36,8 @@ public:
 		UIntN domainIndex,
 		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) = 0;
 	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) = 0;
+	virtual void setRfProfileOverride(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DptfBuffer& rfProfileBufferData) = 0;
 };

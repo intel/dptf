@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -149,34 +149,8 @@ void PowerControlFacade::setCapability(const PowerControlDynamicCaps& capability
 void PowerControlFacade::setControlsToMax()
 {
 	throwIfControlNotSupported();
-	const auto& capsSet = getCapabilities();
-
-	if (capsSet.hasCapability(PowerControlType::PL1))
-	{
-		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
-		setPowerLimitPL1(caps.getMaxPowerLimit());
-		setPowerLimitTimeWindowPL1(caps.getMaxTimeWindow());
-	}
-
-	if (capsSet.hasCapability(PowerControlType::PL2))
-	{
-		const auto& caps = capsSet.getCapability(PowerControlType::PL2);
-		setPowerLimitPL2(caps.getMaxPowerLimit());
-	}
-
-	if (capsSet.hasCapability(PowerControlType::PL3))
-	{
-		const auto& caps = capsSet.getCapability(PowerControlType::PL3);
-		setPowerLimitPL3(caps.getMaxPowerLimit());
-		setPowerLimitTimeWindowPL3(caps.getMaxTimeWindow());
-		setPowerLimitDutyCyclePL3(caps.getMaxDutyCycle());
-	}
-
-	if (capsSet.hasCapability(PowerControlType::PL4))
-	{
-		const auto& caps = capsSet.getCapability(PowerControlType::PL4);
-		setPowerLimitPL4(caps.getMaxPowerLimit());
-	}
+	// Set only PL1 as Policy controls only PL1
+	setPL1PowerLimitControlToMax();
 }
 
 void PowerControlFacade::setPL1PowerLimitControlToMax()
@@ -374,6 +348,11 @@ void PowerControlFacade::setPowerSharePolicyPower(const Power& powerSharePolicyP
 {
 	m_policyServices.domainPowerControl->setPowerSharePolicyPower(
 		m_participantIndex, m_domainIndex, powerSharePolicyPower);
+}
+
+void PowerControlFacade::clearPowerLimit()
+{
+	m_policyServices.domainPowerControl->clearPowerLimit(m_participantIndex, m_domainIndex);
 }
 
 void PowerControlFacade::setPowerLimitsWithinCapabilities()

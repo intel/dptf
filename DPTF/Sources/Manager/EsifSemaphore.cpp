@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,20 +20,22 @@
 
 EsifSemaphore::EsifSemaphore(void)
 {
-	esif_ccb_sem_init(&m_semaphore);
+	m_semaphore = new esif_ccb_sem_t;
+	esif_ccb_sem_init(m_semaphore);
 }
 
 EsifSemaphore::~EsifSemaphore(void)
 {
-	esif_ccb_sem_uninit(&m_semaphore);
+	esif_ccb_sem_uninit(m_semaphore);
+	DELETE_MEMORY_TC(m_semaphore);
 }
 
 void EsifSemaphore::wait(void)
 {
-	esif_ccb_sem_down(&m_semaphore);
+	esif_ccb_sem_down(m_semaphore);
 }
 
 void EsifSemaphore::signal(void)
 {
-	esif_ccb_sem_up(&m_semaphore);
+	esif_ccb_sem_up(m_semaphore);
 }

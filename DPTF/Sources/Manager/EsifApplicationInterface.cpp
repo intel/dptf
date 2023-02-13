@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,7 +38,7 @@
 #include "EsifAppBroadcastProcessing.h"
 
 // Minimum Required IPF SDK Version for this App to load (i.e., NULL, "1.0.0", IPF_SDK_VERSION, Specific Version, etc.)
-#define IPFSDK_MINIMUM_VERSION_REQUIRED IPF_SDK_VERSION
+#define IPFSDK_MINIMUM_VERSION_REQUIRED "1.0.0"
 
 //
 // Macros must be used to reduce the code and still allow writing out the file name, line number, and function name
@@ -182,6 +182,7 @@ extern "C"
 
 	static eEsifError DptfAllocateHandle(esif_handle_t* appHandleLocation)
 	{
+		DEBUG_MEMORY_LEAK_INIT();
 		DptfManagerInterface* dptfManager = nullptr;
 
 		try
@@ -665,9 +666,10 @@ extern "C"
 
 			switch (frameworkEvent)
 			{
-			case FrameworkEvent::PolicyAppBroadcastUnprivileged:
-			case FrameworkEvent::PolicyAppBroadcastPrivileged:
-				wi = EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreateWorkItem(dptfManager, esifEventDataPtr);
+			case FrameworkEvent::DptfAppBroadcastUnprivileged:
+			case FrameworkEvent::DptfAppBroadcastPrivileged:
+				wi = EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreateWorkItem(
+					dptfManager, esifEventDataPtr);
 				break;
 			// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high
 			// priority.
@@ -680,7 +682,7 @@ extern "C"
 				break;
 			case FrameworkEvent::DptfLogVerbosityChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
-				dptfManager->getEsifServices()->setCurrentLogVerbosityLevel((eLogType)uint32param);
+				dptfManager->setCurrentLogVerbosityLevel((eLogType)uint32param);
 				break;
 			case FrameworkEvent::DptfParticipantActivityLoggingEnabled:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -804,6 +806,11 @@ extern "C"
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIDomainEppSensitivityHintChanged>(
 					dptfManager, participantIndex, domainIndex, (MbtHint::Type)uint32param);
+				break;
+			case FrameworkEvent::DomainExtendedWorkloadPredictionChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIDomainExtendedWorkloadPredictionChanged>(
+					dptfManager, participantIndex, domainIndex, (ExtendedWorkloadPrediction::Type)uint32param);
 				break;
 			case FrameworkEvent::PolicyCoolingModePolicyChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -937,6 +944,18 @@ extern "C"
 			case FrameworkEvent::PolicyThirdPartyGraphicsPowerStateChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyThirdPartyGraphicsPowerStateChanged>(dptfManager, uint32param);
+				break;
+			case FrameworkEvent::DomainFanOperatingModeChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIDomainFanOperatingModeChanged>(
+					dptfManager, participantIndex, domainIndex, FanOperatingMode::toType(uint32param));
+				break;
+			case FrameworkEvent::PolicyOemVariablesChanged:
+				wi = std::make_shared<WIPolicyOemVariablesChanged>(dptfManager);
+				break;
+			case FrameworkEvent::PolicyThirdPartyGraphicsTPPLimitChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyThirdPartyGraphicsTPPLimitChanged>(dptfManager, (OsPowerSource::Type)uint32param);
 				break;
 			default:
 			{

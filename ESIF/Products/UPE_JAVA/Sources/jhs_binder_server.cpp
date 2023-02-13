@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -99,7 +99,7 @@ namespace jhs {
 			newPart.class_guid[guid_element_counter] = *(classGuid + guid_element_counter);
 		}
 
-		newPart.version = ESIF_PARTICIPANT_VERSION;
+		newPart.version = ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION;
 		newPart.enumerator = ESIF_PARTICIPANT_ENUM_SYSFS;
 		newPart.flags = 0x0;
 		newPart.send_event = NULL;

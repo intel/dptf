@@ -44,6 +44,9 @@ IntermediateCompilerFiles
 enc_temp_folder
 out
 
+# Visual Studio Code
+.vscode
+
 # Product-Specific
 *.laccdb
 *.edp
@@ -56,7 +59,7 @@ dsp_compiler
 ppm_compiler
 /ESIF/Packages/Database/DSP-*.accdb
 /ESIF/Packages/Database/EXPORT
-/ESIF/Products/ESIF_UI/index.html
+/DPTF/Sources/Tools/dttui/index.html
 /Build/Linux/Artifacts
 /Build/Linux/Upstream
 /Build/Windows/Artifacts
@@ -77,8 +80,8 @@ ppm_compiler
 /ContextService/SampleAppSource/SampleApp_Packager/AppPackages
 /ContextService/SampleAppSource/SampleApp_Packager/BundleArtifacts
 /ContextService/**/packages
-/ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.pdb
-/ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.dll
+/DPTF/Sources/Tools/dttui/Sources/solution/esif_ui_solution/bin/esif_ui_solution.pdb
+/DPTF/Sources/Tools/dttui/Sources/solution/esif_ui_solution/bin/esif_ui_solution.dll
 /ESIF/Products/IPF_UI/Sources/solution/ipf_ui_solution/bin
 /ESIF/Products/IPF_UI/index.html
 /IPF/Linux

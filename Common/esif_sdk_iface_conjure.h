@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -85,7 +85,11 @@ typedef enum EsifCnjIfaceVer_e {
     Upper Framework Register Participant. Provides the same functionality as the LF
     version.  Maybe called many times by one Conjure Library.
  */
-typedef eEsifError (ESIF_CALLCONV *RegisterParticipantFunction)(const EsifParticipantIfacePtr pi, esif_handle_t *participantInstance);
+
+
+struct _t_EsifParticipantIface; /* Private to ESIF */
+typedef eEsifError (ESIF_CALLCONV *RegisterParticipantFunction)(const struct _t_EsifParticipantIface *pi, esif_handle_t *participantInstance);
+
 
 /*
     Upper Framework UnRegister Participant.  Provides the same functionality as the LF

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -81,13 +81,16 @@ esif_primitive_type_t TableObject::getReadTablePrimitive() const
 
 string TableObject::getXmlString()
 {
+	return getXml()->toString(); 
+}
+
+std::shared_ptr<XmlNode> TableObject::getXml()
+{
+	std::shared_ptr<XmlNode> resultRoot = XmlNode::createWrapperElement("result"); 	
 	if (m_data.size())
 	{
 		union esif_data_variant* obj = (union esif_data_variant*)m_data.get();
-
 		auto remain_bytes = m_data.size();
-		auto resultRoot = XmlNode::createWrapperElement("result");
-
 		auto revision = (u32)obj->integer.value;
 
 		if (m_fieldsMap.find(0) != m_fieldsMap.end())
@@ -101,23 +104,29 @@ string TableObject::getXmlString()
 		{
 			addRevisionFields(remain_bytes, obj, fields, resultRoot, revision);
 			addModeFields(remain_bytes, obj, fields, resultRoot);
-
 			if (addValueFields(remain_bytes, obj, fields, resultRoot, revision) == false)
 			{
-				return "TableObject field datatype not supported.";
+				addMessage(resultRoot, "row", "TableObject field datatype not supported.");
 			}
-		
-			return resultRoot->toString();
 		}
 		else
 		{
-			return "TableObject revision not supported.";
+			addMessage(resultRoot, "revision", "TableObject revision not supported.");
 		}
 	}
 	else
 	{
-		return "TableObject is empty.";
+		addMessage(resultRoot, "", "TableObject is empty.");
 	}
+	return resultRoot;
+}
+
+void TableObject::addMessage(
+	shared_ptr<XmlNode>& resultRoot, 
+	string xmlWrapperTag,
+	string messages)
+{
+	resultRoot->addChild(XmlNode::createDataElement(xmlWrapperTag, messages));
 }
 
 void TableObject::addRevisionFields(

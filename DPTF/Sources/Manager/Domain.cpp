@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -622,6 +622,16 @@ void Domain::setPerformanceCapsLock(UIntN policyIndex, Bool lock)
 	}
 }
 
+void Domain::setPerfPreferenceMax(UIntN policyIndex, Percentage minMaxRatio)
+{
+	m_theRealParticipant->setPerfPreferenceMax(m_participantIndex, m_domainIndex, minMaxRatio);
+}
+
+void Domain::setPerfPreferenceMin(UIntN policyIndex, Percentage minMaxRatio)
+{
+	m_theRealParticipant->setPerfPreferenceMin(m_participantIndex, m_domainIndex, minMaxRatio);
+}
+
 PowerControlDynamicCapsSet Domain::getPowerControlDynamicCapsSet(void)
 {
 	FILL_CACHE_AND_RETURN(m_powerControlDynamicCapsSet, PowerControlDynamicCapsSet, getPowerControlDynamicCapsSet);
@@ -887,6 +897,11 @@ void Domain::setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type co
 void Domain::setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState)
 {
 	m_theRealParticipant->setSocPowerFloorState(m_participantIndex, m_domainIndex, socPowerFloorState);
+}
+
+void Domain::clearPowerLimit()
+{
+	m_theRealParticipant->clearPowerLimit(m_participantIndex, m_domainIndex);
 }
 
 void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock)
@@ -1251,6 +1266,11 @@ void Domain::setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruc
 void Domain::setProtectRequest(const UInt64 frequencyRate)
 {
 	m_theRealParticipant->setProtectRequest(m_participantIndex, m_domainIndex, frequencyRate);
+}
+
+void Domain::setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
+{
+	m_theRealParticipant->setRfProfileOverride(participantIndex, domainIndex, rfProfileBufferData);
 }
 
 UtilizationStatus Domain::getUtilizationStatus(void)

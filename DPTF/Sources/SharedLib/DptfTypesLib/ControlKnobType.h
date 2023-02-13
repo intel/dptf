@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,5 +47,6 @@ namespace ControlKnobType
 		RPMFanControl = 0x000C0000 // RPM fan Control in Integer
 	};
 
-	std::string ToString(ControlKnobType::Type type);
+	std::string toString(ControlKnobType::Type type);
+	ControlKnobType::Type fromString(const std::string& typeName);
 }

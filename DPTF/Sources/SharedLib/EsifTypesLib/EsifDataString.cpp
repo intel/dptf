@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 
 #include "EsifDataString.h"
 #include "esif_ccb_string.h"
+
+#define RESPONSE_BUFFER_LEN_NORMAL 256 * 1024
+#define RESPONSE_BUFFER_LEN_CAP 250 * 1024 * 1024
 
 EsifDataString::EsifDataString(const std::string& data)
 {
@@ -106,7 +109,8 @@ eEsifError FillDataPtrWithString(EsifDataPtr dataPtr, std::string dataString)
 	}
 	else
 	{
-		dataPtr->data_len = requiredBufferLength;
+		dataPtr->data_len =
+			std::min(std::max((int)(requiredBufferLength * 2), RESPONSE_BUFFER_LEN_NORMAL), RESPONSE_BUFFER_LEN_CAP);
 		return ESIF_E_NEED_LARGER_BUFFER;
 	}
 }

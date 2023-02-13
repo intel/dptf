@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -89,8 +89,8 @@
 #define register_for_system_metrics_notification(guid_ptr) register_for_system_metric_notification_lin(guid_ptr)
 #define unregister_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
-#define esif_enable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
-#define esif_disable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
+#define esif_enable_code_event(eventType) enable_code_event_lin(eventType)
+#define esif_disable_code_event(eventType) disable_code_event_lin(eventType)
 
 #define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) (ESIF_E_NOT_IMPLEMENTED)
 

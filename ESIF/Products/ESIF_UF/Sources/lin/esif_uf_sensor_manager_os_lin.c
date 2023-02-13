@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,8 @@
 #include "esif_pm.h"
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_cfgmgr.h"
+#include "esif_lib_databank.h"
 #include "esif_uf_sensors.h"
 #include "esif_uf_sysfs_os_lin.h"
 
@@ -42,7 +44,28 @@
 #define PLAT_TYPE_CLAMSHELL_ANGLE_MIN 5
 #define PLAT_TYPE_CLAMSHELL_ANGLE_MAX 180
 #define PLAT_TYPE_TABLET_ANGLE_MIN 355
-#define PSY_EVENT_ENABLE 1
+#define MAX_WL_HINT_ROWS 140 // as per the test Doc
+#define SCANF_STR_LEN 255
+#define TOTAL_PIDS_READ 8
+#define EPP_MODE_MIDPOINT	((EPP_BALANCE_POWER - EPP_BALANCE_PERFORMANCE) / 2)
+
+static Bool IsWorkloadFgProcessOrDaemon(const char *workloadName);
+
+typedef enum EppMode_e {
+	EPP_PERFORMANCE = 0,
+	EPP_BALANCE_PERFORMANCE = 128,
+	EPP_BALANCE_POWER = 192,
+	EPP_POWER = 255
+} EppMode;
+
+// DTT Power Slider Values for Esif_event
+typedef enum PowerSliderMode_e {
+	POWER_SLIDER_STATE_INVALID = 0,
+	POWER_SLIDER_STATE_BATTERY_SAVER = 25,
+	POWER_SLIDER_STATE_BETTER_BATTERY = 50,
+	POWER_SLIDER_STATE_BETTER_PERF = 75,
+	POWER_SLIDER_STATE_MAX_PERF = 100
+} PowerSliderMode;
 
 typedef enum SensorType_e {
 	SENSOR_TYPE_ACCEL = 0,
@@ -88,6 +111,16 @@ typedef struct Sensor_s {
 	} data;
 } Sensor, *SensorPtr;
 
+static const char * const gPowerSliderModeNames [] = {
+	[POWER_SLIDER_STATE_INVALID] = "Invalid",
+	[POWER_SLIDER_STATE_BATTERY_SAVER] = "power",
+	[POWER_SLIDER_STATE_BETTER_BATTERY] = "balance_power",
+	[POWER_SLIDER_STATE_BETTER_PERF] = "balance_performance",
+	[POWER_SLIDER_STATE_MAX_PERF] = "performance"
+};
+
+
+static EsifString gPrevWorkload = NULL;
 static esif_thread_t gEsifSensorMgrThread;
 static Bool gEsifSensorMgrStarted = ESIF_FALSE;
 static const char gXRawNodeName[] = "in_accel_x_raw";
@@ -96,8 +129,10 @@ static const char gZRawNodeName[] = "in_accel_z_raw";
 static const char gAngleRawNodeName[] = "in_angl_raw";
 static const char gSensorBasePath[] =  "/sys/bus/iio/devices";
 static char gLidStateBasePath[] = "/proc/acpi/button/lid/LID0";
-static char gPowerSrcBasePath[] = "/sys/class/power_supply/BAT0";
+static char gPowerSupplyPath[] = "/sys/class/power_supply";
 static char gDockingBasePath[] = "/sys/bus/acpi/devices/GOOG6666:00";
+static char gPowerSliderBasePath[] = "/sys/devices/system/cpu/cpu0/cpufreq";
+
 static const InclinometerMinMaxConfig gInclinMinMaxConfig= {
 	INCLIN_X_ORIENT_FLAT_UP_MIN,
 	INCLIN_X_ORIENT_FLAT_UP_MAX,
@@ -121,8 +156,6 @@ static Sensor *gLidAngle;
 
 // Global file descriptors for misc sensors not found in IIO bus, such as lid state, battery state, etc.
 static int gFdLidState;
-static int gFdPowerSrc;
-static int gFdBattCharge;
 static int gFdDocking;
 
 // Global variables keeping track of current x/y/z vectors and platform/display orientation/platform type
@@ -133,9 +166,11 @@ static Motion gInMotion = MOTION_MAX;
 static DockMode gDockMode = DOCK_MODE_INVALID;
 static LidState gLidState = LID_STATE_CLOSED;
 static PlatformType gPlatType = PLATFORM_TYPE_INVALID;
+static PowerSliderMode gPowerSliderValue = POWER_SLIDER_STATE_INVALID;
+static Bool gIsWLHintRegistered = ESIF_FALSE;
 
 PowerSrc g_PowerSrc = POWER_SRC_AC;
-int g_BatteryPercentage = 0;
+UInt32 g_BatteryPercentage = 0;
 
 // The SIGUSR1 handler below is the alternative
 // solution for Android where the pthread_cancel()
@@ -308,17 +343,11 @@ static eEsifError EsifSensorMgr_InitializeNonIioBusSensors()
 	// All we need is to obtain a file descriptor to each corresponding sysfs node
 	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gLidStateBasePath, "state");
 	gFdLidState = open(filepath, O_RDONLY);
-
-	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gPowerSrcBasePath, "status");
-	gFdPowerSrc = open(filepath, O_RDONLY);
-
-	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gPowerSrcBasePath, "capacity");
-	gFdBattCharge = open(filepath, O_RDONLY);
 	
 	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gDockingBasePath, "docked");
 	gFdDocking = open(filepath, O_RDONLY);
 
-	if (gFdPowerSrc <= 0 && gFdLidState <= 0 && gFdBattCharge <= 0 && gFdDocking <= 0) {
+	if (gFdLidState <= 0 && gFdDocking <= 0) {
 		rc = ESIF_E_NOT_SUPPORTED;
 	}
 
@@ -338,8 +367,6 @@ static void EsifSensorMgr_DeregisterSensors()
 
 	// Also close file descriptors for misc. sensors
 	if (gFdLidState > 0) close(gFdLidState);
-	if (gFdPowerSrc > 0) close(gFdPowerSrc);
-	if (gFdBattCharge > 0) close(gFdBattCharge);
 	if (gFdDocking > 0) close(gFdDocking);
 }
 
@@ -411,6 +438,75 @@ static void CheckDispPlatOrientation(SensorPtr sensorPtr)
 	}
 }
 
+static UInt32 GetPowerSliderModeFromRawVal(UInt32 eppRawVal)
+{
+	UInt32 value = 0;
+
+	switch(eppRawVal) {
+		// Range: 0 ... 64
+		case EPP_PERFORMANCE ... (EPP_BALANCE_PERFORMANCE/2):
+			value = POWER_SLIDER_STATE_MAX_PERF;
+		break;
+		// Range: 65 ... 160
+		case (EPP_BALANCE_PERFORMANCE / 2 + 1) ... (EPP_BALANCE_PERFORMANCE + EPP_MODE_MIDPOINT):
+			value = POWER_SLIDER_STATE_BETTER_PERF;
+		break;
+		// Range: 161 ... 224
+		case (EPP_BALANCE_PERFORMANCE + EPP_MODE_MIDPOINT + 1) ... (EPP_BALANCE_POWER + EPP_MODE_MIDPOINT):
+			value = POWER_SLIDER_STATE_BETTER_BATTERY;
+		break;
+		// Range: 225 ... 255
+		case (EPP_BALANCE_POWER + EPP_MODE_MIDPOINT + 1) ... EPP_POWER:
+			value = POWER_SLIDER_STATE_BATTERY_SAVER;
+		break;
+		default:
+			value = POWER_SLIDER_STATE_INVALID;
+		break;
+	}
+	return value;
+}
+
+static void GetPowerSliderMode()
+{
+	UInt32 newPowerSliderValue = 0;
+	UInt32 eppRawVal = 0;
+	char eppMode[MAX_PATH] = {'\0'};
+	EsifData evtData = { 0 };
+
+	if (SysfsGetString(gPowerSliderBasePath, "energy_performance_preference", eppMode, sizeof(eppMode)) <= 0) {
+			ESIF_TRACE_ERROR("Sysfs Read failed at path: %s/type \n", gPowerSliderBasePath);
+			return;
+	}
+
+	if (esif_ccb_strncmp(eppMode, gPowerSliderModeNames[POWER_SLIDER_STATE_BATTERY_SAVER],
+		esif_ccb_strlen(gPowerSliderModeNames[POWER_SLIDER_STATE_BATTERY_SAVER], MAX_PATH)) == 0) {
+			newPowerSliderValue = POWER_SLIDER_STATE_BATTERY_SAVER;
+	}
+	else if (esif_ccb_strncmp(eppMode, gPowerSliderModeNames[POWER_SLIDER_STATE_BETTER_BATTERY],
+			esif_ccb_strlen(gPowerSliderModeNames[POWER_SLIDER_STATE_BETTER_BATTERY], MAX_PATH)) == 0) {
+				newPowerSliderValue = POWER_SLIDER_STATE_BETTER_BATTERY;
+	}
+	else if (esif_ccb_strncmp(eppMode, gPowerSliderModeNames[POWER_SLIDER_STATE_BETTER_PERF],
+			esif_ccb_strlen(gPowerSliderModeNames[POWER_SLIDER_STATE_BETTER_PERF], MAX_PATH)) == 0) {
+				newPowerSliderValue = POWER_SLIDER_STATE_BETTER_PERF;
+	}
+	else if (esif_ccb_strncmp(eppMode, gPowerSliderModeNames[POWER_SLIDER_STATE_MAX_PERF],
+			esif_ccb_strlen(gPowerSliderModeNames[POWER_SLIDER_STATE_MAX_PERF], MAX_PATH)) == 0) {
+				newPowerSliderValue = POWER_SLIDER_STATE_MAX_PERF;
+	}
+	else {
+		eppRawVal = esif_atoi(eppMode);
+		newPowerSliderValue = GetPowerSliderModeFromRawVal(eppRawVal);
+	}
+
+	if (newPowerSliderValue != gPowerSliderValue) {
+		ESIF_TRACE_INFO("lastPowerSliderState: %s, PowerSliderState: %s \n",
+			gPowerSliderModeNames[gPowerSliderValue],  gPowerSliderModeNames[newPowerSliderValue]);
+		ESIF_DATA_UINT32_ASSIGN(evtData, &newPowerSliderValue, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED, &evtData);
+		gPowerSliderValue = newPowerSliderValue;
+	}
+}
 
 static void CheckMotionChange(SensorPtr sensorPtr)
 {
@@ -518,20 +614,236 @@ static void CheckLidStateChange(void)
 	}
 }
 
+static void SendEventForegroundAppChanged(char *workload)
+{
+
+	EsifData evtDataStr = { ESIF_DATA_STRING };
+
+	ESIF_DATA_STRING_ASSIGN(evtDataStr, workload, (u32)esif_ccb_strlen(workload, MAX_PATH)+1);
+	EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_FOREGROUND_APP_CHANGED, &evtDataStr);
+
+	esif_ccb_strcpy(gPrevWorkload, workload, (esif_ccb_strlen(workload, MAX_PATH)+1));
+}
+
+static void GetWorkloadHints()
+{
+	eEsifError rc = ESIF_OK;
+	char fullKeyPath[MAX_PATH] = {'\0'};
+	EsifString namesp = DataBank_GetDefault();
+	EsifString keyspec = "/shared/export/workload_hints";
+	EsifData data_nspace = { ESIF_DATA_STRING };
+	EsifData data_key	= { ESIF_DATA_STRING };
+	EsifData data_value = { ESIF_DATA_STRING };
+	char *workloadName = NULL;
+	char *ctx =  NULL;
+	esif_flags_t flags = 0;
+
+	ESIF_DATA_STRING_ASSIGN(data_nspace, namesp, esif_ccb_strlen(namesp, MAX_PATH)+1);
+
+	for(UInt32 subKey = 1; subKey <= MAX_WL_HINT_ROWS; subKey++) {
+
+		esif_ccb_sprintf(MAX_PATH,fullKeyPath, "%s/%u", keyspec, subKey);
+		ESIF_DATA_STRING_ASSIGN(data_key, fullKeyPath, sizeof(fullKeyPath));
+		ESIF_DATA_STRING_ASSIGN(data_value, NULL, ESIF_DATA_ALLOCATE);
+		if ((rc = EsifConfigGetItem(&data_nspace, &data_key, &data_value, &flags)) == ESIF_OK) {
+			workloadName = esif_ccb_strtok((char *) data_value.buf_ptr, "|", &ctx);
+			while(workloadName != NULL) {
+				if (IsWorkloadFgProcessOrDaemon(workloadName)) {
+					ESIF_TRACE_INFO("Workload Hint: %s \n", workloadName);
+					goto exit;
+				}
+				workloadName = esif_ccb_strtok(NULL, "|", &ctx);
+			}
+		}
+		// free the data_value.buf_ptr if data_value is not NULL && data_value.buf_len >= 1
+		EsifData_Set(&data_value, ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0);
+	}
+exit:
+	if(workloadName == NULL)
+	{
+		if(esif_ccb_strcmp(gPrevWorkload, "<none>"))
+		{
+			SendEventForegroundAppChanged("<none>");
+		}
+	}
+	else if (esif_ccb_strcmp(workloadName, gPrevWorkload))
+	{
+		SendEventForegroundAppChanged(workloadName);
+		ESIF_TRACE_INFO("ESIF_EVENT_FOREGROUND_APP_CHANGED: %s\n", workloadName);
+	}
+
+	// free the data_value.buf_ptr if data_value is not NULL && data_value.buf_len >= 1
+	EsifData_Set(&data_value, ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0);
+	return;
+}
+
+static Bool IsWorkloadFgProcessOrDaemon(const char *workloadName)
+{
+	char *processName = NULL;
+	struct dirent *dirs;
+	char fullDirPath[MAX_PATH] = {'\0'};
+	FILE *fp = NULL;
+	Int32 pid = 0;
+	char proc_name[MAX_PATH] = {'\0'};
+	char state = {'\0'};
+	char scanf_fmt[SCANF_STR_LEN] = { 0 };
+	Int32 ppid = 0;
+	Int32 pgid = 0;
+	Int32 session = 0;
+	Int32 tty_nr = 0;
+	Int32 tpgid = 0;
+	Int32 ret = 0;
+	Bool workloadHint = ESIF_FALSE;
+
+	DIR* psyDirs = opendir("/proc");
+	if (psyDirs == NULL)
+	{
+		ESIF_TRACE_ERROR("opendir() failed at path: /proc \n");
+		goto exit;
+	}
+
+	while((dirs = readdir(psyDirs)) != NULL)
+	{
+		struct stat st;
+		if (!esif_ccb_strcmp(dirs->d_name, ".") || !esif_ccb_strcmp(dirs->d_name, ".."))
+		{
+			continue;
+		}
+
+		if (fstatat(dirfd(psyDirs), dirs->d_name, &st, 0) < 0)
+		{
+			ESIF_TRACE_ERROR("fstatat() failed at : %s\n", dirs->d_name);
+			goto exit;
+		}
+		if (S_ISDIR(st.st_mode) && isdigit(*dirs->d_name))
+		{
+			esif_ccb_sprintf(MAX_PATH,fullDirPath, "/proc/%s/stat", dirs->d_name);
+
+			if ((fp = esif_ccb_fopen(fullDirPath, "r", NULL)) == NULL)
+			{
+				ESIF_TRACE_ERROR("fopen failed at : %s\n", fullDirPath);
+				continue;
+			}
+
+			esif_ccb_sprintf(sizeof(scanf_fmt), scanf_fmt, "%%d %%%ds %%c %%d %%d %%d %%d %%d ", MAX_PATH - 1);
+			ret = esif_ccb_fscanf(fp, scanf_fmt, &pid, proc_name, &state, &ppid, &pgid, &session, &tty_nr, &tpgid);
+			if (ret < TOTAL_PIDS_READ)	
+			{	
+				ESIF_TRACE_DEBUG("fscanf failed, total field read : %u\n", ret);
+				if(fp != NULL)
+				{
+					esif_ccb_fclose(fp);
+					fp = NULL;
+				}
+				continue;
+			}
+			// Check if the process is FG/daemon && process status is running  or interruptible sleep.
+			if ((state == 'R'|| state =='S') && ((pgid == tpgid) || ((tpgid == -1) && (pgid != 0))))
+			{
+				// Removing the brackets '()' from (process name)
+				processName = proc_name + 1;
+				processName[esif_ccb_strlen(processName, MAX_PATH) - 1] = '\0';
+				if(!esif_ccb_strcmp(processName, workloadName))
+				{
+					workloadHint =  ESIF_TRUE;
+					goto exit;
+				}
+			}
+			if(fp != NULL)
+			{
+				esif_ccb_fclose(fp);
+				fp = NULL;
+			}
+		}
+	}
+exit:
+	if (psyDirs != NULL)
+	{
+		closedir(psyDirs);
+	}
+
+	if(fp != NULL)
+	{
+		esif_ccb_fclose(fp);
+		fp = NULL;
+	}
+	return workloadHint;
+}
+/* Checking if charger is connected. If  online is 1 for any of the charger sysfs path,
+ * it will detect the charger is connected. Ommiting battery sysfs sysfs path
+*/
+static Bool IsChargerConnected(const char *psyPath)
+{
+	struct dirent *dirs;
+	Int64 online = 0;
+	char fullDirPath[MAX_PATH] = {'\0'};
+	char psyType[MAX_PATH] = {'\0'};
+	Bool connected = ESIF_FALSE;
+
+	DIR* psyDirs = opendir(psyPath);
+	if (psyDirs == NULL)
+	{
+		ESIF_TRACE_ERROR("opendir() failed at path: %s\n", psyPath);
+		goto exit;
+	}
+
+	while((dirs = readdir(psyDirs)) != NULL)
+	{
+		struct stat st;
+		if (!esif_ccb_strcmp(dirs->d_name, ".") || !esif_ccb_strcmp(dirs->d_name, ".."))
+		{
+			continue;
+		}
+
+		if (fstatat(dirfd(psyDirs), dirs->d_name, &st, 0) < 0)
+		{
+			ESIF_TRACE_ERROR("fstatat() failed at : %s\n", dirs->d_name);
+			goto exit;
+		}
+		if (S_ISDIR(st.st_mode))
+		{
+			esif_ccb_sprintf(MAX_PATH, fullDirPath, "%s/%s", psyPath, dirs->d_name);
+
+			if (SysfsGetString(fullDirPath, "type", psyType, sizeof(psyType)) <= 0)
+			{
+				ESIF_TRACE_ERROR("Sysfs Read failed at path: %s/type \n", fullDirPath);
+				goto exit;
+			}
+			if (esif_ccb_strncmp(psyType, "Battery", esif_ccb_strlen("Battery", MAX_PATH)) != 0)
+			{
+				if(SysfsGetInt64(fullDirPath, "online", &online) <= 0)
+				{
+					ESIF_TRACE_ERROR("Sysfs Read failed at path: %s/online \n", fullDirPath);
+					goto exit;
+				}
+				ESIF_TRACE_INFO("%s/online: %ld\n", fullDirPath, online);
+				if (online)
+				{
+					connected = ESIF_TRUE;
+					break;
+				}
+			}
+		}
+	}
+exit:
+	if (psyDirs != NULL)
+	{
+		closedir(psyDirs);
+	}
+	return connected;
+}
+
 static void CheckPowerSrcChange(void)
 {
 	PowerSrc powerSrc = POWER_SRC_AC;
 	char sysvalstring[MAX_SYSFS_STRING] = { 0 };
 	EsifData evtData = { 0 };
 
-	if (gFdPowerSrc > 0) {
-		lseek(gFdPowerSrc, 0 , SEEK_SET);
-		if (read(gFdPowerSrc, sysvalstring, sizeof(sysvalstring)) > 0) {
-			if (esif_ccb_strstr(sysvalstring, "Charging") || esif_ccb_strstr(sysvalstring, "Full"))
-				powerSrc = POWER_SRC_AC;
-			else
-				powerSrc = POWER_SRC_DC;
-		}
+	if (IsChargerConnected(gPowerSupplyPath)) {
+		powerSrc = POWER_SRC_AC;
+	}
+	else {
+		powerSrc = POWER_SRC_DC;
 	}
 
 	if (powerSrc != g_PowerSrc) {
@@ -541,22 +853,165 @@ static void CheckPowerSrcChange(void)
 	}
 }
 
+static EsifLinkListPtr GetSubDirsList(const char *basePath)
+{
+	struct dirent *dirs;
+	Int64 online = 0;
+	char psyType[MAX_PATH] = {'\0'};
+	Bool connected = ESIF_FALSE;
+	EsifLinkListPtr subDirListPtr = NULL;
+	EsifLinkListNodePtr nodePtr = NULL;
+	char *fullDirPath = NULL;
+	DIR* baseDirs = NULL;
+
+	subDirListPtr = esif_link_list_create();
+	if (subDirListPtr == NULL)
+	{
+		ESIF_TRACE_WARN("Memory allocation failed for subDirList \n");
+		goto exit;
+	}
+
+	baseDirs = opendir(basePath);
+	if (baseDirs == NULL)
+	{
+		ESIF_TRACE_ERROR("opendir() failed at path: %s\n", basePath);
+		goto exit;
+	}
+
+	while((dirs = readdir(baseDirs)) != NULL)
+	{
+		struct stat st;
+		if (!esif_ccb_strcmp(dirs->d_name, ".") || !esif_ccb_strcmp(dirs->d_name, ".."))
+		{
+			continue;
+		}
+
+		if (fstatat(dirfd(baseDirs), dirs->d_name, &st, 0) < 0)
+		{
+			ESIF_TRACE_ERROR("fstatat() failed at : %s\n", dirs->d_name);
+			goto exit;
+		}
+		if (S_ISDIR(st.st_mode))
+		{
+			fullDirPath = (char *)esif_ccb_malloc(MAX_PATH);
+			esif_ccb_sprintf(MAX_PATH, fullDirPath, "%s/%s", basePath, dirs->d_name);
+			nodePtr = esif_link_list_create_node(fullDirPath);
+			if (NULL == nodePtr) {
+				ESIF_TRACE_WARN("esif_link_list Memory allocation failed for nodePtr \n");
+				goto exit;
+			}
+			esif_link_list_add_node_at_back(subDirListPtr, nodePtr);
+		}
+	}
+exit:
+	if (baseDirs != NULL)
+	{
+		closedir(baseDirs);
+	}
+
+	return subDirListPtr;
+}
+
+
+static UInt64 ReadBatterySysfsInteger(
+		const char *batSysfsPath,
+		const char *fileNameAh,
+		const char *fileNameWh
+		)
+{
+	Int64 sysVal = 0;
+	UInt64 temp = 0ULL;
+	int ret = 0;
+
+	ret =  SysfsGetInt64(batSysfsPath, fileNameAh, &sysVal);
+	if (ret <= 0)
+	{
+		ret =  SysfsGetInt64(batSysfsPath, fileNameWh, &sysVal);
+		if (ret <= 0)
+		{
+			ESIF_TRACE_ERROR("Sysfs Read Failed! at path:%s, file:%s\n", batSysfsPath, fileNameWh);
+		}
+	}
+exit:
+	temp  = ((UInt64)sysVal);
+	return temp;
+}
+
+static UInt32 AggregateBattPercentage(char *psyBasePath)
+{
+
+	EsifLinkListPtr dirListPtr = NULL;
+	EsifLinkListNodePtr curPtr = NULL;
+	Int64 batPresent = 0;
+	UInt64 energyNow = 0;
+	UInt64 energyFull = 0;
+	UInt64 totalEnergyNow = 0;
+	UInt64 totalEnergyFull = 0;
+	UInt64 batPerc = 0;
+
+	char psyType[MAX_PATH] = {'\0'};
+	char serialNumber[MAX_PATH] = {'\0'};
+	UInt64 aggregateBatPercentage = 0;
+
+	dirListPtr = GetSubDirsList(psyBasePath);
+	if (dirListPtr == NULL)
+	{
+		ESIF_TRACE_DEBUG("dirList is NULL \n");
+		goto exit;
+	}
+	else {
+		curPtr = dirListPtr->head_ptr;
+	}
+
+	while(curPtr != NULL)
+	{
+		if (SysfsGetString((char *)curPtr->data_ptr, "type", psyType, sizeof(psyType)) <= 0)
+		{
+			ESIF_TRACE_ERROR("Sysfs Read failed at path: %s/type \n", (char *)curPtr->data_ptr);
+			curPtr = curPtr->next_ptr;
+			continue;
+		}
+		if (esif_ccb_strncmp(psyType, "Battery", esif_ccb_strlen("Battery", MAX_PATH)) == 0)
+		{
+			if((SysfsGetInt64((char *)curPtr->data_ptr, "present", &batPresent) > 0) &&
+			(SysfsGetString((char *)curPtr->data_ptr, "serial_number", serialNumber, sizeof(serialNumber)) > 0))
+			{
+				energyFull = ReadBatterySysfsInteger((char *)curPtr->data_ptr, "energy_full", "charge_full");
+				totalEnergyFull = totalEnergyFull + energyFull;
+
+				energyNow = ReadBatterySysfsInteger((char *)curPtr->data_ptr, "energy_now", "charge_now");
+				totalEnergyNow = totalEnergyNow + energyNow;
+
+				ESIF_TRACE_DEBUG("%s/present: %lld, serial_number: %s, EnergyNow: %llu, TotalEnergyNow: %llu, EnergyFull: %llu TotalEnergyFull: %llu\n",
+						(char *)curPtr->data_ptr, batPresent, serialNumber, energyNow, totalEnergyNow, energyFull, totalEnergyFull);
+			}
+		}
+		curPtr = curPtr->next_ptr;
+	}
+	if (totalEnergyFull && (totalEnergyNow <= totalEnergyFull))
+	{
+		aggregateBatPercentage = (totalEnergyNow * 100) / totalEnergyFull;
+	}
+	else {
+		ESIF_TRACE_DEBUG("Invalid totalEnergyNow/totalEnergyFull\n");
+	}
+exit:
+	esif_link_list_free_data_and_destroy(dirListPtr, NULL);
+	return ((UInt32) aggregateBatPercentage);
+
+}
+
 static void CheckBatteryPercentChange(void)
 {
-	int batteryPercentage = 0;
+	UInt32 batteryPercentage = 0;
 	char sysvalstring[MAX_SYSFS_STRING] = { 0 };
 	EsifData evtData = { 0 };
 
-	if (gFdBattCharge > 0) {
-		lseek(gFdBattCharge, 0, SEEK_SET);
-		if (read(gFdBattCharge, sysvalstring, sizeof(sysvalstring)) > 0) {
-			if (esif_ccb_sscanf(sysvalstring, "%d", &batteryPercentage) <= 0) {
-				ESIF_TRACE_WARN("Failed to get Battery Percentage.\n");
-			}
-		}
-	}
+	batteryPercentage = AggregateBattPercentage(gPowerSupplyPath);
 
 	if (batteryPercentage != g_BatteryPercentage) {
+		ESIF_TRACE_DEBUG("Prev AggregateBatteryPercentage: %lu , AggregateBatteryPercentage: %lu\n",
+				g_BatteryPercentage, batteryPercentage);
 		ESIF_DATA_UINT32_ASSIGN(evtData, &batteryPercentage, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
 		atomic_set(&g_BatteryPercentage, batteryPercentage);
@@ -565,7 +1020,6 @@ static void CheckBatteryPercentChange(void)
 
 static void *EsifIio_Poll(void *ptr)
 {
-	static Bool oneTime = ESIF_FALSE;
 
 	UNREFERENCED_PARAMETER(ptr);
 
@@ -591,25 +1045,27 @@ static void *EsifIio_Poll(void *ptr)
 		} else if (gAccelBase) {
 			CheckMotionChange(gAccelBase);
 		}
-
 		// Dock mode change detection
 		CheckDockModeChange();
-#if PSY_EVENT_ENABLE
-		if (!oneTime) {
-#endif
-			// Power source change detection
-			CheckPowerSrcChange();
-			// Battery percent change detection
-			CheckBatteryPercentChange();
-#if PSY_EVENT_ENABLE
-			oneTime = ESIF_TRUE;
-		}
-#endif
+		// Power source(AC/DC)change detection
+		CheckPowerSrcChange();
+
 		// Lid state change detection
 		CheckLidStateChange();
 
+
 		// Platform type change detection (clamshell, tablet, tent, etc.)
 		CheckPlatTypeChange(gLidAngle);
+		if (gIsWLHintRegistered == ESIF_TRUE)
+		{
+			// AP Workload Hint feature
+			GetWorkloadHints();
+		}
+		//Power Slider Value
+		GetPowerSliderMode();
+
+		// Battery percent change detection
+		CheckBatteryPercentChange();
 
 		esif_ccb_sleep(ESIF_IIO_SAMPLE_PERIOD);
 	}
@@ -659,6 +1115,93 @@ void EsifSensorMgr_Init()
 void EsifSensorMgr_Exit()
 {
 	StopEsifSensorMgr();
+}
+
+eEsifError DeregisterCodeEvent()
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_TRACE_INFO("DeregisterCodeEvent: ESIF_EVENT_FOREGROUND_APP_CHANGED\n");
+
+	if (gPrevWorkload)
+	{
+		esif_ccb_free(gPrevWorkload);
+	}
+	gIsWLHintRegistered =  ESIF_FALSE;
+
+	return rc;
+}
+
+eEsifError RegisterCodeEvent()
+{
+	eEsifError rc = ESIF_OK;
+
+	gPrevWorkload = (EsifString) esif_ccb_malloc(MAX_PATH);
+	if(!gPrevWorkload)
+	{
+		ESIF_TRACE_WARN(" Memory allocation failed for gPrevWorkload \n");
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	esif_ccb_memset(gPrevWorkload, 0, MAX_PATH);
+	esif_ccb_strcpy(gPrevWorkload, "<none>", esif_ccb_strlen("<none>", MAX_PATH)+1);
+	SendEventForegroundAppChanged(gPrevWorkload);
+	ESIF_TRACE_INFO("RegisterForCodeEvent: ESIF_EVENT_FOREGROUND_APP_CHANGED: %s\n", gPrevWorkload);
+	gIsWLHintRegistered =  ESIF_TRUE;
+exit:
+	return rc;
+}
+
+eEsifError disable_code_event_lin(
+	eEsifEventType eventType
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifData evtDataStr = { ESIF_DATA_STRING };
+
+	ESIF_TRACE_INFO("Code Event: %s\n", esif_event_type_str(eventType));
+
+	switch (eventType) {
+	case ESIF_EVENT_FOREGROUND_APP_CHANGED:
+		rc = DeregisterCodeEvent();
+		break;
+	case ESIF_EVENT_EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED:
+	case ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED:
+	case ESIF_EVENT_COLLABORATION_CHANGED:
+	case ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED:
+		break;
+	case ESIF_EVENT_OS_USER_INTERACTION_CHANGED:
+		break;
+	default:
+		break;
+	}
+	return rc;
+}
+
+eEsifError enable_code_event_lin(
+	eEsifEventType eventType
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifData evtDataStr = { ESIF_DATA_STRING };
+
+	ESIF_TRACE_INFO("Code Event: %s\n", esif_event_type_str(eventType));
+
+	switch (eventType) {
+	case ESIF_EVENT_FOREGROUND_APP_CHANGED:
+		rc = RegisterCodeEvent();
+		break;
+	case ESIF_EVENT_EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED:
+	case ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED:
+	case ESIF_EVENT_COLLABORATION_CHANGED:
+	case ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED:
+		break;
+	case ESIF_EVENT_OS_USER_INTERACTION_CHANGED:
+		break;
+	default:
+		break;
+	}
+	return rc;
 }
 
 /**
@@ -727,6 +1270,7 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 	const esif_guid_t guidBattPercent = {0xa7, 0xad, 0x80, 0x41, 0xb4, 0x5a, 0x4c, 0xae, 0x87, 0xa3, 0xee, 0xcb, 0xb4, 0x68, 0xa9, 0xe1};
 	const esif_guid_t guidLidState = {0xba, 0x3e, 0x0f, 0x4d, 0xb8, 0x17, 0x40, 0x94, 0xa2, 0xd1, 0xd5, 0x63, 0x79, 0xe6, 0xa0, 0xf3};
 	const esif_guid_t guidPlatformType = {0x38, 0x92, 0xb5, 0x8c, 0xc8, 0x74, 0x45, 0xbe, 0xb2, 0x19, 0xab, 0x87, 0x49, 0x51, 0x9b, 0xfb};
+	const esif_guid_t guidPowerSliderMode = {0xA4, 0xF0, 0x60, 0x79, 0xf3, 0xe9, 0x45, 0xe0, 0x85, 0x62, 0x8a, 0xa4, 0x5a, 0xe2, 0x21, 0xfa};
 	eEsifError rc = ESIF_OK;
 	EsifData evtData = { 0 };
 
@@ -774,6 +1318,14 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 		}
 		StartEsifSensorMgr();
 	}
+
+	if (0 == memcmp(guid, guidPowerSliderMode, ESIF_GUID_LEN)) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &gPowerSliderValue, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED, &evtData);
+		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED\n");
+		StartEsifSensorMgr();
+	}
+
 exit:
 	return rc;
 }

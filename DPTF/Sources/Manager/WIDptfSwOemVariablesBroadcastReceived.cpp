@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,11 +21,13 @@
 #include "SystemModeManager.h"
 #include "EsifServicesInterface.h"
 #include "StatusFormat.h"
+#include "DataManager.h"
+#include "SwOemVariables.h"
 
 WIDptfSwOemVariablesBroadcastReceived::WIDptfSwOemVariablesBroadcastReceived(
 	DptfManagerInterface* dptfManager,
 	DptfBuffer swOemVariablesData)
-	: WorkItem(dptfManager, FrameworkEvent::PolicyAppBroadcastPrivileged)
+	: WorkItem(dptfManager, FrameworkEvent::DptfAppBroadcastPrivileged)
 	, m_swOemVariablesData(swOemVariablesData)
 {
 }
@@ -37,23 +39,23 @@ WIDptfSwOemVariablesBroadcastReceived::~WIDptfSwOemVariablesBroadcastReceived(vo
 void WIDptfSwOemVariablesBroadcastReceived::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
-	auto policyManager = getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
+	updateExistingSwOemVariables();
+}
 
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+void WIDptfSwOemVariablesBroadcastReceived::updateExistingSwOemVariables()
+{
+	auto dptfManager = getDptfManager();
+	auto dataManager = dptfManager->getDataManager();
+	try 
 	{
-		try
-		{
-			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executeSwOemVariablesChanged(m_swOemVariablesData);
-		}
-		catch (policy_index_invalid&)
-		{
-			// do nothing.  No item in the policy list at this index.
-		}
-		catch (std::exception& ex)
-		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executeSwOemVariablesBroadcastReceived", *i);
-		}
+		const auto newVars = SwOemVariables::createFromAppBroadcastData(m_swOemVariablesData);
+		const auto table = dataManager->getTableObject(TableObjectType::SwOemVariables, Constants::EmptyString).getData();
+		auto persistedVars = SwOemVariables::createFromTableObjectData(table);
+		persistedVars.add(newVars);
+		dataManager->setTableObjectForNoPersist(persistedVars.toSwOemVariablesDvBinary(), TableObjectType::SwOemVariables);
+	}
+	catch (dptf_exception& ex) 
+	{
+		writeWorkItemErrorMessage(ex, "Failed to update existing sw-oem-variables table data");
 	}
 }

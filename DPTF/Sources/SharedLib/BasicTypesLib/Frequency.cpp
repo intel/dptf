@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "Frequency.h"
 
+const UInt64 mhzToHzMultiplier = 1000000;
+
 Frequency::Frequency(void)
 	: m_valid(false)
 	, m_frequency(0)
@@ -28,6 +30,12 @@ Frequency::Frequency(UInt64 frequency)
 	: m_valid(true)
 	, m_frequency(frequency)
 {
+}
+
+Frequency Frequency::createFromMegahertz(UInt64 frequencyInMegahertz)
+{
+	UInt64 frequencyInHertz = frequencyInMegahertz * mhzToHzMultiplier;
+	return Frequency(frequencyInHertz);
 }
 
 Frequency Frequency::createInvalid()
@@ -141,6 +149,25 @@ std::string Frequency::toString() const
 	{
 		return std::string(Constants::InvalidString);
 	}
+}
+
+std::string Frequency::toStringAsMegahertz() const
+{
+	if (isValid())
+	{
+		return std::to_string(m_frequency / mhzToHzMultiplier);
+	}
+	else
+	{
+		return std::string(Constants::InvalidString);
+	}
+}
+
+UInt64 Frequency::toIntAsMegahertz() const
+{
+	throwIfInvalid(*this);
+	UInt64 asMegahertz = m_frequency / mhzToHzMultiplier;
+	return asMegahertz;
 }
 
 void Frequency::throwIfInvalid(const Frequency& frequency) const

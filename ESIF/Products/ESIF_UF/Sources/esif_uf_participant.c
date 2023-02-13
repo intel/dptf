@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -173,10 +173,26 @@ eEsifError EsifUp_DspReadyInit(
 	UInt32 domainIndex = 0;
 	EsifUpDomainPtr upDomainPtr = NULL;
 
+	UInt32 value = 0;
+	EsifData valueData = { ESIF_DATA_UINT32, &value, sizeof(value), sizeof(value) };
+	EsifPrimitiveTuple tuplePort = { SET_PORT, ESIF_PRIMITIVE_DOMAIN_D0, ESIF_INSTANCE_NO_PERSIST };
+	EsifPrimitiveTuple tupleScbl = { SET_STORAGE_BUS_CONTROLLER_LOCATION, ESIF_PRIMITIVE_DOMAIN_D0, ESIF_INSTANCE_NO_PERSIST };
+	EsifPrimitiveTuple tuplePtype = { SET_PARTICIPANT_TYPE, ESIF_PRIMITIVE_DOMAIN_D0, ESIF_INSTANCE_NO_PERSIST };
+
 	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
+
+	// Set the values needed to associate storage participants (best effort as many participants will not have DSP support)
+	value = self->fMetadata.fPort;
+	EsifUp_ExecutePrimitive(self, &tuplePort, &valueData, NULL);
+
+	value = self->fMetadata.fScbl;
+	EsifUp_ExecutePrimitive(self, &tupleScbl, &valueData, NULL);
+
+	value = self->fMetadata.fAcpiType;
+	EsifUp_ExecutePrimitive(self, &tuplePtype, &valueData, NULL);
 
 	for (domainIndex = 0; domainIndex < self->domainCount; domainIndex++) {
 		
@@ -725,7 +741,10 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	esif_ccb_strcpy(newUpPtr->fMetadata.fAcpiDevice, upInterfacePtr->device_name, ESIF_NAME_LEN);
 	esif_ccb_strcpy(newUpPtr->fMetadata.fDevicePath, upInterfacePtr->device_path, ESIF_PATH_LEN);
 	esif_ccb_strcpy(newUpPtr->fMetadata.fAcpiScope, upInterfacePtr->object_id, ESIF_SCOPE_LEN);
-	
+
+	newUpPtr->fMetadata.fPort = upInterfacePtr->port;
+	newUpPtr->fMetadata.fScbl = upInterfacePtr->scbl;
+
 	rc = EsifUp_SelectDspByUpInterface(newUpPtr, upInterfacePtr);
 	if (rc != ESIF_OK) {
 		goto exit;
@@ -888,6 +907,7 @@ void EsifUp_DestroyParticipant(
 		/*
 		* Destroy arbitration context contained within the participant.
 		*/
+		ESIF_TRACE_INFO("Destroying %d arbitration context...\n", EsifUp_GetInstance(self));
 		EsifArbMgr_DestroyArbitrationContext(self->arbitrationContext);
 
 		esif_ccb_event_uninit(&self->deleteEvent);

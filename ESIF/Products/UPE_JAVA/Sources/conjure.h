@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,5 +21,5 @@
 #include "esif_sdk_iface_conjure.h"	/* Conjure Interface */
 #include "esif_ccb_string.h"
 
-esif_handle_t RegisterParticipant(const EsifParticipantIfacePtr piPtr);
+esif_handle_t RegisterParticipant(const struct _t_EsifParticipantIface *piPtr);
 eEsifError UnRegisterParticipant(const esif_handle_t participantId);

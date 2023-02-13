@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -194,10 +194,10 @@ void PowerControlDynamicCaps::throwIfNotValid() const
 	}
 }
 
-PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccPl3RowValues() const
+PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccRowValues(PowerControlType::Type PowerControlType) const
 {
 	PowerControlDynamicCaps temp(
-		static_cast<PowerControlType::Type>(PowerControlType::Type::PL3),
+		static_cast<PowerControlType::Type>(PowerControlType),
 		Power::createInvalid(),
 		Power::createInvalid(),
 		Power::createInvalid(),

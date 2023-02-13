@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,6 +49,23 @@ UInt32 SocWorkloadClassificationFacade::getCurrentSocWorkload(void)
 	else
 	{
 		throw dptf_exception("Domain does not support Soc workload classification interface.");
+	}
+}
+
+UInt32 SocWorkloadClassificationFacade::getCurrentExtendedWorkloadPrediction(void)
+{
+	if (supportsSocWorkloadClassificationInterface())
+	{
+		DptfRequest request(
+			DptfRequestType::SocWorkloadClassificationGetExtendedWorkloadPrediction, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
+
+		return result.getDataAsUInt32();
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support Soc workload classification(Extended Workload Prediction) interface.");
 	}
 }
 

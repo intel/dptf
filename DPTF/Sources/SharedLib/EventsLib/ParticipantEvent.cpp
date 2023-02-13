@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -72,9 +72,12 @@ namespace ParticipantEvent
 			CASE(DomainFanCapabilityChanged)
 			CASE(DomainSocWorkloadClassificationChanged)
 			CASE(DomainEppSensitivityHintChanged)
+			CASE(DomainExtendedWorkloadPredictionChanged)
+			CASE(DomainFanOperatingModeChanged)
 			CASE(DptfParticipantActivityLoggingEnabled)
 			CASE(DptfParticipantActivityLoggingDisabled)
 			CASE(DptfParticipantControlAction)
+			CASE(DptfAppBroadcastPrivileged)
 		default:
 			throw dptf_exception("ParticipantEvent::Type is invalid.");
 		}

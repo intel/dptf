@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,9 @@ void DomainSocWorkloadClassificationBase::bindRequestHandlers()
 	bindRequestHandler(
 		DptfRequestType::SocWorkloadClassificationGetSocWorkload,
 		[=](const PolicyRequest& policyRequest) { return this->handleGetSocWorkloadClassification(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::SocWorkloadClassificationGetExtendedWorkloadPrediction,
+		[=](const PolicyRequest& policyRequest) { return this->handleGetExtendedWorkloadPrediction(policyRequest); });
 }
 
 DptfRequestResult DomainSocWorkloadClassificationBase::handleClearCachedResults(const PolicyRequest& policyRequest)
@@ -78,6 +81,30 @@ DptfRequestResult DomainSocWorkloadClassificationBase::handleGetSocWorkloadClass
 	catch (...)
 	{
 		return DptfRequestResult(false, "Failed to retrieve current Soc workload.", request);
+	}
+}
+
+// We do not use cache here as the cache is used by SOC Workload classification DptfRequestResult
+DptfRequestResult DomainSocWorkloadClassificationBase::handleGetExtendedWorkloadPrediction(
+	const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		auto currentExtendedWorkloadPrediction = getExtendedWorkloadPrediction();
+		DptfRequestResult result(true, "Successfully retrieved current Extended Workload Prediction.", request);
+		result.setDataFromUInt32(currentExtendedWorkloadPrediction);
+
+		return result;
+	}
+	catch (dptf_exception& ex)
+	{
+		return DptfRequestResult(false, "Failed to retrieve current Extended Workload Prediction: " + ex.getDescription(), request);
+	}
+	catch (...)
+	{
+		return DptfRequestResult(false, "Failed to retrieve current Extended Workload Prediction.", request);
 	}
 }
 

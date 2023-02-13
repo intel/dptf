@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -61,8 +61,8 @@
 struct _ioctl_info {
 	u32 ioctl_control_code;
 	char device_path_buffer[MAX_IOCTL_DEVICE_PATH_LEN];
-	size_t input_buffer_length;
-	// Data follows at this point
+	size_t input_buffer_length; // Data length not including this structure
+	// Data of length input_buffer_length follows at this point
 };
 
 #pragma pack(pop)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,9 +40,6 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	Frequency minFrequency(0);
 	Frequency maxFrequency(0);
 	Percentage ssc(0.0);
-	Percentage sscBaselineSpreadValue(0.0);
-	Percentage sscBaselineThreshold(0.0);
-	Percentage sscBaselineGuardBand(0.0);
 
 	try
 	{

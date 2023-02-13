@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,6 +44,7 @@ public:
 	virtual UIntN getSmallestNonZeroFanSpeed() = 0;
 	virtual Bool hasValidActiveControlSet() = 0;
 	virtual ActiveControlSet getActiveControlSet() = 0;
+	virtual UInt32 getFanOperatingMode() = 0;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXml() = 0;
@@ -60,4 +61,7 @@ public:
 	virtual Bool setFanDirection(UInt32 fanDirection) = 0;
 
 	virtual Percentage snapToCapabilitiesBounds(Percentage fanSpeed) = 0;
+
+	// fan operating mode
+	virtual Bool setFanOperatingMode(UInt32 fanOperatingMode) = 0;
 };

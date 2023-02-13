@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -126,8 +126,16 @@ void DataManager::setTableObject(
 
 	try
 	{
-		m_dptfManager->getEsifServices()->writeConfigurationBinary(
-			tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath);
+		if (tableData.notEmpty())
+		{
+			m_dptfManager->getEsifServices()->writeConfigurationBinary(
+				tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath);
+		}
+		else
+		{
+			writeEmptyTable(nameSpace, elementPath);
+		}
+
 		sendTableChangedEvent(tableType, uuid, participantIndex);
 	}
 	catch (...)
@@ -263,8 +271,16 @@ void DataManager::setTableObjectBasedOnAlternativeDataSourceAndKey(
 
 	try
 	{
-		m_dptfManager->getEsifServices()->writeConfigurationBinary(
-			tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath);
+		if (tableData.notEmpty())
+		{
+			m_dptfManager->getEsifServices()->writeConfigurationBinary(
+				tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath);
+		}
+		else
+		{
+			writeEmptyTable(nameSpace, elementPath);
+		}
+		
 	}
 	catch (...)
 	{
@@ -334,6 +350,14 @@ Bool DataManager::tableObjectExists(TableObjectType::Type tableType)
 map<TableObjectType::Type, TableObject> DataManager::getTableObjectMap()
 {
 	return m_tableObjectMap;
+}
+
+void DataManager::writeEmptyTable(string nameSpace, string elementPath)
+{
+	u8 dummyBuffer = 0;
+
+	m_dptfManager->getEsifServices()->writeConfigurationBinary(
+		&dummyBuffer, sizeof(dummyBuffer), 0, nameSpace, elementPath);
 }
 
 void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, string uuid, UIntN participantIndex)

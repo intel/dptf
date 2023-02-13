@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,16 +22,14 @@
 
 Guid::Guid(void)
 	: m_valid(false)
+	, m_guid(GuidSize, 0)
 {
-	m_guid.reserve(GuidSize);
-	m_guid.assign(GuidSize, 0);
 }
 
 Guid::Guid(const UInt8 guid[GuidSize])
 	: m_valid(true)
+	, m_guid(GuidSize, 0)
 {
-	m_guid.reserve(GuidSize);
-	m_guid.assign(GuidSize, 0);
 	for (UInt32 i = 0; i < GuidSize; ++i)
 	{
 		m_guid[i] = guid[i];
@@ -56,10 +54,8 @@ Guid::Guid(
 	UInt8 value14,
 	UInt8 value15)
 	: m_valid(true)
+	, m_guid(GuidSize, 0)
 {
-	m_guid.reserve(GuidSize);
-	m_guid.assign(GuidSize, 0);
-
 	m_guid[0] = value00;
 	m_guid[1] = value01;
 	m_guid[2] = value02;
@@ -80,7 +76,7 @@ Guid::Guid(
 
 Guid Guid::createInvalid()
 {
-	return Guid();
+	return {};
 }
 
 Bool Guid::operator==(const Guid& rhs) const
@@ -91,6 +87,22 @@ Bool Guid::operator==(const Guid& rhs) const
 Bool Guid::operator!=(const Guid& rhs) const
 {
 	return !(*this == rhs);
+}
+
+Bool Guid::operator<(const Guid& rhs) const
+{
+	for (size_t i = 0; i < GuidSize; ++i)
+	{
+		if (m_guid[i] < rhs[i])
+		{
+			return true;
+		}
+		if (m_guid[i] > rhs[i])
+		{
+			return false;
+		}
+	}
+	return false;
 }
 
 std::ostream& operator<<(std::ostream& os, const Guid& guid)
@@ -166,7 +178,25 @@ std::string Guid::toClassicString() const
 	return stream.str();
 }
 
-Guid Guid::fromString(const std::string guidString)
+std::string Guid::toFormattedString() const
+{
+	std::stringstream stream;
+	stream << valuesToHexString(std::list<UInt8>(m_guid.begin(), m_guid.begin() + 4));
+	stream << '-' << valuesToHexString(std::list<UInt8>(m_guid.begin() + 4, m_guid.begin() + 6));
+	stream << '-' << valuesToHexString(std::list<UInt8>(m_guid.begin() + 6, m_guid.begin() + 8));
+	stream << '-' << valuesToHexString(std::list<UInt8>(m_guid.begin() + 8, m_guid.begin() + 10));
+	stream << '-' << valuesToHexString(std::list<UInt8>(m_guid.begin() + 10, m_guid.begin() + 16));
+	return stream.str();
+}
+
+Guid Guid::clone() const
+{
+	UInt8 clonedData[GuidSize] = {0};
+	copyToBuffer(clonedData);
+	return clonedData;
+}
+
+Guid Guid::fromFormattedString(const std::string& guidString)
 {
 	// It is expected that the input string is in such format:
 	// 7516b95f-f776-4464-8c53-06167f40cc99
@@ -196,7 +226,7 @@ Guid Guid::fromString(const std::string guidString)
 
 	if (returnCount != GuidSize)
 	{
-		return Guid(); // return invalid Guid
+		return {}; // return invalid Guid
 	}
 
 	// convert shorts to bytes
@@ -205,21 +235,21 @@ Guid Guid::fromString(const std::string guidString)
 		guidBytes[i] = static_cast<UInt8>(guid[i]);
 	}
 
-	return Guid(guidBytes);
+	return {guidBytes};
 }
 
-Guid Guid::fromUnmangledString(std::string guidString)
+Guid Guid::fromUnmangledString(const std::string& guidString)
 {
 	// Mangle Guid: Convert input guid string format from
 	// AABBCCDD-EEFF-GGHH-IIJJ-KKLLMMNNOOPP to
 	// DDCCBBAA-FFEE-HHGG-IIJJ-KKLLMMNNOOPP
 
-	guidString = guidString.substr(6, 2) + guidString.substr(4, 2) + guidString.substr(2, 2) + guidString.substr(0, 2)
+	std::string newString = guidString.substr(6, 2) + guidString.substr(4, 2) + guidString.substr(2, 2) + guidString.substr(0, 2)
 				 + guidString.substr(8, 1) + guidString.substr(11, 2) + guidString.substr(9, 2)
 				 + guidString.substr(13, 1) + guidString.substr(16, 2) + guidString.substr(14, 2)
 				 + guidString.substr(18, 18);
 
-	return Guid::fromString(guidString);
+	return Guid::fromFormattedString(newString);
 }
 
 void Guid::throwIfInvalid(const Guid& guid) const

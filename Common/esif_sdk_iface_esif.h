@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -70,6 +70,12 @@
 #define ESIF_SERVICE_CONFIG_DELAYWRITE	0x20000000  /* Delayed Write */
 #define ESIF_SERVICE_CONFIG_COMPRESSED  0x40000000	/* Payload is Compressed */
 #define ESIF_SERVICE_CONFIG_STATIC      0x80000000	/* Statically Linked Repository */
+
+/*
+ * Message Routing Prefix Tags
+ * Prefix Trace Message strings with this to override default Trace Message routing
+ */
+#define ESIF_SERVICE_ROUTE_EVENTLOG		"<EVENTLOG>"	/* Route message to EventLog */
 
 /*
  * EsifServiceInterface Callback Functions

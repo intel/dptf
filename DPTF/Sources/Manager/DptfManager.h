@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,10 @@
 #include "EventCache.h"
 #include "UserPreferredCache.h"
 #include "CommandDispatcher.h"
-#include "FileIO.h"
+#include "FileIo.h"
+#include "ConfigurationFileManager.h"
+#include "FilePathDirectory.h"
+#include "EsifMessageLogger.h"
 
 class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
@@ -69,8 +72,9 @@ public:
 	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
 	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const override;
 	virtual SystemModeManagerInterface* getSystemModeManager() const override;
+	virtual std::shared_ptr<ConfigurationFileManagerInterface> getConfigurationManager() const override;
+	virtual EnvironmentProfile getEnvironmentProfile() const override;
 
-	virtual std::string getDptfHomeDirectoryPath(void) const override;
 	virtual std::string getDptfPolicyDirectoryPath(void) const override;
 	virtual std::string getDptfReportDirectoryPath(void) const override;
 
@@ -79,6 +83,9 @@ public:
 	void bindParticipantToPolicies(UIntN participantIndex) const override;
 	void unbindParticipantFromPolicies(UIntN participantIndex) const override;
 	void bindAllParticipantsToPolicy(UIntN policyIndex) const override;
+
+	void setCurrentLogVerbosityLevel(eLogType level) override;
+
 
 private:
 	// hide the copy constructor and assignment operator.
@@ -112,27 +119,46 @@ private:
 	// The dispatcher will direct commands to their proper handlers.
 	ICommandDispatcher* m_commandDispatcher;
 	std::list<std::shared_ptr<CommandHandler>> m_commands;
-	std::shared_ptr<IFileIO> m_fileIo;
 	std::shared_ptr<RequestDispatcherInterface> m_requestDispatcher;
 	std::shared_ptr<RequestHandlerInterface> m_platformRequestHandler;
 
+	std::shared_ptr<ConfigurationFileManagerInterface> m_configurationManager;
+
 	std::shared_ptr<EventCache> m_eventCache;
 	std::shared_ptr<UserPreferredCache> m_userPreferredCache;
-
 	IndexContainerInterface* m_indexContainer;
 
 	DataManagerInterface* m_dataManager;
-
 	SystemModeManagerInterface* m_systemModeManager;
 
-	std::string m_dptfHomeDirectoryPath;
-	std::string m_dptfPolicyDirectoryPath;
-	std::string m_dptfReportDirectoryPath;
+	std::shared_ptr<FilePathDirectory> m_filePathDirectory;
+	std::shared_ptr<LogMessageFilter> m_messageLogFilter;
+	std::shared_ptr<MessageLogger> m_messageLogger;
+	std::shared_ptr<IFileIo> m_fileIo;
+	EnvironmentProfile m_environmentProfile;
 
+	// start up helpers
+	void createBasicObjects(
+		const std::string& dptfHomeDirectoryPath,
+		eLogType currentLogVerbosityLevel,
+		Bool dptfEnabled);
+	void createBasicServices(
+		esif_handle_t esifHandle,
+		EsifInterfacePtr esifInterfacePtr,
+		eLogType currentLogVerbosityLevel);
+	std::set<Guid> readDefaultEnabledPolicies() const;
+	void notifyAppsThatDttHasLoaded();
+	void createPolicies();
+	void registerForEvents();
+	void registerCommands();
+	void createCommands();
+	void registerDptfFrameworkEvents(void) const;
+
+	// shutdown helpers
 	void shutDown(void);
-	void disableAndEmptyAllQueues(void);
-	void destroyAllPolicies(void);
-	void destroyAllParticipants(void);
+	void disableAndEmptyAllQueues(void) const;
+	void destroyAllPolicies(void) const;
+	void destroyAllParticipants(void) const;
 	void deleteWorkItemQueueManager(void);
 	void deletePolicyManager(void);
 	void deleteParticipantManager(void);
@@ -142,10 +168,7 @@ private:
 	void deleteIndexContainer(void);
 	void destroyUniqueIdGenerator(void);
 	void destroyFrameworkEventInfo(void);
-
-	void registerDptfFrameworkEvents(void);
-	void unregisterDptfFrameworkEvents(void);
-	void registerCommands();
-	void createCommands();
+	void unregisterDptfFrameworkEvents(void) const;
 	void unregisterCommands();
+
 };

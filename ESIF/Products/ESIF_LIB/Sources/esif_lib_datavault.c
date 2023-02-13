@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -596,6 +596,13 @@ static esif_error_t DataVault_WriteKeyValuePair(
 			if (IOStream_LoadBlock(self->stream, buffer, buffer_len, orgOffset) != EOK) {
 				rc = ESIF_E_IO_OPEN_FAILED;
 				goto exit;
+			}
+
+			// Unscramble data here or it will get "re-scrambled" when written back below
+			if (FLAGS_TEST(keyPair->flags, ESIF_SERVICE_CONFIG_SCRAMBLE)) {
+				UInt8 *valueDataPtr = buffer;
+				for (byte = 0; byte < buffer_len; byte++)
+					buffer[byte] = ~(valueDataPtr)[byte];
 			}
 		}
 	}

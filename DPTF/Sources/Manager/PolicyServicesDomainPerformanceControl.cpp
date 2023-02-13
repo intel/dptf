@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -89,4 +89,26 @@ void PolicyServicesDomainPerformanceControl::setPerformanceCapsLock(
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->setPerformanceCapsLock(domainIndex, getPolicyIndex(), lock);
+}
+
+void PolicyServicesDomainPerformanceControl::setPerfPreferenceMax(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPerfPreferenceMax(domainIndex, getPolicyIndex(), minMaxRatio);
+}
+
+void PolicyServicesDomainPerformanceControl::setPerfPreferenceMin(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPerfPreferenceMin(domainIndex, getPolicyIndex(), minMaxRatio);
 }

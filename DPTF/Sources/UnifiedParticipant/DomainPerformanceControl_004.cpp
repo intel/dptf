@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -350,4 +350,20 @@ UIntN DomainPerformanceControl_004::snapIfPerformanceControlIndexIsOutOfBounds(
 std::string DomainPerformanceControl_004::getName(void)
 {
 	return "Control ID Performance Control";
+}
+
+void DomainPerformanceControl_004::setPerfPreferenceMax(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throw not_implemented();
+}
+
+void DomainPerformanceControl_004::setPerfPreferenceMin(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throw not_implemented();
 }

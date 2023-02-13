@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,4 +45,6 @@ public:
 	virtual PerformanceControlStatus getLiveStatus() const = 0;
 	virtual const PerformanceControlSet& getControls() = 0;
 	virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() = 0;
+	virtual void setPerfPreferenceMax(Percentage minMaxRatio) = 0;
+	virtual void setPerfPreferenceMin(Percentage minMaxRatio) = 0;
 };

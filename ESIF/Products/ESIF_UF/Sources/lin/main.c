@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,11 +40,11 @@
 #include <unistd.h>
 #include <poll.h>
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2022 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2023 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"arbitrator disable && appstart dptf"
-#define ESIF_STARTUP_SCRIPT_SERVER_MODE	NULL
+#define ESIF_STARTUP_SCRIPT_SERVER_MODE	"appstart dptf"
 #define TOTAL_PSY_PROPERTIES 10
 
 static void esif_udev_start();
@@ -55,7 +55,6 @@ static void *esif_udev_listen(void *ptr);
 static void esif_process_udev_event(char *udev_target);
 static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event);
 static int kobj_wifi_uevent_parse(char *buffer, int len , int *wifi_event);
-static int kobj_powersupply_uevent_parse(char *buffer, int len, char **psy);
 
 static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
@@ -111,8 +110,7 @@ struct instancelock {
 static struct instancelock g_instance = {"esif_ufd.pid"};
 static char thermal_device_path[] = "/devices/virtual/thermal/thermal_zone";
 static char wifi_device_path[] = "/module/iwlwifi";
-static char g_psy_dev[] = "power_supply/BAT";
-static char *g_psy_val[TOTAL_PSY_PROPERTIES];
+
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
 #ifdef ESIF_ATTR_64BIT
@@ -179,8 +177,6 @@ extern int g_soe;
 extern int g_shell_enabled;
 extern int g_cmdshell_enabled;
 extern char **g_autorepos;
-extern PowerSrc g_PowerSrc;
-extern int g_BatteryPercentage;
 /* Worker Thread in esif_uf */
 Bool g_start_event_thread = ESIF_TRUE;
 esif_thread_t g_thread;
@@ -356,36 +352,6 @@ static int kobj_wifi_uevent_parse(char *buffer, int len, int *wifi_event)
 	return 1;
 }
 
-static int kobj_powersupply_uevent_parse(char *buffer, int len, char **psy) {
-
-	static const char psy_name[] = "POWER_SUPPLY_NAME=";
-	static const char psy_capacity[] = "POWER_SUPPLY_CAPACITY=";
-	static const char psy_status[] = "POWER_SUPPLY_STATUS=";
-	int i = 0;
-
-	while (i < len) {
-		if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(psy_name, sizeof(psy_name))
-			&& esif_ccb_strncmp(buffer + i, psy_name, esif_ccb_strlen(psy_name, sizeof(psy_name))) == 0) {
-				*(psy + POWER_SUPPLY_NAME) = buffer + i + esif_ccb_strlen(psy_name, sizeof(psy_name));
-		}
-		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(psy_capacity, sizeof(psy_capacity))
-			&& esif_ccb_strncmp(buffer + i, psy_capacity, esif_ccb_strlen(psy_capacity, sizeof(psy_capacity))) == 0) {
-				*(psy + POWER_SUPPLY_CAPACITY) = buffer + i + esif_ccb_strlen(psy_capacity, sizeof(psy_capacity));
-		}
-		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(psy_status, sizeof(psy_status))
-			&& esif_ccb_strncmp(buffer + i, psy_status, esif_ccb_strlen(psy_status, sizeof(psy_status))) == 0) {
-				*(psy + POWER_SUPPLY_STATUS) = buffer + i + esif_ccb_strlen(psy_status, sizeof(psy_status));
-		}
-		i += esif_ccb_strlen(buffer + i, len - i) + 1;
-	}
-	if (psy[POWER_SUPPLY_NAME] && psy[POWER_SUPPLY_CAPACITY] && psy[POWER_SUPPLY_STATUS]) {
-		return 1;
-	}
-	else {
-		return 0;
-	}
-}
-
 static int check_for_uevent(int fd) {
 	eEsifError rc = ESIF_OK;
 	int i = 0;
@@ -399,15 +365,12 @@ static int check_for_uevent(int fd) {
 	int temp;
 	int event;
 	int wifi_event;
-	int batteryPercentage = 0;
 	static struct timeval last_event_time = {0};
 	struct timeval cur_event_time = {0};
 	Int64 interval = 0;
 	UfPmIterator upIter = { 0 };
 	EsifUpPtr upPtr = NULL;
-	PowerSrc powerSrc = POWER_SRC_AC;
 	EsifData evtData = { 0 };
-	char *psyStr = NULL;
 
 	len = recv(fd, buffer, sizeof(buffer), 0);
 	if (len <= 0) {
@@ -529,37 +492,6 @@ static int check_for_uevent(int fd) {
 					break;
 				}
 				return 1;
-			}
-			else if ((psyStr = esif_ccb_strstr(buf_ptr + dev_path_len, g_psy_dev)) != NULL) {
-				if (esif_ccb_strncmp(psyStr, g_psy_dev, sizeof(g_psy_dev) - 1) == 0) {
-					ESIF_TRACE_INFO("POWER_SUPPLY_UEVENT PROCESSING\n");
-					if(!kobj_powersupply_uevent_parse(buffer, len, g_psy_val))
-						break;
-
-					if(!esif_ccb_strncmp(g_psy_val[POWER_SUPPLY_STATUS], "Discharging", sizeof("Discharging") - 1)) {
-						ESIF_TRACE_INFO("DC MODE PSY_STATUS = %s\n", g_psy_val[POWER_SUPPLY_STATUS]);
-						powerSrc = POWER_SRC_DC;
-						ESIF_DATA_UINT32_ASSIGN(evtData, &powerSrc, sizeof(UInt32));
-					}
-					else {
-						ESIF_TRACE_INFO("AC MODE PSY_STATUS = %s\n", g_psy_val[POWER_SUPPLY_STATUS]);
-						powerSrc = POWER_SRC_AC;
-						ESIF_DATA_UINT32_ASSIGN(evtData, &powerSrc, sizeof(UInt32));
-					}
-					atomic_set(&g_PowerSrc, powerSrc);
-					EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
-
-					psyStr = g_psy_val[POWER_SUPPLY_CAPACITY] ? g_psy_val[POWER_SUPPLY_CAPACITY] : "";
-					if (esif_ccb_sscanf(psyStr, "%d", &batteryPercentage) <= 0) {
-						ESIF_TRACE_WARN("Failed to get Battery Percentage.\n");
-					}
-					else {
-						ESIF_TRACE_INFO("Battery Capacity = %s\n", g_psy_val[POWER_SUPPLY_CAPACITY]);
-						atomic_set(&g_BatteryPercentage, batteryPercentage);
-						ESIF_DATA_UINT32_ASSIGN(evtData, &batteryPercentage, sizeof(UInt32));
-						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
-					}
-				}
 			}
 		}
 		i += esif_ccb_strlen(buffer + i, len - i) + 1;

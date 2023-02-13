@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,6 +66,8 @@ namespace PolicyEvent
 		DomainFanCapabilityChanged,
 		DomainSocWorkloadClassificationChanged,
 		DomainEppSensitivityHintChanged,
+		DomainExtendedWorkloadPredictionChanged,
+		DomainFanOperatingModeChanged,
 		PolicyActiveRelationshipTableChanged,
 		PolicyCoolingModePolicyChanged,
 		PolicyForegroundApplicationChanged,
@@ -119,8 +121,10 @@ namespace PolicyEvent
 		PolicySystemModeChanged,
 		PolicyCollaborationChanged,
 		PolicyThirdPartyGraphicsPowerStateChanged,
-		PolicyAppBroadcastUnprivileged,
-		PolicyAppBroadcastPrivileged,
+		DptfAppBroadcastUnprivileged,
+		DptfAppBroadcastPrivileged,
+		PolicySwOemVariablesChanged,
+		PolicyThirdPartyGraphicsTPPLimitChanged,
 		Max
 	};
 

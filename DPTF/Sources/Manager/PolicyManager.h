@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 class dptf_export PolicyManager : public PolicyManagerInterface
 {
 public:
-	PolicyManager(DptfManagerInterface* dptfManager);
+	PolicyManager(DptfManagerInterface* dptfManager, const std::set<Guid>& defaultPolicies);
 	~PolicyManager(void);
 
 	// Create policies

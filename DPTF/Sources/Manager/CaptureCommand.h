@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,19 +19,19 @@
 
 #include "CommandHandler.h"
 #include "PolicyManagerInterface.h"
-#include "FileIO.h"
 #include "CaptureDataGenerator.h"
+#include "FileIo.h"
 
 class dptf_export CaptureCommand : public CommandHandler
 {
 public:
-	CaptureCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo);	
+	CaptureCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIo> fileIo);	
 	virtual ~CaptureCommand() = default;
 	virtual std::string getCommandName() const override;
 	virtual void execute(const CommandArguments& arguments) override;
 
 private:
-	std::shared_ptr<IFileIO> m_fileIo;
+	std::shared_ptr<IFileIo> m_fileIo;
 	std::list<std::shared_ptr<CaptureDataGenerator>> m_dataGenerators;
 	static Bool exportFileNameProvided(const CommandArguments& arguments);
 	std::string generateExportPath(const CommandArguments& arguments) const;

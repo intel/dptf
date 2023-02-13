@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -267,4 +267,20 @@ void DomainPerformanceControl_003::restore(void)
 std::string DomainPerformanceControl_003::getName(void)
 {
 	return "Graphics Performance Control";
+}
+
+void DomainPerformanceControl_003::setPerfPreferenceMax(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throw not_implemented();
+}
+
+void DomainPerformanceControl_003::setPerfPreferenceMin(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	throw not_implemented();
 }

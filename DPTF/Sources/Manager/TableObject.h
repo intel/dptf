@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,6 +48,7 @@ public:
 	void setData(const DptfBuffer& data);
 
 	std::string getXmlString();
+	std::shared_ptr<XmlNode> getXml(); 
 
 	const Bool isParticipantTable() const;
 	const Bool hasRevisionField() const;
@@ -87,6 +88,11 @@ private:
 		esif_data_variant*& obj,
 		std::vector<TableObjectField>& fields,
 		std::shared_ptr<XmlNode>& resultRoot);
+
+	void addMessage(
+		std::shared_ptr<XmlNode>& resultRoot, 
+		std::string xmlWrapperTag, 
+		std::string messages);
 
 	TableObjectType::Type m_type;
 	std::map<UInt64, std::vector<TableObjectField>> m_fieldsMap;

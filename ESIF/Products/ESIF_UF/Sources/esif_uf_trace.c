@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -100,12 +100,19 @@ int EsifUfTraceMessageArgs(
 	const char *msg,
 	va_list arglist)
 {
+	// Override Current Trace Routes if msg is prefixed with "<EVENTLOG>" and remove the prefix
+	esif_traceroute_t routes = 0;
+	const char prefix[] = ESIF_SERVICE_ROUTE_EVENTLOG;
+	if (msg && esif_ccb_strnicmp(msg, prefix, sizeof(prefix) - 1) == 0) {
+		msg += sizeof(prefix) - 1;
+		routes = ESIF_TRACEROUTE_EVENTLOG;
+	}
 	int rc=0;
 	char *appname  = "";
 	char *fmtDetail= "%s%s:[<%s>%s@%s#%d]<%llu ms>: ";
 	char *fmtInfo  = "%s%s:[<%s>]<%llu ms>: ";
 	const char *sep=NULL;
-	size_t fmtlen=esif_ccb_strlen(msg, 0x7FFFFFFF);
+	size_t fmtlen = (msg ? esif_ccb_strlen(msg, 0x7FFFFFFF) : 0);
 	int  detailed_message = (level >= DETAILED_TRACELEVEL ? ESIF_TRUE : ESIF_FALSE);
 	va_list args;
 	esif_ccb_time_t msec = 0;
@@ -141,6 +148,9 @@ int EsifUfTraceMessageArgs(
 
 	level = esif_ccb_min(level, ESIF_TRACELEVEL_MAX);
 	level = esif_ccb_max(level, ESIF_TRACELEVEL_FATAL);
+	if (!routes) {
+		routes = g_traceinfo[level].routes;
+	}
 	if ((sep = strrchr(file, *ESIF_PATH_SEP)) != NULL)
 		file = sep+1;
 
@@ -149,7 +159,7 @@ int EsifUfTraceMessageArgs(
 		detailed_message = ESIF_FALSE;
 	}
 
-	if (g_traceinfo[level].routes & ESIF_TRACEROUTE_CONSOLE) {
+	if (routes & ESIF_TRACEROUTE_CONSOLE) {
 		if (detailed_message)
 			rc =  CMD_CONSOLE(fmtDetail, appname, g_traceinfo[level].label, module_name, func, file, line, msec);
 		else
@@ -162,7 +172,7 @@ int EsifUfTraceMessageArgs(
 			CMD_CONSOLE("\n");
 	}
 
-	if (g_traceinfo[level].routes & ESIF_TRACEROUTE_LOGFILE && EsifLogFile_IsOpen(ESIF_LOG_TRACE)) {
+	if (routes & ESIF_TRACEROUTE_LOGFILE && EsifLogFile_IsOpen(ESIF_LOG_TRACE)) {
 		size_t  msglen = 0;
 		char *buffer = 0;
 		size_t  offset = 0;
@@ -197,7 +207,7 @@ int EsifUfTraceMessageArgs(
 		}
 	}
 
-	if (g_traceinfo[level].routes & (ESIF_TRACEROUTE_EVENTLOG|ESIF_TRACEROUTE_DEBUGGER)) {
+	if (routes & (ESIF_TRACEROUTE_EVENTLOG|ESIF_TRACEROUTE_DEBUGGER)) {
 		size_t  msglen=0;
 		char *buffer=0;
 		int  offset=0;
@@ -283,8 +293,12 @@ int EsifUfTraceMessage(
 		va_end(args);
 	}
 	if (isOsTrace) {
+		const char prefix[] = ESIF_SERVICE_ROUTE_EVENTLOG;
 		va_list args;
 		va_start(args, msg);
+		if (msg && esif_ccb_strnicmp(msg, prefix, sizeof(prefix) - 1) == 0) {
+			msg += sizeof(prefix) - 1;
+		}
 		rc = EtwPrintArgs(module, level, func, file, line, msg, args);
 		va_end(args);
 	}

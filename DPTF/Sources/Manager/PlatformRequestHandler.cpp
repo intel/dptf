@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,9 @@
 #include "esif_sdk_primitive_type.h"
 #include "StatusFormat.h"
 #include "ManagerLogger.h"
+#include "WorkItem.h"
+#include "WIDomainFanOperatingModeChanged.h"
+#include "WorkItemQueueManagerInterface.h"
 using namespace StatusFormat;
 
 #define OSC_REQUEST_FAIL 0xE
@@ -69,17 +72,20 @@ DptfRequestResult PlatformRequestHandler::processRequest(const PolicyRequest& po
 
 void PlatformRequestHandler::bindRequestHandlers()
 {
-	bindRequestHandler(DptfRequestType::PlatformNotificationSetOsc, [=](const PolicyRequest& policyRequest) {
-		return this->handleSetOsc(policyRequest);
+	bindRequestHandler(DptfRequestType::PlatformNotificationSetOsc,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetOsc(policyRequest);
 	});
-	bindRequestHandler(
-		DptfRequestType::PlatformNotificationSetApplicationAliveResponse,
-		[=](const PolicyRequest& policyRequest) { return this->handleSetApplicationAliveResponse(policyRequest); });
-	bindRequestHandler(
-		DptfRequestType::PlatformNotificationSetPolicySystemMode,
-		[=](const PolicyRequest& policyRequest) { return this->handleSetSystemMode(policyRequest); });
-	bindRequestHandler(DptfRequestType::PlatformNotificationAppBroadcastSend, [=](const PolicyRequest& policyRequest) {
-		return this->handleAppBroadcastSend(policyRequest);
+	bindRequestHandler(DptfRequestType::PlatformNotificationSetApplicationAliveResponse,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetApplicationAliveResponse(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationSetPolicySystemMode,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetSystemMode(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationAppBroadcastSend,
+		[=](const PolicyRequest& policyRequest) { return this->handleAppBroadcastSend(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationFanOperatingModeChanged,
+		[=](const PolicyRequest& policyRequest) { return this->handleFanOperatingModeChanged(policyRequest);
 	});
 }
 
@@ -306,12 +312,38 @@ DptfRequestResult PlatformRequestHandler::handleAppBroadcastSend(const PolicyReq
 			}
 		}
 		getEsifServices()->sendDptfEvent(
-			FrameworkEvent::PolicyAppBroadcastPrivileged, Constants::Invalid, Constants::Invalid, eventData);
+			FrameworkEvent::DptfAppBroadcastPrivileged, Constants::Invalid, Constants::Invalid, eventData);
 		return DptfRequestResult(true, "Successfully sent appbroadcast event", request);
 	}
 	catch (dptf_exception& ex)
 	{
 		std::string failureMessage = "Failed to send appbroadcast event" + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handleFanOperatingModeChanged(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		auto operatingMode = FanOperatingMode::toType(request.getDataAsUInt32());
+		auto participantIndex = request.getParticipantIndex();
+		auto domainIndex = request.getDomainIndex();
+		MANAGER_LOG_MESSAGE_DEBUG(
+			{ return "Fan Operating Mode changed to: " + FanOperatingMode::toString(operatingMode); });
+
+		std::shared_ptr<WorkItem> wi = std::make_shared<WIDomainFanOperatingModeChanged>(m_dptfManager, participantIndex, domainIndex,
+			operatingMode);
+		m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
+
+		return DptfRequestResult(true, "Successfully sent fan operating mode changed event to policies.", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage =
+			"Failure during sending fan operating mode changed event to policies: " + std::string(ex.what());
 		return DptfRequestResult(false, failureMessage, request);
 	}
 }

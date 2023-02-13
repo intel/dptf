@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 **
 ******************************************************************************/
 #include "CommandHandler.h"
-#include "FileIO.h"
+#include "FileIo.h"
 
 class dptf_export DiagPolicyCommand : public CommandHandler
 {
 public:
-	DiagPolicyCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo);
+	DiagPolicyCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIo> fileIo);
 	virtual ~DiagPolicyCommand();
 	virtual std::string getCommandName() const override;
 	virtual void execute(const CommandArguments& arguments) override;
@@ -33,5 +33,5 @@ private:
 	Bool reportNameProvided(const CommandArguments& arguments);
 	std::string getPolicyDiagnosticReport(const CommandArguments& arguments);
 	std::string generateReportPath(const CommandArguments& arguments);
-	std::shared_ptr<IFileIO> m_fileIo;
+	std::shared_ptr<IFileIo> m_fileIo;
 };

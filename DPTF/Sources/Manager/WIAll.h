@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,7 +50,9 @@
 #include "WIDomainFanCapabilityChanged.h"
 #include "WIDomainSocWorkloadClassificationChanged.h"
 #include "WIDomainEppSensitivityHintChanged.h"
+#include "WIDomainExtendedWorkloadPredictionChanged.h"
 #include "WIDptfIgccBroadcastReceived.h"
+#include "WIDptfNptWwanBandBroadcastReceived.h"
 #include "WIDptfSwOemVariablesBroadcastReceived.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
@@ -99,3 +101,6 @@
 #include "WIPolicyForegroundRatioChanged.h"
 #include "WIPolicyCollaborationChanged.h"
 #include "WIPolicyThirdPartyGraphicsPowerStateChanged.h"
+#include "WIDomainFanOperatingModeChanged.h"
+#include "WIPolicyOemVariablesChanged.h"
+#include "WIPolicyThirdPartyGraphicsTPPLimitChanged.h"

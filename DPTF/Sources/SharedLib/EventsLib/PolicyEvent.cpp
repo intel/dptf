@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -74,6 +74,8 @@ namespace PolicyEvent
 			CASE(DomainFanCapabilityChanged)
 			CASE(DomainSocWorkloadClassificationChanged)
 			CASE(DomainEppSensitivityHintChanged)
+			CASE(DomainExtendedWorkloadPredictionChanged)
+			CASE(DomainFanOperatingModeChanged)
 			CASE(PolicyCoolingModePolicyChanged)
 			CASE(PolicyForegroundApplicationChanged)
 			CASE(PolicyInitiatedCallback)
@@ -109,8 +111,11 @@ namespace PolicyEvent
 			CASE(PolicySystemModeChanged)
 			CASE(PolicyCollaborationChanged)
 			CASE(PolicyThirdPartyGraphicsPowerStateChanged)
-			CASE(PolicyAppBroadcastPrivileged)
-			CASE(PolicyAppBroadcastUnprivileged)
+			CASE(PolicyOemVariablesChanged)
+			CASE(PolicyThirdPartyGraphicsTPPLimitChanged)
+			CASE(DptfAppBroadcastPrivileged)
+			CASE(DptfAppBroadcastUnprivileged)
+			CASE(PolicySwOemVariablesChanged)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -146,18 +151,20 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged)
 			|| (policyEventType == PolicyEvent::PolicyCollaborationChanged)
 			|| (policyEventType == PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyAppBroadcastPrivileged)
-			|| (policyEventType == PolicyEvent::PolicyAppBroadcastUnprivileged));
+			|| (policyEventType == PolicyEvent::PolicyOemVariablesChanged)
+			|| (policyEventType == PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged)
+			|| (policyEventType == PolicyEvent::DptfAppBroadcastPrivileged)
+			|| (policyEventType == PolicyEvent::DptfAppBroadcastUnprivileged));
 	}
 
 	std::string toString(Type type)
 	{
 		switch (type)
 		{
-		case PolicyEvent::PolicyAppBroadcastPrivileged:
-			return "PolicyAppBroadcastPrivileged";
-		case PolicyEvent::PolicyAppBroadcastUnprivileged:
-			return "PolicyAppBroadcastUnprivileged";
+		case PolicyEvent::DptfAppBroadcastPrivileged:
+			return "DptfAppBroadcastPrivileged";
+		case PolicyEvent::DptfAppBroadcastUnprivileged:
+			return "DptfAppBroadcastUnprivileged";
 		case PolicyEvent::DptfConnectedStandbyEntry:
 			return "DptfConnectedStandbyEntry";
 		case PolicyEvent::DptfConnectedStandbyExit:
@@ -234,6 +241,10 @@ namespace PolicyEvent
 			return "DomainSocWorkloadClassificationChanged";
 		case PolicyEvent::DomainEppSensitivityHintChanged:
 			return "DomainEppSensitivityHintChanged";
+		case PolicyEvent::DomainExtendedWorkloadPredictionChanged:
+			return "DomainExtendedWorkloadPredictionChanged";
+		case PolicyEvent::DomainFanOperatingModeChanged:
+			return "DomainFanOperatingModeChanged";
 		case PolicyEvent::PolicyCoolingModePolicyChanged:
 			return "PolicyCoolingModePolicyChanged";
 		case PolicyEvent::PolicyForegroundApplicationChanged:
@@ -340,6 +351,10 @@ namespace PolicyEvent
 			return "PolicyCollaborationChanged";
 		case PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged:
 			return "PolicyThirdPartyGraphicsPowerStateChanged";
+		case PolicyEvent::PolicySwOemVariablesChanged:
+			return "PolicySwOemVariablesChanged";
+		case PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged:
+			return "PolicyThirdPartyGraphicsTPPLimitChanged";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

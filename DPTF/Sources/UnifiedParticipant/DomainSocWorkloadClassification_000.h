@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,9 @@ public:
 	// DomainSocWorkloadClassificationInterface
 	virtual UInt32 getSocWorkloadClassification() override;
 	virtual void updateSocWorkloadClassification(UInt32 socWorkloadClassification) override;
+
+	virtual UInt32 getExtendedWorkloadPrediction() override;
+	virtual void updateExtendedWorkloadPrediction(UInt32 extendedWorkloadPrediction) override;
 
 	// ComponentExtendedInterface
 	virtual std::string getName(void) override;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,14 +51,17 @@ public:
 
 	Bool operator==(const Guid& rhs) const;
 	Bool operator!=(const Guid& rhs) const;
+	Bool operator<(const Guid& rhs) const;
 	friend std::ostream& operator<<(std::ostream& os, const Guid& guid);
 	operator const UInt8*(void) const;
 
 	Bool isValid() const;
 	std::string toString() const;
 	std::string toClassicString() const;
-	static Guid fromString(std::string guidString);
-	static Guid fromUnmangledString(std::string guidString);
+	std::string toFormattedString() const;
+	Guid clone() const;
+	static Guid fromFormattedString(const std::string& guidString);
+	static Guid fromUnmangledString(const std::string& guidString);
 	void copyToBuffer(UInt8 buffer[GuidSize]) const;
 
 private:

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -73,6 +73,18 @@ namespace DomainType
 		{
 			throw dptf_exception("DomainType::Type is invalid.");
 		}
+	}
+
+	DomainType::Type fromString(const std::string& typeName)
+	{
+		for (const auto &name : names)
+		{
+			if (name.second == typeName)
+			{
+				return name.first;
+			}
+		}
+		throw dptf_exception("DomainType::Type is invalid.");
 	}
 }
 
@@ -156,6 +168,8 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::Pcie;
 	case ESIF_DOMAIN_TYPE_VPU:
 		return DomainType::Vpu;
+	case ESIF_DOMAIN_TYPE_MANAGER:
+		return DomainType::Manager;
 	case ESIF_DOMAIN_TYPE_ALL:
 		return DomainType::All;
 	case ESIF_DOMAIN_TYPE_INVALID:
@@ -247,6 +261,8 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_PCIE;
 	case DomainType::Vpu:
 		return ESIF_DOMAIN_TYPE_VPU;
+	case DomainType::Manager:
+		return ESIF_DOMAIN_TYPE_MANAGER;
 	case DomainType::All:
 		return ESIF_DOMAIN_TYPE_ALL;
 	case DomainType::Invalid:

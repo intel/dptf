@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -108,7 +108,8 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 		UInt32 tripPointTemperature = 0;
 		char *participantName = NULL;
 
-		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type) {
+		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type &&
+			requestPtr->data_len >= offsetof(struct esif_data_complex_thermal_event, participantName)) {
 			/*
 			 * Thermal  data was provided with request
 			 */
@@ -131,7 +132,8 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 		UInt32 tripPointTemperature = 0;
 		char *participantName = NULL;
 
-		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type) {
+		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type &&
+			requestPtr->data_len >= offsetof(struct esif_data_complex_thermal_event, participantName)) {
 			/*
 			 * Thermal data was provided with request
 			 */

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -670,4 +670,34 @@ void DomainPerformanceControl_002::restore(void)
 std::string DomainPerformanceControl_002::getName(void)
 {
 	return "Processor Participant (CPU Domain) Performance Control";
+}
+
+void DomainPerformanceControl_002::setPerfPreferenceMax(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	getParticipantServices()->primitiveExecuteSetAsPercentage(
+		esif_primitive_type::SET_PERF_PREFERENCE_MAX, minMaxRatio, domainIndex);
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{
+			std::stringstream message;
+			message << "Successfully set max CPU frequency to " << std::to_string(minMaxRatio);
+			return message.str();
+		});
+}
+
+void DomainPerformanceControl_002::setPerfPreferenceMin(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Percentage minMaxRatio)
+{
+	getParticipantServices()->primitiveExecuteSetAsPercentage(
+		esif_primitive_type::SET_PERF_PREFERENCE_MIN, minMaxRatio, domainIndex);
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{
+			std::stringstream message;
+			message << "Successfully set min CPU frequency to " << std::to_string(minMaxRatio);
+			return message.str();
+		});
 }

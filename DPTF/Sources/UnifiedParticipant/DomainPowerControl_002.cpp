@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -377,6 +377,13 @@ void DomainPowerControl_002::setPowerLimitDutyCycle(
 void DomainPowerControl_002::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
 {
 	throw dptf_exception("SoC Power Floor is not supported by " + getName() + ".");
+}
+
+void DomainPowerControl_002::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
+{
+	const UInt32 unusedValue = 0;
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_CLEAR, unusedValue, domainIndex);
 }
 
 void DomainPowerControl_002::setAndUpdateEnabled(PowerControlType::Type controlType)

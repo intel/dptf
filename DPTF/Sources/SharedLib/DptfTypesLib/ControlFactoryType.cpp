@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,6 +66,8 @@ std::string ControlFactoryType::toString(Type factoryType)
 		return "SocWorkloadClassification";
 	case ControlFactoryType::DynamicEpp:
 		return "DynamicEpp";
+	case ControlFactoryType::ExtendedWorkloadPrediction:
+		return "ExtendedWorkloadPrediction";
 	default:
 		throw dptf_exception("Invalid control factory type.");
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,6 +27,8 @@ extern "C" {
 void EsifSensorMgr_Init();
 void EsifSensorMgr_Exit();
 
+eEsifError enable_code_event_lin(eEsifEventType eventType);
+eEsifError disable_code_event_lin(eEsifEventType eventType);
 eEsifError esif_register_sensor_lin(eEsifEventType eventType);
 eEsifError esif_unregister_sensor_lin(eEsifEventType eventType);
 eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid);

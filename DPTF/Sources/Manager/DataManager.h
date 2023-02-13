@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -104,6 +104,7 @@ private:
 	DptfManagerInterface* m_dptfManager;
 	std::map<TableObjectType::Type, TableObject> m_tableObjectMap;
 
+	void writeEmptyTable(std::string nameSpace, std::string elementPath);
 	void sendTableChangedEvent(TableObjectType::Type tableObjectType, std::string uuid, UIntN participantIndex);
 	void loadTableObjectMap();
 	void loadAcprTableObject();

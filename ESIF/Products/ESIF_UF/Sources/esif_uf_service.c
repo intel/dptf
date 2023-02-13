@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -277,20 +277,31 @@ eEsifError ESIF_CALLCONV EsifSvcWriteLog(
 	if (msg != NULL && *msg=='\n')
 		msg++;
 
+	/* If msg starts with "<EVENTLOG>", change fmt from "%s" to "<EVENTLOG>%s" so we can
+	** detect it and remove it in the Trace Logging functions. This is necessary since the
+	** logging functions use va_list arguments so we can't access the msg string directly.
+	*/
+	const char prefix[] = ESIF_SERVICE_ROUTE_EVENTLOG;
+	char fmt[sizeof(prefix) + 2] = "%s";
+	if (msg && esif_ccb_strnicmp(msg, prefix, sizeof(prefix) - 1) == 0) {
+		msg += sizeof(prefix) - 1;
+		esif_ccb_sprintf(sizeof(fmt), fmt, "%s%%s", prefix);
+	}
+
 	// Always Steer Application Messages to Target Routes if DPTF module enabled, regardless of global trace level
 	switch (logType) {
 	case eLogTypeFatal:
 	case eLogTypeError:
-		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_ERROR, "%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_ERROR, fmt, msg);
 		break;
 	case eLogTypeWarning:
-		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_WARN, "%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_WARN, fmt, msg);
 		break;
 	case eLogTypeInfo:
-		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_INFO, "%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_INFO, fmt, msg);
 		break;
 	case eLogTypeDebug:
-		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_DEBUG, "%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_DEBUG, fmt, msg);
 		break;
 	default:
 		break;
@@ -781,6 +792,8 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 
 	UNREFERENCED_PARAMETER(esifHandle);
 
+	ESIF_TRACE_DEBUG("Command received\n");
+
 	// Intercept some commands so they can be executed on a different thread
 	if (argc == 1 && argv[0].type == ESIF_DATA_STRING && argv[0].buf_ptr) {
 		char *command = NULL;
@@ -795,12 +808,15 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 			if (response && response->type == ESIF_DATA_STRING && response->buf_ptr && response->buf_len) {
 				response->data_len = esif_ccb_sprintf(response->buf_len, response->buf_ptr, "%s\n", esif_rc_str(rc)) + 1;
 			}
+			ESIF_TRACE_DEBUG("Command verification failure = %d\n", rc);
 			return rc;
 		}
 
 		// Run Intercepted commands on a different thread
 		if (command) {
 			esif_thread_t cmdThread = ESIF_THREAD_NULL;
+			ESIF_TRACE_DEBUG("Executing command: %s\n", command);
+
 			if ((rc = esif_ccb_thread_create(&cmdThread, EsifSvcCommand_StartWorker, command)) == ESIF_OK) {
 				esif_ccb_thread_close(&cmdThread);
 			}
@@ -811,6 +827,7 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 			if (response && response->type == ESIF_DATA_STRING && response->buf_ptr && response->buf_len) {
 				response->data_len = esif_ccb_sprintf(response->buf_len, response->buf_ptr, "%s\n", esif_rc_str(rc)) + 1;
 			}
+			ESIF_TRACE_DEBUG("Exit Code = %d\n", rc);
 			return rc;
 		}
 	}
@@ -866,6 +883,7 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 exit:
 	esif_uf_shell_unlock();
 	esif_ccb_free(shell_argv);
+	ESIF_TRACE_DEBUG("Exit Code = %d\n", rc);
 	return rc;
 }
 

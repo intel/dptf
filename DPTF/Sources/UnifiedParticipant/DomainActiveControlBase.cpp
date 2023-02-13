@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,6 +56,9 @@ void DomainActiveControlBase::bindRequestHandlers()
 	bindRequestHandler(DptfRequestType::ActiveControlGetControlSet, [=](const PolicyRequest& policyRequest) {
 		return this->handleGetControlSet(policyRequest);
 	});
+	bindRequestHandler(DptfRequestType::ActiveControlGetFanOperatingMode, [=](const PolicyRequest& policyRequest) {
+		return this->handleGetFanOperatingMode(policyRequest);
+	});
 	bindRequestHandler(DptfRequestType::ActiveControlSetFanSpeed, [=](const PolicyRequest& policyRequest) {
 		return this->handleSetFanSpeed(policyRequest);
 	});
@@ -70,6 +73,9 @@ void DomainActiveControlBase::bindRequestHandlers()
 	});
 	bindRequestHandler(DptfRequestType::ClearPolicyRequestsForAllControls, [=](const PolicyRequest& policyRequest) {
 		return this->handleRemovePolicyRequests(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::ActiveControlSetFanOperatingMode, [=](const PolicyRequest& policyRequest) {
+		return this->handleSetFanOperatingMode(policyRequest);
 	});
 }
 
@@ -151,6 +157,37 @@ DptfRequestResult DomainActiveControlBase::handleGetControlSet(const PolicyReque
 		updateCachedResult(result);
 		return result;
 	}
+}
+
+DptfRequestResult DomainActiveControlBase::handleGetFanOperatingMode(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	auto participantIndex = request.getParticipantIndex();
+	auto domainIndex = request.getDomainIndex();
+	UInt32 operatingMode = Constants::Invalid;
+
+	if (requestResultIsCached(request))
+	{
+		return getCachedResult(request);
+	}
+	else
+	{
+		try
+		{
+			operatingMode = getActiveControlFanOperatingMode(participantIndex, domainIndex);
+		}
+		catch (dptf_exception& ex)
+		{
+			std::stringstream message;
+			message << "Get Fan Operating Mode for policy FAILED: " << ex.getDescription();
+			return DptfRequestResult(false, message.str(), request);
+		}
+	}
+
+	DptfRequestResult result(true, "Successfully retrieved fan operating mode.", request);
+	result.setDataFromUInt32(operatingMode);
+	updateCachedResult(result);
+	return result;
 }
 
 DptfRequestResult DomainActiveControlBase::handleSetFanSpeed(const PolicyRequest& policyRequest)
@@ -273,4 +310,25 @@ DptfRequestResult DomainActiveControlBase::handleRemovePolicyRequests(const Poli
 		setFanCapsLock(participantIndex, domainIndex, newCapsLock);
 	}
 	return DptfRequestResult(true, "Removed policy requests from Active Control.", request);
+}
+
+DptfRequestResult DomainActiveControlBase::handleSetFanOperatingMode(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	auto fanOperatingMode = request.getDataAsUInt32();
+
+	try
+	{
+		setActiveControlFanOperatingMode(fanOperatingMode);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Set Fan Operating Mode for policy FAILED: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
+
+	std::stringstream message;
+	message << "Set Fan Operating Mode for policy.";
+	return DptfRequestResult(true, message.str(), request);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,6 +47,8 @@ public:
 		UIntN domainIndex,
 		PerformanceControlDynamicCaps newCapabilities) override;
 	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	virtual void setPerfPreferenceMax(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
+	virtual void setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
 
 	// ComponentExtendedInterface
 	virtual void onClearCachedData(void) override;

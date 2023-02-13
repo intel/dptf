@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,7 @@
 #include "esif_ccb_cpuid.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_sensors.h"
+#include "math.h"
 
 // !!!
 // TODO: Once we move to the DOMAIN MGR some of the interfaces in this file might change!!!
@@ -91,14 +92,20 @@ static eEsifError EsifGetActionDelegateMcppEnergy(
 	EsifDataPtr responsePtr
 	);
 
-static eEsifError EsifGetCpuRaplEnergy(
+static eEsifError EsifGetParticipantRaplEnergy(
 	const EsifUpDomainPtr domainPtr,
-	UInt32* cpuRaplEnergy
+	const u16 surrogate,
+	UInt32* participantEnergy
 	);
 
-static eEsifError EsifGetGpuRaplEnergy(
+static eEsifError TranslateCpuRaplEnergy(
 	const EsifUpDomainPtr domainPtr,
-	UInt32* gpuRaplEnergy
+	UInt32* participantEnergy
+	);
+
+static eEsifError TranslateGpuRaplEnergy(
+	const EsifUpDomainPtr domainPtr,
+	UInt32* participantEnergy
 	);
 
 static eEsifError EsifGetActionDelegateBpsg(EsifDataPtr responsePtr);
@@ -155,13 +162,23 @@ static eEsifError EsifSetActionDelegateSsme(EsifDataPtr requestPtr);
 static eEsifError EsifSetActionDelegateScsm(EsifDataPtr requestPtr);
 static eEsifError EsifSetActionDelegateScas();
 
+static esif_error_t EsifGetActionDelegateUid(
+	EsifUpPtr upPtr,
+	EsifDataPtr responsePtr
+	);
+
 
 
 #define set_nv_tgp_value(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
-#define set_nv_power_limit(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tgp_min_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tgp_max_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_dynamic_boost_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_action_state_enable() (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_action_state_disable() (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tpp_limit_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tgp_max_clear(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tgp_min_clear(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tpp_limit_clear(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_display_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_screen_autolock_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_wake_on_approach_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -169,10 +186,13 @@ static eEsifError EsifSetActionDelegateScas();
 #define set_app_ratio_period(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_utilization(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_rapl_power(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
-#define get_nv_rapl_power_limit(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_rapl_energy(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_tgp_min_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_tgp_max_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_temperature(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_dynamic_boost_state(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_power_state(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_tpp_limit_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_last_hid_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -196,6 +216,11 @@ static eEsifError EsifSetActionDelegateScas();
 #define DELEGATE_ACTL_OPCODE_STOP	'POTS'	// Stop App
 #define DELEGATE_CNFG_OPCODE_REST	'TSER'	// Restart Apps on GDDV/DCFG Change
 #define DELEGATE_CNFG_OPCODE_DESC	'CSED'	// Get GDDV Description
+
+// Delegate Globals
+#define ESIF_INVALID_DATA        0xFFFFFFFF
+UInt32 g_cpuEnergyUnit = ESIF_INVALID_DATA;
+UInt32 g_gpuEnergyUnit = ESIF_INVALID_DATA;
 
 /*
 ** Handle ESIF Action Request
@@ -292,8 +317,16 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = get_nv_rapl_power(responsePtr);
 		break;
 
-	case 'LPGN': /* NGPL */
-		rc = get_nv_rapl_power_limit(responsePtr);
+	case '0CEG': /* GEC0 */
+		rc = get_nv_rapl_energy(responsePtr);
+		break;
+
+	case 'ALPN': /* NPLA */
+		rc = get_nv_tgp_min_AC(responsePtr);
+		break;
+
+	case 'AHPN': /* NPHA */
+		rc = get_nv_tgp_max_AC(responsePtr);
 		break;
 
 	case 'PMTN': /* NTMP */
@@ -306,6 +339,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 
 	case 'SPGN': /* NGPS */
 		rc = get_nv_power_state(responsePtr);
+		break;
+
+	case 'APTN': /* NTPA */
+		rc = get_nv_tpp_limit_AC(responsePtr);
 		break;
 
 	case 'SCIG': /* GICS **/
@@ -334,6 +371,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 
 	case 'ERMG': /* GMRE - Get MCPP Rapl Energy */
 		rc = EsifGetActionDelegateMcppEnergy(domainPtr, responsePtr);
+		break;
+
+	case 'DIU_': /* _UID - Get participant _UID (name) */
+		rc = EsifGetActionDelegateUid(upPtr, responsePtr);
 		break;
 
 	default:
@@ -554,12 +595,32 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = set_nv_action_state_disable();
 		break;
 
-	case 'LPSN': /* NSPL */
-		rc = set_nv_power_limit(requestPtr);
+	case 'ALPN': /* NPLA */
+		rc = set_nv_tgp_min_AC(requestPtr);
+		break;
+
+	case 'AHPN': /* NPHA */
+		rc = set_nv_tgp_max_AC(requestPtr);
 		break;
 
 	case 'PGTN': /* NTGP */
 		rc = set_nv_tgp_value(requestPtr);
+		break;
+
+	case 'APTN': /* NTPA */
+		rc = set_nv_tpp_limit_AC(requestPtr);
+		break;
+
+	case 'CHPN': /* NPHC */
+		rc = set_nv_tgp_max_clear(requestPtr);
+		break;
+
+	case 'CLPN': /* NPLC */
+		rc = set_nv_tgp_min_clear(requestPtr);
+		break;
+
+	case 'CPTN': /* NTPC */
+		rc = set_nv_tpp_limit_clear(requestPtr);
 		break;
 
 	case 'EMSS': /* SSME */
@@ -1377,32 +1438,50 @@ static eEsifError EsifGetActionDelegateMcppEnergy(
 		goto exit;
 	}
 
-	rc = EsifGetCpuRaplEnergy(domainPtr, &cpuRaplEnergy);
+	rc = EsifGetParticipantRaplEnergy(domainPtr, GET_RAPL_ENERGY_CPU_SUR, &cpuRaplEnergy);
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_DEBUG("Failed to obtain RAPL Energy value for CPU component: %s\n", esif_rc_str(rc));
 		goto exit;
 	}
 
-	rc = EsifGetGpuRaplEnergy(domainPtr, &gpuRaplEnergy);
+	rc = TranslateCpuRaplEnergy(domainPtr, &cpuRaplEnergy);
 	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("Failed to obtain RAPL Energy value for GPU component, continuing w/ only CPU counters. GPU Error: %s\n", esif_rc_str(rc));
-		gpuRaplEnergy = 0;
-		rc = ESIF_OK;
+		ESIF_TRACE_DEBUG("Failed to translate RAPL Energy value for CPU component: %s\n", esif_rc_str(rc));
+		goto exit;
 	}
 
+	rc = EsifGetParticipantRaplEnergy(domainPtr, GET_RAPL_ENERGY_GPU_SUR, &gpuRaplEnergy);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Failed to obtain RAPL Energy value for GPU component, continuing w/ only CPU counters. GPU Error: %s\n", esif_rc_str(rc));
+		rc = ESIF_OK;
+		gpuRaplEnergy = 0;
+		goto summationExit;
+	}
+
+	rc = TranslateGpuRaplEnergy(domainPtr, &gpuRaplEnergy);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Failed to translate RAPL Energy value for GPU component, continuing w/ only CPU counters. GPU Error: %s\n", esif_rc_str(rc));
+		rc = ESIF_OK;
+		gpuRaplEnergy = 0;
+		goto summationExit;
+	}
+
+summationExit:
 	*(UInt32*)responsePtr->buf_ptr = (cpuRaplEnergy + gpuRaplEnergy);
 exit:
 	return rc;
 }
 
-static eEsifError EsifGetCpuRaplEnergy(
+static eEsifError EsifGetParticipantRaplEnergy(
 	const EsifUpDomainPtr domainPtr,
-	UInt32* cpuRaplEnergy)
+	const u16 surrogate,
+	UInt32* participantEnergy)
 {
 	eEsifError rc = ESIF_OK;
-	EsifPrimitiveTuple energyTuple = { GET_RAPL_ENERGY_CPU_SUR, 0, 255 };
+	EsifPrimitiveTuple energyTuple = { surrogate, 0, 255 };
 	UInt32 energyValue = 0;
 	EsifData energyData = { ESIF_DATA_UINT32, &energyValue, sizeof(energyValue), 0 };
+	ESIF_ASSERT(participantEnergy != NULL);
 
 	energyTuple.domain = domainPtr->domain;
 	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &energyTuple, NULL, &energyData);
@@ -1410,27 +1489,57 @@ static eEsifError EsifGetCpuRaplEnergy(
 		goto exit;
 	}
 
-	*cpuRaplEnergy = energyValue;
+	*participantEnergy = energyValue;
 exit:
 	return rc;
 }
 
-static eEsifError EsifGetGpuRaplEnergy(
+static eEsifError TranslateCpuRaplEnergy(
 	const EsifUpDomainPtr domainPtr,
-	UInt32* gpuRaplEnergy)
+	UInt32* participantEnergy)
 {
 	eEsifError rc = ESIF_OK;
-	EsifPrimitiveTuple energyTuple = { GET_RAPL_ENERGY_GPU_SUR, 0, 255 };
-	UInt32 energyValue = 0;
-	EsifData energyData = { ESIF_DATA_UINT32, &energyValue, sizeof(energyValue), 0 };
+	UInt32 unitValue = 0;
+	EsifData unitData = { ESIF_DATA_UINT32, &unitValue, sizeof(unitValue), 0 };
+	EsifPrimitiveTuple unitTuple = { GET_RAPL_ENERGY_UNIT_CPU_SUR, 0, 255 };
+	unitTuple.domain = domainPtr->domain;
+	ESIF_ASSERT(participantEnergy != NULL);
 
-	energyTuple.domain = domainPtr->domain;
-	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &energyTuple, NULL, &energyData);
-	if (rc != ESIF_OK) {
-		goto exit;
+	if (g_cpuEnergyUnit == ESIF_INVALID_DATA) {
+		rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &unitTuple, NULL, &unitData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_DEBUG("Failed to obtain CPU Energy Unit");
+			goto exit;
+		}
+		g_cpuEnergyUnit = unitValue;
 	}
 
-	*gpuRaplEnergy = energyValue;
+	*participantEnergy = (UInt32)(*participantEnergy * (1 / pow(2, g_cpuEnergyUnit)));
+exit:
+	return rc;
+}
+
+static eEsifError TranslateGpuRaplEnergy(
+	const EsifUpDomainPtr domainPtr,
+	UInt32* participantEnergy)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 unitValue = 0;
+	EsifData unitData = { ESIF_DATA_UINT32, &unitValue, sizeof(unitValue), 0 };
+	EsifPrimitiveTuple unitTuple = { GET_RAPL_ENERGY_UNIT_GPU_SUR, 0, 255 };
+	unitTuple.domain = domainPtr->domain;
+	ESIF_ASSERT(participantEnergy != NULL);
+
+	if (g_gpuEnergyUnit == ESIF_INVALID_DATA) {
+		rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &unitTuple, NULL, &unitData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_DEBUG("Failed to obtain GPU Energy Unit");
+			goto exit;
+		}
+		g_gpuEnergyUnit = unitValue;
+	}
+
+	*participantEnergy = (UInt32)(*participantEnergy * (1 / pow(2, g_gpuEnergyUnit)));
 exit:
 	return rc;
 }
@@ -1678,6 +1787,32 @@ exit:
 }
 
 
+static esif_error_t EsifGetActionDelegateUid(
+	EsifUpPtr upPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	esif_string name = NULL;
+	size_t nameLen = 0;
+
+	ESIF_ASSERT(responsePtr);
+	ESIF_ASSERT(responsePtr->buf_ptr);
+
+	if (upPtr) {
+		name = EsifUp_GetName(upPtr);
+		nameLen = esif_ccb_strlen(name, ESIF_NAME_LEN) + 1;
+		
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		responsePtr->data_len = (u32)nameLen;
+		if (responsePtr->buf_len >= nameLen) {
+			rc = ESIF_OK;
+			esif_ccb_strcpy(responsePtr->buf_ptr, name, nameLen);
+		}
+	}
+
+	return rc;
+}
 
 /*
  *******************************************************************************

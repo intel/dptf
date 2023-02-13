@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -170,6 +170,18 @@ std::string Temperature::toString() const
 	if (isValid() && m_temperature != Constants::MaxUInt32)
 	{
 		return friendlyValueWithPrecision(getTemperatureInCelsius(), 1);
+	}
+	else
+	{
+		return std::string(Constants::InvalidString);
+	}
+}
+
+std::string Temperature::toStringTenthKelvin() const
+{
+	if (isValid() && m_temperature != Constants::MaxUInt32)
+	{
+		return friendlyValue(m_temperature);
 	}
 	else
 	{

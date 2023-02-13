@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -305,6 +305,15 @@ void DomainPowerControl_001::setSocPowerFloorState(UIntN participantIndex, UIntN
 {
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_RAPL_FLOOR_STATE, socPowerFloorState ? (UInt32)1 : (UInt32)0, domainIndex);
+}
+
+void DomainPowerControl_001::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
+{
+	const UInt32 unusedValue = 0;
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_CLEAR, unusedValue, domainIndex);
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_RAPL_POWER_MIN_CLEAR, unusedValue, domainIndex);
 }
 
 void DomainPowerControl_001::setAndUpdateEnabled(PowerControlType::Type controlType)

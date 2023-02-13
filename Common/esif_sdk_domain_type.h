@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -100,11 +100,12 @@ typedef enum esif_domain_type {
 	ESIF_DOMAIN_TYPE_NVDGX = 44,
 	ESIF_DOMAIN_TYPE_PCIE = 45,
 	ESIF_DOMAIN_TYPE_VPU = 46,
+	ESIF_DOMAIN_TYPE_MANAGER = 250,
 	ESIF_DOMAIN_TYPE_ALL = 255,
 } esif_domain_type_t;
 
 /* Max Enum Value for Iteration purposes (Excluding ALL) */
-#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_VPU
+#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_MANAGER
 
 static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 {
@@ -149,6 +150,7 @@ static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_NVDGX);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_PCIE);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_VPU);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_MANAGER);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_ALL);
 	}
 	return ESIF_NOT_AVAILABLE;

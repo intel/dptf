@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,6 +45,8 @@ protected:
 	virtual DptfBuffer getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getActiveControlFanOperatingMode(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getActiveControlFanCapabilities(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) = 0;
 	virtual void setActiveControlFanDirection(UInt32 fanDirection) = 0;
 	virtual void setActiveControlDynamicCaps(
@@ -52,6 +54,7 @@ protected:
 		UIntN domainIndex,
 		ActiveControlDynamicCaps newCapabilities) = 0;
 	virtual void setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) = 0;
+	virtual void setActiveControlFanOperatingMode(UInt32 fanOperatingMode) = 0;
 	virtual std::shared_ptr<XmlNode> getArbitratorXml(UIntN policyIndex) const override;
 
 private:
@@ -60,11 +63,13 @@ private:
 	DptfRequestResult handleGetDynamicCaps(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetStatus(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetControlSet(const PolicyRequest& policyRequest);
+	DptfRequestResult handleGetFanOperatingMode(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetFanSpeed(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetFanDirection(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetDynamicCaps(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetFanCapsLock(const PolicyRequest& policyRequest);
 	DptfRequestResult handleRemovePolicyRequests(const PolicyRequest& policyRequest);
+	DptfRequestResult handleSetFanOperatingMode(const PolicyRequest& policyRequest);
 
 	ArbitratorFanSpeed m_arbitratorFanSpeed;
 	ArbitratorActiveControlCapabilities m_arbitratorDynamicCaps;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -538,6 +538,34 @@ void PolicyBase::domainEppSensitivityHintChanged(UIntN participantIndex, UIntN d
 	onDomainEppSensitivityHintChanged(participantIndex, domainIndex, mbtHint);
 }
 
+void PolicyBase::domainExtendedWorkloadPredictionChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
+{
+	throwIfPolicyIsDisabled();
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		stringstream message;
+		message << getName() << ": Extended Workload Prediction changed for ParticipantIndex = " << participantIndex
+				<< " and DomainIndex = " << domainIndex;
+		return message.str();
+	});
+	onDomainExtendedWorkloadPredictionChanged(participantIndex, domainIndex, extendedWorkloadPrediction);
+}
+
+void PolicyBase::domainFanOperatingModeChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	FanOperatingMode::Type fanOperatingMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Fan operating mode changed to " + FanOperatingMode::toString(fanOperatingMode) + ".";
+	});
+	onDomainFanOperatingModeChanged(participantIndex, domainIndex, fanOperatingMode);
+}
+
 void PolicyBase::activeRelationshipTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -897,11 +925,11 @@ void PolicyBase::oemVariablesChanged(void)
 	onOemVariablesChanged();
 }
 
-void PolicyBase::swOemVariablesChanged(const DptfBuffer& swOemVariablesData)
+void PolicyBase::swOemVariablesChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": SW OEM variable(s) changed."; });
-	onSwOemVariablesChanged(swOemVariablesData);
+	onSwOemVariablesChanged();
 }
 
 void PolicyBase::powerBossConditionsTableChanged(void)
@@ -1003,11 +1031,12 @@ void PolicyBase::foregroundRatioChanged(UIntN ratio)
 	onForegroundRatioChanged(ratio);
 }
 
-void PolicyBase::collaborationChanged(OnOffToggle::Type collaborationstate) 
+void PolicyBase::collaborationModeChanged(OnOffToggle::Type collaborationModeState)
 {
 	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Collaboration changed to " + to_string(collaborationstate) + "."; });
-	onCollaborationChanged(collaborationstate);
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Collaboration Mode state changed to " + to_string(collaborationModeState) + "."; });
+	onCollaborationModeChanged(collaborationModeState);
 }
 
 void PolicyBase::thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
@@ -1015,9 +1044,19 @@ void PolicyBase::thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
 	throwIfPolicyIsDisabled();
 
 	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": NV Power State changed to [" + StatusFormat::friendlyValue(tpgPowerStateOff) + "]";
+		return getName() + ": TPG Power State changed to [" + StatusFormat::friendlyValue(tpgPowerStateOff) + "]";
 	});
 	onThirdPartyGraphicsPowerStateChanged(tpgPowerStateOff);
+}
+
+void PolicyBase::thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource)
+{
+	throwIfPolicyIsDisabled();
+
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": TPG TPP Limit changed for power source: [" + OsPowerSource::toString(tppPowerSource) + "]";
+		});
+	onThirdPartyGraphicsTPPLimitChanged(tppPowerSource);
 }
 
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
@@ -1195,6 +1234,14 @@ void PolicyBase::onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN
 	throw not_implemented();
 }
 
+void PolicyBase::onDomainExtendedWorkloadPredictionChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onActiveRelationshipTableChanged(void)
 {
 	throw not_implemented();
@@ -1365,7 +1412,7 @@ void PolicyBase::onOemVariablesChanged(void)
 	throw not_implemented();
 }
 
-void PolicyBase::onSwOemVariablesChanged(const DptfBuffer& swOemVariablesData)
+void PolicyBase::onSwOemVariablesChanged()
 {
 	throw not_implemented();
 }
@@ -1465,7 +1512,15 @@ void PolicyBase::onForegroundRatioChanged(UIntN ratio)
 	throw not_implemented();
 }
 
-void PolicyBase::onCollaborationChanged(OnOffToggle::Type collaborationstate)
+void PolicyBase::onCollaborationModeChanged(OnOffToggle::Type collaborationstate)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainFanOperatingModeChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	FanOperatingMode::Type fanOperatingMode)
 {
 	throw not_implemented();
 }
@@ -1594,6 +1649,11 @@ void PolicyBase::onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode)
 }
 
 void PolicyBase::onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource)
 {
 	throw not_implemented();
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,6 +51,9 @@ public:
 	virtual PerformanceControlStatus getLiveStatus() const override;
 	virtual const PerformanceControlSet& getControls() override;
 	virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() override;
+
+	virtual void setPerfPreferenceMax(Percentage minMaxRatio) override;
+	virtual void setPerfPreferenceMin(Percentage minMaxRatio) override;
 
 private:
 	// services

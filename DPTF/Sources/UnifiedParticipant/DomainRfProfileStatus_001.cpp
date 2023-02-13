@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -183,4 +183,12 @@ std::shared_ptr<XmlNode> DomainRfProfileStatus_001::getXml(UIntN domainIndex)
 std::string DomainRfProfileStatus_001::getName(void)
 {
 	return "FIVR RF Profile Status";
+}
+
+void DomainRfProfileStatus_001::setRfProfileOverride(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DptfBuffer& rfProfileBufferData)
+{
+	throw not_implemented();
 }

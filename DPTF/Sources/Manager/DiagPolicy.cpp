@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,13 +18,13 @@
 #include "DiagPolicyCommand.h"
 #include "DptfManagerInterface.h"
 #include "PolicyManagerInterface.h"
-#include "FileIO.h"
+#include "FileIo.h"
 #include "TimeOps.h"
 #include "StringParser.h"
 #include "EsifDataString.h"
 using namespace std;
 
-DiagPolicyCommand::DiagPolicyCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
+DiagPolicyCommand::DiagPolicyCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
@@ -48,7 +48,7 @@ void DiagPolicyCommand::execute(const CommandArguments& arguments)
 	auto diagnostics = getPolicyDiagnosticReport(arguments);
 	auto fullReportPath = generateReportPath(arguments);
 	string message = string("Wrote policy diagnostics to ") + fullReportPath;
-	m_fileIo->writeData(fullReportPath, diagnostics);
+	m_fileIo->write(fullReportPath, diagnostics);
 	setResultCode(ESIF_OK);
 	setResultMessage(message);
 }
@@ -73,7 +73,7 @@ string DiagPolicyCommand::generateReportPath(const CommandArguments& arguments)
 		reportName = TimeOps::generateTimestampNowAsString() + ".xml";
 	}
 
-	return FileIO::generatePathWithTrailingSeparator(reportPath) + reportName;
+	return FileIo::generatePathWithTrailingSeparator(reportPath) + reportName;
 }
 
 Bool DiagPolicyCommand::reportNameProvided(const CommandArguments& arguments)
@@ -125,7 +125,7 @@ void DiagPolicyCommand::throwIfReportNameIsInvalid(const CommandArguments& argum
 		}
 
 		auto reportName = arguments[2].getDataAsString();
-		if (IFileIO::fileNameContainsIllegalCharacters(reportName))
+		if (IFileIo::fileNameContainsIllegalCharacters(reportName))
 		{
 			string description = string("Invalid characters used in report name given to 'diag policy' command.");
 			setResultMessage(description);

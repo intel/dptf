@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -95,6 +95,11 @@ public:
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification);
 	virtual void onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint);
+	virtual void onDomainExtendedWorkloadPredictionChanged(UIntN participantIndex, UIntN domainIndex, ExtendedWorkloadPrediction::Type extendedWorkloadPrediction);
+	virtual void onDomainFanOperatingModeChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		FanOperatingMode::Type fanOperatingMode);
 	virtual void onActiveRelationshipTableChanged(void);
 	virtual void onThermalRelationshipTableChanged(void);
 	virtual void onAdaptivePerformanceConditionsTableChanged(void);
@@ -130,7 +135,7 @@ public:
 	virtual void onSensorMotionChanged(OnOffToggle::Type sensorMotion);
 	virtual void onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject);
 	virtual void onOemVariablesChanged(void);
-	virtual void onSwOemVariablesChanged(const DptfBuffer& swOemVariablesData);
+	virtual void onSwOemVariablesChanged(void);
 	virtual void onPowerBossConditionsTableChanged(void);
 	virtual void onPowerBossActionsTableChanged(void);
 	virtual void onPowerBossMathTableChanged(void);
@@ -151,8 +156,9 @@ public:
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
 	virtual void onForegroundRatioChanged(UIntN ratio);
-	virtual void onCollaborationChanged(OnOffToggle::Type collaborationstate);
+	virtual void onCollaborationModeChanged(OnOffToggle::Type collaborationModeState);
 	virtual void onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff);
+	virtual void onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource);
 
 	// Implementation of the Policy Interface
 	virtual void create(
@@ -208,6 +214,15 @@ public:
 		SocWorkloadClassification::Type socWorkloadClassification) override final;
 	virtual void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
 		override final;
+	virtual void domainExtendedWorkloadPredictionChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
+		override final;
+	virtual void domainFanOperatingModeChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		FanOperatingMode::Type fanOperatingMode) override final;
 	virtual void activeRelationshipTableChanged(void) override final;
 	virtual void thermalRelationshipTableChanged(void) override final;
 	virtual void adaptivePerformanceConditionsTableChanged(void) override final;
@@ -246,7 +261,7 @@ public:
 		SensorSpatialOrientation::Type sensorSpatialOrientation) override final;
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) override final;
 	virtual void oemVariablesChanged(void) override final;
-	virtual void swOemVariablesChanged(const DptfBuffer& swOemVariablesData) override final;
+	virtual void swOemVariablesChanged() override final;
 	virtual void powerBossConditionsTableChanged(void) override final;
 	virtual void powerBossActionsTableChanged(void) override final;
 	virtual void powerBossMathTableChanged(void) override final;
@@ -267,8 +282,9 @@ public:
 	virtual void externalMonitorStateChanged(Bool externalMonitorState) override final;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
 	virtual void foregroundRatioChanged(UIntN ratio) override final;
-	virtual void collaborationChanged(OnOffToggle::Type collaborationstate) override final;
+	virtual void collaborationModeChanged(OnOffToggle::Type collaborationModeState) override final;
 	virtual void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override final;
+	virtual void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type) override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -722,6 +722,24 @@ void Participant::domainEppSensitivityHintChanged(UInt32 eppSensitivityHint)
 	}
 }
 
+void Participant::domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction)
+{
+	if (isEventRegistered(ParticipantEvent::DomainExtendedWorkloadPredictionChanged))
+	{
+		throwIfRealParticipantIsInvalid();
+		m_theRealParticipant->domainExtendedWorkloadPredictionChanged(extendedWorkloadPrediction);
+	}
+}
+
+void Participant::domainFanOperatingModeChanged(void)
+{
+	if (isEventRegistered(ParticipantEvent::DomainFanOperatingModeChanged))
+	{
+		throwIfRealParticipantIsInvalid();
+		m_theRealParticipant->domainFanOperatingModeChanged();
+	}
+}
+
 //
 // The following functions pass through to the domain implementation
 //
@@ -780,10 +798,10 @@ CoreControlStaticCaps Participant::getCoreControlStaticCaps(UIntN domainIndex)
 	return m_domains[domainIndex]->getCoreControlStaticCaps();
 }
 
-CoreControlDynamicCaps Participant::getCoreControlDynamicCaps(UIntN domainIndex)
+CoreControlDynamicCaps Participant::getCoreControlDynamicCaps(UIntN domainIndex) const
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getCoreControlDynamicCaps();
+	return m_domains.at(domainIndex)->getCoreControlDynamicCaps();
 }
 
 CoreControlLpoPreference Participant::getCoreControlLpoPreference(UIntN domainIndex)
@@ -804,10 +822,10 @@ void Participant::setActiveCoreControl(UIntN domainIndex, UIntN policyIndex, con
 	m_domains[domainIndex]->setActiveCoreControl(policyIndex, coreControlStatus);
 }
 
-DisplayControlDynamicCaps Participant::getDisplayControlDynamicCaps(UIntN domainIndex)
+DisplayControlDynamicCaps Participant::getDisplayControlDynamicCaps(UIntN domainIndex) const
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getDisplayControlDynamicCaps();
+	return m_domains.at(domainIndex)->getDisplayControlDynamicCaps();
 }
 
 DisplayControlStatus Participant::getDisplayControlStatus(UIntN domainIndex)
@@ -963,10 +981,10 @@ PerformanceControlStaticCaps Participant::getPerformanceControlStaticCaps(UIntN 
 	return m_domains[domainIndex]->getPerformanceControlStaticCaps();
 }
 
-PerformanceControlDynamicCaps Participant::getPerformanceControlDynamicCaps(UIntN domainIndex)
+PerformanceControlDynamicCaps Participant::getPerformanceControlDynamicCaps(UIntN domainIndex) const
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPerformanceControlDynamicCaps();
+	return m_domains.at(domainIndex)->getPerformanceControlDynamicCaps();
 }
 
 PerformanceControlStatus Participant::getPerformanceControlStatus(UIntN domainIndex)
@@ -1002,10 +1020,22 @@ void Participant::setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, B
 	m_domains[domainIndex]->setPerformanceCapsLock(policyIndex, lock);
 }
 
-PowerControlDynamicCapsSet Participant::getPowerControlDynamicCapsSet(UIntN domainIndex)
+void Participant::setPerfPreferenceMax(UIntN domainIndex, UIntN policyIndex, Percentage minMaxRatio)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControlDynamicCapsSet();
+	m_domains[domainIndex]->setPerfPreferenceMax(policyIndex, minMaxRatio);
+}
+
+void Participant::setPerfPreferenceMin(UIntN domainIndex, UIntN policyIndex, Percentage minMaxRatio)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setPerfPreferenceMin(policyIndex, minMaxRatio);
+}
+
+PowerControlDynamicCapsSet Participant::getPowerControlDynamicCapsSet(UIntN domainIndex) const
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains.at(domainIndex)->getPowerControlDynamicCapsSet();
 }
 
 void Participant::setPowerControlDynamicCapsSet(
@@ -1133,6 +1163,12 @@ void Participant::setSocPowerFloorState(UIntN domainIndex, UIntN policyIndex, Bo
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setSocPowerFloorState(policyIndex, socPowerFloorState);
+}
+
+void Participant::clearPowerLimit(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->clearPowerLimit();
 }
 
 void Participant::setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock)
@@ -1406,6 +1442,15 @@ void Participant::setProtectRequest(UIntN domainIndex, UInt64 frequencyRate)
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setProtectRequest(frequencyRate);
+}
+
+void Participant::setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
+{
+	if (isEventRegistered(ParticipantEvent::DptfAppBroadcastPrivileged))
+	{
+		throwIfDomainInvalid(domainIndex);
+		m_domains[domainIndex]->setRfProfileOverride(participantIndex, domainIndex, rfProfileBufferData);
+	}
 }
 
 UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)

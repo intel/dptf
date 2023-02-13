@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -78,6 +78,7 @@
 #define GT_FREQ_STEP 100
 #define MAX_GFX_PSTATE	64
 #define MAX_FAN_PROPERTIES 101
+#define MAX_RFI_BUSY_LOOP_COUNT 100
 
 #define MAX_ACPI_SCOPE_LEN ESIF_SCOPE_LEN
 #define ACPI_THERMAL_IOR_TYPE 's'
@@ -89,10 +90,10 @@
 #define GET_ART	_IOR(ACPI_THERMAL_IOR_TYPE, 6, u64)
 
 #define ACPI_CPU                "INT3401:00"
-#define GT_RP0_FREQ_MHZ		"gt_RP0_freq_mhz"
-#define GT_RPN_FREQ_MHZ		"gt_RPn_freq_mhz"
-#define GT_MIN_FREQ_MHZ		"gt_min_freq_mhz"
-#define GT_MAX_FREQ_MHZ		"gt_max_freq_mhz"
+#define GT_RP0_FREQ_MHZ         "gt_RP0_freq_mhz"
+#define GT_RPN_FREQ_MHZ         "gt_RPn_freq_mhz"
+#define GT_MIN_FREQ_MHZ         "gt_min_freq_mhz"
+#define GT_MAX_FREQ_MHZ         "gt_max_freq_mhz"
 #define SYSFS_PCI               "/sys/bus/pci/devices"
 #define SYSFS_PLATFORM          "/sys/bus/platform/devices"
 #define SYSFS_PSTATE_PATH       "/sys/devices/system/cpu/intel_pstate/"
@@ -115,6 +116,8 @@
 #define SYSFS_IMOK              "imok"
 
 extern char g_ManagerSysfsPath[MAX_SYSFS_PATH];
+extern char g_TCPUSysfsPath[MAX_SYSFS_PATH];
+
 extern SystemCpuIndexTable g_systemCpuIndexTable;
 static const char *CPU_location[] = {
 	"0000:00:04.0",
@@ -192,6 +195,13 @@ struct rfkill_event {
 	u8 soft, hard;
 };
 
+enum rfim_dvfs_point {
+	DDR_DATA_RATE_P0_POS = 0,
+	DDR_DATA_RATE_P1_POS = 10,
+	DDR_DATA_RATE_P2_POS = 20,
+	DDR_DATA_RATE_P3_POS = 30,
+};
+
 enum rfkill_type {
 	RFKILL_TYPE_ALL = 0,
 	RFKILL_TYPE_WLAN,
@@ -242,6 +252,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_PLATFORM_MAX_BATTERY_POWER = 'XAMP',
 	ESIF_SYSFS_GET_PLATFORM_POWER_SOURCE = 'CRSP',
 	ESIF_SYSFS_GET_ADAPTER_POWER_RATING = 'GTRA',
+	ESIF_SYSFS_GET_DDR_DVFS_DATA_RATE = 'RDDG',
 	ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY = 'FCRG',
 	ESIF_SYSFS_GET_RFPROFILE_MAX_FREQUENCY = 'AMRG',
 	ESIF_SYSFS_GET_RFPROFILE_MIN_FREQUENCY = 'IMRG',
@@ -260,6 +271,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_FIVR_VER_PCH = 'PVFG',
 	ESIF_SYSFS_SET_CPU_PSTATE = 'SPCS',
 	ESIF_SYSFS_SET_GFX_PSTATE = 'SPGS',
+	ESIF_SYSFS_SET_DDR_DVFS_RFI_RESTRICTION = 'RRDS',
 	ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY = 'FCRS',
 	ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY_PCH = 'PCRS',
 	ESIF_SYSFS_SET_WWAN_PSTATE = 'SPWS',
@@ -320,6 +332,8 @@ static eEsifError SetEppWorkloadType(const EsifUpPtr upPtr, const EsifDataPtr re
 static eEsifError GetFanInfo(EsifDataPtr responsePtr, const EsifString devicePathPtr);
 static eEsifError GetFanPerfStates(const EsifString acpiDevName, EsifDataPtr responsePtr, const EsifString devicePathPtr);
 static eEsifError EnumerateFpsEntries(EsifDataPtr responsePtr, const EsifString fpsPathPtr);
+static eEsifError SetDdrRfiRestriction(UInt64 sysval, char *path);
+static eEsifError GetDdrDvfsDataRate(EsifDataPtr responsePtr, char *path);
 static eEsifError GetRfprofileFreqAdjuRes(EsifDataPtr responsePtr);
 static eEsifError GetRfprofileCenterFreq(EsifDataPtr responsePtr, char *path, char *node);
 static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString devicePathPtr);
@@ -364,6 +378,26 @@ exit:
 
 }
 
+static eEsifError GetProcessorSignature(UInt32 *cpuSign)
+{
+        eEsifError rc = ESIF_OK;
+        esif_ccb_cpuid_t cpuInfo = { 0 };
+
+        cpuInfo.leaf = ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE;
+        esif_ccb_cpuid(&cpuInfo);
+        if(cpuInfo.eax == 0)
+        {
+            rc = ESIF_E_NOT_SUPPORTED;
+            ESIF_TRACE_ERROR("Unsupported cpuid: ExtFamily ExtModel PType Family Stepping: %x \n ", cpuInfo.eax);
+            goto exit;
+        }
+
+        /* masking stepping information from CPUID */
+        *(UInt32 *)cpuSign = (cpuInfo.eax & 0xFFFFFFF0);
+        ESIF_TRACE_INFO("cpuinfo: ExtFamily ExtModel PType Family: %x \n ", cpuInfo.eax);
+exit :
+        return rc;
+}
 /*
  * Inline function: GetUIntFromActionContext
  * -----------------------------------------
@@ -883,9 +917,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			case ESIF_SYSFS_GET_PLATFORM_REST_OF_POWER:
 			case ESIF_SYSFS_GET_CHARGER_TYPE:
 			case ESIF_SYSFS_GET_BATTERY_HIGH_FREQUENCY_IMPEDANCE:
-                        case ESIF_SYSFS_GET_BATTERY_MAX_PEAK_CURRENT:
-                        case ESIF_SYSFS_GET_PLATFORM_BATTERY_STEADY_STATE:
-                        case ESIF_SYSFS_GET_BATTERY_CURRENT_DISCHARGE_CAPABILITY:
+			case ESIF_SYSFS_GET_BATTERY_MAX_PEAK_CURRENT:
+			case ESIF_SYSFS_GET_PLATFORM_BATTERY_STEADY_STATE:
+			case ESIF_SYSFS_GET_BATTERY_CURRENT_DISCHARGE_CAPABILITY:
 			case ESIF_SYSFS_GET_BATTERY_NO_LOAD_VOLTAGE:
 				if (esif_ccb_strcmp("ipf_pwr",upPtr->fDspPtr->code_ptr) == 0) {
 					esif_ccb_sprintf(sizeof(batPwrSysfsPath),batPwrSysfsPath, "%s/%s",deviceFullPathPtr,"dptf_power");
@@ -1013,13 +1047,16 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 					ESIF_TRACE_DEBUG("Successfully get the Minimume frequency:\n");
 				}
 				break;	
+			case ESIF_SYSFS_GET_DDR_DVFS_DATA_RATE:
+				rc = GetDdrDvfsDataRate(responsePtr, parm1);
+				break;
 			case ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY_PCH:// Center frequency for PCH participant
 				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
 				rc = GetRfprofileCenterFreq(responsePtr, cur_node_name, SYSFS_FIVR_PCH_NODE_GET);
 				break;
 			case ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY:// Center frequency for TCPU participant
 				rc = GetRfprofileCenterFreq(responsePtr, SYSFS_FIVR_PATH, SYSFS_FIVR_NODE);
-                                break;
+				break;
 			case ESIF_SYSFS_GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION:
 				rc = GetRfprofileFreqAdjuRes(responsePtr);
 				break;
@@ -1484,6 +1521,10 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 				}
 				ESIF_TRACE_DEBUG("Successfully set the GFX Pstate Value: %d\n", g_gfxPstateFreqMapTable[sysval].freqValue);
 				break;
+			case ESIF_SYSFS_SET_DDR_DVFS_RFI_RESTRICTION:
+				sysval = *(UInt64 *) requestPtr->buf_ptr;
+				rc = SetDdrRfiRestriction(sysval, parm1);
+				break;
 			case ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY:
 				sysval = *(UInt64 *) requestPtr->buf_ptr;
 				//Get the Maximum frequency
@@ -1888,6 +1929,158 @@ exit:
 	return rc;
 }
 
+static eEsifError GetDdrDvfsDataRate(EsifDataPtr responsePtr, char *path)
+{
+
+	eEsifError rc = ESIF_OK;
+	Int64 sysval = 0;
+	Int64 temp = 0;
+	UInt32 cpuSign = 0;
+
+	ESIF_ASSERT(responsePtr != NULL);
+	ESIF_ASSERT(path != NULL);
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	responsePtr->data_len = sizeof(UInt64);
+	if (responsePtr->buf_len < responsePtr->data_len) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	rc = GetProcessorSignature(&cpuSign);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+	if (cpuSign == CPUID_FAMILY_MODEL_ADL_N ||
+		cpuSign == CPUID_FAMILY_MODEL_ADL_P ||
+		cpuSign == CPUID_FAMILY_MODEL_RPL_S ||
+		cpuSign == CPUID_FAMILY_MODEL_RPL_P) {
+
+		if (SysfsGetInt64(path, "ddr_data_rate", &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+			goto exit;
+		}
+	}
+	else {
+		if (SysfsGetInt64(path, "ddr_data_rate_point_0", &temp) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+			goto exit;
+		}
+		sysval = sysval | temp;
+
+		if (SysfsGetInt64(path, "ddr_data_rate_point_1", &temp) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+			goto exit;
+		}
+		sysval = sysval | (temp << DDR_DATA_RATE_P1_POS);
+
+		if (SysfsGetInt64(path, "ddr_data_rate_point_2", &temp) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+			goto exit;
+		}
+		sysval = sysval | (temp << DDR_DATA_RATE_P2_POS);
+
+		if (SysfsGetInt64(path, "ddr_data_rate_point_3", &temp) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+			goto exit;
+		}
+		sysval = sysval | (temp << DDR_DATA_RATE_P3_POS);
+	}
+	ESIF_TRACE_DEBUG("GET_DDR_DVFS_DATA_RATE sysval: %lld\n",sysval);
+	*(UInt64 *) responsePtr->buf_ptr = (UInt64)sysval;
+exit:
+	return rc;
+}
+
+static eEsifError WaitForRfiRestrictionRunBusyIdle(char *path)
+{
+	eEsifError rc = ESIF_OK;
+	Int64 sysVal = 0;
+	UInt32 busyLoopCount = 0;
+	do {
+		if (SysfsGetInt64(path, "rfi_restriction_run_busy", &sysVal) < SYSFS_FILE_RETRIEVAL_SUCCESS)
+		{
+			rc = ESIF_E_IO_OPEN_FAILED;
+			ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
+			goto exit;
+		}
+		busyLoopCount++;
+		ESIF_TRACE_DEBUG("busyLoopCount: %u \n", busyLoopCount);
+		esif_ccb_sleep_msec(1);
+	} while (sysVal && busyLoopCount < MAX_RFI_BUSY_LOOP_COUNT);
+
+	if (sysVal)
+	{
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+	}
+exit:
+	return rc;
+}
+
+static eEsifError SetDdrRfiRestriction(UInt64 sysval, char *path)
+{
+
+	eEsifError rc = ESIF_OK;
+	UInt32 cpuSign = 0;
+
+	ESIF_ASSERT(path != NULL);
+
+	rc = GetProcessorSignature(&cpuSign);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	if (cpuSign == CPUID_FAMILY_MODEL_ADL_N ||
+		cpuSign == CPUID_FAMILY_MODEL_ADL_P ||
+		cpuSign == CPUID_FAMILY_MODEL_RPL_S ||
+		cpuSign == CPUID_FAMILY_MODEL_RPL_P) {
+
+		if (SysfsSetInt64(path, "rfi_restriction", sysval) < 0) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Set rfi_restriction is failed\n");
+			goto exit;
+		}
+	}
+	else {
+		rc = WaitForRfiRestrictionRunBusyIdle(path);
+		if(rc != ESIF_OK)
+		{
+			ESIF_TRACE_ERROR("rfi_restriction_run_busy check failed before set\n");
+			goto exit;
+		}
+
+		if (SysfsSetInt64(path, "rfi_restriction_data_rate_base", sysval) < 0) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Set rfi_restriction_data_rate_base is failed\n");
+			goto exit;
+		}
+
+		if (SysfsSetInt64(path, "rfi_restriction_run_busy", 1) < 0) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			ESIF_TRACE_ERROR("Set rfi_restriction_run_busy set failed\n");
+			goto exit;
+		}
+
+		rc = WaitForRfiRestrictionRunBusyIdle(path);
+		if(rc != ESIF_OK)
+		{
+			ESIF_TRACE_ERROR("rfi_restriction_run_busy check failed after set\n");
+			goto exit;
+		}
+	}
+exit:
+		return rc;
+
+}
+
 static eEsifError GetRfprofileCenterFreq(EsifDataPtr responsePtr, char *path, char *node)
 {
 	eEsifError rc = ESIF_OK;
@@ -2174,7 +2367,6 @@ static enum esif_rc get_rapl_power_control_capabilities(
 	DIR *dir;
 	struct dirent **namelist;
 	int n = 0;
-	int cpu_loc_counter = 0;
 	u64 pl1Min = 0;
 	u64 pl1Max = 0;
 	u64 time1Min = 0;
@@ -2186,72 +2378,19 @@ static enum esif_rc get_rapl_power_control_capabilities(
 	u64 time2Max = 0;
 	u64 step2 = 0;
 	Int64 sysval = 0;
-	u8 guid_compare[ESIF_GUID_LEN] = ESIF_PARTICIPANT_PLAT_CLASS_GUID;
-	int candidate_found = 0;
-	int guid_different = 0;
-	int guid_element_counter = 0;
 	char cur_path[MAX_SYSFS_PATH] = { 0 };
 	char revision[] = "02";
-	char path[MAX_SYSFS_PATH] = { 0 };
-	char node[MAX_SYSFS_PATH] = { 0 };
 
-	ESIF_ASSERT(NULL != target_guid);
+	UNREFERENCED_PARAMETER(target_guid);
 
-	/* determine which bus the cpu is on */
-	guid_different = 0;
-	for (guid_element_counter = 0; guid_element_counter < ESIF_GUID_LEN; guid_element_counter++) {
-		if (*((u8 *)target_guid + guid_element_counter) != guid_compare[guid_element_counter]) {
-			guid_different = 1;
-			break;
-		}
-	}
-
-	if (guid_different == 1) {
-		esif_ccb_sprintf(MAX_SYSFS_PATH, path, "/sys/bus/%s/devices",  "pci");
-	}
-	else {
-		esif_ccb_sprintf(MAX_SYSFS_PATH, path, "/sys/bus/%s/devices",  "platform");
-	}
-
-	/****************************/
-	/* find path */
-	dir = opendir(path);
-	if (!dir) {
+	if ( esif_ccb_strlen(g_TCPUSysfsPath, sizeof(g_TCPUSysfsPath)) == 0) {
+		rc = ESIF_E_INVALID_HANDLE;
+		ESIF_TRACE_ERROR("g_TCPUSysfsPath Invalid\n");
 		goto exit;
 	}
-	n = scandir(path, &namelist, 0, alphasort);
-	if (n < 0) {
-		//no scan
-	}
-	else {
-		while (n-- && !candidate_found) {
-			cpu_loc_counter = 0;
-			while (CPU_location[cpu_loc_counter] != NULL && !candidate_found) {
-				if (esif_ccb_strstr(namelist[n]->d_name, CPU_location[cpu_loc_counter]) != NULL) {
-					esif_ccb_sprintf(MAX_SYSFS_PATH, node, "%s", CPU_location[cpu_loc_counter]);
-				candidate_found = 1;
-			}
-				cpu_loc_counter++;
-			}
-			if (!candidate_found) {
-				if (esif_ccb_strstr(namelist[n]->d_name, ACPI_CPU) != NULL) {
-				esif_ccb_sprintf(MAX_SYSFS_PATH, node, "%s", ACPI_CPU);
-				candidate_found = 1;
-				}
-			}
-			esif_ccb_free(namelist[n]); // Use NATIVE free since allocated by scandir
-		}
-		esif_ccb_free(namelist); // Use NATIVE free since allocated by scandir
-	}
-	closedir(dir);
-
-	if (candidate_found == 0) {
-		goto exit;
-	}
-	/****************************/
-
-
-	esif_ccb_sprintf(MAX_SYSFS_PATH, cur_path, "%s/%s/power_limits", path, node);
+	
+	esif_ccb_sprintf(MAX_SYSFS_PATH, cur_path, "%s/power_limits", g_TCPUSysfsPath);
+	ESIF_TRACE_DEBUG("Current path: %s", cur_path);
 	if (SysfsGetInt64(cur_path, "power_limit_0_min_uw", &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 		goto exit;
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -941,7 +941,14 @@ exit:
 /* Create enumerated and persisted dynamic participants */
 static eEsifError esif_uf_exec_startup_dynamic_parts(void)
 {
-	return CreateDynamicParticipants();
+	eEsifError rc = ESIF_OK;
+
+	// Create dynamic participants in the UF
+	rc = CreateDynamicParticipants();
+
+	// Create dynamic participants from other components (UPE's for example)
+	EsifActMgr_LoadAutomaticActions();
+	return rc; 
 }
 
 /* Execute Startup Commands as defined in platform.dv

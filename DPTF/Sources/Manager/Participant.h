@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,6 +45,10 @@ public:
 	virtual DomainPropertiesSet getDomainPropertiesSet(void) const = 0;
 	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
 		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) const = 0;
+	virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN domainIndex) const = 0;
+	virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN domainIndex) const = 0;
+	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex) const = 0;
+	virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex) const = 0;
 };
 
 class dptf_export Participant : public IParticipant
@@ -137,7 +141,8 @@ public:
 	void domainFanCapabilityChanged(void);
 	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification);
 	void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint);
-
+	void domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction);
+	void domainFanOperatingModeChanged(void);
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
 	//
@@ -155,13 +160,13 @@ public:
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(UIntN domainIndex);
-	CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN domainIndex);
+	CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN domainIndex) const override;
 	CoreControlLpoPreference getCoreControlLpoPreference(UIntN domainIndex);
 	CoreControlStatus getCoreControlStatus(UIntN domainIndex);
 	void setActiveCoreControl(UIntN domainIndex, UIntN policyIndex, const CoreControlStatus& coreControlStatus);
 
 	// Display controls
-	DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex);
+	DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex) const override;
 	DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
 	UIntN getUserPreferredDisplayIndex(UIntN domainIndex);
 	UIntN getUserPreferredSoftBrightnessIndex(UIntN domainIndex);
@@ -193,7 +198,7 @@ public:
 
 	// Performance controls
 	PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN domainIndex);
-	PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN domainIndex);
+	PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN domainIndex) const override;
 	PerformanceControlStatus getPerformanceControlStatus(UIntN domainIndex);
 	PerformanceControlSet getPerformanceControlSet(UIntN domainIndex);
 	void setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex);
@@ -202,9 +207,11 @@ public:
 		UIntN policyIndex,
 		PerformanceControlDynamicCaps newCapabilities);
 	void setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
+	void setPerfPreferenceMax(UIntN domainIndex, UIntN policyIndex, Percentage minMaxRatio);
+	void setPerfPreferenceMin(UIntN domainIndex, UIntN policyIndex, Percentage minMaxRatio);
 
 	// Power controls
-	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex);
+	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex) const override;
 	void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
 	Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
 	Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
@@ -249,6 +256,7 @@ public:
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle);
 	void setSocPowerFloorState(UIntN domainIndex, UIntN policyIndex, Bool socPowerFloorState);
+	void clearPowerLimit(UIntN domainIndex);
 	void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 	TimeSpan getPowerSharePowerLimitTimeWindow(UIntN domainIndex);
 	Bool isPowerShareControl(UIntN domainIndex);
@@ -317,6 +325,7 @@ public:
 	UInt64 getDvfsPoints(UIntN domainIndex);
 	void setDdrRfiTable(UIntN domainIndex, DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
 	void setProtectRequest(UIntN domainIndex, UInt64 frequencyRate);
+	void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData);
 
 	// Utilization
 	UtilizationStatus getUtilizationStatus(UIntN domainIndex);

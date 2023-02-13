@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -175,4 +175,14 @@ void PerformanceControlFacade::setControlsToMax()
 const PolicyServicesInterfaceContainer& PerformanceControlFacade::getPolicyServices() const
 {
 	return m_policyServices;
+}
+
+void PerformanceControlFacade::setPerfPreferenceMax(Percentage minMaxRatio)
+{
+	m_policyServices.domainPerformanceControl->setPerfPreferenceMax(m_participantIndex, m_domainIndex, minMaxRatio);
+}
+
+void PerformanceControlFacade::setPerfPreferenceMin(Percentage minMaxRatio)
+{
+	m_policyServices.domainPerformanceControl->setPerfPreferenceMin(m_participantIndex, m_domainIndex, minMaxRatio);
 }

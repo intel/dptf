@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,53 +17,51 @@
 ******************************************************************************/
 
 #include "ControlKnobType.h"
+using namespace std;
+
+const map<ControlKnobType::Type, string> typeNames =
+{
+	{ControlKnobType::PowerControlPl1, "PowerControlPl1"s},
+	{ControlKnobType::PowerControlPl2, "PowerControlPl2"s},
+	{ControlKnobType::PowerControlPl3, "PowerControlPl3"s},
+	{ControlKnobType::PowerControlPl4, "PowerControlPl4"s},
+	{ControlKnobType::PerformanceControlPerfFrequency, "PerformanceControlPerfFrequency"s},
+	{ControlKnobType::PerformanceControlThrottleFrequency, "PerformanceControlThrottleFrequency"s},
+	{ControlKnobType::DbptControlIccMax, "DbptControlIccMax"s},
+	{ControlKnobType::CoreControlLpo, "CoreControlLpo"s},
+	{ControlKnobType::DisplayControlBrightness, "DisplayControlBrightness"s},
+	{ControlKnobType::PercentageFanControl, "PercentageFanControl"s},
+	{ControlKnobType::TauControlPl1, "TauControlPl1"s},
+	{ControlKnobType::TauControlPl2, "TauControlPl2"s},
+	{ControlKnobType::TauControlPl3, "TauControlPl3"s},
+	{ControlKnobType::DataThroughput, "DataThroughput"s},
+	{ControlKnobType::PerformanceControlPerfIndex, "PerformanceControlPerfIndex"s},
+	{ControlKnobType::PSysPowerControlPl1, "PSysPowerControlPl1"s},
+	{ControlKnobType::PSysPowerControlPl2, "PSysPowerControlPl2"s},
+	{ControlKnobType::PSysPowerControlPl3, "PSysPowerControlPl3"s},
+	{ControlKnobType::RPMFanControl, "RPMFanControl"s},
+};
 
 namespace ControlKnobType
 {
-	std::string ToString(ControlKnobType::Type type)
+	string toString(ControlKnobType::Type type)
 	{
-		switch (type)
+		const auto entry = typeNames.find(type);
+		if (entry != typeNames.end())
 		{
-		case ControlKnobType::PowerControlPl1:
-			return "PowerControlPL1";
-		case ControlKnobType::PowerControlPl2:
-			return "PowerControlPL2";
-		case ControlKnobType::PowerControlPl3:
-			return "PowerControlPL3";
-		case ControlKnobType::PowerControlPl4:
-			return "PowerControlPL4";
-		case ControlKnobType::PerformanceControlPerfFrequency:
-			return "PerformanceControlPerfFrequency";
-		case ControlKnobType::PerformanceControlThrottleFrequency:
-			return "PerformanceControlThrottleFrequency";
-		case ControlKnobType::DbptControlIccMax:
-			return "DbptControlIccMax";
-		case ControlKnobType::CoreControlLpo:
-			return "CoreControlLpo";
-		case ControlKnobType::DisplayControlBrightness:
-			return "DisplayControlBrightness";
-		case ControlKnobType::PercentageFanControl:
-			return "PercentageFanControl";
-		case ControlKnobType::TauControlPl1:
-			return "TauControlPl1";
-		case ControlKnobType::TauControlPl2:
-			return "TauControlPl2";
-		case ControlKnobType::TauControlPl3:
-			return "TauControlPl3";
-		case ControlKnobType::DataThroughput:
-			return "DataThroughput";
-		case ControlKnobType::PerformanceControlPerfIndex:
-			return "PerformanceControlPerfIndex";
-		case ControlKnobType::PSysPowerControlPl1:
-			return "PSysPowerControlPL1";
-		case ControlKnobType::PSysPowerControlPl2:
-			return "PSysPowerControlPL2";
-		case ControlKnobType::PSysPowerControlPl3:
-			return "PSysPowerControlPL3";
-		case ControlKnobType::RPMFanControl:
-			return "RPMFanControl";
-		default:
-			throw dptf_exception("ControlKnobType::Type is invalid.");
+			return entry->second;
 		}
+		throw dptf_exception("ControlKnobType::Type is invalid.");
+	}
+	ControlKnobType::Type fromString(const std::string& typeName)
+	{
+		for (const auto& entry : typeNames)
+		{
+				if (entry.second == typeName)
+			{
+				return entry.first;
+			}
+		}
+		throw dptf_exception("ControlKnobType name is invalid.");
 	}
 }

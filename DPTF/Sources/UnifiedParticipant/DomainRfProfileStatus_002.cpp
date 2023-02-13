@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2022 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,15 +35,24 @@ DomainRfProfileStatus_002::~DomainRfProfileStatus_002(void)
 {
 }
 
-RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
+void DomainRfProfileStatus_002::setRfProfileOverride(
+	UIntN participantIndex,
+	UIntN domainIndex, 
+	const DptfBuffer& rfProfileBufferData)
 {
-	try
+	auto domainType = getParticipantServices()->getDomainType(domainIndex);
+	PARTICIPANT_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << "setRfProfileOverride" << getParticipantIndex() << ", "
+				<< "domain " << getName() << " "
+				<< "DomainType " << domainType;
+		return message.str();
+	});
+	if (rfProfileBufferData.size() >= sizeof(esif_data_rfprofile) && domainType == DomainType::WwanRfim)
 	{
-		DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_RF_CHANNEL_INFO, ESIF_DATA_BINARY, domainIndex);
-		m_rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
+		m_overrideRfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(rfProfileBufferData);
 		auto guardband = getRfProfileGuardband(participantIndex, domainIndex) / 2;
-		auto rfProfileData = m_rfProfileDataSet.getRfProfileData();
+		auto rfProfileData = m_overrideRfProfileDataSet.getRfProfileData();
 		std::vector<RfProfileData> newRfProfileDataSet;
 		for (auto rfData = rfProfileData.begin(); rfData != rfProfileData.end(); rfData++)
 		{
@@ -59,13 +68,48 @@ RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participan
 				rfData->getSupplementalData());
 			newRfProfileDataSet.insert(newRfProfileDataSet.end(), newRfProfileData);
 		}
+		m_overrideRfProfileDataSet = RfProfileDataSet(newRfProfileDataSet);
+	}
+}
 
-		m_rfProfileDataSet = RfProfileDataSet(newRfProfileDataSet);
+RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
+{
+	try
+	{
+		if (m_overrideRfProfileDataSet.getRfProfileData().size() != 0)
+		{
+			m_rfProfileDataSet = m_overrideRfProfileDataSet; 
+		}
+		else 
+		{
+			DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+				esif_primitive_type::GET_RF_CHANNEL_INFO, ESIF_DATA_BINARY, domainIndex);
+			m_rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);	
+			auto guardband = getRfProfileGuardband(participantIndex, domainIndex) / 2;
+			auto rfProfileData = m_rfProfileDataSet.getRfProfileData();
+			std::vector<RfProfileData> newRfProfileDataSet;
+			for (auto rfData = rfProfileData.begin(); rfData != rfProfileData.end(); rfData++)
+			{
+				RfProfileData newRfProfileData(
+					rfData->is5G(),
+					rfData->getServingCellInfo(),
+					rfData->getCenterFrequency(),
+					rfData->getLeftFrequencySpread(),
+					rfData->getRightFrequencySpread(),
+					guardband,
+					rfData->getChannelNumber(),
+					rfData->getBand(),
+					rfData->getSupplementalData());
+				newRfProfileDataSet.insert(newRfProfileDataSet.end(), newRfProfileData);
+			}
+			m_rfProfileDataSet = RfProfileDataSet(newRfProfileDataSet);
+		}	
 	}
 	catch (...)
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get Rf Channel Info. "; });
 	}
+
 	return m_rfProfileDataSet;
 }
 
