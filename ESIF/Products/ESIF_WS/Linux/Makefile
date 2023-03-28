@@ -93,11 +93,11 @@ ifeq ($(BUILD), Debug)
 endif
 
 $(info ++++ )
-$(info ++++ ESIF_WS $(PLAT) $(BUILD) $(OS))
+$(info ++++ IPF_WS $(PLAT) $(BUILD) $(OS))
 $(info ++++ )
 
 ###############################################################################
-# ESIF_WS 
+# IPF_WS 
 ###############################################################################
 
 OBJ := $(SOURCES)/esif_ws_http.o
@@ -117,15 +117,15 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
 %.o: %.cpp $(DEPS)
 	$(CC) -c $(CFLAGS) $(EXTRA_CFLAGS) $(CPPFLAGS) -o $@ $<
 
-all: esif_ws
+all: ipf_ws
 ifeq ($(OS), Linux)
     ifeq ($(BUILD), Release)
-		cp esif_ws.so esif_ws.so.debug
-		strip --strip-unneeded esif_ws.so
-		objcopy --add-gnu-debuglink=esif_ws.so.debug esif_ws.so
+		cp ipf_ws.so ipf_ws.so.debug
+		strip --strip-unneeded ipf_ws.so
+		objcopy --add-gnu-debuglink=ipf_ws.so.debug ipf_ws.so
     endif
 endif
-esif_ws: $(OBJ)
+ipf_ws: $(OBJ)
 	$(CC) $(CFLAGS) -shared $(EXTRA_CFLAGS) $(LDFLAGS) -o $@.so $^ $(LDLIBS)
 
 clean:

@@ -1,5 +1,5 @@
 [Unit]
-Description=Intel(R) Dynamic Tuning daemon
+Description=Intel(R) Dynamic Tuning Technology Daemon
 
 [Service]
 NoNewPrivileges=true
@@ -19,11 +19,12 @@ ProtectHome=true
 RestrictNamespaces=true
 LockPersonality=true
 SystemCallArchitectures=native
-CapabilityBoundingSet=CAP_SYS_RAWIO CAP_NET_ADMIN
 UMask=0077
 Type=forking
 Restart=always
-ExecStart=/usr/bin/esif_ufd
+User=daemon
+Group=daemon
+ExecStart=/usr/bin/ipfhostd --load:Dptf.so --srv:ipfsrv.dptf
 
 [Install]
 WantedBy=sysinit.target

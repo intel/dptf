@@ -114,7 +114,7 @@ void ConfigCommand::throwIfInvalidArgumentCount(const CommandArguments& argument
 {
 	if (arguments.size() < 2)
 	{
-		const auto description = R"(\
+		const auto description = R"(
 			Invalid argument count given to 'config' command. Run 'dptf help' command for more information.)";
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
