@@ -8891,7 +8891,7 @@ static char *esif_shell_cmd_ui(EsifShellCmdPtr shell)
 		int newargc = 0;
 		newargv[newargc++] = "app";
 		newargv[newargc++] = "cmd";
-		newargv[newargc++] = ESIF_WS_LIBRARY_NAME;	// TODO: Change when Linux loads dptfui.so instead of esif_ws.so
+		newargv[newargc++] = ESIF_WS_LIBRARY_NAME;	// TODO: Change when Linux loads dptfui.so instead of ipf_ws.so
 		newargv[newargc++] = "fetch";
 		newargv[newargc++] = "combined.xsl";
 

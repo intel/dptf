@@ -361,40 +361,50 @@ static void UpdateFpsSupportedStatus(const EsifString devicePathPtr);
 // Get crystal clock freq
 static eEsifError GetCrystalClockFrequency(UInt32 *crystalFreq)
 {
-        eEsifError rc = ESIF_OK;
-        esif_ccb_cpuid_t cpuInfo = { 0 };
+	static UInt32 crystalClockFrequency = 0;
+	eEsifError rc = ESIF_OK;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
 
-        cpuInfo.leaf = ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO;
-        esif_ccb_cpuid(&cpuInfo);
+	// Check if it already obtained and use it
+	if ( crystalClockFrequency != 0 ) {
+		*(UInt32 *)crystalFreq = crystalClockFrequency;
+		goto exit;
+	}
+	else {
+		// First time - query through cpuid
+		cpuInfo.leaf = ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO;
+		esif_ccb_cpuid(&cpuInfo);
 
-        if (cpuInfo.ecx != ESIF_XTAL_CLOCK_FREQ_38_4) {
-                rc = ESIF_E_NOT_SUPPORTED;
-                ESIF_TRACE_ERROR("Unsupported crystal clock frequency: %d\n ",cpuInfo.ecx);
-                goto exit;
-        }
-        *(UInt32 *)crystalFreq = cpuInfo.ecx;
+		crystalClockFrequency = cpuInfo.ecx;
+		*(UInt32 *)crystalFreq = crystalClockFrequency;
+	}
+
 exit:
-        return rc;
-
+	if (crystalClockFrequency != ESIF_XTAL_CLOCK_FREQ_38_4) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		ESIF_TRACE_WARN("Unsupported crystal clock frequency: %d\n ",cpuInfo.ecx);
+	}
+    return rc;
 }
 
 static eEsifError GetProcessorSignature(UInt32 *cpuSign)
 {
-        eEsifError rc = ESIF_OK;
-        esif_ccb_cpuid_t cpuInfo = { 0 };
+	eEsifError rc = ESIF_OK;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
 
-        cpuInfo.leaf = ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE;
-        esif_ccb_cpuid(&cpuInfo);
-        if(cpuInfo.eax == 0)
-        {
-            rc = ESIF_E_NOT_SUPPORTED;
-            ESIF_TRACE_ERROR("Unsupported cpuid: ExtFamily ExtModel PType Family Stepping: %x \n ", cpuInfo.eax);
-            goto exit;
-        }
+	cpuInfo.leaf = ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE;
+	esif_ccb_cpuid(&cpuInfo);
+	if(cpuInfo.eax == 0)
+	{
+		rc = ESIF_E_NOT_SUPPORTED;
+		ESIF_TRACE_ERROR("Unsupported cpuid: ExtFamily ExtModel PType Family Stepping: %x \n ", cpuInfo.eax);
+		goto exit;
+	}
 
-        /* masking stepping information from CPUID */
-        *(UInt32 *)cpuSign = (cpuInfo.eax & 0xFFFFFFF0);
-        ESIF_TRACE_INFO("cpuinfo: ExtFamily ExtModel PType Family: %x \n ", cpuInfo.eax);
+	/* masking stepping information from CPUID */
+	*(UInt32 *)cpuSign = (cpuInfo.eax & 0xFFFFFFF0);
+	ESIF_TRACE_INFO("cpuinfo: ExtFamily ExtModel PType Family: %x \n ", cpuInfo.eax);
+
 exit :
         return rc;
 }
@@ -458,18 +468,19 @@ exit:
 
 static ESIF_INLINE eEsifError SetUIntFromActionContext(const size_t context, Int32 val)
 {
-        eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_OK;
 
-        if (context > 0) { // valid file descriptor pointing to an open sysfs node or dev node
+	if (context > 0) { // valid file descriptor pointing to an open sysfs node or dev node
 		if (SysfsSetInt64Direct((int)context, val) < 0) {
-                     ESIF_TRACE_WARN("Failed to set action context, will attemp to read directly from the sysfs\n");
-                     rc = ESIF_E_UNSPECIFIED;
-                     goto exit;
-               	}
-        } else {
-                rc = ESIF_E_INVALID_HANDLE;
+			ESIF_TRACE_WARN("Failed to set action context, will attemp to read directly from the sysfs\n");
+			rc = ESIF_E_UNSPECIFIED;
+			goto exit;
+		}
+	} 
+	else {
+		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
-        }
+	}
 
 exit:
     return rc;
@@ -478,13 +489,14 @@ exit:
 // Checking the supported Capability 
 static Bool IsCapabilitySupportedInDomain(const EsifUpDomainPtr domainPtr, enum esif_capability_type capabilityType)
 {
-    if (domainPtr->capability_for_domain.capability_flags & (1 << capabilityType)) {
-	return ESIF_TRUE;
-    }
-    else {
-	return ESIF_FALSE;
+	if (domainPtr->capability_for_domain.capability_flags & (1 << capabilityType)) {
+		return ESIF_TRUE;
+	}
+	else {
+		return ESIF_FALSE;
     }
 }
+
 /*
  * Handle ESIF Action "Get" Request
  */
@@ -930,7 +942,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 
 				if ( esif_ccb_strlen(batPwrSysfsPath, sizeof(batPwrSysfsPath)) == 0) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					ESIF_TRACE_ERROR("batPwrSysfsPath Invalid\n");
+					ESIF_TRACE_WARN("batPwrSysfsPath Invalid\n");
 					goto exit;
 				}
 
@@ -962,88 +974,95 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			case ESIF_SYSFS_GET_RFPROFILE_SSC:
 				if (SysfsGetInt64(parm1, "spread_spectrum_clk_enable" , &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 					rc = ESIF_E_INVALID_HANDLE;
-					ESIF_TRACE_ERROR("Error Invalid sysfs path\n");
+					ESIF_TRACE_WARN("Invalid sysfs path\n");
 					goto exit;
 				}
+
 				sscRegisterValue =  (UInt32)sysval;
 				if(!(sscRegisterValue & ESIF_FIVR_SSC_CLK_MASK)) {
 					rc = ESIF_E_DISABLED;
-					ESIF_TRACE_ERROR("Error Optional support disabled\n");
+					ESIF_TRACE_WARN("Optional support disabled\n");
 					goto exit;
 				}
-				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-                                        rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-                                        goto exit;
-                                }
-				sscRegisterValue = (UInt32)sysval & ESIF_FIVR_SSC_MASK;
 
+				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
+
+				sscRegisterValue = (UInt32)sysval & ESIF_FIVR_SSC_MASK;
 				if(sscRegisterValue > ESIF_FIVR_SSC_0_2_RES_MAX_REG_VAL) {
 					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 					ESIF_TRACE_ERROR("Error value %d is out of bounds\n", sscRegisterValue);
 					goto exit;
 				}
+
 				if (sscRegisterValue <= ESIF_FIVR_SSC_0_1_RES_MAX_REG_VAL) {
-                                         sscPercentage = (sscRegisterValue * ESIF_FIVR_SSC_0_1_RES) + ESIF_FIVR_SSC_0_1_RES_MIN_PER;
-                                }
-				else {
-					 sscPercentage = ((sscRegisterValue - ESIF_FIVR_SSC_0_2_RES_MIN_REG_VAL) * ESIF_FIVR_SSC_0_2_RES) + ESIF_FIVR_SSC_0_2_RES_MIN_PER;
+					sscPercentage = (sscRegisterValue * ESIF_FIVR_SSC_0_1_RES) + ESIF_FIVR_SSC_0_1_RES_MIN_PER;
 				}
-                                *(UInt32 *) responsePtr->buf_ptr = (UInt32) sscPercentage;
-                                break;	
+				else {
+					sscPercentage = ((sscRegisterValue - ESIF_FIVR_SSC_0_2_RES_MIN_REG_VAL) * ESIF_FIVR_SSC_0_2_RES) + ESIF_FIVR_SSC_0_2_RES_MIN_PER;
+				}
+				*(UInt32 *) responsePtr->buf_ptr = (UInt32) sscPercentage;
+				break;
 			case ESIF_SYSFS_GET_RFPROFILE_SSC_PCH:
 			 	esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
 				if (SysfsGetInt64(cur_node_name, SYSF_FIVR_PCH_SSC, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-		                        rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		                        ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
-		                        goto exit;
-	                        }
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					ESIF_TRACE_WARN("Invalid Sysfs Path \n");
+					goto exit;
+				}
+
 				sscRegisterValue = (UInt32)sysval;
 				if (!(sscRegisterValue & ESIF_FIVR_SSC_ENABLE)) { 
 					rc = ESIF_E_DISABLED; 
 					goto exit; 
 				}
+
 				sscRegisterValue = (UInt32)sysval & ESIF_FIVR_SSC_MASK;
 			        if(sscRegisterValue > ESIF_FIVR_SSC_0_2_RES_MAX_REG_VAL) {
 					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 					ESIF_TRACE_ERROR("Error value %d is out of bounds\n", sscRegisterValue);
 					goto exit;
 				}
+
 				if (sscRegisterValue <= ESIF_FIVR_SSC_0_1_RES_MAX_REG_VAL) {
-                                        sscPercentage = (sscRegisterValue * ESIF_FIVR_SSC_0_1_RES) + ESIF_FIVR_SSC_0_1_RES_MIN_PER;
-                                }
+					sscPercentage = (sscRegisterValue * ESIF_FIVR_SSC_0_1_RES) + ESIF_FIVR_SSC_0_1_RES_MIN_PER;
+				}
 				else {
-			                sscPercentage = ((sscRegisterValue - ESIF_FIVR_SSC_0_2_RES_MIN_REG_VAL) * ESIF_FIVR_SSC_0_2_RES) + ESIF_FIVR_SSC_0_2_RES_MIN_PER;
+					sscPercentage = ((sscRegisterValue - ESIF_FIVR_SSC_0_2_RES_MIN_REG_VAL) * ESIF_FIVR_SSC_0_2_RES) + ESIF_FIVR_SSC_0_2_RES_MIN_PER;
 				}
 				*(UInt32 *) responsePtr->buf_ptr = (UInt32) sscPercentage;
-                                break;
+				break;
 			case ESIF_SYSFS_GET_FIVR_VER_PCH:
 				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
 				if (SysfsGetInt64(cur_node_name, SYSF_FIVR_PCH_VER, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-		                        rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		                        ESIF_TRACE_ERROR("Invalid Sysfs Path \n");
-		                        goto exit;
-	                        }
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					ESIF_TRACE_WARN("Invalid Sysfs Path \n");
+					goto exit;
+				}
 				*(UInt32 *) responsePtr->buf_ptr = (UInt32) sysval;
-                                break;
+				break;
 			case ESIF_SYSFS_GET_RFPROFILE_MAX_FREQUENCY:
 				rc = GetCrystalClockFrequency(&crystalClockFreq);
 				if (rc != ESIF_OK) {
-                                        goto exit;
-                                }
+					goto exit;
+				}
+				
 				//Get the Maximum frequency
-                                EsifPrimitiveTuple maxFreqTuple = {GET_RFPROFILE_MAX_FREQUENCY_XTAL_38_4, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &maxFreqTuple, NULL, responsePtr)) {
+				EsifPrimitiveTuple maxFreqTuple = {GET_RFPROFILE_MAX_FREQUENCY_XTAL_38_4, ESIF_PRIMITIVE_DOMAIN_D0, 255};
+				if (!EsifUp_ExecutePrimitive(upPtr, &maxFreqTuple, NULL, responsePtr)) {
 					ESIF_TRACE_DEBUG("Successfully get the Maximume frequency:\n");
 				}
 				break;
 			case ESIF_SYSFS_GET_RFPROFILE_MIN_FREQUENCY:
-                                rc = GetCrystalClockFrequency(&crystalClockFreq);
+				rc = GetCrystalClockFrequency(&crystalClockFreq);
 				if (rc != ESIF_OK) {
 					goto exit;
 				}
 				//Get the Maximum frequency
-                                EsifPrimitiveTuple minFreqTuple = {GET_RFPROFILE_MIN_FREQUENCY_XTAL_38_4, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &minFreqTuple, NULL, responsePtr)) {
+				EsifPrimitiveTuple minFreqTuple = {GET_RFPROFILE_MIN_FREQUENCY_XTAL_38_4, ESIF_PRIMITIVE_DOMAIN_D0, 255};
+				if (!EsifUp_ExecutePrimitive(upPtr, &minFreqTuple, NULL, responsePtr)) {
 					ESIF_TRACE_DEBUG("Successfully get the Minimume frequency:\n");
 				}
 				break;	
@@ -1554,34 +1573,36 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 				}
 				break;
 			case ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY_PCH:
-                                sysval = *(UInt64 *) requestPtr->buf_ptr;
-                                //Get the Maximum frequency
-                                EsifPrimitiveTuple maxFreqTuple = {GET_RFPROFILE_MAX_FREQUENCY, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &maxFreqTuple, NULL, &response)) {
-                                        maxFreq = (UInt64)*(UInt32 *)response.buf_ptr;
-                                }
+				sysval = *(UInt64 *) requestPtr->buf_ptr;
+				//Get the Maximum frequency
+				EsifPrimitiveTuple maxFreqTuple = {GET_RFPROFILE_MAX_FREQUENCY, ESIF_PRIMITIVE_DOMAIN_D0, 255};
+				if (!EsifUp_ExecutePrimitive(upPtr, &maxFreqTuple, NULL, &response)) {
+					maxFreq = (UInt64)*(UInt32 *)response.buf_ptr;
+				}
 
-                                //Get the min frequency
-                                EsifPrimitiveTuple minFreqTuple = {GET_RFPROFILE_MIN_FREQUENCY, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &minFreqTuple, NULL, &response)) {
-                                        minFreq = (UInt64)*(UInt32 *) response.buf_ptr;
-                                }
-                                //comparing the input value with max and min value
-                                if ((sysval > maxFreq) || (sysval < minFreq)) {
-                                        rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-                                        ESIF_TRACE_ERROR("sysvl value: %lld should be in the range of min value: %lld or max value: %lld \n",
-                                                sysval,
-                                                minFreq,
-                                                maxFreq);
-                                        goto exit;
-                                }
+				//Get the min frequency
+				EsifPrimitiveTuple minFreqTuple = {GET_RFPROFILE_MIN_FREQUENCY, ESIF_PRIMITIVE_DOMAIN_D0, 255};
+				if (!EsifUp_ExecutePrimitive(upPtr, &minFreqTuple, NULL, &response)) {
+					minFreq = (UInt64)*(UInt32 *) response.buf_ptr;
+				}
+				
+				//comparing the input value with max and min value
+				if ((sysval > maxFreq) || (sysval < minFreq)) {
+					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+					ESIF_TRACE_ERROR("sysvl value: %lld should be in the range of min value: %lld or max value: %lld \n",
+						sysval,
+						minFreq,
+						maxFreq);
+					goto exit;
+				}
+
 				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
 				rc = SetFivrCenterFreqPch(upPtr, sysval, cur_node_name);
-                                if ( rc != ESIF_OK) {
+				if ( rc != ESIF_OK) {
 					ESIF_TRACE_ERROR("Failed to set the FIVR center freq\n");
-                                        goto exit;
-                                }
-                                break;
+					goto exit;
+				}
+				break;
 			case ESIF_SYSFS_SET_WWAN_PSTATE:
 				sysval = *(u32 *) requestPtr->buf_ptr;
 				if (sysval > 0) {
@@ -1608,9 +1629,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 				sysval = *(Int32 *) requestPtr->buf_ptr;
 				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, "dptf_power");
 				if (SysfsSetInt64(cur_node_name, parm2, sysval) < 0) {
-                                        rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-                                        goto exit;
-                                }
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
 				break;
 			case ESIF_SYSFS_SET_OSC:  /* osc */
 				rc = SetOsc(upPtr, requestPtr);
@@ -1674,7 +1695,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 					if (ESIF_OK == SetUIntFromActionContext(actionContext, eppValue)) {
 						ESIF_TRACE_INFO("Successfully set the value from the hash table.\n");
 						continue;
-		                        }
+					}
 					esif_ccb_sprintf(MAX_SYSFS_PATH,cur_node_name,SYSFS_EPP_PATH,node_idx);
 					if (SysfsSetInt64(cur_node_name, SYSFS_EPP_NODE, eppValue) < 0) {
 						ESIF_TRACE_ERROR("Error while setting the Epp Value.\n");
@@ -1814,8 +1835,8 @@ static int SetActionContext(struct sysfsActionHashKey *keyPtr, EsifString device
 	ESIF_TRACE_ENTRY();
 
 	if (devicePathName == NULL || deviceNodeName == NULL) {
-                return ret;
-        }
+		return ret;
+	}
 
 	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", devicePathName, deviceNodeName);
 	if (isWrite == ESIF_TRUE) {
@@ -1912,16 +1933,16 @@ static eEsifError SetFivrCenterFreqCpu(EsifUpPtr upPtr, UInt64 targetFreq)
 		crystalClockFreq);
 	//set hi value to the sysfs node
 	if (SysfsSetInt64(SYSFS_FIVR_PATH,"vco_ref_code_hi", vcoRefCodeHi) < 0) {
-                rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_ERROR("Set vco_ref_code_hi is failed\n");
-                goto exit;
-        }
+		goto exit;
+	}
 	//set the lo value to the sysfs node
 	if (SysfsSetInt64(SYSFS_FIVR_PATH,"vco_ref_code_lo", vcoRefCodeLo) < 0) {
-                rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_ERROR("Set vco_ref_code_lo is failed\n");
-                goto exit;
-        }
+		goto exit;
+	}
 
 	ESIF_TRACE_DEBUG("vco_ref_code_lo and vco_ref_code_hi is set sucessfully");
 
@@ -1931,7 +1952,6 @@ exit:
 
 static eEsifError GetDdrDvfsDataRate(EsifDataPtr responsePtr, char *path)
 {
-
 	eEsifError rc = ESIF_OK;
 	Int64 sysval = 0;
 	Int64 temp = 0;
@@ -2175,14 +2195,14 @@ static eEsifError GetRfprofileFreqAdjuRes(EsifDataPtr responsePtr)
 
 	ESIF_ASSERT(responsePtr != NULL);
 	if (responsePtr->buf_ptr == NULL) {
-                rc = ESIF_E_PARAMETER_IS_NULL;
-                goto exit;
-        }
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
 
 	responsePtr->data_len = sizeof(freqStep);
-        if (responsePtr->buf_len < responsePtr->data_len) {
-                rc = ESIF_E_NEED_LARGER_BUFFER;
-                goto exit;
+	if (responsePtr->buf_len < responsePtr->data_len) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
 	}
 
 	rc = GetCrystalClockFrequency(&crystalClockFreq);
@@ -2236,9 +2256,9 @@ static enum esif_rc GetGfxPerfSupportStates(EsifDataPtr responsePtr)
 
 	ESIF_ASSERT(responsePtr != NULL);
 	if (responsePtr->buf_ptr == NULL) {
-                rc = ESIF_E_PARAMETER_IS_NULL;
-                goto exit;
-        }
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
 
 	if ((SysfsGetInt64(SYSFS_GFX_PATH, GT_RP0_FREQ_MHZ, &gtMaxFreq) < SYSFS_FILE_RETRIEVAL_SUCCESS) || (gtMaxFreq > MAX_SYSFS_PERF_STATES)) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
@@ -2253,9 +2273,9 @@ static enum esif_rc GetGfxPerfSupportStates(EsifDataPtr responsePtr)
 	dataSize = pdlValue * sizeof(union esif_data_variant);
 	responsePtr->data_len = dataSize;
 	if (responsePtr->buf_len < responsePtr->data_len) {
-                rc = ESIF_E_NEED_LARGER_BUFFER;
-                goto exit;
-        }
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
 	curRespPtr = (union esif_data_variant *)responsePtr->buf_ptr;
 
 	for (pstateCounter = pdlValue; pstateCounter > 0; pstateCounter--) {
@@ -3334,9 +3354,9 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
 	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
 	esif_guid_t *guidPtr = (esif_guid_t *) oscPtr->guid;
-        char *dptfGuid = "B23BA85D-C8B7-3542-88DE-8DE2FFCFD698";
-        static UInt32 newOsc = ESIF_INVALID_ENUM_VALUE;
-        Bool isDptfGuid = ESIF_TRUE;
+	char *dptfGuid = "B23BA85D-C8B7-3542-88DE-8DE2FFCFD698";
+	static UInt32 newOsc = ESIF_INVALID_ENUM_VALUE;
+	Bool isDptfGuid = ESIF_TRUE;
 	static UInt32 prevOscCap = 0;
 	char *policies_guid[3] = {
 		"3A95C389-E4B8-4629-A526-C52C88626BAE", /* ACTIVE   */
@@ -3367,8 +3387,8 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 		}
 	}
 
-        isDptfGuid = esif_ccb_strncmp(guidStr, dptfGuid, ESIF_GUID_PRINT_SIZE) ? ESIF_FALSE : ESIF_TRUE;
-        if (newOsc) {
+	isDptfGuid = esif_ccb_strncmp(guidStr, dptfGuid, ESIF_GUID_PRINT_SIZE) ? ESIF_FALSE : ESIF_TRUE;
+	if (newOsc) {
 		/* New OSC interface. Ignore Policy GUID and handle DPTF GUID */
 		if (!isDptfGuid) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;

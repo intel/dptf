@@ -95,11 +95,11 @@ ifeq ($(BUILD), Debug)
 endif
 
 $(info ++++ )
-$(info ++++ ESIF_CMP $(PLAT) $(BUILD) $(OS))
+$(info ++++ IPF_CMP $(PLAT) $(BUILD) $(OS))
 $(info ++++ )
 
 ###############################################################################
-# ESIF_CMP 
+# IPF_CMP 
 ###############################################################################
 
 OBJ := $(SOURCES)/Alloc.o
@@ -118,15 +118,15 @@ OBJ += $(SOURCES)/esif_cmp.o
 %.o: %.cpp $(DEPS)
 	$(CC) -c $(CFLAGS) $(EXTRA_CFLAGS) $(CPPFLAGS) -o $@ $<
 
-all: esif_cmp
+all: ipf_cmp
 ifeq ($(OS), Linux)
     ifeq ($(BUILD), Release)
-		cp esif_cmp.so esif_cmp.so.debug
-		strip --strip-unneeded esif_cmp.so
-		objcopy --add-gnu-debuglink=esif_cmp.so.debug esif_cmp.so
+		cp ipf_cmp.so ipf_cmp.so.debug
+		strip --strip-unneeded ipf_cmp.so
+		objcopy --add-gnu-debuglink=ipf_cmp.so.debug ipf_cmp.so
     endif
 endif
-esif_cmp: $(OBJ)
+ipf_cmp: $(OBJ)
 	$(CC) $(CFLAGS) -shared $(EXTRA_CFLAGS) $(LDFLAGS) -o $@.so $^ $(LDLIBS)
 
 clean:

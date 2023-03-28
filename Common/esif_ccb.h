@@ -110,7 +110,7 @@ typedef unsigned long long u64;
 #define ESIF_HANDLE_PRIMARY_PARTICIPANT ((esif_handle_t)(1))   /* Reserved ESIF handle */
 #define ESIF_HANDLE_MATCH_ANY_EVENT ((esif_handle_t)(-2))	/* Reserved ESIF handle */
 
-#define	ESIF_WS_LIBRARY_NAME	"esif_ws"	/* Legacy Library/App Name for deprecated in-process web server*/
+#define	ESIF_WS_LIBRARY_NAME	"ipf_ws"	/* Legacy Library/App Name for deprecated in-process web server*/
 
 #define esif_ccb_isfullpath(fname)	(fname[0] == '/')
 

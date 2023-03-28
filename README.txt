@@ -48,7 +48,7 @@ https://www.chromium.org/chromium-os/developer-guide
 -------------------------------------------------------------------------------
 VERIFY INSTALL/CONFIGURATION
 -------------------------------------------------------------------------------
-Upon system boot, you should be able to observe the esif_ufd process that has
+Upon system boot, you should be able to observe the ipf_ufd process that has
 been launched by upstart.
 
 -------------------------------------------------------------------------------
@@ -60,10 +60,10 @@ for each specific platform, and is stored in the platform BIOS (CoreBoot in the
 case of Chrome/Chromium OS). Starting with the 8.4.10100 build, system
 integrators now also have the option to point to the data file that is stored
 in the file system instead. To use this feature, modify the DPTF service init
-file /etc/init/dptf.conf, at the very last line, instead of just plainly
-invoking esif_ufd, add the following command line argument:
+file /etc/init/ipf.conf, at the very last line, instead of just plainly
+invoking ipf_ufd, add the following command line argument:
 
-exec esif_ufd -a <full path to the DPTF config data vault file>
+exec ipf_ufd -a <full path to the DPTF config data vault file>
 
 The tools to generate DPTF config data vault files are supplied to Chromebook
 OEMs separately and are not available to end users.
@@ -125,9 +125,11 @@ running on 32-bit Linux).
 	sudo cp <DPTF root>/ESIF/Packages/DSP/dsp.dv /etc/dptf
 
 Step 5 - Run make under <DPTF root>/ESIF/Products/ESIF_UF/Linux to build
-the esif_ufd executable. This is the main DPTF service executable that loads
-the DPTF policies that you have built in Step 3. After the build is complete,
-you will find the esif_ufd executable generated under the same directory.
+the ipf_ufd executable and <DPTF root>/ESIF/Products/IPF/Linux to build
+the ipfhostd executable. These are the main components of DPTF service
+executables that load the DPTF policies that you have built in Step 3.
+After the build is complete, you will find the ipf_ufd and ipfhostd
+executable generated under the corresponding directories.
 
 Please note that the default make target is a 64-bit release version. If you
 want to build a different flavor, please examine the Makefile under this
@@ -136,11 +138,13 @@ Please do not alter the default settings for OS, OPT_GMIN and OPT_DBUS
 environment variables - they are for Chromium OS builds only, and for Linux
 builds, please use the default values.
 
-After the esif_ufd build is done, copy the executable to the proper location
-on your system (using /usr/bin as an example, but any system path should work):
-	sudo cp esif_ufd /usr/bin
+After the ipf_ufd and ipfhostd builds are done, copy the executables to the
+proper location on your system (using /usr/bin as an example, but any system
+path should work):
+	sudo cp <DPTF root>/ESIF/Products/ESIF_UF/Linux/ipf_ufd /usr/bin
+	sudo cp <DPTF root>/ESIF/Products/IPF/Linux/ipfhostd /usr/bin
 
-Step 6 - Install other ESIF shared libraries
+Step 6 - Install other shared libraries
 Additional ESIF libraries will be required to work with the newer format of
 DPTF data vault files. Run make under the following directories:
     <DPTF root>/ESIF/Products/ESIF_CMP/Linux
@@ -148,20 +152,26 @@ DPTF data vault files. Run make under the following directories:
 
 Copy the generated library files to /usr/share/dptf/ufx64
 
-    cp <DPTF root>/ESIF/Products/ESIF_CMP/Linux/esif_cmp.so \
+    cp <DPTF root>/ESIF/Products/ESIF_CMP/Linux/ipf_cmp.so \
         /usr/share/dptf/ufx64
 
-    cp <DPTF root>/ESIF/Products/ESIF_WS/Linux/esif_ws.so \
+    cp <DPTF root>/ESIF/Products/ESIF_WS/Linux/ipf_ws.so \
+        /usr/share/dptf/ufx64
+
+    cp <DPTF root>/ESIF/Products/IPF/Linux/ipfsrv.so \
+        /usr/share/dptf/ufx64
+
+    cp <DPTF root>/ESIF/Products/IPF/Linux/ipfipc.so \
         /usr/share/dptf/ufx64
 
 Step 7 - Start DPTF. Simply run:
-	sudo /usr/bin/esif_ufd
+	sudo /usr/bin/ipf_ufd
 
 This executable will run in daemon mode, and DPTF policies will automatically
 be loaded by this executable. You can check the status of the DPTF service
 by running this command:
 
-	pgrep -l esif_ufd
+	pgrep -l ipf_ufd
 
 This command will show the active DPTF process ID.
 
@@ -171,21 +181,38 @@ INSTALL DPTF SERVICE
 For Ubuntu 15.04 and later:
 Starting with Ubuntu 15.04 the default init system has switched to systemd.
 If this is the system that you use, then to auto start DPTF service, copy
-the dptf.service script to /lib/systemd/system:
+the ipf.service script to /lib/systemd/system:
 
-	sudo cp <DPTF root>/ESIF/Packages/Installers/linux/dptf.service \
+	sudo cp <DPTF root>/ESIF/Packages/Installers/linux/ipf.service \
 	/lib/systemd/system
 
 You will then need to enable the DPTF service to auto load upon startup:
 
-	sudo systemctl enable dptf.service
+	sudo systemctl enable ipf.service
 
-DPTF(esif_ufd) service will automatically start the next time the system
+DPTF(ipf_ufd) service will automatically start the next time the system
 boots. You can also manually start and stop DPTF service anytime by doing:
 
-	systemctl start dptf.service   # To start the service
-	systemctl stop dptf.service    # To stop the service
-	systemctl restart dptf.service # To restart the service
+	systemctl start ipf.service   # To start the service
+	systemctl stop ipf.service    # To stop the service
+	systemctl restart ipf.service # To restart the service
+
+To auto start the DTT service, copy the dtt.service script to
+/lib/systemd/system:
+
+	sudo cp <DPTF root>/ESIF/Packages/Installers/linux/dtt.service \
+	/lib/systemd/system
+
+You will then need to enable the DTT service to auto load upon startup:
+
+	sudo systemctl enable dtt.service
+
+DTT service will automatically start the next time the system boots.
+You can also manually start and stop DTT service anytime by doing:
+
+	systemctl start dtt.service   # To start the service
+	systemctl stop dtt.service    # To stop the service
+	systemctl restart dtt.service # To restart the service
 
 -------------------------------------------------------------------------------
 KNOWN ISSUES / LIMITATIONS

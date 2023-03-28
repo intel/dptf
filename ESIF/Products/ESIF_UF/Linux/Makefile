@@ -189,16 +189,16 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_json.o
 %.o: %.c $(DEPS)
 	$(CC) -c $(CFLAGS) $(EXTRA_CFLAGS) $(CPPFLAGS) -o $@ $<
 
-all: esif_ufd
+all: ipf_ufd
 ifeq ($(OS), Linux)
     ifeq ($(BUILD), Release)
-		cp esif_ufd esif_ufd.debug
-		strip --strip-unneeded esif_ufd
-		objcopy --add-gnu-debuglink=esif_ufd.debug esif_ufd
+		cp ipf_ufd ipf_ufd.debug
+		strip --strip-unneeded ipf_ufd
+		objcopy --add-gnu-debuglink=ipf_ufd.debug ipf_ufd
     endif
 endif
-esif_ufd: $(OBJ)
+ipf_ufd: $(OBJ)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 
 clean:
-	rm -f $(OBJ) esif_ufd esif_ufd.debug
+	rm -f $(OBJ) ipf_ufd ipf_ufd.debug

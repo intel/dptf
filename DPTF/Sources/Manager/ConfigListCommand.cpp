@@ -123,7 +123,7 @@ void ConfigListCommand::throwIfBadArguments(const CommandArguments& arguments)
 {
 	if (arguments.size() != 1)
 	{
-		const auto description = R"(\
+		const auto description = R"(
 			Invalid argument count given to 'config list' command. Run 'dptf help' command for more information.)";
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}

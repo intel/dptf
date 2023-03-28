@@ -43,8 +43,8 @@
 #define COPYRIGHT_NOTICE "Copyright (c) 2013-2023 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"arbitrator disable && appstart dptf"
-#define ESIF_STARTUP_SCRIPT_SERVER_MODE	"appstart dptf"
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"arbitrator disable && appstart ipfsrv"
+#define ESIF_STARTUP_SCRIPT_SERVER_MODE	"appstart ipfsrv"
 #define TOTAL_PSY_PROPERTIES 10
 
 static void esif_udev_start();
@@ -107,7 +107,7 @@ struct instancelock {
 	char *lockfile; /* lock filename */
 	int  lockfd;    /* lock file descriptor */
 };
-static struct instancelock g_instance = {"esif_ufd.pid"};
+static struct instancelock g_instance = {"ipf_ufd.pid"};
 static char thermal_device_path[] = "/devices/virtual/thermal/thermal_zone";
 static char wifi_device_path[] = "/module/iwlwifi";
 
@@ -392,34 +392,33 @@ static int check_for_uevent(int fd) {
 
 				switch (wifi_event) {
 				case WIFI_EVENT_MODULE_ADDED:
-				       ESIF_TRACE_INFO("WIFI_EVENT_MODULE_ADDED\n");
-				       rc = EsifUpPm_InitIterator(&upIter);
-                                       rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-                                       while (ESIF_OK == rc) {
-
-                                               EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_RESUME, NULL);
-                                               rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-                                        }
-                                        if (rc != ESIF_E_ITERATION_DONE) {
-                                               EsifUp_PutRef(upPtr);
-                                        }
-                                        break;
+					ESIF_TRACE_INFO("WIFI_EVENT_MODULE_ADDED\n");
+					rc = EsifUpPm_InitIterator(&upIter);
+					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+					while (ESIF_OK == rc) {
+						EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_RESUME, NULL);
+						rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+					}
+					if (rc != ESIF_E_ITERATION_DONE) {
+						EsifUp_PutRef(upPtr);
+					}
+					break;
 				case WIFI_EVENT_MODULE_REMOVED:
-				       ESIF_TRACE_INFO("WIFI_EVENT_MODULE_REMOVED\n");
-				       rc = EsifUpPm_InitIterator(&upIter);
-                                       rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-                                       while (ESIF_OK == rc) {
+					ESIF_TRACE_INFO("WIFI_EVENT_MODULE_REMOVED\n");
+					rc = EsifUpPm_InitIterator(&upIter);
+					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+					while (ESIF_OK == rc) {
 
-                                               EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_SUSPEND, NULL);
-                                               rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-                                        }
-                                        if (rc != ESIF_E_ITERATION_DONE) {
-                                               EsifUp_PutRef(upPtr);
-                                        }
-                                        break;
+						EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_SUSPEND, NULL);
+						rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+					}
+					if (rc != ESIF_E_ITERATION_DONE) {
+						EsifUp_PutRef(upPtr);
+					}
+					break;
 				default:
 					ESIF_TRACE_INFO("WIFI_EVENT_UNDEFINED\n");
-                                        break;
+					break;
 				}
 			}
 			else if (esif_ccb_strncmp(buf_ptr + dev_path_len, thermal_device_path, sizeof(thermal_device_path) - 1) == 0) {
@@ -845,7 +844,7 @@ eEsifError SysfsGetFileSize(const char *path, const char *fileName, size_t *file
 	//Initialize the file size to 0
 	*fileSize = 0;
 	if((errorNumber = esif_ccb_stat(filePath, &st)) != 0) {
-		ESIF_TRACE_ERROR("Error retrieving file size for %s Error Code : %d\n",filePath, errorNumber);
+		ESIF_TRACE_WARN("Retrieving file size for %s failed with Error Code : %d\n",filePath, errorNumber);
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
@@ -927,9 +926,9 @@ int SysfsSetStringWithError(const char *path, const char *filename, char *buffer
 	rc = 0;
 
 exit:
-        if (fd != -1) {
-	    close(fd);
-        }
+	if (fd != -1) {
+		close(fd);
+	}
 	return rc;
 }
 
@@ -1856,7 +1855,7 @@ int main (int argc, char **argv)
 		case 'v':
 		case '?':
 			CMD_DEBUG(
-			"ESIF Eco-System Independent Framework, Version " ESIF_UF_VERSION "\n"
+			"Intel(R) Innovation Platform Framework (IPF), Version " ESIF_UF_VERSION "\n"
 			COPYRIGHT_NOTICE "\n"
 			"-d [*id]            Set Destination\n"
 			"-f [*filename]      Load Filename\n"
@@ -1899,12 +1898,12 @@ int main (int argc, char **argv)
 	}
 
 #if defined (ESIF_ATTR_DAEMON)
-	// Gracefully Terminate all esif_ufd processes (including this process)
-	// This will automatically reload esif_ufd if configured in /etc/init/dptf.conf [enabled for Chrome & Android]
+	// Gracefully Terminate all ipf_ufd processes (including this process)
+	// This will automatically reload ipf_ufd if configured in /etc/init/dptf.conf [enabled for Chrome & Android]
 	if (terminate_daemon) {
-		printf("Reloading esif_ufd daemon...\n");
+		printf("Reloading ipf_ufd daemon...\n");
 		sigterm_enable();
-		esif_ccb_system("killall esif_ufd");
+		esif_ccb_system("killall ipf_ufd");
 		exit(0);
 	}
 
