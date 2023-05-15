@@ -1977,6 +1977,7 @@ static eEsifError GetDdrDvfsDataRate(EsifDataPtr responsePtr, char *path)
 	if (cpuSign == CPUID_FAMILY_MODEL_ADL_N ||
 		cpuSign == CPUID_FAMILY_MODEL_ADL_P ||
 		cpuSign == CPUID_FAMILY_MODEL_RPL_S ||
+		cpuSign == CPUID_FAMILY_MODEL_RPL_S_1 ||
 		cpuSign == CPUID_FAMILY_MODEL_RPL_P) {
 
 		if (SysfsGetInt64(path, "ddr_data_rate", &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
@@ -2061,6 +2062,7 @@ static eEsifError SetDdrRfiRestriction(UInt64 sysval, char *path)
 	if (cpuSign == CPUID_FAMILY_MODEL_ADL_N ||
 		cpuSign == CPUID_FAMILY_MODEL_ADL_P ||
 		cpuSign == CPUID_FAMILY_MODEL_RPL_S ||
+		cpuSign == CPUID_FAMILY_MODEL_RPL_S_1 ||
 		cpuSign == CPUID_FAMILY_MODEL_RPL_P) {
 
 		if (SysfsSetInt64(path, "rfi_restriction", sysval) < 0) {

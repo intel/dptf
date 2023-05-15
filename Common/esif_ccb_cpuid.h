@@ -111,6 +111,7 @@
 #define CPUID_FAMILY_MODEL_MTL_N	0x000A06B0		// Meteor Lake N
 #define CPUID_FAMILY_MODEL_MTL_S	0x000606C0		// Meteor Lake S
 #define CPUID_FAMILY_MODEL_RPL_S	0x000B0670		// Raptor Lake S
+#define CPUID_FAMILY_MODEL_RPL_S_1	0x000B06F0		// Another CPUID for Raptor Lake S
 #define CPUID_FAMILY_MODEL_RPL_P	0x000B06A0		// Raptor Lake P
 #define CPUID_FAMILY_MODEL_ADL_N	0x000B06E0		// Alder Lake N
 #define CPUID_FAMILY_MODEL_ADL_P	0x000906A0		// Alder Lake P
