@@ -80,6 +80,7 @@
 #define ESIF_UF_EVENT_QUEUE_SIZE 0xFFFFFFFF
 #define ESIF_UF_EVENT_QUEUE_NAME "UfQueue"
 #define ESIF_UF_EVENT_QUEUE_TIMEOUT ESIF_QUEUE_TIMEOUT_INFINITE /* No timeout */
+#define EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX 10000 /* ms */
 
 #include "lin/esif_uf_sensor_manager_os_lin.h"
 
@@ -168,6 +169,19 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	UInt16 domainId,
 	eEsifEventType eventType,
 	const EsifDataPtr eventData
+);
+
+/*
+ * Used to signal an event that will be processed synchronously for up to the
+ * specified wait time
+ * NOTE: Maximum allowed wait time is EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX
+ */
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalSynchronousEvent(
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventData,
+	esif_ccb_time_t waitTime
 );
 
 /* For simulation/shell use */
