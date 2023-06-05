@@ -1384,22 +1384,26 @@ s3_callback(DBusConnection *conn, DBusMessage *message, void *user_data)
 	if (DBUS_MESSAGE_TYPE_SIGNAL == message_type) {
 		if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendImminent")) {
 			ESIF_TRACE_INFO("D-Bus: received SuspendImminent signal\n");
-
 			rc = EsifUpPm_InitIterator(&upIter);
 			if (ESIF_OK == rc) {
 				rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 				while (ESIF_OK == rc) {
-
-					EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL);
+					// This event should be synchronous
+					EsifEventMgr_SignalSynchronousEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL, EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX);
 					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 				}
 				if (rc != ESIF_E_ITERATION_DONE) {
 					EsifUp_PutRef(upPtr);
 				}
 			}
-		} else if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendDone")) {
+			ESIF_TRACE_DEBUG("Suspend Completed\n");
+		} 
+		else if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendDone")) {
 			ESIF_TRACE_INFO("D-Bus: received SuspendDone signal\n");
+			// Send resume event to Manager to resume all the apps as well
+			EsifEventMgr_SignalSynchronousEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_RESUME, NULL, EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX);
 			EsifUpPm_ResumeParticipants();
+			ESIF_TRACE_DEBUG("Resume Completed\n");
 		}
 	}
 

@@ -1047,6 +1047,10 @@ eEsifError EsifUp_SuspendParticipant(
 		}
 
 		EsifUpDomain_StopTempPoll(domainPtr);
+/* Perf state detection handled in upper framework for Sysfs model */
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+		EsifUpDomain_StopStatePoll(domainPtr);
+#endif
 		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
 	}
 

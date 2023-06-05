@@ -935,8 +935,15 @@ static void EsifUpDomain_PollState(
 {
 	eEsifError rc = ESIF_OK;
 	EsifUpDomainPtr self = (EsifUpDomainPtr) ctx;
-	
+	EsifUpPtr upPtr = NULL;
+
 	if (self == NULL) {
+		goto exit;
+	}
+
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(self->participantId);
+	if (upPtr == NULL) {
+		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
 
@@ -949,7 +956,10 @@ static void EsifUpDomain_PollState(
 
 	rc = EsifUpDomain_StartStatePollPriv(self);
 exit:
-	
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_DEBUG("Unable to set poll timer on %s %s : %s(%d)\n", self->participantName, self->domainName, esif_rc_str(rc), rc);
 	}
@@ -962,7 +972,6 @@ static void EsifUpDomain_PollTemp(
 {
 	eEsifError rc = ESIF_OK;
 	EsifUpDomainPtr self = (EsifUpDomainPtr) ctx;
-	EsifDspPtr dspPtr = NULL;
 	EsifUpPtr upPtr = NULL;
 	UInt32 pollPeriod = 0;
 	
@@ -970,26 +979,12 @@ static void EsifUpDomain_PollTemp(
 		goto exit;
 	}
 
-	
-	/* check to see if anyone has killed the action manager or dsp manager
-	in between polls */
 	upPtr = EsifUpPm_GetAvailableParticipantByInstance(self->participantId);
 	if (upPtr == NULL) {
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
 
-	dspPtr = EsifUp_GetDsp(upPtr);
-	if (dspPtr == NULL) {
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-
-	if (dspPtr->type == NULL) {
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-	
 	rc = EsifUpDomain_CheckTemp(self);
 	
 	/* If another type of polling was started, skip the timer reset */
@@ -1226,6 +1221,16 @@ void EsifUpDomain_StopTempPoll(
 
 	self->tempPollInitialized = ESIF_FALSE;
 	self->tempPollType = ESIF_POLL_NONE;
+}
+
+void EsifUpDomain_StopStatePoll(
+	EsifUpDomainPtr self
+	)
+{
+	esif_ccb_timer_kill_w_wait(&self->statePollTimer);
+
+	self->statePollInitialized = ESIF_FALSE;
+	self->statePollType = ESIF_POLL_NONE;
 }
 
 eEsifError EsifUpDomain_SetTempPollPeriod(

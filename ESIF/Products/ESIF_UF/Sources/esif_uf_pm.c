@@ -802,7 +802,7 @@ static eEsifError EsifUpPm_ResumeParticipant(
 		rc = EsifAppMgr_CreateParticipantInAllApps(upPtr);
 	}
 
-	ESIF_TRACE_INFO("Reregistered participant, instant id = " ESIF_HANDLE_FMT "\n", esif_ccb_handle2llu(upInstance));
+	ESIF_TRACE_INFO("Reregistered participant, instant id = " ESIF_HANDLE_FMT " Participant State : %d\n", esif_ccb_handle2llu(upInstance), entryPtr->fState);
 exit:
 	if (upPtr != NULL) {
 		EsifUp_PutRef(upPtr);
@@ -835,7 +835,6 @@ eEsifError EsifUpPm_ResumeParticipants()
 	ESIF_TRACE_INFO("Resumption of participants complete\n");
 	return ESIF_OK;
 }
-
 
 /* Suspend Upper Participant Instance */
 static eEsifError EsifUpPm_SuspendParticipant(
@@ -883,7 +882,7 @@ static eEsifError EsifUpPm_SuspendParticipant(
 		rc = EsifAppMgr_DestroyParticipantInAllApps(upPtr);
 	}
 
-	ESIF_TRACE_INFO("Suspended participant, instant id = " ESIF_HANDLE_FMT "\n", esif_ccb_handle2llu(upInstance));
+	ESIF_TRACE_INFO("Suspended participant, instant id = " ESIF_HANDLE_FMT " state : %d \n", esif_ccb_handle2llu(upInstance),entryPtr->fState);
 exit:
 	EsifUp_PutRef(upPtr);
 	return rc;

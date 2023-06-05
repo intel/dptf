@@ -147,6 +147,10 @@ void EsifUpDomain_StopTempPoll(
 	EsifUpDomainPtr self
 	);
 
+void EsifUpDomain_StopStatePoll(
+	EsifUpDomainPtr self
+	);
+
 eEsifError EsifUpDomain_Poll(EsifUpDomainPtr self);
 
 eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self);

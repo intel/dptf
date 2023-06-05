@@ -25,6 +25,7 @@
 #include "esif_uf_eventmgr.h"
 #include "esif_queue.h"
 #include "esif_uf_sensors.h"
+#include "esif_uf_ccb_timedwait.h"
 
 
 #define NUM_EVENT_LISTS 64
@@ -56,6 +57,9 @@ typedef struct EsifEventMgr_s {
 	esif_ccb_lock_t appUnregisterListLock;
 	Bool delayedAppUnregistrationEnabled;
 	Bool delayAppUnregistration;
+
+	/* Used to control destruction of the context for synchronous events */
+	esif_ccb_lock_t synchronousEventLock;
 }EsifEventMgr, *EsifEventMgrPtr;
 
 typedef struct EventMgrEntry_s {
@@ -73,6 +77,12 @@ typedef struct EventMgrEntry_s {
 	Bool markedForDelete;				/* Indicates the event is marked for deletion */
 } EventMgrEntry, *EventMgrEntryPtr;
 
+
+typedef struct EsifEventMgr_SynchronousEventContext_s {
+	Bool useComplete;
+	esif_ccb_event_t completionEvent;
+} EsifEventMgr_SynchronousEventContext;
+
 typedef struct EsifEventQueueItem_s {
 	esif_handle_t participantId;
 	UInt16 domainId;
@@ -80,6 +90,7 @@ typedef struct EsifEventQueueItem_s {
 	EsifData eventData;
 	Bool isLfEvent;
 	Bool isUnfiltered;
+	EsifEventMgr_SynchronousEventContext *syncContextPtr;
 }EsifEventQueueItem, *EsifEventQueueItemPtr;
 
 
@@ -166,11 +177,15 @@ static eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local (
 	eEsifEventType eventType,
 	const EsifDataPtr eventDataPtr,
 	Bool isLfEvent,
-	Bool isFilteredEvent
+	Bool isFilteredEvent,
+	EsifEventMgr_SynchronousEventContext *syncContextPtr
 );
 
 static Bool EsifEventMgr_IsEventFiltered(eEsifEventType eventType);
 static Bool EsifEventMgr_IsEventCacheable(eEsifEventType eventType);
+
+static void DestroySynchronizationContext(EsifEventMgr_SynchronousEventContext *syncContextPtr);
+
 
 /*
 * Friend function:  Target is determined only once removed from queue and all
@@ -191,7 +206,69 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	const EsifDataPtr eventDataPtr
 )
 {
-	return EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_TRUE);
+	return EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_TRUE, NULL);
+}
+
+/*
+ * Used to signal an event that will be processed synchronously for up to the
+ * specified wait time
+ * NOTE: Maximum allowed wait time  is EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX
+ */
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalSynchronousEvent(
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventDataPtr,
+	esif_ccb_time_t msWait
+	)
+{
+	esif_error_t rc = ESIF_OK;
+	EsifEventMgr_SynchronousEventContext *syncContextPtr = NULL;
+
+	syncContextPtr = (EsifEventMgr_SynchronousEventContext *)esif_ccb_malloc(sizeof(*syncContextPtr));
+	if (!syncContextPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	esif_ccb_event_init(&syncContextPtr->completionEvent);
+	esif_ccb_event_reset(&syncContextPtr->completionEvent);
+
+	rc = EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_TRUE, syncContextPtr);
+
+	EsifTimedEventWait(&syncContextPtr->completionEvent, esif_ccb_min(msWait, EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX));
+
+	DestroySynchronizationContext(syncContextPtr);
+exit:
+	return rc;
+}
+
+
+static void DestroySynchronizationContext(
+	EsifEventMgr_SynchronousEventContext *syncContextPtr
+	)
+{
+	Bool canDestroyContext = ESIF_FALSE;
+
+	if (syncContextPtr) {
+		esif_ccb_write_lock(&g_EsifEventMgr.synchronousEventLock);
+
+		if (syncContextPtr->useComplete) { 
+			/* If other thread is already done, mark to destroy context by current thread */
+			canDestroyContext = ESIF_TRUE;
+		}
+		else {
+			/* Indicate current thread is done using context so it can be destroyed by other thread */
+			syncContextPtr->useComplete = ESIF_TRUE;
+		}
+
+		esif_ccb_write_unlock(&g_EsifEventMgr.synchronousEventLock);
+
+		/* Destroy context outside locks if needed */
+		if (canDestroyContext) {
+			esif_ccb_event_uninit(&syncContextPtr->completionEvent);
+			esif_ccb_free(syncContextPtr);
+		}
+	}
 }
 
 
@@ -206,7 +283,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalLfEvent(
 	const EsifDataPtr eventDataPtr
 )
 {
-	return EsifEventMgr_SignalEvent_Local(targetId, domainId, eventType, eventDataPtr, ESIF_TRUE, ESIF_TRUE);
+	return EsifEventMgr_SignalEvent_Local(targetId, domainId, eventType, eventDataPtr, ESIF_TRUE, ESIF_TRUE, NULL);
 }
 
 
@@ -217,17 +294,18 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalUnfilteredEvent(
 	const EsifDataPtr eventDataPtr
 	)
 {
-	return EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_FALSE);
+	return EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_FALSE, NULL);
 }
 
 
-eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local(
+static eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local(
 	esif_handle_t participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
 	const EsifDataPtr eventDataPtr,
 	Bool isLfEvent,
-	Bool isFilteredEvent
+	Bool isFilteredEvent,
+	EsifEventMgr_SynchronousEventContext *syncContextPtr
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -250,7 +328,10 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local(
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
-
+	/*
+	* Make a copy of the data as the thread exposing it will continue and may
+	* destroy it
+	*/
 	if ((eventDataPtr != NULL) &&
 		(eventDataPtr->buf_ptr != NULL) &&
 		(eventDataPtr->buf_len > 0) &&
@@ -275,6 +356,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local(
 	queueEventPtr->domainId = domainId;
 	queueEventPtr->eventType = eventType;
 	queueEventPtr->isLfEvent = isLfEvent;
+	queueEventPtr->syncContextPtr = syncContextPtr;
 
 	ESIF_TRACE_INFO("Queuing %s event for Part. %u Dom. 0x%04X\n",
 		esif_event_type_str(eventType),
@@ -290,7 +372,11 @@ exit:
 	if (rc != ESIF_OK) {
 		esif_ccb_free(queueEventPtr);
 		esif_ccb_free(queueDataPtr);
-
+		if (syncContextPtr) {
+			/* Release synchronous waiter and destroy context if needed */
+			esif_ccb_event_set(&syncContextPtr->completionEvent);
+			DestroySynchronizationContext(syncContextPtr);
+		}
 	}
 	return rc;
 }
@@ -333,6 +419,12 @@ static void *ESIF_CALLCONV EsifEventMgr_EventQueueThread(void *ctxPtr)
 				queueEventPtr->domainId,
 				queueEventPtr->eventType,
 				&queueEventPtr->eventData);
+		}
+
+		/* Release any synchronous event waiters */
+		if (queueEventPtr->syncContextPtr) {
+			esif_ccb_event_set(&queueEventPtr->syncContextPtr->completionEvent);
+			DestroySynchronizationContext(queueEventPtr->syncContextPtr);
 		}
 		esif_ccb_free(queueEventPtr->eventData.buf_ptr);
 		esif_ccb_free(queueEventPtr);
@@ -1243,6 +1335,8 @@ eEsifError EsifEventMgr_Init(void)
 
 	esif_ccb_lock_init(&g_EsifEventMgr.listLock);
 	esif_ccb_lock_init(&g_EsifEventMgr.appUnregisterListLock);
+	esif_ccb_lock_init(&g_EsifEventMgr.synchronousEventLock);
+
 
 	for (i = 0; i < NUM_EVENT_LISTS; i++) {
 		g_EsifEventMgr.observerLists[i] = esif_link_list_create();
@@ -1343,6 +1437,7 @@ void EsifEventMgr_Exit(void)
 	g_EsifEventMgr.garbageList = NULL;
 	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 
+	esif_ccb_lock_uninit(&g_EsifEventMgr.synchronousEventLock);
 	esif_ccb_lock_uninit(&g_EsifEventMgr.listLock);
 	esif_ccb_lock_uninit(&g_EsifEventMgr.appUnregisterListLock);
 	
