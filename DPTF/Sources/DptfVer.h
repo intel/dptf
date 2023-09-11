@@ -20,8 +20,8 @@
 
 #define VER_MAJOR  9
 #define VER_MINOR  0
-#define VER_HOTFIX 8888
-#define VER_BUILD  9999
+#define VER_HOTFIX 11402
+#define VER_BUILD  38024
 
 #define ARG_TOSTR(arg) #arg
 #define VER_TOSTR(arg) ARG_TOSTR(arg)
