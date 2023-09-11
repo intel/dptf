@@ -34,4 +34,7 @@ public:
 		UIntN domainIndex,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainEnergyControlBase();
+
+protected:
+	double convertEnergyStatusUnitToJoules(UInt32 raplEnergyUnit);
 };

@@ -52,15 +52,38 @@ UInt64 DomainRfProfileStatus_000::getDvfsPoints(UIntN participantIndex, UIntN do
 	throw not_implemented();
 }
 
+UInt32 DomainRfProfileStatus_000::getDlvrSsc(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Frequency DomainRfProfileStatus_000::getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 void DomainRfProfileStatus_000::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+	const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_000::sendMasterControlStatus(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 masterControlStatus)
 {
 	throw not_implemented();
 }
 
 void DomainRfProfileStatus_000::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_000::setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency)
 {
 	throw not_implemented();
 }

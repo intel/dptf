@@ -142,6 +142,8 @@ public:
 	virtual void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint) = 0;
 	virtual void domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction) = 0;
 	virtual void domainFanOperatingModeChanged(void) = 0;
+	virtual void domainSocPowerFloorChanged(UInt32 socPowerFloorState) = 0;
+	virtual void domainPcieThrottleRequested(UInt32 pcieThrottleRequest) = 0;
 };
 
 //

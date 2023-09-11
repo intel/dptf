@@ -33,13 +33,18 @@ public:
 		UIntN domainIndex,
 		const DomainProperties& domainProperties,
 		const PolicyServicesInterfaceContainer& policyServices);
-	~DomainPriorityCachedProperty(void);
+	~DomainPriorityCachedProperty() override;
+
+	DomainPriorityCachedProperty(const DomainPriorityCachedProperty& other) = default;
+	DomainPriorityCachedProperty& operator=(const DomainPriorityCachedProperty& other) = default;
+	DomainPriorityCachedProperty(DomainPriorityCachedProperty&& other) = default;
+	DomainPriorityCachedProperty& operator=(DomainPriorityCachedProperty&& other) = default;
 
 	const DomainPriority& getDomainPriority();
-	virtual Bool supportsProperty() override;
+	Bool supportsProperty() override;
 
 protected:
-	virtual void refreshData() override;
+	void refreshData() override;
 
 private:
 	DomainPriority m_domainPriority;

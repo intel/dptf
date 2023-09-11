@@ -41,6 +41,7 @@
 #include "IgccBroadcastData.h"
 #include "ExtendedWorkloadPrediction.h"
 #include "FanOperatingMode.h"
+#include "SocPowerFloor.h"
 
 class dptf_export PolicyInterface
 {
@@ -107,8 +108,11 @@ public:
 
 	// DPTF Event handlers
 	virtual void igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
+	virtual void environmentProfileChanged(const EnvironmentProfile& environmentProfile) = 0;
 	virtual void connectedStandbyEntry(void) = 0;
 	virtual void connectedStandbyExit(void) = 0;
+	virtual void lowPowerModeEntry(void) = 0;
+	virtual void lowPowerModeExit(void) = 0;
 	virtual void suspend(void) = 0;
 	virtual void resume(void) = 0;
 
@@ -151,12 +155,20 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) = 0;
+	virtual void domainSocPowerFloorChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocPowerFloor::Type socPowerFloor) = 0;
 	virtual void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint) = 0;
 	virtual void domainExtendedWorkloadPredictionChanged(UIntN participantIndex, UIntN domainIndex, ExtendedWorkloadPrediction::Type extendedWorkloadPrediction) = 0;
 	virtual void domainFanOperatingModeChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		FanOperatingMode::Type fanOperatingMode) = 0;
+	virtual void domainPcieThrottleRequested(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		OnOffToggle::Type pcieThrottleRequested) = 0;
 
 	// Policy Event Handlers
 	virtual void activeRelationshipTableChanged(void) = 0;
@@ -178,6 +190,7 @@ public:
 	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
 	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
 	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
+	virtual void processLoaded(const std::string& processName) = 0;
 	virtual void systemModeChanged(SystemMode::Type systemMode) = 0;
 	virtual void passiveTableChanged(void) = 0;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
@@ -187,6 +200,7 @@ public:
 	virtual void adaptivePerformanceConditionsTableChanged(void) = 0;
 	virtual void adaptivePerformanceActionsTableChanged(void) = 0;
 	virtual void ddrfTableChanged(void) = 0;
+	virtual void rfimTableChanged(void) = 0;
 	virtual void tpgaTableChanged(void) = 0;
 	virtual void oemVariablesChanged(void) = 0;
 	virtual void swOemVariablesChanged(void) = 0;
@@ -212,7 +226,7 @@ public:
 	virtual void foregroundRatioChanged(UIntN ratio) = 0;
 	virtual void collaborationModeChanged(OnOffToggle::Type collaborationModeState) = 0;
 	virtual void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) = 0;
-	virtual void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource) = 0;
+	virtual void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP) = 0;
 };
 
 //

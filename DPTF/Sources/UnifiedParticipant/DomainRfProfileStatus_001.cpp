@@ -101,10 +101,50 @@ UInt64 DomainRfProfileStatus_001::getDvfsPoints(UIntN participantIndex, UIntN do
 	return numberOfDvfsPoints;
 }
 
+UInt32 DomainRfProfileStatus_001::getDlvrSsc(UIntN participantIndex, UIntN domainIndex)
+{
+	UInt32 ssc = Constants::Invalid;
+
+	try
+	{
+		ssc = getParticipantServices()->primitiveExecuteGetAsUInt32(GET_RFPROFILE_SSC_DLVR, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get DLVR SSC"; });
+	}
+
+	return ssc;
+}
+
+Frequency DomainRfProfileStatus_001::getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex)
+{
+	Frequency dlvrCenterFrequency = Frequency::createInvalid();
+
+	try
+	{
+		dlvrCenterFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY_DLVR, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get DLVR Center Frequency "; });
+	}
+	return dlvrCenterFrequency;
+}
+
 void DomainRfProfileStatus_001::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+	const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_001::sendMasterControlStatus(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 masterControlStatus)
 {
 	throw not_implemented();
 }
@@ -127,6 +167,27 @@ void DomainRfProfileStatus_001::setProtectRequest(UIntN participantIndex, UIntN 
 			return (
 				"Failed to set the DVFS Rate Protect Request for the rate: "
 				+ StatusFormat::friendlyValue(frequencyRate));
+		});
+	}
+}
+
+void DomainRfProfileStatus_001::setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency)
+{
+	try
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return (
+				"Setting the DLVR Center Frequency: " + frequency.toString());
+		});
+
+		getParticipantServices()->primitiveExecuteSetAsUInt64(
+			esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY_DLVR, frequency, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return (
+				"Failed to set the DLVR Center Frequency: " + frequency.toString());
 		});
 	}
 }
@@ -182,7 +243,7 @@ std::shared_ptr<XmlNode> DomainRfProfileStatus_001::getXml(UIntN domainIndex)
 
 std::string DomainRfProfileStatus_001::getName(void)
 {
-	return "FIVR RF Profile Status";
+	return "VR RF Profile Status";
 }
 
 void DomainRfProfileStatus_001::setRfProfileOverride(

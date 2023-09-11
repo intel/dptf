@@ -24,11 +24,11 @@
 class DomainPropertiesSet
 {
 public:
-	DomainPropertiesSet(std::vector<DomainProperties> domainProperties);
-	DomainPropertiesSet(DomainProperties domainProperties);
+	DomainPropertiesSet(const std::vector<DomainProperties>& domainProperties);
+	DomainPropertiesSet(const DomainProperties& domainProperties);
 	DomainProperties getDomainProperties(UIntN domainIndex) const;
-	UIntN getDomainCount(void) const;
-	const DomainProperties operator[](UIntN index) const;
+	UIntN getDomainCount() const;
+	DomainProperties operator[](UIntN index) const;
 	UIntN getDomainIndexFromDomainType(DomainType::Type domainType) const;
 
 private:

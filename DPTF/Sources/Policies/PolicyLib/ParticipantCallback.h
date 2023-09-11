@@ -25,7 +25,12 @@ class dptf_export ParticipantCallback
 public:
 	ParticipantCallback();
 	ParticipantCallback(const TimeSpan& callbackTime, const TimeSpan& timeStamp, UInt64 callbackHandle);
-	virtual ~ParticipantCallback();
+	virtual ~ParticipantCallback() = default;
+
+	ParticipantCallback(const ParticipantCallback& other) = default;
+	ParticipantCallback& operator=(const ParticipantCallback& other) = default;
+	ParticipantCallback(ParticipantCallback&& other) = default;
+	ParticipantCallback& operator=(ParticipantCallback&& other) = default;
 
 	const TimeSpan& getTimeDelta() const;
 	const TimeSpan& getTimeStamp() const;

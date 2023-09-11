@@ -22,7 +22,7 @@
 
 using namespace std;
 
-PolicyBase::PolicyBase(void)
+PolicyBase::PolicyBase()
 	: m_dynamicPolicyUuidString(Constants::EmptyString)
 	, m_dynamicPolicyName(Constants::EmptyString)
 	, m_enabled(false)
@@ -30,10 +30,6 @@ PolicyBase::PolicyBase(void)
 	m_time.reset(new DptfTime());
 	m_trackedParticipants.reset(new ParticipantTracker());
 	m_trackedParticipants->setTimeServiceObject(m_time);
-}
-
-PolicyBase::~PolicyBase(void)
-{
 }
 
 // If a policy chooses not to load itself, it should throw out of its onCreate() function.
@@ -64,7 +60,7 @@ void PolicyBase::create(
 	}
 }
 
-void PolicyBase::destroy(void)
+void PolicyBase::destroy()
 {
 	try
 	{
@@ -81,7 +77,7 @@ void PolicyBase::destroy(void)
 	m_enabled = false;
 }
 
-void PolicyBase::enable(void)
+void PolicyBase::enable()
 {
 	sendOscRequest(autoNotifyPlatformOscOnEnableDisable(), true);
 	try
@@ -97,7 +93,7 @@ void PolicyBase::enable(void)
 	}
 }
 
-void PolicyBase::disable(void)
+void PolicyBase::disable()
 {
 	try
 	{
@@ -525,6 +521,17 @@ void PolicyBase::domainSocWorkloadClassificationChanged(
 	onDomainSocWorkloadClassificationChanged(participantIndex, domainIndex, socWorkloadClassification);
 }
 
+void PolicyBase::domainSocPowerFloorChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	SocPowerFloor::Type socPowerFloor)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": SoC Power Floor State changed to " + SocPowerFloor::toString(socPowerFloor) + "."; });
+	onDomainSocPowerFloorChanged(participantIndex, domainIndex, socPowerFloor);
+}
+
 void PolicyBase::domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
 {
 	throwIfPolicyIsDisabled();
@@ -566,96 +573,116 @@ void PolicyBase::domainFanOperatingModeChanged(
 	onDomainFanOperatingModeChanged(participantIndex, domainIndex, fanOperatingMode);
 }
 
-void PolicyBase::activeRelationshipTableChanged(void)
+void PolicyBase::domainPcieThrottleRequested(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	OnOffToggle::Type pcieThrottleRequested)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": PCIe Throttle Requested " + OnOffToggle::toString(pcieThrottleRequested) + ".";
+	});
+	onDomainPcieThrottleRequested(participantIndex, domainIndex, pcieThrottleRequested);
+}
+
+void PolicyBase::activeRelationshipTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Active Relationship Table changed."; });
 	onActiveRelationshipTableChanged();
 }
 
-void PolicyBase::thermalRelationshipTableChanged(void)
+void PolicyBase::thermalRelationshipTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Thermal Relationship Table changed"; });
 	onThermalRelationshipTableChanged();
 }
 
-void PolicyBase::adaptivePerformanceConditionsTableChanged(void)
+void PolicyBase::adaptivePerformanceConditionsTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Conditions Table changed."; });
 	onAdaptivePerformanceConditionsTableChanged();
 }
-void PolicyBase::ddrfTableChanged(void)
+
+void PolicyBase::ddrfTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": DDRF Table changed."; });
 	onDdrfTableChanged();
 }
 
-void PolicyBase::tpgaTableChanged(void)
+void PolicyBase::rfimTableChanged()
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": RFIM Table changed."; });
+	onRfimTableChanged();
+}
+
+void PolicyBase::tpgaTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": TPGA Table changed."; });
 	onTpgaTableChanged();
 }
 
-void PolicyBase::adaptivePerformanceActionsTableChanged(void)
+void PolicyBase::adaptivePerformanceActionsTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Actions Table changed."; });
-	Bool hasActiveControlCapabilityLastSet = hasActiveControlCapability();
-	Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
+	const auto hasActiveControlCapabilityLastSet = hasActiveControlCapability();
+	const auto hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
 	onAdaptivePerformanceActionsTableChanged();
 	updateOscRequestIfNeeded(hasActiveControlCapabilityLastSet, hasPassiveControlCapabilityLastSet);
 }
 
-void PolicyBase::intelligentThermalManagementTableChanged(void)
+void PolicyBase::intelligentThermalManagementTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Intelligent Thermal Management Table changed."; });
 	onIntelligentThermalManagementTableChanged();
 }
 
-void PolicyBase::energyPerformanceOptimizerTableChanged(void)
+void PolicyBase::energyPerformanceOptimizerTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Energy Performance Optimizer Table changed."; });
 	onEnergyPerformanceOptimizerTableChanged();
 }
 
-void PolicyBase::pidAlgorithmTableChanged(void)
+void PolicyBase::pidAlgorithmTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": PID Algorithm Table changed."; });
-	Bool hasActiveControlCapabilityLastSet = hasActiveControlCapability();
-	Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
+	const auto hasActiveControlCapabilityLastSet = hasActiveControlCapability();
+	const auto hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
 	onPidAlgorithmTableChanged();
 	updateOscRequestIfNeeded(hasActiveControlCapabilityLastSet, hasPassiveControlCapabilityLastSet);
 }
 
-void PolicyBase::activeControlPointRelationshipTableChanged(void)
+void PolicyBase::activeControlPointRelationshipTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Active Control Point Relationship Table changed."; });
 	onActiveControlPointRelationshipTableChanged();
 }
 
-void PolicyBase::powerShareAlgorithmTableChanged(void)
+void PolicyBase::powerShareAlgorithmTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Share Algorithm Table changed."; });
 	onPowerShareAlgorithmTableChanged();
 }
 
-void PolicyBase::workloadHintConfigurationChanged(void)
+void PolicyBase::workloadHintConfigurationChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Workload Hint Configuration changed."; });
 	onWorkloadHintConfigurationChanged();
 }
 
-void PolicyBase::powerShareAlgorithmTable2Changed(void)
+void PolicyBase::powerShareAlgorithmTable2Changed()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Share Algorithm Table 2 changed."; });
@@ -675,8 +702,15 @@ Bool PolicyBase::hasPassiveControlCapability() const
 void PolicyBase::igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
 {
 	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy resume event received."; });
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy IGCC Broadcast event received."; });
 	onIgccBroadcastReceived(broadcastNotificationData);
+}
+
+void PolicyBase::environmentProfileChanged(const EnvironmentProfile& environmentProfile)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy Environment Profile Changed event received."; });
+	onEnvironmentProfileChanged(environmentProfile);
 }
 
 Bool PolicyBase::hasCriticalShutdownCapability() const
@@ -684,7 +718,7 @@ Bool PolicyBase::hasCriticalShutdownCapability() const
 	return false;
 }
 
-void PolicyBase::connectedStandbyEntry(void)
+void PolicyBase::connectedStandbyEntry()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Connected standby entry event received."; });
@@ -703,7 +737,7 @@ void PolicyBase::connectedStandbyEntry(void)
 	}
 }
 
-void PolicyBase::connectedStandbyExit(void)
+void PolicyBase::connectedStandbyExit()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Connected standby exit event received."; });
@@ -722,14 +756,28 @@ void PolicyBase::connectedStandbyExit(void)
 	}
 }
 
-void PolicyBase::suspend(void)
+void PolicyBase::lowPowerModeEntry()
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Low Power Mode Entry."; });
+	onLowPowerModeEntry();
+}
+
+void PolicyBase::lowPowerModeExit()
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Low Power Mode Exit."; });
+	onLowPowerModeExit();
+}
+
+void PolicyBase::suspend()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy suspend event received."; });
 	onSuspend();
 }
 
-void PolicyBase::resume(void)
+void PolicyBase::resume()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy resume event received."; });
@@ -759,6 +807,14 @@ void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSour
 	onOperatingSystemPowerSourceChanged(powerSource);
 }
 
+void PolicyBase::processLoaded(const std::string& processName)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Process loaded " + processName + "."; });
+	onProcessLoaded(processName);
+}
+
 void PolicyBase::operatingSystemLidStateChanged(OsLidState::Type lidState)
 {
 	throwIfPolicyIsDisabled();
@@ -775,14 +831,14 @@ void PolicyBase::operatingSystemBatteryPercentageChanged(UIntN batteryPercentage
 	onOperatingSystemBatteryPercentageChanged(batteryPercentage);
 }
 
-void PolicyBase::operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersosnality)
+void PolicyBase::operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality)
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({
 		return getName() + ": OS Power Scheme Personality changed to "
-			   + OsPowerSchemePersonality::toString(powerSchemePersosnality) + ".";
+			   + OsPowerSchemePersonality::toString(powerSchemePersonality) + ".";
 	});
-	onOperatingSystemPowerSchemePersonalityChanged(powerSchemePersosnality);
+	onOperatingSystemPowerSchemePersonalityChanged(powerSchemePersonality);
 }
 
 void PolicyBase::operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType)
@@ -884,7 +940,7 @@ void PolicyBase::coolingModePolicyChanged(CoolingMode::Type coolingMode)
 	onCoolingModePolicyChanged(coolingMode);
 }
 
-void PolicyBase::passiveTableChanged(void)
+void PolicyBase::passiveTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Passive Table changed."; });
@@ -918,7 +974,7 @@ void PolicyBase::sensorMotionChanged(OnOffToggle::Type sensorMotion)
 	onSensorMotionChanged(sensorMotion);
 }
 
-void PolicyBase::oemVariablesChanged(void)
+void PolicyBase::oemVariablesChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": OEM variable(s) changed."; });
@@ -932,58 +988,58 @@ void PolicyBase::swOemVariablesChanged()
 	onSwOemVariablesChanged();
 }
 
-void PolicyBase::powerBossConditionsTableChanged(void)
+void PolicyBase::powerBossConditionsTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Boss Conditions Table changed."; });
 	onPowerBossConditionsTableChanged();
 }
 
-void PolicyBase::powerBossActionsTableChanged(void)
+void PolicyBase::powerBossActionsTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Boss Actions Table changed."; });
-	Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
+	const Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
 	onPowerBossActionsTableChanged();
 	updateOscRequestIfNeeded(false, hasPassiveControlCapabilityLastSet);
 }
 
-void PolicyBase::powerBossMathTableChanged(void)
+void PolicyBase::powerBossMathTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Boss Math Table changed."; });
 	onPowerBossMathTableChanged();
 }
 
-void PolicyBase::voltageThresholdMathTableChanged(void)
+void PolicyBase::voltageThresholdMathTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Voltage Threshold Math Table changed."; });
 	onVoltageThresholdMathTableChanged();
 }
 
-void PolicyBase::emergencyCallModeTableChanged(void)
+void PolicyBase::emergencyCallModeTableChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Emergency Call Mode Table changed."; });
 	onEmergencyCallModeTableChanged();
 }
 
-void PolicyBase::overrideTimeObject(shared_ptr<TimeInterface> timeObject)
+void PolicyBase::overrideTimeObject(const shared_ptr<TimeInterface>& timeObject)
 {
 	m_time = timeObject;
 	m_trackedParticipants->setTimeServiceObject(m_time);
 	onOverrideTimeObject(timeObject);
 }
 
-void PolicyBase::powerLimitChanged(void)
+void PolicyBase::powerLimitChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Limit Changed."; });
 	onPowerLimitChanged();
 }
 
-void PolicyBase::powerLimitTimeWindowChanged(void)
+void PolicyBase::powerLimitTimeWindowChanged()
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Limit Time Window Changed."; });
@@ -1049,14 +1105,14 @@ void PolicyBase::thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
 	onThirdPartyGraphicsPowerStateChanged(tpgPowerStateOff);
 }
 
-void PolicyBase::thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource)
+void PolicyBase::thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP)
 {
 	throwIfPolicyIsDisabled();
 
 	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": TPG TPP Limit changed for power source: [" + OsPowerSource::toString(tppPowerSource) + "]";
+		return getName() + ": TPG TPP Limit changed for power source: [" + OsPowerSource::toString(powerSourceForTPP) + "]";
 		});
-	onThirdPartyGraphicsTPPLimitChanged(tppPowerSource);
+	onThirdPartyGraphicsTPPLimitChanged(powerSourceForTPP);
 }
 
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
@@ -1229,6 +1285,22 @@ void PolicyBase::onDomainSocWorkloadClassificationChanged(
 	throw not_implemented();
 }
 
+void PolicyBase::onDomainSocPowerFloorChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	SocPowerFloor::Type socPowerFloor)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainPcieThrottleRequested(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	OnOffToggle::Type pcieThrottleRequested)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
 {
 	throw not_implemented();
@@ -1242,27 +1314,32 @@ void PolicyBase::onDomainExtendedWorkloadPredictionChanged(
 	throw not_implemented();
 }
 
-void PolicyBase::onActiveRelationshipTableChanged(void)
+void PolicyBase::onActiveRelationshipTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onThermalRelationshipTableChanged(void)
+void PolicyBase::onThermalRelationshipTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onAdaptivePerformanceConditionsTableChanged(void)
+void PolicyBase::onAdaptivePerformanceConditionsTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onAdaptivePerformanceActionsTableChanged(void)
+void PolicyBase::onAdaptivePerformanceActionsTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onDdrfTableChanged(void)
+void PolicyBase::onDdrfTableChanged()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onRfimTableChanged()
 {
 	throw not_implemented();
 }
@@ -1272,27 +1349,42 @@ void PolicyBase::onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificatio
 	throw not_implemented();
 }
 
-void PolicyBase::onTpgaTableChanged(void)
+void PolicyBase::onEnvironmentProfileChanged(const EnvironmentProfile& environmentProfile)
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onConnectedStandbyEntry(void)
+void PolicyBase::onTpgaTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onConnectedStandbyExit(void)
+void PolicyBase::onConnectedStandbyEntry()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onSuspend(void)
+void PolicyBase::onConnectedStandbyExit()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onResume(void)
+void PolicyBase::onLowPowerModeEntry()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onLowPowerModeExit()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onSuspend()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onResume()
 {
 	throw not_implemented();
 }
@@ -1387,7 +1479,12 @@ void PolicyBase::onCoolingModePolicyChanged(CoolingMode::Type coolingMode)
 	throw not_implemented();
 }
 
-void PolicyBase::onPassiveTableChanged(void)
+void PolicyBase::onPassiveTableChanged()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onProcessLoaded(const std::string& processName)
 {
 	throw not_implemented();
 }
@@ -1407,7 +1504,7 @@ void PolicyBase::onSensorMotionChanged(OnOffToggle::Type sensorMotion)
 	throw not_implemented();
 }
 
-void PolicyBase::onOemVariablesChanged(void)
+void PolicyBase::onOemVariablesChanged()
 {
 	throw not_implemented();
 }
@@ -1417,72 +1514,72 @@ void PolicyBase::onSwOemVariablesChanged()
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerBossConditionsTableChanged(void)
+void PolicyBase::onPowerBossConditionsTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerBossActionsTableChanged(void)
+void PolicyBase::onPowerBossActionsTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerBossMathTableChanged(void)
+void PolicyBase::onPowerBossMathTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onVoltageThresholdMathTableChanged(void)
+void PolicyBase::onVoltageThresholdMathTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onEmergencyCallModeTableChanged(void)
+void PolicyBase::onEmergencyCallModeTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPidAlgorithmTableChanged(void)
+void PolicyBase::onPidAlgorithmTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onActiveControlPointRelationshipTableChanged(void)
+void PolicyBase::onActiveControlPointRelationshipTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerShareAlgorithmTableChanged(void)
+void PolicyBase::onPowerShareAlgorithmTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onIntelligentThermalManagementTableChanged(void)
+void PolicyBase::onIntelligentThermalManagementTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onWorkloadHintConfigurationChanged(void)
+void PolicyBase::onWorkloadHintConfigurationChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerShareAlgorithmTable2Changed(void)
+void PolicyBase::onPowerShareAlgorithmTable2Changed()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onEnergyPerformanceOptimizerTableChanged(void)
+void PolicyBase::onEnergyPerformanceOptimizerTableChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerLimitChanged(void)
+void PolicyBase::onPowerLimitChanged()
 {
 	throw not_implemented();
 }
 
-void PolicyBase::onPowerLimitTimeWindowChanged(void)
+void PolicyBase::onPowerLimitTimeWindowChanged()
 {
 	throw not_implemented();
 }
@@ -1512,7 +1609,7 @@ void PolicyBase::onForegroundRatioChanged(UIntN ratio)
 	throw not_implemented();
 }
 
-void PolicyBase::onCollaborationModeChanged(OnOffToggle::Type collaborationstate)
+void PolicyBase::onCollaborationModeChanged(OnOffToggle::Type collaborationModeState)
 {
 	throw not_implemented();
 }
@@ -1525,7 +1622,7 @@ void PolicyBase::onDomainFanOperatingModeChanged(
 	throw not_implemented();
 }
 
-void PolicyBase::onOverrideTimeObject(shared_ptr<TimeInterface> timeObject)
+void PolicyBase::onOverrideTimeObject(const shared_ptr<TimeInterface>& timeObject)
 {
 	// optional to implement
 }
@@ -1545,7 +1642,7 @@ shared_ptr<TimeInterface>& PolicyBase::getTime() const
 	return m_time;
 }
 
-void PolicyBase::throwIfPolicyRequirementsNotMet()
+void PolicyBase::throwIfPolicyRequirementsNotMet() const
 {
 	if (m_policyServices.platformConfigurationData == nullptr)
 	{
@@ -1555,7 +1652,7 @@ void PolicyBase::throwIfPolicyRequirementsNotMet()
 	}
 }
 
-void PolicyBase::throwIfPolicyIsDisabled()
+void PolicyBase::throwIfPolicyIsDisabled() const
 {
 	if (m_enabled == false)
 	{
@@ -1563,7 +1660,7 @@ void PolicyBase::throwIfPolicyIsDisabled()
 	}
 }
 
-void PolicyBase::sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled)
+void PolicyBase::sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled) const
 {
 	if (shouldSendOscRequest)
 	{
@@ -1590,7 +1687,7 @@ void PolicyBase::sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled)
 
 			DptfRequest request(DptfRequestType::PlatformNotificationSetOsc);
 			request.setDataFromUInt32(oscInputCapabilitiesDWord);
-			auto result = m_policyServices.serviceRequest->submitRequest(request);
+			const auto result = m_policyServices.serviceRequest->submitRequest(request);
 			result.throwIfFailure();
 			POLICY_LOG_MESSAGE_INFO({ return getName() + ": " + result.getMessage(); });
 		}
@@ -1608,7 +1705,7 @@ void PolicyBase::sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled)
 void PolicyBase::updateOscRequestIfNeeded(
 	Bool hasActiveControlCapabilityLastSet,
 	Bool hasPassiveControlCapabilityLastSet,
-	Bool hasCriticalShutdownCapabilityLastSet)
+	Bool hasCriticalShutdownCapabilityLastSet) const
 {
 
 	if (hasActiveControlCapabilityLastSet != hasActiveControlCapability()
@@ -1619,15 +1716,15 @@ void PolicyBase::updateOscRequestIfNeeded(
 	}
 }
 
-shared_ptr<XmlNode> PolicyBase::getXmlForTripPointStatistics(set<UIntN> targetIndexes) const
+shared_ptr<XmlNode> PolicyBase::getXmlForTripPointStatistics(const set<UIntN>& targetIndexes) const
 {
 	auto status = XmlNode::createWrapperElement("trip_point_statistics");
 
-	for (auto targetIndex = targetIndexes.begin(); targetIndex != targetIndexes.end(); ++targetIndex)
+	for (const auto targetIndex : targetIndexes)
 	{
-		if (*targetIndex != Constants::Invalid)
+		if (targetIndex != Constants::Invalid)
 		{
-			auto participant = getParticipantTracker()->getParticipant(*targetIndex);
+			const auto participant = getParticipantTracker()->getParticipant(targetIndex);
 			status->addChild(participant->getXmlForTripPointStatistics());
 		}
 	}
@@ -1653,7 +1750,7 @@ void PolicyBase::onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
 	throw not_implemented();
 }
 
-void PolicyBase::onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource)
+void PolicyBase::onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP)
 {
 	throw not_implemented();
 }

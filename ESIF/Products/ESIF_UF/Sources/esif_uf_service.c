@@ -72,13 +72,13 @@ eEsifError ESIF_CALLCONV EsifSvcConfigGet(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	ESIF_TRACE_DEBUG("\n\n"
-					 "ESIF Handle          : " ESIF_HANDLE_FMT "n"
-					 "Name Space           : %s\n"
-					 "Element Path         : %s\n\n",
-					 esif_ccb_handle2llu(esifHandle),
-					 (EsifString)nameSpacePtr->buf_ptr,
-					 (EsifString)elementPathPtr->buf_ptr);
+	ESIF_TRACE_DEBUG("\n"
+		"Name Space           : %s\n"
+		"Element Path         : %s\n"
+		"App Handle           : " ESIF_HANDLE_FMT "\n",
+		(EsifString)nameSpacePtr->buf_ptr,
+		(EsifString)elementPathPtr->buf_ptr,
+		esif_ccb_handle2llu(esifHandle));
 
 	return EsifConfigGet(nameSpacePtr, elementPathPtr, elementValuePtr);
 }
@@ -110,17 +110,17 @@ eEsifError ESIF_CALLCONV EsifSvcConfigSet(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	ESIF_TRACE_DEBUG("\n\n"
-					 "ESIF Handle          : " ESIF_HANDLE_FMT "\n"
+	ESIF_TRACE_DEBUG("\n"
 					 "Name Space           : %s\n"
 					 "Element Path         : %s\n"
 					 "Element Value        : %s\n"
-					 "Element Flags        : %08x\n\n",
-					 esif_ccb_handle2llu(esifHandle),
+					 "Element Flags        : %08x\n\n"
+					 "App Handle           : " ESIF_HANDLE_FMT "\n",
 					 (EsifString)nameSpacePtr->buf_ptr,
 					 (EsifString)elementPathPtr->buf_ptr,
 					 (EsifString)elementValuePtr->buf_ptr,
-					 elementFlags);
+					 elementFlags,
+					 esif_ccb_handle2llu(esifHandle));
 
 	return EsifConfigSet(nameSpacePtr,
 		elementPathPtr,
@@ -192,37 +192,37 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 	}
 
 	/* Share what we have learned so far */
-	ESIF_TRACE_DEBUG("\n\n"
-					 "ESIF Handle          : " ESIF_HANDLE_FMT "\n"
-					 "Participant Handle   : " ESIF_HANDLE_FMT "\n"
-					 "Participant ID       : " ESIF_HANDLE_FMT "\n"
-					 "Domain Handle        : " ESIF_HANDLE_FMT "\n"
-					 "Request              : %p\n"
-					 "  Data Type:         : %s(%u)\n"
-					 "  Data Buffer        : %p\n"
-					 "  Data Length        : %u\n"
-					 "Response             : %p\n"
-					 "  Data Type          : %s(%u)\n"
-					 "  Data Buffer        : %p\n"
-					 "  Data Length        : %u\n"
-					 "Primitive            : %s(%u)\n"
-					 "Qualifier            : %s\n"
-					 "Instance             : %u\n\n",
-					 esif_ccb_handle2llu(esifHandle),
-					 esif_ccb_handle2llu(participantId),
-					 esif_ccb_handle2llu(localParticipantId),
-					 esif_ccb_handle2llu(domainHandle),
-					 requestPtr,
-					 esif_data_type_str(requestPtr->type), requestPtr->type,
-					 requestPtr->buf_ptr,
-					 requestPtr->buf_len,
-					 responsePtr,
-					 esif_data_type_str(responsePtr->type), responsePtr->type,
-					 responsePtr->buf_ptr,
-					 responsePtr->buf_len,
-					 esif_primitive_str((enum esif_primitive_type)primitive), primitive,
-					 qualifier_str,
-					 instance);
+	ESIF_TRACE_DEBUG("\n"
+		"Primitive            : %s(%u)\n"
+		"Qualifier            : %s\n"
+		"Instance             : %u\n"
+		"Participant Handle   : " ESIF_HANDLE_FMT "\n"
+		"Participant ID       : " ESIF_HANDLE_FMT "\n"
+		"Domain Handle        : " ESIF_HANDLE_FMT "\n"
+		"Request              : %p\n"
+		"  Data Type:         : %s(%u)\n"
+		"  Data Buffer        : %p\n"
+		"  Data Length        : %u\n"
+		"Response             : %p\n"
+		"  Data Type          : %s(%u)\n"
+		"  Data Buffer        : %p\n"
+		"  Data Length        : %u\n"
+		"App Handle           : " ESIF_HANDLE_FMT "\n",
+		esif_primitive_str((enum esif_primitive_type)primitive), primitive,
+		qualifier_str,
+		instance,
+		esif_ccb_handle2llu(participantId),
+		esif_ccb_handle2llu(localParticipantId),
+		esif_ccb_handle2llu(domainHandle),
+		requestPtr,
+		esif_data_type_str(requestPtr->type), requestPtr->type,
+		requestPtr->buf_ptr,
+		requestPtr->buf_len,
+		responsePtr,
+		esif_data_type_str(responsePtr->type), responsePtr->type,
+		responsePtr->buf_ptr,
+		responsePtr->buf_len,
+		esif_ccb_handle2llu(esifHandle));
 	
 	rc = EsifArbMgr_ExecutePrimitive(
 		esifHandle,
@@ -253,25 +253,21 @@ eEsifError ESIF_CALLCONV EsifSvcWriteLog(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	ESIF_TRACE_DEBUG("\n\n"
-					 "ESIF Handle          : " ESIF_HANDLE_FMT "\n"
-					 "Participant Handle   : " ESIF_HANDLE_FMT "\n"
-					 "Domain Handle        : " ESIF_HANDLE_FMT "\n"
-					 "Message              : %p\n"
-					 "  Data Type:         : %s(%u)\n"
-					 "  Data Buffer:       : %p\n"
-					 "  Data Length:       : %u\n"
-					 "Log Type             : %s(%u)\n"
-					 "Message              : %s\n\n",
-					 esif_ccb_handle2llu(esifHandle),
-					 esif_ccb_handle2llu(participantId),
-					 esif_ccb_handle2llu(domainHandle),
-					 messagePtr,
-					 esif_data_type_str(messagePtr->type), messagePtr->type,
-					 messagePtr->buf_ptr,
-					 messagePtr->buf_len,
-					 esif_log_type_str(logType), logType,
-					 (esif_string)messagePtr->buf_ptr);
+	ESIF_TRACE_DEBUG("\n"
+		"Message              : %s\n"
+		"Log Type             : %s(%u)\n"
+		"ESIF Data Pointer    : %p\n"
+		"  Data Type:         : %s(%u)\n"
+		"  Data Buffer:       : %p\n"
+		"  Data Length:       : %u\n"
+		"  App Handle         : " ESIF_HANDLE_FMT "\n",
+		(esif_string)messagePtr->buf_ptr,
+		esif_log_type_str(logType), logType,
+		messagePtr,
+		esif_data_type_str(messagePtr->type), messagePtr->type,
+		messagePtr->buf_ptr,
+		messagePtr->buf_len,
+		esif_ccb_handle2llu(esifHandle));
 
 	msg = (esif_string)messagePtr->buf_ptr;
 	if (msg != NULL && *msg=='\n')
@@ -347,17 +343,18 @@ eEsifError ESIF_CALLCONV EsifSvcEventRegister(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Registering App Event\n\n"
-		"ESIF Handle          : " ESIF_HANDLE_FMT "\n"
-		"Participant Handle   : " ESIF_HANDLE_FMT "\n"
-		"Domain Handle        : " ESIF_HANDLE_FMT "\n"
-		"Event GUID           : %s\n"
-		"Event Type           : %d (%s)\n\n",
-		esif_ccb_handle2llu(esifHandle),
+	ESIF_TRACE_INFO("\n"
+		"Registering Event\n"
+		"  Event Type           : %d (%s)\n"
+		"  Participant Handle   : " ESIF_HANDLE_FMT "\n"
+		"  Domain Handle        : " ESIF_HANDLE_FMT "\n"
+		"  App Handle			: " ESIF_HANDLE_FMT "\n"
+		"  Event GUID           : %s\n",
+		eventType, esif_event_type_str(eventType),
 		esif_ccb_handle2llu(participantId),
 		esif_ccb_handle2llu(domainHandle),
-		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
-		eventType, esif_event_type_str(eventType));
+		esif_ccb_handle2llu(esifHandle),
+		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr));
 
 	/* Validate the app calling the interface */
 	appPtr = EsifAppMgr_GetAppFromHandle(esifHandle);
@@ -470,17 +467,18 @@ eEsifError ESIF_CALLCONV EsifSvcEventUnregister(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Unregistering App event:\n\n"
-		"  ESIF Handle          : " ESIF_HANDLE_FMT "\n"
+	ESIF_TRACE_INFO("\n"
+		"Unregistering App event:\n"
+		"  Event Type           : %d (%s)\n"
 		"  Participant Handle   : " ESIF_HANDLE_FMT "\n"
 		"  Domain Handle        : " ESIF_HANDLE_FMT "\n"
-		"  Event GUID           : %s\n"
-		"  Event Type           : %d (%s)\n\n",
-		esif_ccb_handle2llu(esifHandle),
+		"  App Handle           : " ESIF_HANDLE_FMT "\n"
+		"  Event GUID           : %s\n",
+		eventType, esif_event_type_str(eventType),
 		esif_ccb_handle2llu(participantId),
 		esif_ccb_handle2llu(domainHandle),
-		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
-		eventType, esif_event_type_str(eventType));
+		esif_ccb_handle2llu(esifHandle),
+		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr));
 
 	/* Validate the app calling the interface */
 	appPtr = EsifAppMgr_GetAppFromHandle(esifHandle);
@@ -581,18 +579,17 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	ESIF_TRACE_DEBUG("Received Event\n\n"
-		"ESIF Handle          : " ESIF_HANDLE_FMT "\n"
+	ESIF_TRACE_DEBUG("Received Event\n"
+		"Event GUID           : %s\n\n"
 		"Participant Handle   : " ESIF_HANDLE_FMT "\n"
 		"Domain Handle        : " ESIF_HANDLE_FMT "\n"
 		"Event Data           : %p\n"
-		"Event GUID           : %s\n\n",
-		esif_ccb_handle2llu(esifHandle),
+		"App Handle           : " ESIF_HANDLE_FMT "\n",
+		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
 		esif_ccb_handle2llu(participantId),
 		esif_ccb_handle2llu(domainHandle),
 		eventDataPtr,
-		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr));
-
+		esif_ccb_handle2llu(esifHandle));
 
 	/* Validate the app calling the interface */
 	appPtr = EsifAppMgr_GetAppFromHandle(esifHandle);
@@ -612,13 +609,9 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 			goto exit;
 		}
 
-		ESIF_TRACE_DEBUG(
+		ESIF_TRACE_INFO("\n"
 			"Received APP event\n"
-			"  Participant: " ESIF_HANDLE_FMT "\n"
-			"  GUID: %s\n"
 			"  Type: %s(%d)\n",
-			esif_ccb_handle2llu(localParticipantId),
-			esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
 			esif_event_type_str(eventType), eventType);
 
 		rc = EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, eventType, eventDataPtr);
@@ -637,14 +630,12 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 			goto exit;
 		}
 
-		ESIF_TRACE_DEBUG(
-			"Received Participant event\n"
-			"  Participant: " ESIF_HANDLE_FMT "\n"
-			"  GUID: %s\n"
-			"  Type: %s(%d)\n",
-			esif_ccb_handle2llu(localParticipantId),
-			esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
-			esif_event_type_str(eventType), eventType);
+		ESIF_TRACE_INFO("\n"
+			"Received PART Event\n"
+			"  Type: %s(%d)\n"
+			"  Participant: " ESIF_HANDLE_FMT "\n",
+			esif_event_type_str(eventType), eventType,
+			esif_ccb_handle2llu(localParticipantId));
 
 		rc = EsifEventMgr_SignalEvent(localParticipantId, EVENT_MGR_MATCH_ANY_DOMAIN, eventType, eventDataPtr);
 		if (ESIF_OK != rc) {
@@ -670,14 +661,14 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 			goto exit;
 		}
 
-		ESIF_TRACE_DEBUG(
-			"Received Domain event\n"
-			"  Participant: " ESIF_HANDLE_FMT "\n",
-			"  GUID: %s\n"
-			"  Type: %s(%d)\n",
+		ESIF_TRACE_INFO("\n"
+			"Received DOMAIN event\n"
+			"  Type:          %s(%d)\n"
+			"  Participant:   " ESIF_HANDLE_FMT "\n",
+			"  Domain Handle: " ESIF_HANDLE_FMT "\n",
+			esif_event_type_str(eventType), eventType,
 			esif_ccb_handle2llu(localParticipantId),
-			esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
-			esif_event_type_str(eventType), eventType);
+			esif_ccb_handle2llu(domainHandle));
 
 		rc = EsifEventMgr_SignalEvent(localParticipantId, domainId, eventType, eventDataPtr);
 		if (ESIF_OK != rc) {
@@ -901,6 +892,7 @@ eEsifError ESIF_CALLCONV EsifSvcEventCallback(
 	EsifAppPtr appPtr = NULL;
 	esif_guid_t guid = { 0 };
 	EsifData dataGuid = { ESIF_DATA_GUID, &guid, sizeof(guid), sizeof(guid) };
+	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
 
 	if (NULL == fpcEventPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -918,11 +910,27 @@ eEsifError ESIF_CALLCONV EsifSvcEventCallback(
 		goto exit;
 	}
 
+	ESIF_TRACE_DEBUG(
+		"Sending app event:\n"
+		"  App:            " ESIF_HANDLE_FMT "\n"
+		"  App Context:    %p\n"
+		"  Participant ID: " ESIF_HANDLE_FMT "\n"
+		"  Domain:         0x%04X\n"
+		"  Event Type:     %s\n"
+		"  Event GUID:     %s\n",
+		esif_ccb_handle2llu(appPtr->fHandle),
+		appPtr->fAppCtxHandle,
+		esif_ccb_handle2llu(participantId),
+		domainId,
+		esif_event_type_str(fpcEventPtr->esif_event),
+		esif_guid_print((esif_guid_t *)dataGuid.buf_ptr, guidStr));
+
 	rc = EsifApp_SendEvent(
 		appPtr,
 		participantId,
 		domainId,
 		eventDataPtr,
+		fpcEventPtr->esif_event,
 		&dataGuid);
 exit:
 	EsifAppMgr_PutRef(appPtr);

@@ -184,15 +184,22 @@ eEsifError EsifUp_DspReadyInit(
 		goto exit;
 	}
 
-	// Set the values needed to associate storage participants (best effort as many participants will not have DSP support)
-	value = self->fMetadata.fPort;
-	EsifUp_ExecutePrimitive(self, &tuplePort, &valueData, NULL);
+	/*
+	* Set the values to associated auto-enumerated storage participants (best effort)
+	* NOTE: Storage participants which are not auto-enumerated get the port and
+	* scbl from the BIOS
+	*/
+	if ((self->fMetadata.fAcpiType == ESIF_DOMAIN_TYPE_NVME) &&
+		(self->fMetadata.fFlags & ESIF_FLAG_AUTO_ENUMERATED)) {
+		value = self->fMetadata.fPort;
+		EsifUp_ExecutePrimitive(self, &tuplePort, &valueData, NULL);
 
-	value = self->fMetadata.fScbl;
-	EsifUp_ExecutePrimitive(self, &tupleScbl, &valueData, NULL);
+		value = self->fMetadata.fScbl;
+		EsifUp_ExecutePrimitive(self, &tupleScbl, &valueData, NULL);
 
-	value = self->fMetadata.fAcpiType;
-	EsifUp_ExecutePrimitive(self, &tuplePtype, &valueData, NULL);
+		value = self->fMetadata.fAcpiType;
+		EsifUp_ExecutePrimitive(self, &tuplePtype, &valueData, NULL);
+	}
 
 	for (domainIndex = 0; domainIndex < self->domainCount; domainIndex++) {
 		
@@ -633,6 +640,7 @@ static eEsifError EsifUp_CreateParticipantByLpEventData(
 	*/
 	if (lpCreateDataPtr->flags & ESIF_FLAG_DPTFZ) {
 		newUpPtr->fLpInstance = ESIF_INSTANCE_LF;
+		newUpPtr->fLpAlias = lpCreateDataPtr->id;
 	} else {
 		newUpPtr->fLpInstance = lpCreateDataPtr->id;
 	}
@@ -732,6 +740,7 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	newUpPtr->fMetadata.fFlags = upInterfacePtr->flags;
 	newUpPtr->fMetadata.fAcpiType = upInterfacePtr->acpi_type;
 
+
 	esif_ccb_memcpy(&newUpPtr->fMetadata.fDriverType, &upInterfacePtr->class_guid, ESIF_GUID_LEN);
 
 	esif_ccb_strcpy(newUpPtr->fMetadata.fName, upInterfacePtr->name, ESIF_NAME_LEN);
@@ -744,6 +753,9 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 
 	newUpPtr->fMetadata.fPort = upInterfacePtr->port;
 	newUpPtr->fMetadata.fScbl = upInterfacePtr->scbl;
+
+	newUpPtr->fMetadata.fPciVendor = upInterfacePtr->pciVendorId;
+	newUpPtr->fMetadata.fPciDevice = upInterfacePtr->pciDeviceId;
 
 	rc = EsifUp_SelectDspByUpInterface(newUpPtr, upInterfacePtr);
 	if (rc != ESIF_OK) {
@@ -1204,14 +1216,15 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("\n\n"
+	ESIF_TRACE_DEBUG("\n"
 		"Primitive Request:\n"
-		"  Participant ID       : %u\n"
+		"  Participant          : %s(%u)\n"
 		"  Primitive            : %s(%u)\n"
 		"  Domain               : 0x%04X\n"
-		"  Instance             : %u\n\n"
+		"  Instance             : %u\n"
 		"  Request              : %p\n"
 		"  Response             : %p\n",
+		EsifUp_GetName(self),
 		EsifUp_GetInstance(self),
 		esif_primitive_str((enum esif_primitive_type)tuplePtr->id), tuplePtr->id,
 		tuplePtr->id,
@@ -2079,31 +2092,49 @@ Bool EsifUp_IsPreferredParticipant(
 	/*
 	* Preference rules in order of precedence:
 	* LF participants are always favored over UF
-	* Conjured enumerators parts are always overridden by anything...including another conjure
+	* Auto-enumerated parts are always overridden by anything...including other auto-enumerated parts
+	* Conjured parts are overridden by non-auto-enumerated parts ...including other conjured parts
 	* External DPTFZ overrides other LF parts 
 	*/
 	switch (origin) {
 	case eParticipantOriginLF:
 		if (eParticipantOriginLF != upPtr->fOrigin) {
+			ESIF_TRACE_DEBUG("LF participant preferred over UF participant\n");
 			isPreferred = ESIF_TRUE;
 			break;
 		}
-		if (ESIF_PARTICIPANT_ENUM_CONJURE == curUpDataPtr->fEnumerator) {
+
+		if (curUpDataPtr->fFlags & ESIF_FLAG_AUTO_ENUMERATED) {
+			ESIF_TRACE_DEBUG("Participant preferred over auto-enumerated participant\n");
 			isPreferred = ESIF_TRUE;
 			break;
 		}
 
 		lfMetaPtr = (struct esif_ipc_event_data_create_participant *)metadataPtr;
 
+		if (!(lfMetaPtr->flags & ESIF_FLAG_AUTO_ENUMERATED) && (ESIF_PARTICIPANT_ENUM_CONJURE == curUpDataPtr->fEnumerator)) {
+			ESIF_TRACE_DEBUG("Participant preferred over conjured participant\n");
+			isPreferred = ESIF_TRUE;
+			break;
+		}
+
 		if (lfMetaPtr->flags & ESIF_FLAG_EXTERN_DPTFZ) {
+			ESIF_TRACE_DEBUG("Participant preferred ACPI IETM\n");
 			isPreferred = ESIF_TRUE;
 			break;
 		}
 		break;
 
 	case eParticipantOriginUF:
+		if (curUpDataPtr->fFlags & ESIF_FLAG_AUTO_ENUMERATED) {
+			ESIF_TRACE_DEBUG("UF Participant preferred over auto-enumerated part\n");
+			isPreferred = ESIF_TRUE;
+			break;
+		}
+
 		ufMetaPtr = (EsifParticipantIfacePtr)metadataPtr;
-		if (ESIF_PARTICIPANT_ENUM_CONJURE == curUpDataPtr->fEnumerator) {
+		if (!(ufMetaPtr->flags & ESIF_FLAG_AUTO_ENUMERATED) && (ESIF_PARTICIPANT_ENUM_CONJURE == curUpDataPtr->fEnumerator)) {
+			ESIF_TRACE_DEBUG("UF Participant preferred over conjured part\n");
 			isPreferred = ESIF_TRUE;
 			break;
 		}

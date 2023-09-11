@@ -44,8 +44,32 @@ static ESIF_INLINE UInt64 htonll(UInt64 value)
 	return (((UInt64)lo) << 32) | hi;
 }
 
-#define RECV_BUF_SIZE		(1*1024*1024) /*8192*/	// Initial Receive Buffer Size
-#define RECV_BUF_GROWBY		512		// Amount to Grow Receive Buffer by when Incomplete Frame
+/*
+** The intended use of the original IPF IPC Interface API is:
+** 1. Call Ipc_Init() and Ipc_Exit() once per process
+** 2. Call Ipc_SetAppIface() once after Ipc_Init()
+** 3. Call IpcSession_Create() and IpcSession_Connect() once for each IPC session
+** 4. Call IpcSession_Disconnect() and IpcSesson_Destroy() once for each IPC session
+**
+** However, current client code actually behaves differently (IPFCORE, AppLoader, etc):
+** 1. Ipc_Init() and Ipc_Exit() is called for each session within the same process by AppLoader
+** 2. Ipc_SetAppIface() may be called before Ipc_Init() by IPFCORE and for each session
+** 3. IpcSession_Disconnect() may be called multiple times for each session before IpcSession_Destroy()
+** 4. IpcSession_Destroy() may be called multiple times per session
+** 5. IpcSession_Destroy() may be called before IpcSession_Disconnect()
+** 6. IPFCORE and IPF-EF Providers in the same process call Ipf_Init/Exit/SetAppIface() separately
+**
+** Therefore we handle these conditions by using a lock to synchronize access to support
+** Multiple IPC Instances calling Initialization functions in a different order than documented
+**
+** Calls to Ipc_SetAppIface and IpcSession_Create must take place on the same thread to avoid race
+** conditions unless all Sessions share the same AppIface or are created serially on the same thread.
+*/
+
+#define MAX_IPC_SESSIONS	ESIF_MAX_IPC_SESSIONS	// Maximum IPC Sessions per Client Process
+
+#define RECV_BUF_SIZE		65536	// Initial Receive Buffer Size
+#define RECV_BUF_GROWBY		4096	// Amount to Grow Receive Buffer by when Incomplete Frame
 
 #define WSFRAME_HEADER_TYPE1		125	// hdr.payloadSize <= 125
 #define WSFRAME_HEADER_TYPE2		126	// hdr.payloadSize = 126, T2.payloadSize = UInt16 [Big-Endian]
@@ -54,6 +78,33 @@ static ESIF_INLINE UInt64 htonll(UInt64 value)
 #define WSFRAME_HEADER_TYPE1_MAX	125			// header Type1 max length
 #define WSFRAME_HEADER_TYPE2_MAX	0xFFFF		// header Type2 max length
 #define WSFRAME_HEADER_TYPE3_MAX	0x7FFFFFFE	// header Type3 max length
+
+#define ObjType_None				0x0		// Used to indicate Destroyed Object
+
+// Generic "waitlock" object used for locking. Could be Shared Lock, Mutex, or modified Spinlock with delays
+typedef esif_ccb_mutex_t waitlock_t;
+#define waitlock_init(lock)		esif_ccb_mutex_init(lock)
+#define waitlock_uninit(lock)	esif_ccb_mutex_uninit(lock)
+#define waitlock_lock(lock)		esif_ccb_mutex_lock(lock)
+#define waitlock_unlock(lock)	esif_ccb_mutex_unlock(lock)
+
+
+// IPC Session Instance - One per Session (Connection)
+typedef struct IpcInstance_s {
+	IpcSession_t		handle;		// IPC Client Session Handle
+	esif_thread_id_t	threadId;	// Thread ID that created handle; Used to bind and reserve Session for current Thread
+	AppInterfaceSet		*ifaceSet;	// Optional ESIF/App Interface Set passed by Ipc_SetAppIface()
+	IpcSession			*session;	// IPC Websocket Client Session
+} IpcInstance;
+
+// IPC Session Manager - Global Singleton Object for all Instances & Sessions
+typedef struct IpcSessionMgr_s {
+	waitlock_t		lock;			// Lock
+	atomic_t		initialized;	// Session Manager Initialized
+	atomic_t		refcount;		// Reference Count
+	IpcInstance		sessions[MAX_IPC_SESSIONS];	// Active Instances (Sessions)
+	AppInterfaceSet	ifaceDefault;	// Default App Interface Set for new Sessions
+} IpcSessionMgr;
 
 /*
 ** PRIVATE FUNCTIONS
@@ -234,112 +285,276 @@ static esif_error_t IpcSession_PongResponse(
 }
 
 //
-// IPF Session Handle Manager (We only support one Session for now)
+// IPC Session Manager
 //
-typedef struct IpcSessionMgr_s {
-	IpcSession_t	handle;
-	IpcSession		*session;
-} IpcSessionMgr;
 
-static IpcSessionMgr g_ipcSessionMgr = {
-	.handle = IPC_INVALID_SESSION,
-	.session = NULL
-};
+// Get Singleton IPC Session Manager Instance and Initialize on first use
+IpcSessionMgr *IpcSessionMgr_GetInstance(void)
+{
+	static IpcSessionMgr singleton = { 0 };
+	if (!atomic_read(&singleton.initialized)) {
+
+		// Initialize lock on first use using a spinlock
+		static esif_ccb_spinlock_t spinlock = ATOMIC_INIT(0);
+		esif_ccb_spinlock_lock(&spinlock);
+		if (!atomic_read(&singleton.initialized)) {
+			waitlock_init(&singleton.lock);
+		}
+		esif_ccb_spinlock_unlock(&spinlock);
+
+		// Take a lock and initialize the IPC Session Manager
+		waitlock_lock(&singleton.lock);
+		if (!atomic_read(&singleton.initialized)) {
+			for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+				singleton.sessions[j].handle = IPC_INVALID_SESSION;
+				singleton.sessions[j].threadId = ESIF_THREAD_ID_NULL;
+				singleton.sessions[j].ifaceSet = NULL;
+				singleton.sessions[j].session = NULL;
+			}
+			singleton.ifaceDefault = (AppInterfaceSet){ 0 };
+			atomic_set(&singleton.refcount, 0);
+			atomic_set(&singleton.initialized, 1);
+		}
+		waitlock_unlock(&singleton.lock);
+	}
+	return &singleton;
+}
 
 // Create a new IPC Session Handle for the given IPC Session Object
+// This may be called from Ipc_SetAppIface or IpcSession_Create so an IPC Handle is
+// generated ONLY if we are able to reserve an Instance using the current Thread ID.
+//
+// This is necessary to later bind the Instance when the IpcSession object is created,
+// therefore if session is NULL then an Instance is only reserved for later binding.
 static IpcSession_t IpcSessionMgr_CreateHandle(IpcSession *session)
 {
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
 	IpcSession_t handle = IPC_INVALID_SESSION;
-	if (session && g_ipcSessionMgr.handle == IPC_INVALID_SESSION) {
-		const esif_handle_t handle_min = 0x0000000010000000; // Min Handle before Random Seed
-		const esif_handle_t handle_max = 0x7ffffffff0000000; // Max Handle before Rollover
-		const esif_handle_t handle_seed= 0x0000000000ffffff; // Handle Initial Seed Random Mask
-		const esif_handle_t handle_inc = 0x000000000000ffff; // Handle Increment Random Mask
 
-		handle = Ipf_GenerateHandle(handle_min, handle_max, handle_seed, handle_inc);
+	if (self) {
+		// Find the next available Instance and reserve it for this Thread, unless it has already been reserved
+		IpcInstance *instance = NULL;
+		esif_thread_id_t threadId = esif_ccb_thread_id_current();
+		waitlock_lock(&self->lock);
+		for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+			if (self->sessions[j].handle && self->sessions[j].handle != IPC_INVALID_SESSION && self->sessions[j].threadId == threadId) {
+				instance = &self->sessions[j];
+				break;
+			}
+		}
+		for (int j = 0; instance == NULL && j < MAX_IPC_SESSIONS; j++) {
+			if (self->sessions[j].handle == IPC_INVALID_SESSION && self->sessions[j].threadId == ESIF_THREAD_ID_NULL) {
+				self->sessions[j].threadId = threadId;
+				instance = &self->sessions[j];
+				break;
+			}
+		}
+		waitlock_unlock(&self->lock);
 
-		g_ipcSessionMgr.handle = handle;
-		g_ipcSessionMgr.session = session;
+		// Generate a new Session Handle and assign the Session to the Instance
+		if (instance) {
+			const esif_handle_t handle_min = 0x0000000010000000; // Min Handle before Random Seed
+			const esif_handle_t handle_max = 0x7ffffffff0000000; // Max Handle before Rollover
+			const esif_handle_t handle_seed= 0x0000000000ffffff; // Handle Initial Seed Random Mask
+			const esif_handle_t handle_inc = 0x000000000000ffff; // Handle Increment Random Mask
+
+			handle = Ipf_GenerateHandle(handle_min, handle_max, handle_seed, handle_inc);
+
+			// Add Session to this Instance and set the App Interface Set
+			// Use the set previously reserved for this thread by Ipc_SetAppIface (if any)
+			// otherwise use the Default set created by the last call to Ipc_SetAppIface
+			//
+			// Note that the AppGetName function must always return a unique name
+			// if the same App Interface set is used for multiple client apps
+			waitlock_lock(&self->lock);
+			instance->session = session;
+			if (session) {
+				if (instance->ifaceSet) {
+					session->appSession.ifaceSet = *instance->ifaceSet;
+					esif_ccb_free(instance->ifaceSet);
+					instance->ifaceSet = NULL;
+				}
+				else {
+					session->appSession.ifaceSet = self->ifaceDefault;
+				}
+				session->appSession.ipfHandle = handle;
+				instance->threadId = ESIF_THREAD_ID_NULL;
+			}
+			instance->handle = handle;
+			waitlock_unlock(&self->lock);
+		}
 	}
 	return handle;
 }
 
-// Remove the Handle for the given Session Handle
+// Remove the given Handle and Session from the Session Manager
 static void IpcSessionMgr_DeleteHandle(IpcSession_t handle)
 {
-	if (g_ipcSessionMgr.handle == handle || handle == IPC_INVALID_SESSION) {
-		g_ipcSessionMgr.handle = IPC_INVALID_SESSION;
-		g_ipcSessionMgr.session = NULL;
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
+	if (self && handle && handle != IPC_INVALID_SESSION) {
+		waitlock_lock(&self->lock);
+		for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+			if (self->sessions[j].handle == handle) {
+				AppInterfaceSet *ifaceSet = self->sessions[j].ifaceSet;
+				IpcSession *session = self->sessions[j].session;
+				self->sessions[j].handle = IPC_INVALID_SESSION;
+				self->sessions[j].threadId = ESIF_THREAD_ID_NULL;
+				self->sessions[j].ifaceSet = NULL;
+				self->sessions[j].session = NULL;
+				esif_ccb_free(ifaceSet);
+				esif_ccb_free(session);
+				break;
+			}
+		}
+		waitlock_unlock(&self->lock);
 	}
 }
 
-// Convert an IPF Session Handle to an IPC Session Handle. We only support One Session for now.
-static IpcSession *IpcSessionMgr_GetSessionByHandle(IpcSession_t handle)
+// Convert an IPF Session Handle to an IPC Session Handle
+IpcSession *IpcSessionMgr_GetSessionByHandle(IpcSession_t handle)
 {
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
 	IpcSession *session = NULL;
-	if (handle != IPC_INVALID_SESSION && handle == g_ipcSessionMgr.handle) {
-		session = g_ipcSessionMgr.session;
+	if (self && handle && handle != IPC_INVALID_SESSION) {
+		waitlock_lock(&self->lock);
+		for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+			if (self->sessions[j].handle == handle) {
+				session = self->sessions[j].session;
+				break;
+			}
+		}
+		waitlock_unlock(&self->lock);
 	}
 	return session;
 }
 
+// Convert an ESIF Handle to an IPC Session Handle
+IpcSession *IpcSessionMgr_GetSessionByEsifHandle(esif_handle_t handle)
+{
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
+	IpcSession *session = NULL;
+	if (self && handle && handle != ESIF_INVALID_HANDLE) {
+		waitlock_lock(&self->lock);
+		for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+			if (self->sessions[j].session && self->sessions[j].session->appSession.esifHandle == handle) {
+				session = self->sessions[j].session;
+				break;
+			}
+		}
+		waitlock_unlock(&self->lock);
+	}
+	return session;
+}
 
+// Convert an IPF Session Handle to an IPC Session Handle
+IpcInstance *IpcSessionMgr_GetInstanceByHandle(IpcSession_t handle)
+{
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
+	IpcInstance *instance = NULL;
+	if (self && handle && handle != IPC_INVALID_SESSION) {
+		waitlock_lock(&self->lock);
+		for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+			if (self->sessions[j].handle == handle) {
+				instance = &self->sessions[j];
+				break;
+			}
+		}
+		waitlock_unlock(&self->lock);
+	}
+	return instance;
+}
 
 /*
 ** Public Functions
 */
 
-static AppInterfaceSet g_ipcAppIfaceSet = { 0 };
-
+// Initialize IPC Session Manager
+// Called once per Process (GetIpcInterface) or once per Instance (IpcSession_Create)
 esif_error_t Ipc_Init(void)
 {
-	esif_error_t rc = (esif_ccb_socket_init() == 0 ? ESIF_OK : ESIF_E_WS_INIT_FAILED);
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
+	esif_error_t rc = ESIF_E_NOT_INITIALIZED;
 
-	// Intialize Trace Logging
-	if (rc == ESIF_OK) {
-		rc = IpfTrace_Init();
-		if (rc == ESIF_OK) {
-			IpfTrace_SetConfig("IPFIPC", IpfIpc_WriteLog, ESIF_FALSE);
+	if (self) {
+		waitlock_lock(&self->lock);
+		if (atomic_inc(&self->refcount) == 1) {
+			rc = (esif_ccb_socket_init() == 0 ? ESIF_OK : ESIF_E_WS_INIT_FAILED);
 
-			// Register as an ETW provider (if available)
-			IpfRegisterEtwProvider();
+			// Intialize Trace Logging
+			if (rc == ESIF_OK) {
+				rc = IpfTrace_Init();
+				if (rc == ESIF_OK) {
+					IpfTrace_SetConfig("IPFIPC", IpfIpc_WriteLog, ESIF_FALSE);
 
-			IPF_TRACE_DEBUG("Tracing started");
+					// Register as an ETW provider (if available)
+					IpfRegisterEtwProvider();
 
-			// Initialize Transaction Manager
-			rc = IpfTrxMgr_Init();
-
-			if (rc != ESIF_OK) {
-				// Unregister as an ETW provider (if available)
-				IpfUnregisterEtwProvider();
-
-				IpfTrace_Exit();
+					IPF_TRACE_DEBUG("Tracing started");
+				}
+				else {
+					esif_ccb_socket_exit();
+				}
 			}
 		}
-		if (rc != ESIF_OK) {
-			esif_ccb_socket_exit();
+		else {
+			rc = ESIF_OK;
 		}
+		waitlock_unlock(&self->lock);
 	}
 	return rc;
 }
 
+// Unitialize IPC Session Manager
+// Called once per Process (GetIpcInterface) or once per Instance (IpcSession_Create)
 void Ipc_Exit(void)
 {
-	IpfTrxMgr_Uninit();
+	IpcSessionMgr *self = IpcSessionMgr_GetInstance();
 
-	// Unregister as an ETW provider (if available)
-	IpfUnregisterEtwProvider();
+	if (self) {
+		Bool uninitialize = ESIF_FALSE;
+		waitlock_lock(&self->lock);
+		if (atomic_dec(&self->refcount) == 0) {
+			uninitialize = ESIF_TRUE;
 
-	IpfTrace_Exit();
-	esif_ccb_socket_exit();
+			// Destroy any remaining sessions on last Reference
+			for (int j = 0; j < MAX_IPC_SESSIONS; j++) {
+				if (self->sessions[j].handle && self->sessions[j].handle != IPC_INVALID_SESSION) {
+					IpcSession_t handle = self->sessions[j].handle;
+					waitlock_unlock(&self->lock);
+					IpcSession_Destroy(handle);
+					waitlock_lock(&self->lock);
+				}
+			}
+			self->ifaceDefault = (AppInterfaceSet){ 0 };
+
+			// Unregister as an ETW provider (if available)
+			IpfUnregisterEtwProvider();
+
+			IpfTrace_Exit();
+			esif_ccb_socket_exit();
+			
+			atomic_set(&self->initialized, 0);
+		}
+		waitlock_unlock(&self->lock);
+
+		if (uninitialize) {
+			waitlock_uninit(&self->lock);
+			atomic_set(&self->initialized, 0);
+		}
+	}
 }
 
 // Set ESIF App Interface Function Pointers for use by IPC Session
+// Called once per Process or once per Instance before IpcSession_Create()
 esif_error_t Ipc_SetAppIface(const AppInterfaceSet *ifaceSet)
 {
+	// Create a new Instance Handle with a NULL Session to Reserve an Instance
+	IpcSessionMgr* self = IpcSessionMgr_GetInstance();
+	IpcSession_t handle = IpcSessionMgr_CreateHandle(NULL);
+	IpcInstance *instance = IpcSessionMgr_GetInstanceByHandle(handle);
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	
-	if (ifaceSet) {
+
+	if (self && ifaceSet) {
 		// Check EsifAppInterface
 		if (ifaceSet->hdr.fIfaceType != eIfaceTypeApplication ||
 			ifaceSet->hdr.fIfaceVersion != APP_INTERFACE_VERSION ||
@@ -356,9 +571,19 @@ esif_error_t Ipc_SetAppIface(const AppInterfaceSet *ifaceSet)
 				 ifaceSet->appIface.fDomainDestroyFuncPtr == NULL) {
 			rc = ESIF_E_CALLBACK_IS_NULL;
 		}
+		else if (instance) {
+			instance->ifaceSet = esif_ccb_malloc(sizeof(*instance->ifaceSet));
+			if (instance->ifaceSet == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else {
+				*instance->ifaceSet = *ifaceSet;
+				self->ifaceDefault = *ifaceSet;
+				rc = ESIF_OK;
+			}
+		}
 		else {
-			g_ipcAppIfaceSet = *ifaceSet;
-			rc = ESIF_OK;
+			rc = ESIF_E_MAXIMUM_CAPACITY_REACHED;
 		}
 	}
 	return rc;
@@ -387,6 +612,10 @@ IpcSession_t IpcSession_Create(const IpcSessionInfo *info)
 	// Create Session and Session Handle
 	IpcSession *self = esif_ccb_malloc(sizeof(*self));
 	IpcSession_t handle = IpcSessionMgr_CreateHandle(self);
+	if (handle != IPC_INVALID_SESSION && IpfTrxMgr_Init(&self->trxMgr) != ESIF_OK) {
+		IpcSessionMgr_DeleteHandle(handle);
+		handle = IPC_INVALID_SESSION;
+	}
 	if (handle == IPC_INVALID_SESSION) {
 		esif_ccb_free(self);
 		self = NULL;
@@ -412,12 +641,13 @@ esif_error_t IpcSession_Connect(IpcSession_t handle)
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
 	// If Session is already Connected, return an error and leave Connection open
-	if (self && self->appSession.ifaceSet.appIface.fAppCreateFuncPtr) {
-		return ESIF_E_SESSION_ALREADY_STARTED;
-	}
-
-	if (self && g_ipcAppIfaceSet.appIface.fAppCreateFuncPtr) {
-		self->appSession.ifaceSet = g_ipcAppIfaceSet;
+	if (self) {
+		if (self->appSession.ifaceSet.appIface.fAppCreateFuncPtr == NULL) {
+			return ESIF_E_CALLBACK_IS_NULL;
+		}
+		else if (self->appSession.ifaceSet.appIface.fAppCreateFuncPtr && self->maxRecvBuf) {
+			return ESIF_E_SESSION_ALREADY_STARTED;
+		}
 
 		// Allocate Buffers
 		self->recvQueue = MessageQueue_Create();
@@ -493,6 +723,8 @@ esif_error_t IpcSession_Connect(IpcSession_t handle)
 			// Send websocket upgrade request, using Server Address (minus protocol) as the Host/Origin
 			char scheme[] = IPC_PROTO_SCHEME;
 			const char *srvhost = esif_ccb_strstr(self->serverAddr, scheme);
+			ssize_t ret = 0;
+
 			srvhost = (srvhost ? srvhost + sizeof(scheme) - 1 : self->serverAddr);
 			esif_ccb_sprintf(self->maxRecvBuf, self->recvBuf,
 				upgradeHeader,
@@ -500,7 +732,12 @@ esif_error_t IpcSession_Connect(IpcSession_t handle)
 				srvhost,
 				request_key
 			);
-			send(self->socket, self->recvBuf, (int)esif_ccb_strlen(self->recvBuf, self->maxRecvBuf), 0);
+			ret = send(self->socket, self->recvBuf, (int)esif_ccb_strlen(self->recvBuf, self->maxRecvBuf), 0);
+
+			if (ret == SOCKET_ERROR) {
+				DEBUGMSG("send error = %d\n", esif_ccb_socket_error());
+			}
+
 			esif_ccb_memset(self->recvBuf, 0, self->maxRecvBuf);
 
 			// Generate expected Response Key
@@ -556,15 +793,20 @@ esif_error_t IpcSession_Connect(IpcSession_t handle)
 	return rc;
 }
 
-// Close WebSocket Client
+// Close IPC Session
 void IpcSession_Disconnect(IpcSession_t handle)
 {
 	IpcSession *self = IpcSessionMgr_GetSessionByHandle(handle);
-	if (self) {
+	if (self && self->objtype == ObjType_IpcSession) {
 		// Stop I/O Worker Thread
 		if (atomic_read(&self->numThreads) && self->doorbell[DOORBELL_BUTTON] != INVALID_SOCKET) {
 			u8 opcode = WS_OPCODE_QUIT;
-			send(self->doorbell[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0);
+			ssize_t ret = 0;
+
+			ret = send(self->doorbell[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0);
+			if (ret == SOCKET_ERROR) {
+				DEBUGMSG("send error = %d\n", esif_ccb_socket_error());
+			}
 			esif_ccb_wthread_join(&self->ioThread);
 			atomic_dec(&self->numThreads);
 		}
@@ -587,7 +829,7 @@ void IpcSession_Disconnect(IpcSession_t handle)
 		self->recvBuf = NULL;
 		self->recvBufLen = 0;
 		self->maxRecvBuf = 0;
-		IpfTrxMgr_ExpireAll();
+		IpfTrxMgr_ExpireAll(&self->trxMgr);
 
 		// Stop RPC Worker Thread
 		if (atomic_read(&self->numThreads)) {
@@ -606,19 +848,25 @@ void IpcSession_Disconnect(IpcSession_t handle)
 		MessageQueue_Destroy(self->recvQueue);
 		self->sendQueue = NULL;
 		self->recvQueue = NULL;
+
+		// Destroy Session Transaction Manager
+		IpfTrxMgr_Uninit(&self->trxMgr);
+
+		// Destroy Threads and Signals
+		signal_uninit(&self->rpcSignal);
+		esif_ccb_wthread_uninit(&self->ioThread);
+		esif_ccb_wthread_uninit(&self->rpcThread);
+
+		self->objtype = ObjType_None;
 	}
 }
 
-// Destroy WebSocket Client
+// Destroy IPC Session
 void IpcSession_Destroy(IpcSession_t handle)
 {
 	IpcSession *self = IpcSessionMgr_GetSessionByHandle(handle);
 	if (self) {
 		IpcSession_Disconnect(handle);
-		signal_uninit(&self->rpcSignal);
-		esif_ccb_wthread_uninit(&self->ioThread);
-		esif_ccb_wthread_uninit(&self->rpcThread);
-		esif_ccb_free(self);
 	}
 	IpcSessionMgr_DeleteHandle(handle);
 }
@@ -693,7 +941,7 @@ void * ESIF_CALLCONV IpcSession_IoWorkerThread(void *ctx)
 			setsize++;
 
 			// Use Lowest Remaining Transaction Timeout for all Active Connections, if any
-			double timeout = IpfTrxMgr_GetMinTimeout();
+			double timeout = IpfTrxMgr_GetMinTimeout(&self->trxMgr);
 			tv.tv_sec = (long)timeout;
 			tv.tv_usec = (long)((timeout - (Int64)timeout) * 1000000);
 			if (tv.tv_sec == 0 && tv.tv_usec == 0) {
@@ -709,7 +957,7 @@ void * ESIF_CALLCONV IpcSession_IoWorkerThread(void *ctx)
 				rc = ESIF_E_WS_SOCKET_ERROR;
 			}
 			else if (selectResult == 0) { // Timeout
-				IpfTrxMgr_ExpireInactive();
+				IpfTrxMgr_ExpireInactive(&self->trxMgr);
 				continue;
 			}
 
@@ -872,7 +1120,7 @@ void * ESIF_CALLCONV IpcSession_IoWorkerThread(void *ctx)
 			} while (bytesRemaining > 0);
 
 			// 4. Expire Inactive Transactions
-			IpfTrxMgr_ExpireInactive();
+			IpfTrxMgr_ExpireInactive(&self->trxMgr);
 		} while (self->bytesReceived > 0 || selectResult == 0);
 
 		if (self->socket != INVALID_SOCKET) {

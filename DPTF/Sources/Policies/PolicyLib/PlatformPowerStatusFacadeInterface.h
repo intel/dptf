@@ -36,5 +36,5 @@ public:
 	virtual Percentage getAC1msPercentageOverload(void) = 0;
 	virtual Percentage getAC2msPercentageOverload(void) = 0;
 	virtual Percentage getAC10msPercentageOverload(void) = 0;
-	virtual void notifyForProchotDeassertion(void) = 0;
+	virtual void notifyForProcHotDeAssertion(void) = 0;
 };

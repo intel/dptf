@@ -40,6 +40,7 @@ namespace TableObjectType
 		Psh2,
 		Psha,
 		Psvt,
+		Rfim,
 		SwOemVariables,
 		Tpga,
 		Trt,

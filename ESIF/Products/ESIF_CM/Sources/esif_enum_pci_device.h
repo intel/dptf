@@ -73,6 +73,7 @@ typedef enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_TGL = 0x9a03,
 	ESIF_PCI_DEVICE_ID_RPL = 0xA71D,
 	ESIF_PCI_DEVICE_ID_MTL_S = 0xAD03,
+	ESIF_PCI_DEVICE_ID_PTL = 0xB01D,
 } esif_pci_device_id_t;
 
 static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
@@ -104,6 +105,8 @@ static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 		"Raptor Lake");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_MTL_S,
 		"Meteor Lake-S");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_PTL,
+		"Panther Lake");
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -156,6 +159,7 @@ const struct pci_device_id esif_pci_cpu_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_RPL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_FHF) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LNL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_PTL) },
 	{ 0 }
 };
 

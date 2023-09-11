@@ -25,12 +25,27 @@
 extern "C" {
 #endif
 
-esif_error_t ESIF_CALLCONV Apploader_Init(const char* applibpath, const char* serveraddr);
-esif_error_t ESIF_CALLCONV Apploader_Start();
-esif_error_t ESIF_CALLCONV Apploader_Pause();
-esif_error_t ESIF_CALLCONV Apploader_Continue();
-void		 ESIF_CALLCONV Apploader_Stop();
-void		 ESIF_CALLCONV Apploader_Exit();
+// AppLoader Multi-Instance object (opaque CamelCase AppLoader object)
+typedef struct AppLoader_s AppLoader;
+
+AppLoader* ESIF_CALLCONV AppLoader_GetInstance();		// Get Singleton Instance (legacy support)
+AppLoader* ESIF_CALLCONV AppLoader_Create();			// Create New Uninitialized Multi-Instance object
+void ESIF_CALLCONV AppLoader_Destroy(AppLoader* self);	// Destroy Uninitialized Multi-Instance object
+
+esif_error_t ESIF_CALLCONV AppLoader_Init(AppLoader* self, const char* libpath, const char* serveraddr);
+esif_error_t ESIF_CALLCONV AppLoader_Start(AppLoader* self);
+esif_error_t ESIF_CALLCONV AppLoader_Pause(AppLoader* self);
+esif_error_t ESIF_CALLCONV AppLoader_Continue(AppLoader* self);
+void ESIF_CALLCONV AppLoader_Stop(AppLoader* self);
+void ESIF_CALLCONV AppLoader_Exit(AppLoader* self);
+
+// Older Singleton Interface for legacy support (non-CamelCase Apploader)
+#define Apploader_Init(lib, addr)	AppLoader_Init(AppLoader_GetInstance(), lib, addr)
+#define Apploader_Start()			AppLoader_Start(AppLoader_GetInstance())
+#define Apploader_Pause()			AppLoader_Pause(AppLoader_GetInstance())
+#define Apploader_Continue()		AppLoader_Continue(AppLoader_GetInstance())
+#define Apploader_Stop()			AppLoader_Stop(AppLoader_GetInstance())
+#define Apploader_Exit()			AppLoader_Exit(AppLoader_GetInstance())
 
 #ifdef __cplusplus
 }

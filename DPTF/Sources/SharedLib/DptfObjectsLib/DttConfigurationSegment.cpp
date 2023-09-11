@@ -22,8 +22,25 @@
 #include "StringConverter.h"
 #include "ThirdParty/nlohmann_json/json.hpp"
 using namespace std;
+using json = nlohmann::json; 
 
 const string environmentCpuIdKeyPattern = "/ApplicableEnvironment/PlatformCpuIds/.*"s;
+const string environmentSocBasePowerKeyPattern = "/ApplicableEnvironment/SocBasePower/.*"s;
+const string environmentLabelKeyPattern = "/ApplicableEnvironment/Label/.*"s;
+const string environmentEpoCpuIdKeyPattern = ".*Platform.*cpuid.*"s;
+constexpr auto INDENT_WIDTH = 4;
+
+map<string, string> generateKeysAndValues(const nlohmann::basic_json<>& jsonObject)
+{
+	const auto flattenedData = jsonObject.flatten();
+
+	map<string, string> values;
+	for (const auto& item : flattenedData.items())
+	{
+		values[item.key()] = StringConverter::trimQuotes(to_string(item.value()));
+	}
+	return values;
+}
 
 DttConfigurationSegment::DttConfigurationSegment(const map<string, string>& keyValues)
 	: m_keyValues(keyValues)
@@ -32,15 +49,39 @@ DttConfigurationSegment::DttConfigurationSegment(const map<string, string>& keyV
 
 DttConfigurationSegment DttConfigurationSegment::createFromBson(const vector<unsigned char>& bson)
 {
-	const auto data = nlohmann::json::from_bson(bson);
-	const auto flattenedData = data.flatten();
+	const auto jsonObject = nlohmann::json::from_bson(bson);
+	return generateKeysAndValues(jsonObject);
+}
 
-	map<string, string> values;
-	for (const auto& item : flattenedData.items())
+DttConfigurationSegment DttConfigurationSegment::createFromJsonString(const std::string& jsonString)
+{
+	const auto jsonObject = nlohmann::json::parse(jsonString);
+	return generateKeysAndValues(jsonObject);
+}
+
+DttConfigurationSegment DttConfigurationSegment::operator+(const DttConfigurationSegment& higherPriority) const
+{
+	auto combined = m_keyValues;
+	for (const auto& higherPriorityItem : higherPriority.m_keyValues)
 	{
-		values[item.key()] = StringConverter::trimQuotes(to_string(item.value()));
+		combined[higherPriorityItem.first] = higherPriorityItem.second;
 	}
-	return values;
+	return combined;
+}
+
+bool DttConfigurationSegment::operator<(const DttConfigurationSegment& other) const
+{
+	return m_keyValues < other.m_keyValues;
+}
+
+bool DttConfigurationSegment::operator==(const DttConfigurationSegment& other) const
+{
+	return m_keyValues == other.m_keyValues;
+}
+
+bool DttConfigurationSegment::operator!=(const DttConfigurationSegment& other) const
+{
+	return !(*this == other);
 }
 
 set<string> DttConfigurationSegment::getKeys() const
@@ -97,13 +138,86 @@ bool DttConfigurationSegment::hasProperties(const std::set<DttConfigurationPrope
 	return true;
 }
 
+bool DttConfigurationSegment::hasPropertiesIncludingEmptyValue(
+	const std::set<DttConfigurationProperty>& properties) const
+{
+	for (const auto& property : properties)
+	{
+		const auto keys = getKeysThatMatch(property.key);
+		if (!keys.empty() && none_of(
+				keys.begin(),
+				keys.end(),
+				[property, this](const string& key)
+				{
+					const auto value = StringConverter::trimQuotes(this->m_keyValues.at(key));
+					if (value.empty())
+					{
+						return true;
+					}
+					return regex_match(value, property.value.toRegex());
+				}))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 bool DttConfigurationSegment::matchesEnvironmentProfile(const EnvironmentProfile& environmentProfile) const
 {
-	// build up properties list
-	const string cpuIdValuePattern = environmentProfile.cpuIdWithoutStepping;
-	const set<DttConfigurationProperty> properties{DttConfigurationProperty(
-		DttConfigurationQuery(environmentCpuIdKeyPattern), DttConfigurationQuery(cpuIdValuePattern))
-	};
+	set<DttConfigurationProperty> properties{};
+	const auto cpuProperty = DttConfigurationProperty(
+		DttConfigurationQuery(environmentCpuIdKeyPattern),
+		DttConfigurationQuery(environmentProfile.cpuIdWithoutStepping));
+	properties.insert(cpuProperty);
+
+	if (environmentProfile.socBasePower.isValid())
+	{
+		const auto socBasePowerProperty = DttConfigurationProperty(
+			DttConfigurationQuery(environmentSocBasePowerKeyPattern),
+			DttConfigurationQuery(environmentProfile.socBasePower.toStringAsWatts(0)));
+		properties.insert(socBasePowerProperty);
+	}
+
+	return hasProperties(properties);
+}
+
+bool DttConfigurationSegment::matchesCpuIdInEpoSegment(const string& cpuId) const
+{
+	set<DttConfigurationProperty> properties{};
+	const auto cpuProperty = DttConfigurationProperty(
+		DttConfigurationQuery(environmentEpoCpuIdKeyPattern), DttConfigurationQuery(cpuId));
+	properties.insert(cpuProperty);
+
+	return hasProperties(properties);
+}
+
+bool DttConfigurationSegment::matchesEnvironmentProfileIncludingEmptyValue(
+	const EnvironmentProfile& environmentProfile) const
+{
+	set<DttConfigurationProperty> properties{};
+	const auto cpuProperty = DttConfigurationProperty(
+		DttConfigurationQuery(environmentCpuIdKeyPattern),
+		DttConfigurationQuery(environmentProfile.cpuIdWithoutStepping));
+	properties.insert(cpuProperty);
+	
+	if (environmentProfile.socBasePower.isValid())
+	{
+		const auto socBasePowerProperty = DttConfigurationProperty(
+			DttConfigurationQuery(environmentSocBasePowerKeyPattern),
+			DttConfigurationQuery(environmentProfile.socBasePower.toStringAsWatts(0)));
+		properties.insert(socBasePowerProperty);
+	}
+
+	return hasPropertiesIncludingEmptyValue(properties);
+}
+
+bool DttConfigurationSegment::hasLabel(const string& label) const
+{
+	set<DttConfigurationProperty> properties{};
+	const auto labelProperty = DttConfigurationProperty(DttConfigurationQuery(environmentLabelKeyPattern), DttConfigurationQuery(label));
+	properties.insert(labelProperty);
+
 	return hasProperties(properties);
 }
 
@@ -153,6 +267,18 @@ void DttConfigurationSegment::keepOnlyKeysThatMatch(const std::set<DttConfigurat
 		}
 	}
 	m_keyValues = result;
+}
+
+std::string DttConfigurationSegment::toString() const
+{
+	json jsonObj;
+
+	for (const auto& pair : m_keyValues)
+	{
+		jsonObj[pair.first] = pair.second;
+	}
+
+	return jsonObj.dump(INDENT_WIDTH);
 }
 
 void DttConfigurationSegment::throwIfKeyDoesNotExist(const string& key) const

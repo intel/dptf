@@ -19,8 +19,11 @@
 #include "Power.h"
 #include "DptfBufferStream.h"
 #include <cmath>
+#include "StatusFormat.h"
 
-static const UInt32 MaxValidPower = 10000000; // 10,000 watts
+using namespace std;
+
+static constexpr UInt32 MaxValidPower = 10000000; // 10,000 watts
 const double MilliwattsPerWatt = 1000.0;
 
 Power::Power(void)
@@ -36,20 +39,20 @@ Power::Power(UInt32 power)
 	if (power > MaxValidPower)
 	{
 		m_valid = false;
-		throw dptf_exception("Power value " + std::to_string(power) + " out of valid range.");
+		throw dptf_exception("Power value " + to_string(power) + " out of valid range.");
 	}
 }
 
 Power Power::createInvalid()
 {
-	return Power();
+	return {};
 }
 
 Power Power::createFromMilliwatts(UInt32 milliwatts)
 {
 	if (milliwatts > MaxValidPower)
 	{
-		throw dptf_exception("Power value " + std::to_string(milliwatts) + " out of valid range.");
+		throw dptf_exception("Power value " + to_string(milliwatts) + " out of valid range.");
 	}
 	Power power;
 	power.m_power = milliwatts;
@@ -59,7 +62,7 @@ Power Power::createFromMilliwatts(UInt32 milliwatts)
 
 Power Power::createFromWatts(double watts)
 {
-	UInt32 milliwatts = (UInt32)(round(watts * MilliwattsPerWatt));
+	const auto milliwatts = static_cast<UInt32>(round(watts * MilliwattsPerWatt));
 	return Power::createFromMilliwatts(milliwatts);
 }
 
@@ -119,7 +122,7 @@ Power Power::operator+(const Power& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return Power(this->m_power + rhs.m_power);
+	return {this->m_power + rhs.m_power};
 }
 
 Power Power::operator-(const Power& rhs) const
@@ -133,11 +136,11 @@ Power Power::operator-(const Power& rhs) const
 	}
 	else
 	{
-		return Power(this->m_power - rhs.m_power);
+		return {this->m_power - rhs.m_power};
 	}
 }
 
-std::ostream& operator<<(std::ostream& os, const Power& power)
+ostream& operator<<(ostream& os, const Power& power)
 {
 	os << power.toString();
 	return os;
@@ -153,17 +156,27 @@ Bool Power::isValid() const
 	return m_valid;
 }
 
-std::string Power::toString() const
+string Power::toString() const
 {
 	if (isValid())
 	{
-		return std::to_string(m_power);
+		return to_string(m_power);
 	}
 
 	return Constants::InvalidString;
 }
 
-void Power::throwIfInvalid(const Power& power) const
+string Power::toStringAsWatts(int precision) const
+{
+	if (isValid())
+	{
+		return StatusFormat::friendlyValueWithPrecision(asWatts(), precision);
+	}
+
+	return Constants::InvalidString;
+}
+
+void Power::throwIfInvalid(const Power& power)
 {
 	if (power.isValid() == false)
 	{
@@ -173,7 +186,7 @@ void Power::throwIfInvalid(const Power& power) const
 
 Int32 Power::toInt32() const
 {
-	return Int32(m_power);
+	return static_cast<Int32>(m_power);
 }
 
 DptfBuffer Power::toDptfBuffer() const
@@ -192,13 +205,18 @@ Power Power::createFromDptfBuffer(const DptfBuffer& buffer)
 
 	DptfBuffer bufferCopy = buffer;
 	DptfBufferStream stream(bufferCopy);
-	Power newRequest = stream.readNextPower();
+	const Power newRequest = stream.readNextPower();
 	return newRequest;
 }
 
 double Power::asWatts() const
 {
 	throwIfInvalid(*this);
-	double watts = (double)m_power / MilliwattsPerWatt;
+	const double watts = static_cast<double>(m_power) / MilliwattsPerWatt;
 	return watts;
+}
+
+double Power::asMilliwatts() const
+{
+	return static_cast<double>(m_power);
 }

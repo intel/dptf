@@ -28,6 +28,9 @@
 #include "WorkItem.h"
 #include "WIDomainFanOperatingModeChanged.h"
 #include "WorkItemQueueManagerInterface.h"
+#include "PolicyServicesPolicyEventRegistration.h"
+#include "WIAll.h"
+#include "ExtendedWorkloadPredictionEventPayload.h"
 using namespace StatusFormat;
 
 #define OSC_REQUEST_FAIL 0xE
@@ -86,6 +89,9 @@ void PlatformRequestHandler::bindRequestHandlers()
 	});
 	bindRequestHandler(DptfRequestType::PlatformNotificationFanOperatingModeChanged,
 		[=](const PolicyRequest& policyRequest) { return this->handleFanOperatingModeChanged(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PublishEvent,
+		[=](const PolicyRequest& policyRequest) { return this->handlePublishEvent(policyRequest); 
 	});
 }
 
@@ -345,6 +351,55 @@ DptfRequestResult PlatformRequestHandler::handleFanOperatingModeChanged(const Po
 		std::string failureMessage =
 			"Failure during sending fan operating mode changed event to policies: " + std::string(ex.what());
 		return DptfRequestResult(false, failureMessage, request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handlePublishEvent(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		auto participantIndex = request.getParticipantIndex();
+		auto domainIndex = request.getDomainIndex();
+		auto data = request.getData();
+		FrameworkEvent::Type frameworkEvent = static_cast<FrameworkEvent::Type>(request.getFirstUInt32Data());
+		std::shared_ptr<WorkItem> wi;
+
+		switch (frameworkEvent)
+		{
+		case FrameworkEvent::DomainExtendedWorkloadPredictionChanged:
+		{
+			if (data.size() >= sizeof(ExtendedWorkloadPredictionEventPayload))
+			{
+				ExtendedWorkloadPredictionEventPayload* extendedWorkloadPredictionEventPayload =
+					reinterpret_cast<ExtendedWorkloadPredictionEventPayload*>(data.get());
+
+				wi = std::make_shared<WIDomainExtendedWorkloadPredictionChanged>(
+					m_dptfManager,
+					participantIndex,
+					domainIndex,
+					extendedWorkloadPredictionEventPayload->extendedWorkloadPrediction);
+			}
+			break;
+		}
+		default:
+			return DptfRequestResult(false, "Unsupported event given in publish request", request);
+		}
+
+		if (wi)
+		{
+			m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
+
+			return DptfRequestResult(true, "Successfully publish event.", request);
+		}
+
+		return DptfRequestResult(false, "Failed to publish event.", request);
+
+	}
+	catch (dptf_exception& ex)
+	{
+		return DptfRequestResult(false, ex.what(), request);
 	}
 }
 

@@ -98,6 +98,8 @@ enum esif_command_type {
 	ESIF_COMMAND_TYPE_SEND_DSP,
 	ESIF_COMMAND_TYPE_PARTICIPANT_CREATE,
 	ESIF_COMMAND_TYPE_PARTICIPANT_DESTROY,
+	ESIF_COMMAND_TYPE_PROCESS_NOTIFICATION,
+	ESIF_COMMAND_TYPE_DEVICE_CREATE,
 };
 
 static ESIF_INLINE esif_string esif_command_type_str(
@@ -118,6 +120,8 @@ static ESIF_INLINE esif_string esif_command_type_str(
 	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SEND_DSP);
 	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_PARTICIPANT_CREATE);
 	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_PARTICIPANT_DESTROY);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_PROCESS_NOTIFICATION);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_DEVICE_CREATE);
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -276,6 +280,16 @@ struct esif_command_participant_create {
 };
 
 struct esif_command_participant_destroy {
+	char name[ESIF_NAME_LEN];
+};
+
+struct esif_command_process_notification {
+	u32 enable;
+	/* TODO: u32 data_len and optional data follows ... */
+};
+
+struct esif_command_device_create {
+	char HWID[ESIF_MAX_PATH];
 	char name[ESIF_NAME_LEN];
 };
 

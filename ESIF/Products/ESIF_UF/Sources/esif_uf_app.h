@@ -231,6 +231,7 @@ eEsifError EsifApp_SendEvent(
 	esif_handle_t participantId,
 	UInt16 domainId,
 	const EsifDataPtr eventDataPtr,
+	const eEsifEventType eventType,
 	const EsifDataPtr eventGuidPtr
 	);
 

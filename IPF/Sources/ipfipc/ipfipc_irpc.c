@@ -12,7 +12,6 @@
 ** WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 **
 ** See the License for the specific language governing permissions and
-
 ** limitations under the License.
 **
 ******************************************************************************/
@@ -37,9 +36,6 @@
 
 #pragma warning(disable:4204)	// Irpc Initializers
 
-static AppSession g_session;			// Global IPF Client Session
-static IpcSession *g_wsClient = NULL;	// Global WebSocket Client
-
 // Wait for RPC Transaction to complete and Close Conneciton if Request Failed
 static esif_error_t IrpcTransaction_WaitForResponse(IrpcTransaction *self)
 {
@@ -55,22 +51,23 @@ static esif_error_t IrpcTransaction_WaitForResponse(IrpcTransaction *self)
 esif_error_t IrpcTransaction_QueueRequest(IrpcTransaction *self)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	if (self && g_wsClient) {
-		if (g_wsClient->socket == INVALID_SOCKET) {
+	IpcSession *session = NULL;
+	if (self && (session = IpcSessionMgr_GetSessionByHandle(self->ipfHandle)) != NULL) {
+		if (session->socket == INVALID_SOCKET) {
 			rc = ESIF_E_SESSION_DISCONNECTED;
 		}
 		else {
-			rc = IpfTrxMgr_AddTransaction(self);
+			rc = IpfTrxMgr_AddTransaction(&session->trxMgr, self);
 		}
 
 		if (rc == ESIF_OK) {
 			IBinary *request = self->request;
 			self->request = NULL; // Destroyed by Websocket Thread
-			rc = MessageQueue_EnQueue(g_wsClient->sendQueue, request);
+			rc = MessageQueue_EnQueue(session->sendQueue, request);
 		}
 		if (rc == ESIF_OK) {
 			u8 opcode = WS_OPCODE_MESSAGE;
-			if (send(g_wsClient->doorbell[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0) != sizeof(opcode)) {
+			if (send(session->doorbell[DOORBELL_BUTTON], (const char*)&opcode, sizeof(opcode), 0) != sizeof(opcode)) {
 				rc = ESIF_E_WS_SOCKET_ERROR;
 			}
 		}
@@ -104,6 +101,8 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifGetConfig(
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifGetConfigFunc(
 			trx,
@@ -159,6 +158,8 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifSetConfig(
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifSetConfigFunc(
 			trx,
@@ -215,6 +216,8 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifPrimitive(
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifPrimitiveFunc(
 			trx,
@@ -273,6 +276,8 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifWriteLog(
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifWriteLogFunc(
 			trx,
@@ -327,6 +332,8 @@ static eEsifError ESIF_CALLCONV Irpc_Request_EsifEventAction(
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifEventActionFunc(
 			trx,
@@ -419,6 +426,8 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifSendEvent(
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifSendEventFunc(
 			trx,
@@ -499,6 +508,8 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifSendCommand(
 
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcRequest);
 	if (trx) {
+		IpcSession *session = IpcSessionMgr_GetSessionByEsifHandle(esifHandle);
+		trx->ipfHandle = (session ? session->appSession.ipfHandle : trx->ipfHandle);
 
 		if (Irpc_Encode_EsifSendCommandFunc(
 			trx,
@@ -541,18 +552,6 @@ eEsifError ESIF_CALLCONV Irpc_Request_EsifSendCommand(
 	return rc;
 }
 
-// Irpc_Request_Esif* functions translate a Native EsifInterface function call to an IRPC Request
-static EsifInterface g_EsifIrpcIface = {
-	.fGetConfigFuncPtr = Irpc_Request_EsifGetConfig,
-	.fSetConfigFuncPtr = Irpc_Request_EsifSetConfig,
-	.fPrimitiveFuncPtr = Irpc_Request_EsifPrimitive,
-	.fWriteLogFuncPtr = Irpc_Request_EsifWriteLog,
-	.fRegisterEventFuncPtr = Irpc_Request_EsifEventRegister,
-	.fUnregisterEventFuncPtr = Irpc_Request_EsifEventUnregister,
-	.fSendEventFuncPtr = Irpc_Request_EsifSendEvent,
-	.fSendCommandFuncPtr = Irpc_Request_EsifSendCommand,
-};
-
 /* 
 ** IRPC Responses
 */
@@ -565,6 +564,7 @@ IBinary *Irpc_Response_AppGetString(IpcSession *client, Encoded_IrpcMsg *msg)
 	esif_handle_t appHandle = ESIF_INVALID_HANDLE;
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
 
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
@@ -602,11 +602,11 @@ IBinary *Irpc_Response_AppGetString(IpcSession *client, Encoded_IrpcMsg *msg)
 					}
 					break;
 				case IrpcFunc_AppGetIntro:
-					if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+					if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 						trx->result = ESIF_E_INVALID_HANDLE;
 					}
 					else if (appIface->fAppGetIntroFuncPtr) {
-						appHandle = g_session.appHandle;
+						appHandle = client->appSession.appHandle;
 						trx->result = appIface->fAppGetIntroFuncPtr(appHandle, stringDataPtr);
 					}
 					break;
@@ -646,6 +646,7 @@ IBinary *Irpc_Response_AppCommand(IpcSession *client, Encoded_IrpcMsg *msg)
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcResponse);
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
 
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
@@ -668,7 +669,7 @@ IBinary *Irpc_Response_AppCommand(IpcSession *client, Encoded_IrpcMsg *msg)
 				trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 				// Call into Loaded AppInterface
-				if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+				if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 					trx->result = ESIF_E_INVALID_HANDLE;
 				}
 				// Intercept "timeout" commands and use to Get or Set Client-side RPC Transaction Timeout, bypassing App Interface
@@ -676,9 +677,9 @@ IBinary *Irpc_Response_AppCommand(IpcSession *client, Encoded_IrpcMsg *msg)
 					size_t timeout = 0;
 					if (Irpc_Uncast_UInt32(ipcbuf->argc) > 1 && decoded_argv[1].type == ESIF_DATA_STRING && isdigit(((char *)decoded_argv[1].buf_ptr)[0])) {
 						timeout = (size_t)atoi((char *)decoded_argv[1].buf_ptr);
-						IpfTrxMgr_SetTimeout(timeout);
+						IpfTrxMgr_SetTimeout(&client->trxMgr, timeout);
 					}
-					decoded_response->data_len = (u32)esif_ccb_sprintf(decoded_response->buf_len, decoded_response->buf_ptr, "%zd\n", IpfTrxMgr_GetTimeout()) + 1;
+					decoded_response->data_len = (u32)esif_ccb_sprintf(decoded_response->buf_len, decoded_response->buf_ptr, "%zd\n", IpfTrxMgr_GetTimeout(&client->trxMgr)) + 1;
 					trx->result = ESIF_OK;
 				}
 				else if (appIface->fAppCommandFuncPtr) {
@@ -735,6 +736,8 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -752,10 +755,19 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 				rc = ESIF_E_NOT_SUPPORTED;
 			}
 			else {
-				Encoded_EsifHandle *encoded_appHandlePtr = (Encoded_EsifHandle *)(Irpc_OffsetFrom(*ipcbuf, appHandlePtr) + Irpc_Uncast_UInt32(ipcbuf->appHandlePtr.offset));
 				AppInterfaceSet *appIfaceSet = &client->appSession.ifaceSet;
 
-				EsifInterface esifIface = g_EsifIrpcIface;
+				// Irpc_Request_Esif* functions translate a Native EsifInterface function call to an IRPC Request
+				EsifInterface esifIface = {
+					.fGetConfigFuncPtr = Irpc_Request_EsifGetConfig,
+					.fSetConfigFuncPtr = Irpc_Request_EsifSetConfig,
+					.fPrimitiveFuncPtr = Irpc_Request_EsifPrimitive,
+					.fWriteLogFuncPtr = Irpc_Request_EsifWriteLog,
+					.fRegisterEventFuncPtr = Irpc_Request_EsifEventRegister,
+					.fUnregisterEventFuncPtr = Irpc_Request_EsifEventUnregister,
+					.fSendEventFuncPtr = Irpc_Request_EsifSendEvent,
+					.fSendCommandFuncPtr = Irpc_Request_EsifSendCommand,
+				};
 				appIfaceSet->hdr = decoded_hdr;
 				appIfaceSet->esifIface = esifIface;
 
@@ -763,10 +775,9 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 				appIfaceSet->hdr.fIfaceSize = sizeof(*appIfaceSet);
 
 				// Save Session Data
-				g_session.esifHandle = Irpc_Uncast_EsifHandle(ipcbuf->esifHandle);
-				g_session.appHandle = Irpc_Uncast_EsifHandle(*encoded_appHandlePtr);
+				client->appSession.esifHandle = Irpc_Uncast_EsifHandle(ipcbuf->esifHandle);
+				client->appSession.appHandle = ESIF_INVALID_HANDLE;
 
-				g_session.appHandle = ESIF_INVALID_HANDLE;
 				trx->trxId = Irpc_Uncast_UInt64(ipcbuf->irpcHdr.trxId);
 				trx->result = ESIF_E_NOT_IMPLEMENTED;
 
@@ -810,7 +821,7 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 						trx->result = client->appSession.ifaceSet.appIface.fAppCreateFuncPtr(
 							appIfaceSet,
 							Irpc_Uncast_EsifHandle(ipcbuf->esifHandle),
-							&g_session.appHandle,
+							&client->appSession.appHandle,
 							&decoded_appData,
 							Irpc_Uncast_eAppState(ipcbuf->initialAppState)
 						);
@@ -822,7 +833,7 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 					trx,
 					appIfaceSet,
 					Irpc_Uncast_EsifHandle(ipcbuf->esifHandle),
-					&g_session.appHandle,
+					&client->appSession.appHandle,
 					NULL,
 					Irpc_Uncast_eAppState(ipcbuf->initialAppState)
 				);
@@ -853,6 +864,8 @@ IBinary *Irpc_Response_AppHandle(IpcSession *client, eIrpcFunction funcId, Encod
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcResponse);
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -868,24 +881,24 @@ IBinary *Irpc_Response_AppHandle(IpcSession *client, eIrpcFunction funcId, Encod
 			trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 			// Call into Loaded AppInterface
-			if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+			if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 				trx->result = ESIF_E_INVALID_HANDLE;
 			}
 			else {
 				switch (funcId) {
 				case IrpcFunc_AppDestroy:
 					if (client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr) {
-						trx->result = client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(g_session.appHandle);
+						trx->result = client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(client->appSession.appHandle);
 					}
 					break;
 				case IrpcFunc_AppSuspend:
 					if (client->appSession.ifaceSet.appIface.fAppSuspendFuncPtr) {
-						trx->result = client->appSession.ifaceSet.appIface.fAppSuspendFuncPtr(g_session.appHandle);
+						trx->result = client->appSession.ifaceSet.appIface.fAppSuspendFuncPtr(client->appSession.appHandle);
 					}
 					break;
 				case IrpcFunc_AppResume:
 					if (client->appSession.ifaceSet.appIface.fAppResumeFuncPtr) {
-						trx->result = client->appSession.ifaceSet.appIface.fAppResumeFuncPtr(g_session.appHandle);
+						trx->result = client->appSession.ifaceSet.appIface.fAppResumeFuncPtr(client->appSession.appHandle);
 					}
 					break;
 				default:
@@ -897,13 +910,13 @@ IBinary *Irpc_Response_AppHandle(IpcSession *client, eIrpcFunction funcId, Encod
 			Encoded_AppHandleFunction *response = Irpc_Encode_AppHandleFunc(
 				trx,
 				funcId,
-				g_session.appHandle
+				client->appSession.appHandle
 			);
 
 			// Destroy Session Data
 			if (funcId == IrpcFunc_AppDestroy) {
-				g_session.esifHandle = ESIF_INVALID_HANDLE;
-				g_session.appHandle = ESIF_INVALID_HANDLE;
+				client->appSession.esifHandle = ESIF_INVALID_HANDLE;
+				client->appSession.appHandle = ESIF_INVALID_HANDLE;
 			}
 
 			if (response) {
@@ -927,6 +940,7 @@ IBinary *Irpc_Response_AppGetStatus(IpcSession *client, Encoded_IrpcMsg *msg)
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcResponse);
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
 
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
@@ -947,7 +961,7 @@ IBinary *Irpc_Response_AppGetStatus(IpcSession *client, Encoded_IrpcMsg *msg)
 				trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 				// Call into Loaded AppInterface
-				if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+				if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 					trx->result = ESIF_E_INVALID_HANDLE;
 				}
 				else if (appIface->fAppGetStatusFuncPtr) {
@@ -992,6 +1006,8 @@ IBinary *Irpc_Response_AppParticipantCreate(IpcSession *client, Encoded_IrpcMsg 
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -1007,7 +1023,7 @@ IBinary *Irpc_Response_AppParticipantCreate(IpcSession *client, Encoded_IrpcMsg 
 			trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 			// Call into Loaded AppInterface
-			if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+			if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 				trx->result = ESIF_E_INVALID_HANDLE;
 			}
 			else if (client->appSession.ifaceSet.appIface.fParticipantCreateFuncPtr) {
@@ -1069,6 +1085,8 @@ IBinary *Irpc_Response_AppParticipantDestroy(IpcSession *client, Encoded_IrpcMsg
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcResponse);
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -1084,7 +1102,7 @@ IBinary *Irpc_Response_AppParticipantDestroy(IpcSession *client, Encoded_IrpcMsg
 			trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 			// Call into Loaded AppInterface
-			if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+			if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 				trx->result = ESIF_E_INVALID_HANDLE;
 			}
 			else if (client->appSession.ifaceSet.appIface.fParticipantDestroyFuncPtr) {
@@ -1122,6 +1140,8 @@ IBinary *Irpc_Response_AppDomainCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -1137,7 +1157,7 @@ IBinary *Irpc_Response_AppDomainCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 			trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 			// Call into Loaded AppInterface
-			if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+			if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 				trx->result = ESIF_E_INVALID_HANDLE;
 			}
 			else if (client->appSession.ifaceSet.appIface.fDomainCreateFuncPtr) {
@@ -1193,6 +1213,8 @@ IBinary *Irpc_Response_AppDomainDestroy(IpcSession *client, Encoded_IrpcMsg *msg
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcResponse);
 
 	if (client && ipcbuf && trx) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -1208,7 +1230,7 @@ IBinary *Irpc_Response_AppDomainDestroy(IpcSession *client, Encoded_IrpcMsg *msg
 			trx->result = ESIF_E_NOT_IMPLEMENTED;
 
 			// Call into Loaded AppInterface
-			if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
+			if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle)) {
 				trx->result = ESIF_E_INVALID_HANDLE;
 			}
 			else if (client->appSession.ifaceSet.appIface.fDomainDestroyFuncPtr) {
@@ -1246,9 +1268,11 @@ IBinary *Irpc_Response_AppEvent(IpcSession *client, Encoded_IrpcMsg *msg)
 	IBinary *result = NULL;
 	IrpcTransaction *trx = IrpcTransaction_Create(IrpcMsg_ProcResponse);
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	esif_handle_t theAppHandle = g_session.appHandle;
+	esif_handle_t theAppHandle = (client ? client->appSession.appHandle : ESIF_INVALID_HANDLE);
 
 	if (client && ipcbuf && trx && theAppHandle != ESIF_INVALID_HANDLE) {
+		trx->ipfHandle = client->appSession.ipfHandle;
+
 		EsifMsgHdr responseHdr = {
 			.v1.signature = ESIFMSG_SIGNATURE,
 			.v1.headersize = sizeof(EsifMsgHdr),
@@ -1265,7 +1289,7 @@ IBinary *Irpc_Response_AppEvent(IpcSession *client, Encoded_IrpcMsg *msg)
 
 			// Call into Loaded AppInterface
 			// Allow Events with Undefined ipcbuf->appHandle since Events may be sent by ESIF before AppCreate completes.
-			if (g_session.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle) && Irpc_Uncast_EsifHandle(ipcbuf->appHandle) != ESIF_INVALID_HANDLE) {
+			if (client->appSession.appHandle != Irpc_Uncast_EsifHandle(ipcbuf->appHandle) && Irpc_Uncast_EsifHandle(ipcbuf->appHandle) != ESIF_INVALID_HANDLE) {
 				trx->result = ESIF_E_INVALID_HANDLE;
 			}
 			else if (client->appSession.ifaceSet.appIface.fAppEventFuncPtr) {
@@ -1345,17 +1369,15 @@ esif_error_t Irpc_ProcessRequest(
 	Encoded_IrpcMsg *msg,
 	size_t payload_len)
 {
-	static Bool isAppCreated = ESIF_FALSE;
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
 	// Send AppDestroy up App Interface to Client App for Broken Connections
 	if (msg == NULL) {
-		if (isAppCreated && g_session.appHandle != ESIF_INVALID_HANDLE) {
+		if (self->appSession.appHandle && self->appSession.appHandle != ESIF_INVALID_HANDLE) {
 			if (self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr) {
-				rc = self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(g_session.appHandle);
+				rc = self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(self->appSession.appHandle);
 			}
 		}
-		isAppCreated = ESIF_FALSE;
 	}
 	// Otherwise Process RPC Message and send response to Server
 	else if (msg && payload_len) {
@@ -1382,17 +1404,11 @@ esif_error_t Irpc_ProcessRequest(
 			break;
 		case IrpcFunc_AppCreate:
 			response = Irpc_Response_AppCreate(self, msg);
-			if (response && Irpc_Uncast_eEsifError(((Encoded_AppCreateFunction *)((EsifMsgHdr *)IBinary_GetBuf(response) + 1))->result) == ESIF_OK) {
-				isAppCreated = ESIF_TRUE;
-			}
 			break;
 		case IrpcFunc_AppDestroy:
 		case IrpcFunc_AppSuspend:
 		case IrpcFunc_AppResume:
 			response = Irpc_Response_AppHandle(self, funcId, msg);
-			if (response && funcId == IrpcFunc_AppDestroy) {
-				isAppCreated = ESIF_FALSE;
-			}
 			break;
 		case IrpcFunc_AppGetStatus:
 			response = Irpc_Response_AppGetStatus(self, msg);
@@ -1448,10 +1464,6 @@ esif_error_t IpcSession_ReceiveMsg(
 	// Run some sanity check before processing the event data
 	if (self && EsifMsgFrame_GetPayload(msgHdrPtr, messageLen, &msgclass, &payload_buf, &payload_len) == ESIF_OK) {
 
-		if (g_wsClient != self) {
-			g_wsClient = self;
-		}
-
 		switch (msgclass) {
 
 		case ESIFMSG_CLASS_IRPC:
@@ -1488,7 +1500,7 @@ esif_error_t IpcSession_ReceiveMsg(
 				UInt64 trxId = Irpc_Uncast_UInt64(msg->trxId);
 
 				// Lookup Session
-				trx = IpfTrxMgr_GetTransaction(ESIF_INVALID_HANDLE, trxId); // TODO: Get Handle
+				trx = IpfTrxMgr_GetTransaction(&self->trxMgr, ESIF_INVALID_HANDLE, trxId);
 
 				// Signal Waiting RPC Thread that the Response has been received
 				if (trx) {
@@ -1544,7 +1556,7 @@ void * ESIF_CALLCONV IpcSession_RpcWorkerThread(void *ctx)
 		}
 		
 		// Expire All Active Transactions
-		IpfTrxMgr_ExpireAll();
+		IpfTrxMgr_ExpireAll(&self->trxMgr);
 
 		// Generate AppDestroy for Broken Connections
 		Irpc_ProcessRequest(self, NULL, 0);

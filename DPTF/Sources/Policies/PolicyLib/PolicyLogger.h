@@ -21,21 +21,25 @@
 // clang-format off
 #define _POLICY_LOG_MESSAGE(logger, logLevel, logFunction, content) \
 	do { \
-		if (logger->getLoggingLevel() >= logLevel) \
-		{ \
-			auto _message = [&]() {content}; \
-			logger->logFunction(PolicyMessage(FLF, _message())); \
-		} \
+		try { \
+			if ((logger)->getLoggingLevel() >= (logLevel)) \
+			{ \
+				auto _message = [&]() {content}; \
+				(logger)->logFunction(PolicyMessage(FLF, _message())); \
+			} \
+		} catch (...) {} \
 	} while (0)
 
 #define _POLICY_LOG_MESSAGE_EX(logger, logLevel, logFunction, content) \
 	do { \
-		ex; \
-		if (logger->getLoggingLevel() >= logLevel) \
-		{ \
-			auto _message = [&]() {content}; \
-			logger->logFunction(PolicyMessage(FLF, _message())); \
-		} \
+		try { \
+			ex; \
+			if ((logger)->getLoggingLevel() >= (logLevel)) \
+			{ \
+				auto _message = [&]() {content}; \
+				(logger)->logFunction(PolicyMessage(FLF, _message())); \
+			} \
+		} catch (...) {} \
 	} while (0)
 
 // Macros with default logger

@@ -41,7 +41,7 @@ void EsifUfDumpPrimitive(
 	 * This check is placed here so that if tracing isn't active, we don't do all
 	 * the computation below; even though nothing will be output...
 	 */
-	if (!ESIF_TRACEACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_DEBUG)) {
+	if (!ESIF_TRACEACTIVE(ESIF_TRACEMASK(ESIF_TRACEVERBOSEMODULE(ESIF_TRACE_ID, ESIF_TRACELEVEL_DEBUG)), ESIF_TRACELEVEL_DEBUG)) {
 		return;
 	}
 
@@ -49,7 +49,7 @@ void EsifUfDumpPrimitive(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("esif_uf_execute_primitive: Primitive METADATA From DSP:\n"
+	ESIF_TRACE_VERBOSE("esif_uf_execute_primitive: Primitive METADATA From DSP:\n"
 					   "\tOperation:        : %s(%u)\n"
 					   "\tRequest Data Type : %s(%u)\n"
 					   "\tResponse Data Type: %s(%u)\n"
@@ -66,7 +66,7 @@ void EsifUfDumpPrimitive(
 
 	for (i = 0; i < (int)primitivePtr->num_actions; i++) {
 		fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
-		ESIF_TRACE_DEBUG("Action[%u]: size %u type %d(%s) is_kern %u "
+		ESIF_TRACE_VERBOSE("Action[%u]: size %u type %d(%s) is_kern %u "
 						   "param_valid %x:%x:%x:%x:%x\n",
 						   i, fpcActionPtr->size,
 						   fpcActionPtr->type, esif_action_type_str(fpcActionPtr->type),
@@ -98,7 +98,7 @@ void EsifUfDumpPrimitive(
 			default:
 				break;
 			}
-			ESIF_TRACE_DEBUG("%s", msg);
+			ESIF_TRACE_VERBOSE("%s", msg);
 		}
 	}
 exit:
@@ -142,7 +142,7 @@ eEsifError EsifExecutePrimitive(
 	}
 	domain = domain_str_to_short(domainStr);
 
-	ESIF_TRACE_DEBUG("\n\n"
+	ESIF_TRACE_DEBUG("\n"
 		"Primitive Request:\n"
 		"  Participant ID       : " ESIF_HANDLE_FMT "\n"
 		"  Primitive            : %s(%u)\n"

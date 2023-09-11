@@ -25,31 +25,36 @@
 class DptfBuffer
 {
 public:
-	DptfBuffer(void);
+	DptfBuffer();
 	DptfBuffer(size_t sizeInBytes);
-	~DptfBuffer(void);
+	virtual ~DptfBuffer() = default;
 
-	static DptfBuffer fromExistingByteArray(UInt8* byteArray, UInt32 numberOfBytes);
-	static DptfBuffer fromExistingByteVector(std::vector<UInt8> byteVector);
+	DptfBuffer(const DptfBuffer& other) = default;
+	DptfBuffer& operator=(const DptfBuffer& other) = default;
+	DptfBuffer(DptfBuffer&& other) = default;
+	DptfBuffer& operator=(DptfBuffer&& other) = default;
+
+	static DptfBuffer fromExistingByteArray(const UInt8* byteArray, UInt32 numberOfBytes);
+	static DptfBuffer fromExistingByteVector(const std::vector<UInt8>& byteVector);
 	static DptfBuffer fromBool(Bool value);
 	static DptfBuffer fromString(const std::string& value);
 	void allocate(size_t sizeInBytes);
-	UInt8* get(void) const;
-	const UInt8 get(UInt32 byteNumber) const;
+	[[nodiscard]] UInt8* get() const;
+	[[nodiscard]] UInt8 get(UInt32 byteNumber) const;
 	void set(UInt32 byteNumber, UInt8 byteValue);
-	UInt32 size(void) const;
+	[[nodiscard]] UInt32 size() const;
 	void trim(UInt32 sizeInBytes);
-	void put(UInt32 offset, UInt8* data, UInt32 length);
+	void put(UInt32 offset, const UInt8* data, UInt32 length);
 	void append(const DptfBuffer& otherBuffer);
 	void append(UInt8 data);
-	void append(UInt8* data, UInt32 sizeInBytes);
-	UInt8 lastByte() const;
-	std::string toString() const;
-	Bool notEmpty() const;
+	void append(const UInt8* data, UInt32 sizeInBytes);
+	[[nodiscard]] UInt8 lastByte() const;
+	[[nodiscard]] std::string toString() const;
+	[[nodiscard]] Bool notEmpty() const;
 
 	Bool operator==(const DptfBuffer& rhs) const;
 	UInt8 operator[](UInt32 byteNumber) const;
-	operator const std::vector<UInt8>&(void) const;
+	operator const std::vector<UInt8>&() const;
 
 private:
 	std::vector<UInt8> m_buffer;

@@ -22,10 +22,10 @@
 class EsifAppBroadcastProcessing
 {
 public:
-	EsifAppBroadcastProcessing();
-	~EsifAppBroadcastProcessing();
-
-	static std::shared_ptr<WorkItem> FindAppBroadcastIdAndCreateWorkItem(
+	static std::shared_ptr<WorkItem> createWorkItem(
 		DptfManagerInterface* dptfManager,
 		const EsifDataPtr esifEventDataPtr);
+
+private:
+	static void throwIfSizeMismatch(EsifDataPtr esifEventDataPtr, const EsifAppBroadcastHeader* broadcastHeader);
 };

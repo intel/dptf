@@ -28,22 +28,27 @@ class PolicyServicesPlatformPowerState final : public PolicyServices, public Pla
 {
 public:
 	PolicyServicesPlatformPowerState(DptfManagerInterface* dptfManager, UIntN policyIndex);
-	virtual ~PolicyServicesPlatformPowerState();
-	esif_data_complex_thermal_event* getThermalEventPtr(void);
-	void setThermalEvent(
-		const Temperature currentTemperature,
-		const Temperature tripPointTemperature,
-		const std::string participantName);
+	~PolicyServicesPlatformPowerState() override;
+	PolicyServicesPlatformPowerState(const PolicyServicesPlatformPowerState& other) = delete;
+	PolicyServicesPlatformPowerState& operator=(const PolicyServicesPlatformPowerState& other) = delete;
+	PolicyServicesPlatformPowerState(PolicyServicesPlatformPowerState&& other) = delete;
+	PolicyServicesPlatformPowerState& operator=(PolicyServicesPlatformPowerState&& other) = delete;
 
-	virtual void sleep(void) override final;
-	virtual void hibernate(
+	esif_data_complex_thermal_event* getThermalEventPtr();
+	void setThermalEvent(
+		Temperature currentTemperature,
+		Temperature tripPointTemperature,
+		std::string participantName);
+
+	void sleep() override;
+	void hibernate(
 		const Temperature& currentTemperature,
 		const Temperature& tripPointTemperature,
-		const std::string& participantName) override final;
-	virtual void shutDown(
+		const std::string& participantName) override;
+	void shutDown(
 		const Temperature& currentTemperature,
 		const Temperature& tripPointTemperature,
-		const std::string& participantName) override final;
+		const std::string& participantName) override;
 
 private:
 	esif_data_complex_thermal_event m_thermalEvent;

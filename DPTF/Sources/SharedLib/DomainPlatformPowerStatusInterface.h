@@ -35,5 +35,5 @@ public:
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void notifyForProcHotDeAssertion(UIntN participantIndex, UIntN domainIndex) = 0;
 };

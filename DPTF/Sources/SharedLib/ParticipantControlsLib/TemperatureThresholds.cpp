@@ -23,8 +23,11 @@
 using namespace StatusFormat;
 
 TemperatureThresholds::TemperatureThresholds()
+	: m_aux0(Temperature::createInvalid())
+	, m_aux1(Temperature::createInvalid())
+	, m_hysteresis(Temperature::createInvalid())
+
 {
-	createInvalid();
 }
 
 TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis)

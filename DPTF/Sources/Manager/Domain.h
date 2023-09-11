@@ -32,7 +32,7 @@ class Domain
 {
 public:
 	Domain(DptfManagerInterface* dptfManager);
-	~Domain(void);
+	~Domain();
 
 	void createDomain(
 		UIntN participantIndex,
@@ -40,23 +40,23 @@ public:
 		ParticipantInterface* participantInterface,
 		const AppDomainDataPtr domainDataPtr,
 		Bool domainEnabled);
-	void destroyDomain(void);
+	void destroyDomain();
 
-	void enableDomain(void);
-	void disableDomain(void);
-	Bool isDomainEnabled(void);
-	Bool isCreated(void);
+	void enableDomain() const;
+	void disableDomain() const;
+	Bool isDomainEnabled() const;
+	Bool isCreated() const;
 
-	std::string getDomainName(void) const;
+	[[nodiscard]] std::string getDomainName() const;
 
 	// This will clear the cached data stored within this class in the framework.  It will not ask the
 	// actual domain to clear its cache.
-	void clearDomainCachedData(void);
-	void clearDomainCachedRequestData(void);
-	void clearArbitrationDataForPolicy(UIntN policyIndex);
-	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
+	void clearDomainCachedData();
+	void clearDomainCachedRequestData() const;
+	void clearArbitrationDataForPolicy(UIntN policyIndex) const;
+	[[nodiscard]] std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
 
-	std::shared_ptr<XmlNode> getDiagnosticsAsXml() const;
+	[[nodiscard]] std::shared_ptr<XmlNode> getDiagnosticsAsXml() const;
 
 	//
 	// The following set of functions pass the call through to the actual domain.  They
@@ -65,105 +65,107 @@ public:
 	//
 
 	// Activity Status
-	Percentage getUtilizationThreshold();
-	Percentage getResidencyUtilization();
-	UInt64 getCoreActivityCounter();
-	UInt32 getCoreActivityCounterWidth();
-	UInt64 getTimestampCounter();
-	UInt32 getTimestampCounterWidth();
-	CoreActivityInfo getCoreActivityInfo();
-	void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias);
-	UInt32 getSocDgpuPerformanceHintPoints(void); 
+	Percentage getUtilizationThreshold() const;
+	Percentage getResidencyUtilization() const;
+	UInt64 getCoreActivityCounter() const;
+	UInt32 getCoreActivityCounterWidth() const;
+	UInt64 getTimestampCounter() const;
+	UInt32 getTimestampCounterWidth() const;
+	CoreActivityInfo getCoreActivityInfo() const;
+	UInt32 getSocDgpuPerformanceHintPoints() const; 
 
 	// Core controls
-	CoreControlStaticCaps getCoreControlStaticCaps(void);
-	CoreControlDynamicCaps getCoreControlDynamicCaps(void);
-	CoreControlLpoPreference getCoreControlLpoPreference(void);
-	CoreControlStatus getCoreControlStatus(void);
+	CoreControlStaticCaps getCoreControlStaticCaps();
+	CoreControlDynamicCaps getCoreControlDynamicCaps();
+	CoreControlLpoPreference getCoreControlLpoPreference();
+	CoreControlStatus getCoreControlStatus();
 	void setActiveCoreControl(UIntN policyIndex, const CoreControlStatus& coreControlStatus);
 
 	// Display controls
-	DisplayControlDynamicCaps getDisplayControlDynamicCaps(void);
-	UIntN getUserPreferredDisplayIndex(void);
-	UIntN getUserPreferredSoftBrightnessIndex(void);
-	Bool isUserPreferredIndexModified(void);
-	UIntN getSoftBrightnessIndex(void);
-	DisplayControlStatus getDisplayControlStatus(void);
-	DisplayControlSet getDisplayControlSet(void);
+	DisplayControlDynamicCaps getDisplayControlDynamicCaps();
+	UIntN getUserPreferredDisplayIndex() const;
+	UIntN getUserPreferredSoftBrightnessIndex() const;
+	Bool isUserPreferredIndexModified() const;
+	UIntN getSoftBrightnessIndex() const;
+	DisplayControlStatus getDisplayControlStatus();
+	DisplayControlSet getDisplayControlSet();
 	void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex);
-	void setSoftBrightness(UIntN policyIndex, UIntN displayControlIndex);
-	void updateUserPreferredSoftBrightnessIndex(void);
-	void restoreUserPreferredSoftBrightness(void);
+	void setSoftBrightness(UIntN policyIndex, UIntN displayControlIndex) const;
+	void updateUserPreferredSoftBrightnessIndex() const;
+	void restoreUserPreferredSoftBrightness() const;
 	void setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
-	void setDisplayCapsLock(UIntN policyIndex, Bool lock);
+	void setDisplayCapsLock(UIntN policyIndex, Bool lock) const;
 
 	// Energy Controls
-	UInt32 getRaplEnergyCounter();
-	EnergyCounterInfo getRaplEnergyCounterInfo();
-	double getRaplEnergyUnit();
-	UInt32 getRaplEnergyCounterWidth();
-	Power getInstantaneousPower();
-	UInt32 getEnergyThreshold();
-	void setEnergyThreshold(UInt32 energyThreshold);
-	void setEnergyThresholdInterruptDisable();
+	UInt32 getRaplEnergyCounter() const;
+	EnergyCounterInfo getRaplEnergyCounterInfo() const;
+	double getRaplEnergyUnit() const;
+	UInt32 getRaplEnergyCounterWidth() const;
+	Power getInstantaneousPower() const;
+	UInt32 getEnergyThreshold() const;
+	void setEnergyThreshold(UInt32 energyThreshold) const;
+	void setEnergyThresholdInterruptDisable() const;
 
 	// Peak Power Controls
-	Power getACPeakPower(void);
-	void setACPeakPower(UIntN policyIndex, const Power& acPeakPower);
-	Power getDCPeakPower(void);
-	void setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower);
+	Power getACPeakPower() const;
+	void setACPeakPower(UIntN policyIndex, const Power& acPeakPower) const;
+	Power getDCPeakPower() const;
+	void setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower) const;
 
 	// Performance controls
-	PerformanceControlStaticCaps getPerformanceControlStaticCaps(void);
-	PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(void);
-	PerformanceControlStatus getPerformanceControlStatus(void);
-	PerformanceControlSet getPerformanceControlSet(void);
+	PerformanceControlStaticCaps getPerformanceControlStaticCaps();
+	PerformanceControlDynamicCaps getPerformanceControlDynamicCaps();
+	PerformanceControlStatus getPerformanceControlStatus();
+	PerformanceControlSet getPerformanceControlSet();
 	void setPerformanceControl(UIntN policyIndex, UIntN performanceControlIndex);
 	void setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
-	void setPerformanceCapsLock(UIntN policyIndex, Bool lock);
-	void setPerfPreferenceMax(UIntN policyIndex, Percentage minMaxRatio);
-	void setPerfPreferenceMin(UIntN policyIndex, Percentage minMaxRatio);
+	void setPerformanceCapsLock(UIntN policyIndex, Bool lock) const;
 
 	// Power controls
-	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(void);
-	void setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
+	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet();
+	void setPowerControlDynamicCapsSet(UIntN policyIndex, const PowerControlDynamicCapsSet& capsSet);
 	Bool isPowerLimitEnabled(PowerControlType::Type controlType);
 	Power getPowerLimit(PowerControlType::Type controlType);
-	Power getPowerLimitWithoutCache(PowerControlType::Type controlType);
-	Bool isSocPowerFloorEnabled();
-	Bool isSocPowerFloorSupported();
+	Power getPowerLimitWithoutCache(PowerControlType::Type controlType) const;
+	Bool isSocPowerFloorEnabled() const;
+	Bool isSocPowerFloorSupported() const;
+	UInt32 getSocPowerFloorState() const;
+	void setPowerLimitMin(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit) const;
 	void setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	void setPowerLimitWithoutUpdatingEnabled(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
-	void setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
+	void setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit) const;
 	TimeSpan getPowerLimitTimeWindow(PowerControlType::Type controlType);
 	void setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
 	void setPowerLimitTimeWindowWithoutUpdatingEnabled(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
 	void setPowerLimitTimeWindowIgnoringCaps(
 		UIntN policyIndex,
 		PowerControlType::Type controlType,
-		const TimeSpan& timeWindow);
+		const TimeSpan& timeWindow) const;
 	Percentage getPowerLimitDutyCycle(PowerControlType::Type controlType);
 	void setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
-	void setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState);
-	void clearPowerLimit();
-	void setPowerCapsLock(UIntN policyIndex, Bool lock);
-	TimeSpan getPowerSharePowerLimitTimeWindow();
+	void setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState) const;
+	void clearPowerLimitMin() const;
+	void clearPowerLimit(UIntN policyIndex);
+	void setPowerCapsLock(UIntN policyIndex, Bool lock) const;
+	TimeSpan getPowerSharePowerLimitTimeWindow() const;
 	Bool isPowerShareControl();
-	double getPidKpTerm();
-	double getPidKiTerm();
-	TimeSpan getAlpha();
-	TimeSpan getFastPollTime();
-	TimeSpan getSlowPollTime();
-	TimeSpan getWeightedSlowPollAvgConstant();
-	Power getSlowPollPowerThreshold();
-	void removePowerLimitPolicyRequest(UIntN polixyIndex, PowerControlType::Type controlType);
-	void setPowerSharePolicyPower(const Power& powerSharePolicyPower);
+	double getPidKpTerm() const;
+	double getPidKiTerm() const;
+	TimeSpan getAlpha() const;
+	TimeSpan getFastPollTime() const;
+	TimeSpan getSlowPollTime() const;
+	TimeSpan getWeightedSlowPollAvgConstant() const;
+	Power getSlowPollPowerThreshold() const;
+	Power getThermalDesignPower() const;
+	void removePowerLimitPolicyRequest(UIntN policyIndex, PowerControlType::Type controlType);
+	void setPowerSharePolicyPower(const Power& powerSharePolicyPower) const;
+	void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias) const;
 
 	// Power status
-	PowerStatus getPowerStatus(void);
-	Power getAveragePower(const PowerControlDynamicCaps& capabilities);
-	Power getPowerValue(void);
-	void setCalculatedAveragePower(Power powerValue);
+	PowerStatus getPowerStatus();
+	Power getAveragePower(const PowerControlDynamicCaps& capabilities) const;
+	Power getPowerValue() const;
+	void setCalculatedAveragePower(Power powerValue) const;
 
 	// System Power Controls
 	Bool isSystemPowerLimitEnabled(PsysPowerLimitType::Type limitType);
@@ -181,37 +183,42 @@ public:
 		const Percentage& dutyCycle);
 
 	// Platform Power Status
-	Power getPlatformRestOfPower(void);
-	Power getAdapterPowerRating(void);
-	PlatformPowerSource::Type getPlatformPowerSource(void);
-	UInt32 getACNominalVoltage(void);
-	UInt32 getACOperationalCurrent(void);
-	Percentage getAC1msPercentageOverload(void);
-	Percentage getAC2msPercentageOverload(void);
-	Percentage getAC10msPercentageOverload(void);
-	void notifyForProchotDeassertion(void);
+	Power getPlatformRestOfPower();
+	Power getAdapterPowerRating();
+	PlatformPowerSource::Type getPlatformPowerSource();
+	UInt32 getACNominalVoltage();
+	UInt32 getACOperationalCurrent();
+	Percentage getAC1msPercentageOverload();
+	Percentage getAC2msPercentageOverload();
+	Percentage getAC10msPercentageOverload();
+	void notifyForProcHotDeAssertion() const;
 
 	// Priority
-	DomainPriority getDomainPriority(void);
+	DomainPriority getDomainPriority();
 
 	// RF Profile Control
-	RfProfileCapabilities getRfProfileCapabilities(void);
+	RfProfileCapabilities getRfProfileCapabilities();
 	void setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& centerFrequency);
-	Percentage getSscBaselineSpreadValue();
-	Percentage getSscBaselineThreshold();
-	Percentage getSscBaselineGuardBand();
+	Percentage getSscBaselineSpreadValue() const;
+	Percentage getSscBaselineThreshold() const;
+	Percentage getSscBaselineGuardBand() const;
 
 	// RF Profile Status
-	RfProfileDataSet getRfProfileDataSet(void);
-	UInt32 getWifiCapabilities(void);
-	UInt32 getRfiDisable(void);
-	UInt64 getDvfsPoints(void);
-	void setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
-	void setProtectRequest(const UInt64 frequencyRate);
-	void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData);
+	RfProfileDataSet getRfProfileDataSet();
+	UInt32 getWifiCapabilities() const;
+	UInt32 getRfiDisable() const;
+	UInt64 getDvfsPoints() const;
+	UInt32 getDlvrSsc() const;
+	Frequency getDlvrCenterFrequency() const;
+	void setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct) const;
+	void sendMasterControlStatus(UInt32 masterControlStatus) const;
+	void setProtectRequest(const UInt64 frequencyRate) const;
+	void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData) const;
+	void setDlvrCenterFrequency(Frequency frequency) const;
 
 	// Utilization
-	UtilizationStatus getUtilizationStatus(void);
+	UtilizationStatus getUtilizationStatus();
+	Percentage getMaxCoreUtilization() const;
 
 private:
 	// hide the copy constructor and assignment operator.
@@ -255,7 +262,7 @@ private:
 	PerformanceControlSet* m_performanceControlSet;
 
 	// Power controls
-	Power getArbitratedPowerLimit(PowerControlType::Type controlType);
+	Power getArbitratedPowerLimit(PowerControlType::Type controlType) const;
 	PowerControlDynamicCapsSet* m_powerControlDynamicCapsSet;
 	Bool* m_isPowerShareControl;
 	std::map<PowerControlType::Type, Bool> m_powerLimitEnabled;

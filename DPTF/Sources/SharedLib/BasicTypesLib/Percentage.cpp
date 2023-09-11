@@ -138,6 +138,11 @@ UInt64 Percentage::toCentiPercent() const
 	return (UInt64)(m_percentage * 100 * 100);
 }
 
+Percentage Percentage::toCentiPercentInPercentage() const
+{
+	return Percentage(m_percentage * 100 * 100);
+}
+
 std::string Percentage::toString() const
 {
 	return toStringWithPrecision(2);

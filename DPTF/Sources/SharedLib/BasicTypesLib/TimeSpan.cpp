@@ -19,12 +19,13 @@
 #include "TimeSpan.h"
 #include "StatusFormat.h"
 using namespace StatusFormat;
+using namespace std;
 
-const UInt64 MicrosecondsPerMillisecond = 1000;
-const UInt64 MicrosecondsPerTenthSecond = 100000;
-const UInt64 MicrosecondsPerSecond = 1000000;
-const UInt64 MicrosecondsPerMinute = 60000000;
-const UInt64 MicrosecondsPerHour = 3600000000;
+constexpr UInt64 MicrosecondsPerMillisecond = 1000;
+constexpr UInt64 MicrosecondsPerTenthSecond = 100000;
+constexpr UInt64 MicrosecondsPerSecond = 1000000;
+constexpr UInt64 MicrosecondsPerMinute = 60000000;
+constexpr UInt64 MicrosecondsPerHour = 3600000000;
 
 TimeSpan::TimeSpan()
 	: m_valid(false)
@@ -32,13 +33,9 @@ TimeSpan::TimeSpan()
 {
 }
 
-TimeSpan::~TimeSpan()
-{
-}
-
 TimeSpan TimeSpan::createInvalid()
 {
-	return TimeSpan();
+	return {};
 }
 
 TimeSpan TimeSpan::createFromMicroseconds(Int64 microseconds)
@@ -73,6 +70,14 @@ TimeSpan TimeSpan::createFromSeconds(Int64 seconds)
 	return span;
 }
 
+TimeSpan TimeSpan::createFromSeconds(const string& seconds)
+{
+	TimeSpan span;
+	span.m_microseconds = stoi(seconds) * MicrosecondsPerSecond;
+	span.m_valid = true;
+	return span;
+}
+
 TimeSpan TimeSpan::createFromMinutes(Int64 minutes)
 {
 	TimeSpan span;
@@ -98,59 +103,59 @@ Int64 TimeSpan::asMicroseconds() const
 double TimeSpan::asMilliseconds() const
 {
 	throwIfInvalid();
-	double milliseconds = (double)m_microseconds / (double)MicrosecondsPerMillisecond;
+	const double milliseconds = static_cast<double>(m_microseconds) / static_cast<double>(MicrosecondsPerMillisecond);
 	return milliseconds;
 }
 
 UInt64 TimeSpan::asMillisecondsUInt() const
 {
 	throwIfInvalid();
-	return (UInt64)asMilliseconds();
+	return static_cast<UInt64>(asMilliseconds());
 }
 
 Int64 TimeSpan::asMillisecondsInt() const
 {
 	throwIfInvalid();
-	return (Int64)asMilliseconds();
+	return static_cast<Int64>(asMilliseconds());
 }
 
 Int64 TimeSpan::asTenthSecondsInt() const
 {
 	throwIfInvalid();
-	return (Int64)asTenthSeconds();
+	return static_cast<Int64>(asTenthSeconds());
 }
 
 double TimeSpan::asTenthSeconds() const
 {
 	throwIfInvalid();
-	double tenthSeconds = (double)m_microseconds / (double)MicrosecondsPerTenthSecond;
+	const double tenthSeconds = static_cast<double>(m_microseconds) / static_cast<double>(MicrosecondsPerTenthSecond);
 	return tenthSeconds;
 }
 
 double TimeSpan::asSeconds() const
 {
 	throwIfInvalid();
-	double seconds = (double)m_microseconds / (double)MicrosecondsPerSecond;
+	const double seconds = static_cast<double>(m_microseconds) / static_cast<double>(MicrosecondsPerSecond);
 	return seconds;
 }
 
 UInt64 TimeSpan::asSecondsUInt() const
 {
 	throwIfInvalid();
-	return (UInt64)asSeconds();
+	return static_cast<UInt64>(asSeconds());
 }
 
 double TimeSpan::asMinutes() const
 {
 	throwIfInvalid();
-	double minutes = (double)m_microseconds / (double)MicrosecondsPerMinute;
+	const double minutes = static_cast<double>(m_microseconds) / static_cast<double>(MicrosecondsPerMinute);
 	return minutes;
 }
 
 double TimeSpan::asHours() const
 {
 	throwIfInvalid();
-	double hours = (double)m_microseconds / (double)MicrosecondsPerHour;
+	const double hours = static_cast<double>(m_microseconds) / static_cast<double>(MicrosecondsPerHour);
 	return hours;
 }
 
@@ -168,7 +173,7 @@ TimeSpan TimeSpan::operator+(const TimeSpan& rhs) const
 {
 	throwIfInvalid();
 	rhs.throwIfInvalid();
-	return TimeSpan::createFromMicroseconds(m_microseconds + rhs.m_microseconds);
+	return createFromMicroseconds(m_microseconds + rhs.m_microseconds);
 }
 
 TimeSpan TimeSpan::operator+=(const TimeSpan& rhs) const
@@ -180,7 +185,7 @@ TimeSpan TimeSpan::operator-(const TimeSpan& rhs) const
 {
 	throwIfInvalid();
 	rhs.throwIfInvalid();
-	return TimeSpan::createFromMicroseconds(m_microseconds - rhs.m_microseconds);
+	return createFromMicroseconds(m_microseconds - rhs.m_microseconds);
 }
 
 TimeSpan TimeSpan::operator-=(const TimeSpan& rhs) const
@@ -191,13 +196,13 @@ TimeSpan TimeSpan::operator-=(const TimeSpan& rhs) const
 TimeSpan TimeSpan::operator*(Int64 multiplier) const
 {
 	throwIfInvalid();
-	return TimeSpan::createFromMicroseconds(m_microseconds * multiplier);
+	return createFromMicroseconds(m_microseconds * multiplier);
 }
 
 TimeSpan TimeSpan::operator/(Int64 divider) const
 {
 	throwIfInvalid();
-	return TimeSpan::createFromMicroseconds(m_microseconds / divider);
+	return createFromMicroseconds(m_microseconds / divider);
 }
 
 Bool TimeSpan::operator==(const TimeSpan& rhs) const
@@ -240,9 +245,9 @@ Bool TimeSpan::operator>=(const TimeSpan& rhs) const
 	return m_microseconds >= rhs.m_microseconds;
 }
 
-std::string TimeSpan::toStringMicroseconds() const
+string TimeSpan::toStringMicroseconds() const
 {
-	std::stringstream stream;
+	stringstream stream;
 	if (isInvalid())
 	{
 		stream << Constants::InvalidString;
@@ -254,9 +259,9 @@ std::string TimeSpan::toStringMicroseconds() const
 	return stream.str();
 }
 
-std::string TimeSpan::toStringMilliseconds() const
+string TimeSpan::toStringMilliseconds() const
 {
-	std::stringstream stream;
+	stringstream stream;
 	if (isInvalid())
 	{
 		stream << Constants::InvalidString;
@@ -268,9 +273,9 @@ std::string TimeSpan::toStringMilliseconds() const
 	return stream.str();
 }
 
-std::string TimeSpan::toStringSeconds(UInt32 precision) const
+string TimeSpan::toStringSeconds(UInt32 precision) const
 {
-	std::stringstream stream;
+	stringstream stream;
 	if (isInvalid())
 	{
 		stream << Constants::InvalidString;

@@ -26,7 +26,12 @@ template <typename T> class dptf_export CachedValue
 public:
 	CachedValue();
 	CachedValue(const T& value);
-	~CachedValue();
+	virtual ~CachedValue() = default;
+
+	CachedValue(const CachedValue& other) = default;
+	CachedValue& operator=(const CachedValue& other) = default;
+	CachedValue(CachedValue&& other) = default;
+	CachedValue& operator=(CachedValue&& other) = default;
 
 	Bool isValid() const;
 	Bool isInvalid() const;
@@ -50,10 +55,6 @@ CachedValue<T>::CachedValue(const T& value)
 	: m_valid(true)
 {
 	m_value = std::make_shared<T>(value);
-}
-
-template <typename T> CachedValue<T>::~CachedValue()
-{
 }
 
 template <typename T> void CachedValue<T>::invalidate()

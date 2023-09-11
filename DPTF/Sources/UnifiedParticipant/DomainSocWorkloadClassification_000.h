@@ -35,6 +35,7 @@ public:
 
 	// DomainSocWorkloadClassificationInterface
 	virtual UInt32 getSocWorkloadClassification() override;
+	virtual SocWorkloadSource::Source getSocWorkloadClassificationSource() override;
 	virtual void updateSocWorkloadClassification(UInt32 socWorkloadClassification) override;
 
 	virtual UInt32 getExtendedWorkloadPrediction() override;

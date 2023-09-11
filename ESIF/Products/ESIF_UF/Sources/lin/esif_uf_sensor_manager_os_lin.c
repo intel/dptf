@@ -136,7 +136,7 @@ static char gPowerSliderBasePath[] = "/sys/devices/system/cpu/cpu0/cpufreq";
 static const InclinometerMinMaxConfig gInclinMinMaxConfig= {
 	INCLIN_X_ORIENT_FLAT_UP_MIN,
 	INCLIN_X_ORIENT_FLAT_UP_MAX,
-	INCLIN_X_ORIENT_FLAT_DOWN_MIN
+	INCLIN_X_ORIENT_FLAT_DOWN_MIN,
 	INCLIN_X_ORIENT_FLAT_DOWN_MAX,
 	INCLIN_X_ORIENT_UPRIGHT_MIN,
 	INCLIN_X_ORIENT_UPRIGHT_MAX,
@@ -712,7 +712,7 @@ static Bool IsWorkloadFgProcessOrDaemon(const char *workloadName)
 
 		if (fstatat(dirfd(psyDirs), dirs->d_name, &st, 0) < 0)
 		{
-			ESIF_TRACE_ERROR("fstatat() failed at : %s\n", dirs->d_name);
+			ESIF_TRACE_WARN("fstatat() failed at : %s\n", dirs->d_name);
 			goto exit;
 		}
 		if (S_ISDIR(st.st_mode) && isdigit(*dirs->d_name))
@@ -797,7 +797,7 @@ static Bool IsChargerConnected(const char *psyPath)
 
 		if (fstatat(dirfd(psyDirs), dirs->d_name, &st, 0) < 0)
 		{
-			ESIF_TRACE_ERROR("fstatat() failed at : %s\n", dirs->d_name);
+			ESIF_TRACE_WARN("fstatat() failed at : %s\n", dirs->d_name);
 			goto exit;
 		}
 		if (S_ISDIR(st.st_mode))
@@ -888,7 +888,7 @@ static EsifLinkListPtr GetSubDirsList(const char *basePath)
 
 		if (fstatat(dirfd(baseDirs), dirs->d_name, &st, 0) < 0)
 		{
-			ESIF_TRACE_ERROR("fstatat() failed at : %s\n", dirs->d_name);
+			ESIF_TRACE_WARN("fstatat() failed at : %s\n", dirs->d_name);
 			goto exit;
 		}
 		if (S_ISDIR(st.st_mode))

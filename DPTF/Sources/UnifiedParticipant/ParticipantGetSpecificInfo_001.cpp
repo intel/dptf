@@ -30,14 +30,10 @@ public:
 ParticipantGetSpecificInfo_001::ParticipantGetSpecificInfo_001(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface)
 	: ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
 	onClearCachedData();
-}
-
-ParticipantGetSpecificInfo_001::~ParticipantGetSpecificInfo_001()
-{
 }
 
 std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificInfo_001::getParticipantSpecificInfo(
@@ -45,20 +41,20 @@ std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificIn
 	const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
 	std::map<ParticipantSpecificInfoKey::Type, Temperature> results;
-	for (auto request = requestedInfo.cbegin(); request != requestedInfo.cend(); request++)
+	for (auto request : requestedInfo)
 	{
 		auto tripPointTemperature = Temperature(Constants::MaxUInt32);
 		try
 		{
-			auto result = m_cachedData.find(*request);
+			auto result = m_cachedData.find(request);
 			if (result != m_cachedData.end())
 			{
 				tripPointTemperature = result->second;
 			}
 			else
 			{
-				tripPointTemperature = readSpecificInfo(getPrimitiveAndInstanceForSpecificInfoKey(*request));
-				m_cachedData[*request] = tripPointTemperature;
+				tripPointTemperature = readSpecificInfo(getPrimitiveAndInstanceForSpecificInfoKey(request));
+				m_cachedData[request] = tripPointTemperature;
 			}
 		}
 		catch (...)
@@ -66,18 +62,18 @@ std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificIn
 			// if the primitive isn't available in the cache we receive an exception
 		}
 
-		results[*request] = tripPointTemperature;
+		results[request] = tripPointTemperature;
 	}
 
 	return results;
 }
 
-void ParticipantGetSpecificInfo_001::onClearCachedData(void)
+void ParticipantGetSpecificInfo_001::onClearCachedData()
 {
 	m_cachedData.clear();
 }
 
-Temperature ParticipantGetSpecificInfo_001::readSpecificInfo(PrimitiveAndInstance primitiveAndInstance)
+Temperature ParticipantGetSpecificInfo_001::readSpecificInfo(PrimitiveAndInstance primitiveAndInstance) const
 {
 	auto tripPoint = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
 		primitiveAndInstance.primitive, Constants::Esif::NoDomain, static_cast<UInt8>(primitiveAndInstance.instance));
@@ -87,9 +83,9 @@ Temperature ParticipantGetSpecificInfo_001::readSpecificInfo(PrimitiveAndInstanc
 }
 
 PrimitiveAndInstance ParticipantGetSpecificInfo_001::getPrimitiveAndInstanceForSpecificInfoKey(
-	ParticipantSpecificInfoKey::Type request)
+	ParticipantSpecificInfoKey::Type request) const
 {
-	PrimitiveAndInstance primitiveAndInstance;
+	PrimitiveAndInstance primitiveAndInstance{};
 	switch (request)
 	{
 	case ParticipantSpecificInfoKey::Type::Warm:
@@ -154,7 +150,6 @@ PrimitiveAndInstance ParticipantGetSpecificInfo_001::getPrimitiveAndInstanceForS
 		break;
 	default:
 		throw dptf_exception("Received unexpected Specific Info Key: " + std::to_string(request));
-		break;
 	}
 	return primitiveAndInstance;
 }
@@ -171,7 +166,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 
 	for (IntN ac = ParticipantSpecificInfoKey::AC0; ac <= ParticipantSpecificInfoKey::AC9; ac++)
 	{
-		tripRequest.push_back((ParticipantSpecificInfoKey::Type)ac);
+		tripRequest.push_back(static_cast<ParticipantSpecificInfoKey::Type>(ac));
 	}
 
 	std::map<ParticipantSpecificInfoKey::Type, Temperature> tripPoints =
@@ -231,7 +226,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 		std::stringstream acx;
 		acx << "ac" << count++;
 
-		if ((tripPoint = tripPoints.find((ParticipantSpecificInfoKey::Type)ac)) != tripPoints.end())
+		if ((tripPoint = tripPoints.find(static_cast<ParticipantSpecificInfoKey::Type>(ac))) != tripPoints.end())
 		{
 			root->addChild(XmlNode::createDataElement(acx.str(), tripPoint->second.toString()));
 		}
@@ -244,7 +239,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 	return root;
 }
 
-std::string ParticipantGetSpecificInfo_001::getName(void)
+std::string ParticipantGetSpecificInfo_001::getName()
 {
 	return "Get Specific Info Control";
 }

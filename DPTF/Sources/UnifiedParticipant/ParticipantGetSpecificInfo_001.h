@@ -28,18 +28,18 @@ public:
 	ParticipantGetSpecificInfo_001(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-	virtual ~ParticipantGetSpecificInfo_001();
+		const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface);
+	~ParticipantGetSpecificInfo_001() override = default;
 
 	// ParticipantGetSpecificInfoInterface
-	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+	std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
 		UIntN participantIndex,
 		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
 
 	// ComponentExtendedInterface
-	virtual void onClearCachedData(void) override;
-	virtual std::string getName(void) override;
-	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	void onClearCachedData(void) override;
+	std::string getName(void) override;
+	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 	// hide the copy constructor and = operator
@@ -48,6 +48,6 @@ private:
 
 	std::map<ParticipantSpecificInfoKey::Type, Temperature> m_cachedData;
 
-	Temperature readSpecificInfo(PrimitiveAndInstance primitiveAndInstance);
-	PrimitiveAndInstance getPrimitiveAndInstanceForSpecificInfoKey(ParticipantSpecificInfoKey::Type request);
+	Temperature readSpecificInfo(PrimitiveAndInstance primitiveAndInstance) const;
+	PrimitiveAndInstance getPrimitiveAndInstanceForSpecificInfoKey(ParticipantSpecificInfoKey::Type request) const;
 };

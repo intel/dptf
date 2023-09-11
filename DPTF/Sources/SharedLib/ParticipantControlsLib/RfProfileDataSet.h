@@ -30,12 +30,14 @@ class RfProfileDataSet final
 public:
 	RfProfileDataSet();
 	RfProfileDataSet(const std::vector<RfProfileData>& rfProfileData);
-	static RfProfileDataSet createRfProfileDataFromDptfBuffer(const DptfBuffer& buffer);
+	static RfProfileDataSet createActiveRfProfileDataFromDptfBuffer(const DptfBuffer& buffer);
+	static RfProfileDataSet createActiveRfProfileDataFromEmptyData();
 	std::vector<RfProfileData> getRfProfileData() const;
 	Bool operator==(const RfProfileDataSet& rhs) const;
 	std::shared_ptr<XmlNode> getXml();
 	RfProfileData operator[](UIntN index) const;
 
 private:
+	static void throwIfBufferIsUnexpectedSize(const DptfBuffer& buffer);
 	std::vector<RfProfileData> m_rfProfileDataSet;
 };

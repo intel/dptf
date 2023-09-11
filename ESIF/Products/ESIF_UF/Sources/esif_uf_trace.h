@@ -139,6 +139,11 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_PNP)          /* PnP information  */ \
 	ENUM(ESIF_TRACEMODULE_TABLEOBJECT)  /* TableObject  */ \
 	ENUM(ESIF_TRACEMODULE_ARBITRATION)  /* Arbitration  */ \
+	ENUM(ESIF_TRACEMODULE_UNUSED1)		/* For future expansion */ \
+	ENUM(ESIF_TRACEMODULE_UNUSED2)		/* For future expansion */ \
+	ENUM(ESIF_TRACEMODULE_UNUSED3)		/* For future expansion */ \
+	ENUM(ESIF_TRACEMODULE_UNUSED4)		/* For future expansion */ \
+	ENUM(ESIF_TRACEMODULE_VERBOSE)		/* For 'verbosity' support */ \
 
 enum esif_tracemodule {
 	ENUM_TRACEMODULE(ENUMDECL)
@@ -179,6 +184,9 @@ extern const char *EsifTraceModule_ToString(enum esif_tracemodule val);
 
 /* Alias for Current Module's Trace Module Mask that can be passed to DOTRACE and TRACEACTIVE/ENABLED macros */
 #define ESIF_TRACEMASK_CURRENT	ESIF_TRACEMASK(ESIF_TRACE_ID)
+
+/* Returns a 0 module value if verbosity not enabled */
+#define ESIF_TRACEVERBOSEMODULE(module, level) ((g_traceinfo[level].modules & (ESIF_TRACEMASK(ESIF_TRACEMODULE_VERBOSE))) ? module : 0)
 
 /* Test whether Tracing is currently active for the given module and level based on the currrent trace level*/
 #define ESIF_TRACEACTIVE(module, level) ((g_traceLevel >= (level)) && !!(g_traceinfo[level].modules & (module)))
@@ -346,6 +354,14 @@ extern "C" {
 #define ESIF_TRACE_DEBUG(msg, ...) \
 		ESIF_DOTRACE_IFACTIVE( \
 			ESIF_TRACEMASK_CURRENT, \
+			ESIF_TRACELEVEL_DEBUG, \
+			msg, \
+			##__VA_ARGS__ \
+		)
+
+#define ESIF_TRACE_VERBOSE(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEVERBOSEMODULE(ESIF_TRACE_ID, ESIF_TRACELEVEL_DEBUG)), \
 			ESIF_TRACELEVEL_DEBUG, \
 			msg, \
 			##__VA_ARGS__ \

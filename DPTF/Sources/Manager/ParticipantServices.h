@@ -149,6 +149,9 @@ public:
 		UIntN domainIndex = Constants::Esif::NoDomain,
 		UInt8 instance = Constants::Esif::NoInstance) override final;
 
+	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) override final;
+	virtual Power readConfigurationPower(const std::string& nameSpace, const std::string& elementPath) override final;
+
 	virtual void writeMessageFatal(const DptfMessage& message) override final;
 	virtual void writeMessageError(const DptfMessage& message) override final;
 	virtual void writeMessageWarning(const DptfMessage& message) override final;
@@ -179,6 +182,7 @@ public:
 	virtual void unregisterRequestHandler(DptfRequestType::Enum requestType, RequestHandlerInterface* handler) override;
 	
 	virtual DomainType::Type getDomainType(UIntN domainIndex) override final;
+	virtual std::string getParticipantName() override final;
 
 private:
 	// hide the copy constructor and assignment operator.

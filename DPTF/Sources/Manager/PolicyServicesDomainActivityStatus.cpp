@@ -68,14 +68,6 @@ CoreActivityInfo PolicyServicesDomainActivityStatus::getCoreActivityInfo(UIntN p
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreActivityInfo(domainIndex);
 }
 
-void PolicyServicesDomainActivityStatus::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
-{
-	throwIfNotWorkItemThread();
-	getParticipantManager()
-		->getParticipantPtr(participantIndex)
-		->setPowerShareEffectiveBias(domainIndex, powerShareEffectiveBias);
-}
-
 UInt32 PolicyServicesDomainActivityStatus::getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();

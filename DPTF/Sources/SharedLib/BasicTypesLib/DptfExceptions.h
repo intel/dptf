@@ -28,9 +28,8 @@
 class dptf_exception : public std::logic_error
 {
 public:
-	dptf_exception(const std::string& description) throw();
-	virtual ~dptf_exception() throw();
-	virtual const char* what() const throw();
+	dptf_exception(const std::string& description) noexcept;
+	const char* what() const noexcept override;
 	std::string getDescription() const;
 
 protected:

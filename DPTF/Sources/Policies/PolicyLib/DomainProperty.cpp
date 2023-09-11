@@ -30,11 +30,7 @@ DomainProperty::DomainProperty(
 {
 }
 
-DomainProperty::~DomainProperty(void)
-{
-}
-
-UIntN DomainProperty::getDomainIndex()
+UIntN DomainProperty::getDomainIndex() const
 {
 	return m_domainIndex;
 }

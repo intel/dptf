@@ -30,7 +30,6 @@
 #include "esif_uf_sensors.h"
 #include "esif_sdk_data_misc.h"
 #include "esif_ccb_cpuid.h"
-
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <termios.h>
@@ -40,6 +39,50 @@
 #include <unistd.h>
 #include <poll.h>
 
+#ifdef ESIF_FEAT_OPT_HAVE_EDITLINE
+#include <editline/readline.h>
+#endif
+
+// Feature Flag to enable dynamic capability feature
+#ifdef ESIF_FEAT_OPT_DYNAMIC_CAPABILITY 
+#include <sys/capability.h>
+
+eEsifError disable_all_capabilities()
+{
+	eEsifError rc = ESIF_OK;
+	cap_t caps = NULL;
+
+	// Get the current Capability set
+	caps = cap_get_proc();
+	if (caps == NULL) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	// Clear the Effective Capability set
+	if (cap_clear_flag(caps, CAP_EFFECTIVE) == -1) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	// Set the new cleared effective capability set
+	if (cap_set_proc(caps) == -1) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+exit:
+	if ( caps != NULL) {
+		cap_free(caps);
+	}
+	return rc;
+}
+#else // IF Feature flag is not set
+eEsifError disable_all_capabilities()
+{
+	return ESIF_OK;
+}
+#endif // end of ESIF_FEAT_OPT_DYNAMIC_CAPABILITY
 #define COPYRIGHT_NOTICE "Copyright (c) 2013-2023 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
@@ -54,7 +97,10 @@ static Bool esif_udev_is_started();
 static void *esif_udev_listen(void *ptr);
 static void esif_process_udev_event(char *udev_target);
 static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event);
-static int kobj_wifi_uevent_parse(char *buffer, int len , int *wifi_event);
+static int kobj_wifi_uevent_parse(char *buffer, int len , char **wifi_action,int *wifi_event);
+static eEsifError ProcessWifiEvents(UfPmIterator *upIterPtr, EsifUpPtr upPtr, int wifi_event);
+static int kobj_rfkill_uevent_parse(char *buffer, int len, char **rfkill_type, int *rfkill_state);
+static eEsifError ProcessRfkillEvents(UfPmIterator *upIterPtr, EsifUpPtr upPtr, int rfkill_state);
 
 static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
@@ -202,6 +248,12 @@ enum thermal_notify_event {
 	THERMAL_EVENT_KEEP_ALIVE, /* Request for user space handler to respond */
 };
 
+/* RF event notification */
+enum rfkill_notify_event {
+	RF_EVENT_UNDEFINED = -1,
+	RF_EVENT_DISABLE = 0,
+	RF_EVENT_ENABLE = 1,
+} rfkill_event;
 
 /* Wifi event notification */
 enum wifi_notify_event {
@@ -253,39 +305,6 @@ eEsifError ipc_resync()
 #endif
 }
 
-/* Emulate Windows kbhit Function */
-static int kbhit (void)
-{
-	struct termios save_t = {0};
-	struct termios new_t  = {0};
-	int key     = 0;
-	int save_fc = 0;
-
-	/* Get Terminal Attribute */
-	tcgetattr(STDIN_FILENO, &save_t);
-	new_t = save_t;
-	new_t.c_lflag &= ~(ICANON | ECHO);
-
-	/* Set Terminal Attribute */
-	tcsetattr(STDIN_FILENO, TCSANOW, &new_t);
-	save_fc = fcntl(STDIN_FILENO, F_GETFL, 0);
-
-	/* Add NONBLOCK To Existing File Control */
-	fcntl(STDIN_FILENO, F_SETFL, save_fc | O_NONBLOCK);
-
-	/* If No Character No Problem */
-	key = getchar();
-
-	/* Remove NONBLOCK Attribute */
-	tcsetattr(STDIN_FILENO, TCSANOW, &save_t);
-	fcntl(STDIN_FILENO, F_SETFL, save_fc);
-
-	if (key != EOF) {
-		return 1;
-	}
-	return 0;
-}
-
 static Int64 time_elapsed_in_ms(struct timeval *old, struct timeval *now)
 {
 	Int64 elapsed = 0;
@@ -297,6 +316,35 @@ static Int64 time_elapsed_in_ms(struct timeval *old, struct timeval *now)
 	return elapsed;
 }
 
+static int kobj_rfkill_uevent_parse(char *buffer, int len, char **rfkill_type, int *rfkill_state)
+{
+	static const char type_eq[] = "RFKILL_TYPE=";
+	static const char state_eq[] = "RFKILL_STATE=";
+	int i = 0;
+	int ret = 0;
+
+	while (i < len) {
+		if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(type_eq, sizeof(type_eq))
+				&& esif_ccb_strncmp(buffer + i, type_eq, esif_ccb_strlen(type_eq, sizeof(type_eq))) == 0) {
+				*rfkill_type = buffer + i + esif_ccb_strlen(type_eq, sizeof(type_eq));
+		}
+		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(state_eq, sizeof(state_eq))
+				&& esif_ccb_strncmp(buffer + i, state_eq, esif_ccb_strlen(state_eq, sizeof(state_eq))) == 0) {
+				*rfkill_state = esif_atoi(buffer + i + esif_ccb_strlen(state_eq, sizeof(state_eq)));
+		}
+		i += esif_ccb_strlen(buffer + i, len - i) + 1;
+	}
+
+	if (*rfkill_type != NULL) {
+		ESIF_TRACE_INFO("rfkill_type:%s, rfkill_state: %d\n", *rfkill_type, *rfkill_state);
+		ret = esif_ccb_strncmp(*rfkill_type, "wlan", sizeof("wlan")-1);
+		if (*rfkill_state != -1 && ret == 0) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
 
 static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
 {
@@ -330,27 +378,133 @@ static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, in
 		return 0;
 }
 
-static int kobj_wifi_uevent_parse(char *buffer, int len, int *wifi_event)
+static int kobj_wifi_uevent_parse(char *buffer, int len, char **action, int *wifi_event)
 {
-	char *ctx = NULL;
-	char *parse = NULL;
+	static const char action_eq[] = "ACTION=";
 
-	*wifi_event = WIFI_EVENT_UNDEFINED;	// initialize it
+	int i = 0;
+	int ret = 1;
 
-	parse = esif_ccb_strtok(buffer,"@", &ctx);
-
-	if (parse != NULL) {
-		if (!esif_ccb_strcmp(parse,"add")) {
-			*wifi_event = WIFI_EVENT_MODULE_ADDED;
+	while (i < len) {
+		if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(action_eq, sizeof(action_eq))
+				&& esif_ccb_strncmp(buffer + i, action_eq, esif_ccb_strlen(action_eq, sizeof(action_eq))) == 0) {
+				*action = buffer + i + esif_ccb_strlen(action_eq, sizeof(action_eq));
 		}
-		else if (!esif_ccb_strcmp(parse,"remove"))
-		{
-			*wifi_event = WIFI_EVENT_MODULE_REMOVED;
-		}
+		i += esif_ccb_strlen(buffer + i, len - i) + 1;
 	}
 
-	return 1;
+	if (*action == NULL) {
+		ret = 0;
+		goto exit;
+	}
+
+	if (!esif_ccb_strncmp(*action, "add", sizeof("add")-1)) {
+		*wifi_event = WIFI_EVENT_MODULE_ADDED;
+	}
+	else if (!esif_ccb_strncmp(*action, "remove", sizeof("remove")-1)) {
+		*wifi_event = WIFI_EVENT_MODULE_REMOVED;
+	}
+	else {
+		*wifi_event = WIFI_EVENT_UNDEFINED;
+		ret = 0;
+	}
+
+	ESIF_TRACE_INFO("action:%s, wifi_event: %d\n", *action, *wifi_event);
+
+exit:
+	return ret;
 }
+
+static eEsifError ProcessRfkillEvents(UfPmIterator *upIterPtr, EsifUpPtr upPtr, int rfkill_state)
+{
+	eEsifError rc = ESIF_OK;
+
+	static int prev_rfkill_state = RF_EVENT_UNDEFINED;
+
+	if (prev_rfkill_state == rfkill_state) {
+		goto exit;
+	}
+	prev_rfkill_state = rfkill_state;
+
+	switch (rfkill_state) {
+		case RF_EVENT_ENABLE:
+			ESIF_TRACE_INFO("WIFI is enabled\n");
+			rc = EsifUpPm_ResumeParticipantByType("INT3408", ESIF_DOMAIN_TYPE_WIRELESS);
+			break;
+
+		case RF_EVENT_DISABLE:
+			ESIF_TRACE_INFO("WIFI is Disabled\n");
+			rc = EsifUpPm_InitIterator(upIterPtr);
+			if (rc == ESIF_E_PARAMETER_IS_NULL) {
+				goto exit;
+			}
+			rc = EsifUpPm_GetNextUp(upIterPtr, &upPtr);
+
+			while (ESIF_OK == rc) {
+				if ( !esif_ccb_strcmp(upPtr->fMetadata.fAcpiDevice, "INT3408")
+					&& upPtr->fMetadata.fAcpiType == ESIF_DOMAIN_TYPE_WIRELESS ) {
+						EsifEventMgr_SignalSynchronousEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL, EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX);
+						ESIF_TRACE_DEBUG(" The participant suspended fAcpidevice: %s, fAcpiType:%u \n", upPtr->fMetadata.fAcpiDevice, upPtr->fMetadata.fAcpiType);
+				}
+				rc = EsifUpPm_GetNextUp(upIterPtr, &upPtr);
+			}
+			if (rc != ESIF_E_ITERATION_DONE) {
+				EsifUp_PutRef(upPtr);
+			}
+			break;
+		default:
+			ESIF_TRACE_INFO("RF_EVENT_UNDEFINED\n");
+			break;
+	}
+exit:
+	return rc;
+}
+
+
+static eEsifError ProcessWifiEvents(UfPmIterator *upIterPtr, EsifUpPtr upPtr, int wifi_event)
+{
+	eEsifError rc = ESIF_OK;
+	static int prev_wifi_event = WIFI_EVENT_UNDEFINED;
+
+	if (prev_wifi_event == wifi_event) {
+		goto exit;
+	}
+	prev_wifi_event = wifi_event;
+
+	switch (wifi_event) {
+		case WIFI_EVENT_MODULE_ADDED:
+			ESIF_TRACE_INFO("WIFI driver is loaded\n");
+			rc = EsifUpPm_ResumeParticipantByType("INT3408", ESIF_DOMAIN_TYPE_WIRELESS);
+			break;
+		case WIFI_EVENT_MODULE_REMOVED:
+			ESIF_TRACE_INFO("WIFI driver is unloaded\n");
+			rc = EsifUpPm_InitIterator(upIterPtr);
+			if (rc == ESIF_E_PARAMETER_IS_NULL) {
+				goto exit;
+			}
+			rc = EsifUpPm_GetNextUp(upIterPtr, &upPtr);
+
+			while (ESIF_OK == rc) {
+				if ( !esif_ccb_strcmp(upPtr->fMetadata.fAcpiDevice, "INT3408")
+					&& upPtr->fMetadata.fAcpiType == ESIF_DOMAIN_TYPE_WIRELESS ) {
+						EsifEventMgr_SignalSynchronousEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL, EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX);
+						ESIF_TRACE_DEBUG(" The participant suspended fAcpidevice: %s, fAcpiType:%u \n", upPtr->fMetadata.fAcpiDevice, upPtr->fMetadata.fAcpiType);
+				}
+				rc = EsifUpPm_GetNextUp(upIterPtr, &upPtr);
+			}
+			if (rc != ESIF_E_ITERATION_DONE) {
+				EsifUp_PutRef(upPtr);
+			}
+			break;
+		default:
+			ESIF_TRACE_INFO("WIFI_EVENT_UNDEFINED\n");
+			break;
+	}
+exit:
+	return rc;
+}
+
+
 
 static int check_for_uevent(int fd) {
 	eEsifError rc = ESIF_OK;
@@ -362,9 +516,12 @@ static int check_for_uevent(int fd) {
 	char thermal_path[MAX_PAYLOAD + 1] = {0};
 	char *buf_ptr;
 	char *zone_name;
+	char *wifi_action;
+	char *rfkill_type;
 	int temp;
 	int event;
 	int wifi_event;
+	int rfkill_state = RF_EVENT_UNDEFINED;
 	static struct timeval last_event_time = {0};
 	struct timeval cur_event_time = {0};
 	Int64 interval = 0;
@@ -380,48 +537,22 @@ static int check_for_uevent(int fd) {
 	while (i < len) {
 
 		buf_ptr = buffer + i;
-		if (!buf_ptr)
-			break;
 
 		if (esif_ccb_strlen(buf_ptr, sizeof(dev_path)) > dev_path_len
 				&& esif_ccb_strncmp(buf_ptr, dev_path, dev_path_len) == 0) {
-			if (esif_ccb_strncmp(buf_ptr + dev_path_len, wifi_device_path, sizeof(wifi_device_path) - 1) == 0) {
+			if (esif_ccb_strstr(buf_ptr, "ieee80211") != NULL) {
 
-				if (!kobj_wifi_uevent_parse(buffer, len, &wifi_event))
-				 	break;
-
-				switch (wifi_event) {
-				case WIFI_EVENT_MODULE_ADDED:
-					ESIF_TRACE_INFO("WIFI_EVENT_MODULE_ADDED\n");
-					rc = EsifUpPm_InitIterator(&upIter);
-					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-					while (ESIF_OK == rc) {
-						EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_RESUME, NULL);
-						rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-					}
-					if (rc != ESIF_E_ITERATION_DONE) {
-						EsifUp_PutRef(upPtr);
-					}
-					break;
-				case WIFI_EVENT_MODULE_REMOVED:
-					ESIF_TRACE_INFO("WIFI_EVENT_MODULE_REMOVED\n");
-					rc = EsifUpPm_InitIterator(&upIter);
-					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-					while (ESIF_OK == rc) {
-
-						EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_SUSPEND, NULL);
-						rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-					}
-					if (rc != ESIF_E_ITERATION_DONE) {
-						EsifUp_PutRef(upPtr);
-					}
-					break;
-				default:
-					ESIF_TRACE_INFO("WIFI_EVENT_UNDEFINED\n");
-					break;
+				if (kobj_rfkill_uevent_parse(buffer, len, &rfkill_type, &rfkill_state)) {
+					rc = ProcessRfkillEvents(&upIter, upPtr, rfkill_state);
+					ESIF_TRACE_INFO(" ProcessRfKillEvents error code: %d .\n",rc);
 				}
-			}
-			else if (esif_ccb_strncmp(buf_ptr + dev_path_len, thermal_device_path, sizeof(thermal_device_path) - 1) == 0) {
+				else if (kobj_wifi_uevent_parse(buffer, len, &wifi_action, &wifi_event))
+				{
+					rc = ProcessWifiEvents(&upIter, upPtr, wifi_event);
+					ESIF_TRACE_INFO("ProcessWiFiEvents error code: %d .\n",rc);
+				}
+
+			} else if (esif_ccb_strncmp(buf_ptr + dev_path_len, thermal_device_path, sizeof(thermal_device_path) - 1) == 0) {
 				char *parsed = NULL;
 				char *ctx = NULL;
 
@@ -916,7 +1047,7 @@ int SysfsSetStringWithError(const char *path, const char *filename, char *buffer
 
 	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
 
-	if (length && ((fd = open(filepath, O_WRONLY)) == -1)) {
+	if (!length || ((fd = open(filepath, O_WRONLY)) == -1)) {
 		goto exit;
 	}
 
@@ -1244,7 +1375,9 @@ static void *esif_udev_listen(void *ptr)
 	sock_addr_src.nl_pid = getpid();
 	sock_addr_src.nl_groups = -1;
 
-	bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src));
+	if ( bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src)) != ESIF_OK) {
+		goto exit;
+	}
 
 	esif_ccb_memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
 	sock_addr_dest.nl_family = AF_NETLINK;
@@ -1646,7 +1779,11 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 {
 	int rc = ESIF_FALSE;
 	char *ptr = NULL;
+#ifdef ESIF_FEAT_OPT_HAVE_EDITLINE
+	char *line = NULL;
+#else
 	char line[MAX_LINE + 1]  = {0};
+#endif
 
 	/* Prompt */
 	#define PROMPT_LEN 64
@@ -1710,6 +1847,30 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		EsifAppMgr_GetPrompt(&data_prompt);
 		prompt = (esif_string)data_prompt.buf_ptr;
 
+#ifdef ESIF_FEAT_OPT_HAVE_EDITLINE
+		CMD_LOGFILE("%s ", prompt);
+		line = readline(prompt);
+		if (line == NULL) {
+				if (input == stdin || quit_after_command) {
+					break;
+				}
+				input = stdin;
+		}
+		else {
+			ptr = line;
+			while (*ptr != '\0') {
+				if (*ptr == '\r' || *ptr == '\n' || *ptr == '#') {
+					*ptr = '\0';
+				}
+				ptr++;
+			}
+
+			CMD_LOGFILE("%s\n", line);
+			add_history(line);
+			esif_shell_execute(line);
+			esif_ccb_free(line);
+		}
+#else
 		// No History So Sorry
 		CMD_OUT("%s ", prompt);
 		if (esif_ccb_fgets(line, MAX_LINE, input) == NULL) {
@@ -1728,6 +1889,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 
 		CMD_LOGFILE("%s\n", line);
 		esif_shell_execute(line);
+#endif
 	}
 	rc = ESIF_TRUE;
 
@@ -1757,6 +1919,11 @@ int main (int argc, char **argv)
 	if(IsIntelCPU() == ESIF_FALSE) {
 		CMD_DEBUG("Not Supported\n");
 		exit(EXIT_FAILURE);
+	}
+
+	if (disable_all_capabilities() != 0 ) {
+		// Best case effort. No need to exit even if it fails
+		CMD_DEBUG("Error in disabling Caps");
 	}
 
 	// Init ESIF

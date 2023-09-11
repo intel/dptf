@@ -24,12 +24,12 @@ class dptf_export PolicyManager : public PolicyManagerInterface
 {
 public:
 	PolicyManager(DptfManagerInterface* dptfManager, const std::set<Guid>& defaultPolicies);
-	~PolicyManager(void);
+	~PolicyManager() override;
 
 	// Create policies
-	virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) override;
-	virtual UIntN createPolicy(const std::string& policyFileName) override;
-	virtual UIntN createDynamicPolicy(
+	void createAllPolicies(const std::string& dptfPolicyDirectoryPath) override;
+	UIntN createPolicy(const std::string& policyFileName) override;
+	UIntN createDynamicPolicy(
 		const std::string& policyFileName,
 		Guid dynamicPolicyUuid,
 		Guid dynamicPolicyTemplateGuid,
@@ -37,25 +37,26 @@ public:
 		const std::string& dynamicPolicyUuidString) override;
 
 	// Destroy policies
-	virtual void destroyAllPolicies(void) override;
-	virtual void destroyPolicy(UIntN policyIndex) override;
+	void destroyAllPolicies() override;
+	void destroyPolicy(UIntN policyIndex) override;
+	void reloadPolicy(const std::string& policyName) override;
 
 	// Allows the work items to iterate through the list of policies.
-	virtual std::set<UIntN> getPolicyIndexes(void) const override;
-	virtual std::shared_ptr<ISupportedPolicyList> getSupportedPolicyList(void) const override;
-	virtual std::shared_ptr<ISupportedDynamicPolicyList> getSupportedDynamicPolicyList(void) const override;
-	virtual IPolicy* getPolicyPtr(UIntN policyIndex) override;
-	virtual std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const override;
-	virtual Bool policyExists(const std::string& policyName) const override;
-	virtual Bool IsDynamicPolicyTemplateFileName(const std::string& policyName) const override;
+	[[nodiscard]] std::set<UIntN> getPolicyIndexes() const override;
+	[[nodiscard]] std::shared_ptr<ISupportedPolicyList> getSupportedPolicyList() const override;
+	[[nodiscard]] std::shared_ptr<ISupportedDynamicPolicyList> getSupportedDynamicPolicyList() const override;
+	IPolicy* getPolicyPtr(UIntN policyIndex) override;
+	[[nodiscard]] std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const override;
+	[[nodiscard]] Bool policyExists(const std::string& policyName) const override;
+	[[nodiscard]] Bool IsDynamicPolicyTemplateFileName(const std::string& policyName) const override;
 	// Policy manager handles registering and unregistering events since more than one policy can
 	// register or unregister, and we don't want one policy to unregister the event while another
 	// still needs it.
-	virtual void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
-	virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
+	void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
+	void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
 
-	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
-	virtual std::string getDiagnosticsAsXml(void) override;
+	std::shared_ptr<XmlNode> getStatusAsXml() override;
+	std::string getDiagnosticsAsXml() override;
 
 private:
 	// hide the copy constructor and assignment operator.
@@ -70,11 +71,11 @@ private:
 	// tracks the overall events registered by one or more policies
 	std::bitset<PolicyEvent::Max> m_registeredEvents;
 
-	void throwIfPolicyAlreadyExists(std::string policyFileName);
-	void throwIfDynamicPolicyAlreadyExists(std::string policyFileName, std::string policyName);
-	Bool isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent);
-	UIntN getPolicyCount(void);
+	void throwIfPolicyAlreadyExists(const std::string& policyFileName);
+	void throwIfDynamicPolicyAlreadyExists(const std::string& policyFileName, const std::string& policyName);
+	[[nodiscard]] Bool isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent) const;
+	[[nodiscard]] UIntN getPolicyCount(void) const;
 	std::shared_ptr<XmlNode> getEventsXmlForPolicy(UIntN policyIndex);
-	std::shared_ptr<XmlNode> getEventsInXml();
-	EsifServicesInterface* getEsifServices();
+	static std::shared_ptr<XmlNode> getEventsInXml();
+	[[nodiscard]] EsifServicesInterface* getEsifServices() const;
 };

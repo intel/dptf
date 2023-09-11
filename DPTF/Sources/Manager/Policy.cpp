@@ -256,6 +256,11 @@ string Policy::getPolicyFileName(void) const
 	return m_policyFileName;
 }
 
+UIntN Policy::getPolicyIndex() const
+{
+	return m_policyIndex;
+}
+
 string Policy::getStatusAsXml(void) const
 {
 	return m_theRealPolicy->getStatusAsXml();
@@ -297,6 +302,22 @@ void Policy::executeConnectedStandbyExit(void)
 	if (isEventRegistered(PolicyEvent::DptfConnectedStandbyExit))
 	{
 		m_theRealPolicy->connectedStandbyExit();
+	}
+}
+
+void Policy::executeLowPowerModeEntry(void)
+{
+	if (isEventRegistered(PolicyEvent::DptfLowPowerModeEntry))
+	{
+		m_theRealPolicy->lowPowerModeEntry();
+	}
+}
+
+void Policy::executeLowPowerModeExit(void)
+{
+	if (isEventRegistered(PolicyEvent::DptfLowPowerModeExit))
+	{
+		m_theRealPolicy->lowPowerModeExit();
 	}
 }
 
@@ -443,16 +464,29 @@ void Policy::executeDomainSocWorkloadClassificationChanged(
 	UIntN domainIndex,
 	SocWorkloadClassification::Type socWorkloadClassification)
 {
-	if (isEventRegistered(PolicyEvent::DomainSocWorkloadClassificationChanged))
+	if (isEventRegistered(PolicyEvent::DomainSocWorkloadClassificationChanged)
+		|| isEventRegistered(PolicyEvent::DomainHardwareSocWorkloadHintChanged))
 	{
 		m_theRealPolicy->domainSocWorkloadClassificationChanged(
 			participantIndex, domainIndex, socWorkloadClassification);
 	}
 }
 
+void Policy::executeDomainSocPowerFloorChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	SocPowerFloor::Type socPowerFloor)
+{
+	if (isEventRegistered(PolicyEvent::DomainSocPowerFloorChanged))
+	{
+		m_theRealPolicy->domainSocPowerFloorChanged(+participantIndex, domainIndex, socPowerFloor);
+	}
+}
+
 void Policy::executeDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
 {
-	if (isEventRegistered(PolicyEvent::DomainEppSensitivityHintChanged))
+	if (isEventRegistered(PolicyEvent::DomainEppSensitivityHintChanged)
+		|| isEventRegistered(PolicyEvent::DomainHardwareSocWorkloadHintChanged))
 	{
 		m_theRealPolicy->domainEppSensitivityHintChanged(participantIndex, domainIndex, mbtHint);
 	}
@@ -478,6 +512,17 @@ void Policy::executeDomainFanOperatingModeChanged(
 	if (isEventRegistered(PolicyEvent::DomainFanOperatingModeChanged))
 	{
 		m_theRealPolicy->domainFanOperatingModeChanged(participantIndex, domainIndex, fanOperatingMode);
+	}
+}
+
+void Policy::executeDomainPcieThrottleRequested(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	OnOffToggle::Type pcieThrottleRequested)
+{
+	if (isEventRegistered(PolicyEvent::DomainPcieThrottleRequested))
+	{
+		m_theRealPolicy->domainPcieThrottleRequested(participantIndex, domainIndex, pcieThrottleRequested);
 	}
 }
 
@@ -608,6 +653,14 @@ void Policy::executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type sc
 	}
 }
 
+void Policy::executePolicyProcessLoaded(const string& processName)
+{
+	if (isEventRegistered(PolicyEvent::PolicyProcessLoadNotification))
+	{
+		m_theRealPolicy->processLoaded(processName);
+	}
+}
+
 void Policy::executePolicyPassiveTableChanged(void)
 {
 	if (isEventRegistered(PolicyEvent::PolicyPassiveTableChanged))
@@ -664,6 +717,14 @@ void Policy::executePolicyDdrfTableChanged(void)
 	}
 }
 
+void Policy::executePolicyRfimTableChanged(void)
+{
+	if (isEventRegistered(PolicyEvent::PolicyRfimTableChanged))
+	{
+		m_theRealPolicy->rfimTableChanged();
+	}
+}
+
 void Policy::executePolicyTpgaTableChanged(void)
 {
 	if (isEventRegistered(PolicyEvent::PolicyTpgaTableChanged))
@@ -693,6 +754,14 @@ void Policy::executeSwOemVariablesChanged()
 	if (isEventRegistered(PolicyEvent::PolicySwOemVariablesChanged))
 	{
 		m_theRealPolicy->swOemVariablesChanged();
+	}
+}
+
+void Policy::executeEnvironmentProfileChanged(const EnvironmentProfile& environmentProfile)
+{
+	if (isEventRegistered(PolicyEvent::DptfEnvironmentProfileChanged))
+	{
+		m_theRealPolicy->environmentProfileChanged(environmentProfile);
 	}
 }
 
@@ -1167,10 +1236,10 @@ void Policy::executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerSta
 	}
 }
 
-void Policy::executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource)
+void Policy::executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP)
 {
 	if (isEventRegistered(PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged))
 	{
-		m_theRealPolicy->thirdPartyGraphicsTPPLimitChanged(tppPowerSource);
+		m_theRealPolicy->thirdPartyGraphicsTPPLimitChanged(powerSourceForTPP);
 	}
 }

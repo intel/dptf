@@ -67,6 +67,7 @@ namespace DomainType
 		Pcie,
 		Vpu,
 		Manager,
+		Ipu,
 		All,
 		Max
 	};

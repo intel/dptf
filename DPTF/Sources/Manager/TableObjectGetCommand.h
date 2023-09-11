@@ -22,9 +22,9 @@ class dptf_export TableObjectGetCommand : public CommandHandler
 {
 public:
 	TableObjectGetCommand(DptfManagerInterface* dptfManager);
-	virtual ~TableObjectGetCommand();
-	virtual std::string getCommandName() const override;
-	virtual void execute(const CommandArguments& arguments) override;
+	~TableObjectGetCommand() override = default;
+	std::string getCommandName() const override;
+	void execute(const CommandArguments& arguments) override;
 
 private:
 	void throwIfBadArguments(const CommandArguments& arguments);

@@ -125,11 +125,11 @@ Percentage PlatformPowerStatusFacade::getAC10msPercentageOverload(void)
 	return m_ac10msPercentageOverload;
 }
 
-void PlatformPowerStatusFacade::notifyForProchotDeassertion(void)
+void PlatformPowerStatusFacade::notifyForProcHotDeAssertion(void)
 {
 	if (m_domainProperties.implementsPlatformPowerStatusInterface())
 	{
-		m_policyServices.domainPlatformPowerStatus->notifyForProchotDeassertion(m_participantIndex, m_domainIndex);
+		m_policyServices.domainPlatformPowerStatus->notifyForProcHotDeAssertion(m_participantIndex, m_domainIndex);
 	}
 }
 

@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "EnvironmentProfiler.h"
 #include "PolicyServices.h"
 #include "PlatformConfigurationDataInterface.h"
 
@@ -30,92 +29,97 @@ public:
 		DptfManagerInterface* dptfManager,
 		UIntN policyIndex);
 
-	virtual UInt32 readConfigurationUInt32(const std::string& key) override final;
-	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) override final;
-	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) override final;
-	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) override final;
-	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) override final;
-	virtual void writeConfigurationBinary(
+	UInt32 readConfigurationUInt32(const std::string& key) override;
+	UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) override;
+	void writeConfigurationUInt32(const std::string& key, UInt32 data) override;
+	void writeConfigurationString(const std::string& key, const std::string& data) override;
+	std::string readConfigurationString(const std::string& nameSpace, const std::string& key) override;
+	DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) override;
+	void writeConfigurationBinary(
 		void* bufferPtr,
 		UInt32 bufferLength,
 		UInt32 dataLength,
 		const std::string& nameSpace,
-		const std::string& key) override final;
-	virtual void deleteConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override final;
-	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) override final;
+		const std::string& key) override;
+	void deleteConfigurationBinary(const std::string& nameSpace, const std::string& key) override;
+	eEsifError sendCommand(UInt32 argc, const std::string& argv) override;
 
-	virtual TimeSpan getMinimumAllowableSamplePeriod(void) override final;
+	TimeSpan getMinimumAllowableSamplePeriod() override;
 
-	virtual DptfBuffer getActiveRelationshipTable(void) override final;
-	virtual void setActiveRelationshipTable(DptfBuffer data) override final;
-	virtual DptfBuffer getThermalRelationshipTable(void) override final;
-	virtual void setThermalRelationshipTable(DptfBuffer data) override final;
-	virtual DptfBuffer getPassiveTable(void) override final;
-	virtual void setPassiveTable(DptfBuffer data) override final;
-	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) override final;
-	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) override final;
-	virtual DptfBuffer getOemVariables(void) override final;
-	virtual DptfBuffer getSwOemVariables(void) override final;
-	virtual void setSwOemVariables(const DptfBuffer& swOemVariablesData) override final;
-	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl)
-		override final;
-	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) const override final;
-	virtual Temperature getProcessorTjMax(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual DptfBuffer getPowerBossConditionsTable(void) override final;
-	virtual DptfBuffer getPowerBossActionsTable(void) override final;
-	virtual DptfBuffer getPowerBossMathTable(void) override final;
-	virtual DptfBuffer getVoltageThresholdMathTable(void) override final;
-	virtual DptfBuffer getEmergencyCallModeTable(void) override final;
-	virtual DptfBuffer getPidAlgorithmTable(void) override final;
-	virtual Bool getDisplayRequired(void) override final;
-	virtual void setPidAlgorithmTable(DptfBuffer data) override final;
-	virtual DptfBuffer getActiveControlPointRelationshipTable(void) override final;
-	virtual TimeSpan getExpectedBatteryLife(void) override final;
-	virtual UInt32 getAggressivenessLevel(void) override final;
-	virtual DptfBuffer getDdrfTable(void) override final;
-	virtual DptfBuffer getAggregateDisplayInformation(void) override final;
-	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) override final;
-	virtual void setEnergyPerformanceOptimizerTable(DptfBuffer data) override final;
-	virtual DptfBuffer getTpgaTable(void) override final;
-	virtual void setTpgaTable(DptfBuffer data) override final;
+	DptfBuffer getActiveRelationshipTable() override;
+	void setActiveRelationshipTable(DptfBuffer data) override;
+	DptfBuffer getThermalRelationshipTable() override;
+	void setThermalRelationshipTable(DptfBuffer data) override;
+	DptfBuffer getPassiveTable() override;
+	void setPassiveTable(DptfBuffer data) override;
+	DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) override;
+	DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) override;
+	DptfBuffer getOemVariables() override;
+	DptfBuffer getSwOemVariables() override;
+	void setSwOemVariables(const DptfBuffer& swOemVariablesData) override;
+	UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override;
+	UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) override;
+	Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl) override;
+	UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) override;
+	Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) const override;
+	Temperature getProcessorTjMax(UIntN participantIndex, UIntN domainIndex) override;
+	DptfBuffer getPowerBossConditionsTable() override;
+	DptfBuffer getPowerBossActionsTable() override;
+	DptfBuffer getPowerBossMathTable() override;
+	DptfBuffer getVoltageThresholdMathTable() override;
+	DptfBuffer getEmergencyCallModeTable() override;
+	DptfBuffer getPidAlgorithmTable() override;
+	Bool getDisplayRequired() override;
+	void setPidAlgorithmTable(DptfBuffer data) override;
+	DptfBuffer getActiveControlPointRelationshipTable() override;
+	TimeSpan getExpectedBatteryLife() override;
+	UInt32 getAggressivenessLevel() override;
+	DptfBuffer getDdrfTable() override;
+	DptfBuffer getRfimTable() override;
+	DptfBuffer getAggregateDisplayInformation() override;
+	DptfBuffer getEnergyPerformanceOptimizerTable() override;
+	void setEnergyPerformanceOptimizerTable(DptfBuffer data) override;
+	DptfBuffer getTpgaTable() override;
+	void setTpgaTable(DptfBuffer data) override;
 
-	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
-	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
-	virtual void setPowerShareAlgorithmTable(DptfBuffer data) override final;
-	virtual DptfBuffer getPowerShareAlgorithmTable2() override final;
-	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) override final;
-	virtual DptfBuffer getIntelligentThermalManagementTable() override final;
-	virtual void setIntelligentThermalManagementTable(DptfBuffer data) override final;
-	virtual void setPpmPackage(DptfBuffer package) override final;
-	virtual DptfBuffer getPpmPackage(DptfBuffer requestpackage) override final;
-	virtual void setPowerSchemeEpp(UInt32 value) override final;
-	virtual void setActivePowerScheme() override final;
-	virtual void setForegroundAppRatioPeriod(UInt32 value) override final;
-	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) override final;
-	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) override final;
-	EnvironmentProfile getEnvironmentProfile() const override final;
-	virtual void clearPpmPackageSettings(void) override final;
-	virtual UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) override final; 
-	virtual UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) override final; 
+	void setActiveControlPointRelationshipTable(DptfBuffer data) override;
+	DptfBuffer getPowerShareAlgorithmTable() override;
+	void setPowerShareAlgorithmTable(DptfBuffer data) override;
+	DptfBuffer getPowerShareAlgorithmTable2() override;
+	void setPowerShareAlgorithmTable2(DptfBuffer data) override;
+	DptfBuffer getIntelligentThermalManagementTable() override;
+	void setIntelligentThermalManagementTable(DptfBuffer data) override;
+	void setPpmPackage(DptfBuffer package) override;
+	void setPpmPackageForNonBalancedSchemePersonality(DptfBuffer package) override;
+	DptfBuffer getPpmPackage(DptfBuffer requestpackage) override;
+	void setPowerSchemeEpp(UInt32 value) override;
+	void setActivePowerScheme() override;
+	void setForegroundAppRatioPeriod(UInt32 value) override;
+	void setProcessAffinityMask(const std::string& processName, UInt32 maskValue) override;
+	void setApplicationCompatibility(const DptfBuffer& processData) override;
+	void deleteApplicationCompatibility() override;
+	UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) override;
+	void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) override;
+	UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) override;
+	EnvironmentProfile getEnvironmentProfile() const override;
+	void clearPpmPackageSettings(void) override;
+	UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) override; 
+	UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) override; 
 
 private:
 	TimeSpan m_defaultSamplePeriod;
-	DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const;
-	UInt16 createTupleDomain() const;
+	static DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance);
+	static UInt16 createTupleDomain();
 
-	void resetAllTables(void);
-	void resetActiveRelationshipTable(void);
-	void resetThermalRelationshipTable(void);
-	void resetPassiveTable(void);
-	void resetPidAlgorithmTable(void);
-	void resetActiveControlPointRelationshipTable(void);
-	void resetPowerShareAlgorithmTable(void);
-	void resetPowerShareAlgorithmTable2(void);
-	void resetIntelligentThermalManagementTable(void);
-	void resetEnergyPerformanceOptimizerTable(void);
-	void resetThirdPartyGraphicsTable(void);
+	void resetAllTables() const;
+	void resetActiveRelationshipTable() const;
+	void resetThermalRelationshipTable() const;
+	void resetPassiveTable() const;
+	void resetPidAlgorithmTable() const;
+	void resetActiveControlPointRelationshipTable() const;
+	void resetPowerShareAlgorithmTable() const;
+	void resetPowerShareAlgorithmTable2() const;
+	void resetIntelligentThermalManagementTable() const;
+	void resetEnergyPerformanceOptimizerTable() const;
+	void resetThirdPartyGraphicsTable() const;
 };

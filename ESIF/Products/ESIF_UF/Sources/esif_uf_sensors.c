@@ -182,8 +182,10 @@ void ESIF_CALLCONV EsifAccelerometer_GetOrientations(
 	{
 		xPlatOrientation = ORIENTATION_PLAT_FLAT_DOWN;
 	}
+	ESIF_TRACE_DEBUG("X Platform Orientation = [%s]\n", GetPlatOrientationStr(xPlatOrientation));
 
 	PlatformOrientation yPlatOrientation = EsifAccelerometer_GetPlatOrientationFromRoll(rollDegrees, inclinMinMaxConfig, xPlatOrientation, curPlatOrientation);
+	ESIF_TRACE_DEBUG("Y Platform Orientation = [%s]\n", GetPlatOrientationStr(yPlatOrientation));
 
 	if (EsifAccelerometer_IsUpright(xPlatOrientation)) {
 		*platOrientationPtr = xPlatOrientation;

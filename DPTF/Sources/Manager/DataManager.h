@@ -104,8 +104,8 @@ private:
 	DptfManagerInterface* m_dptfManager;
 	std::map<TableObjectType::Type, TableObject> m_tableObjectMap;
 
-	void writeEmptyTable(std::string nameSpace, std::string elementPath);
-	void sendTableChangedEvent(TableObjectType::Type tableObjectType, std::string uuid, UIntN participantIndex);
+	void writeEmptyTable(const std::string& nameSpace, const std::string& elementPath) const;
+	void sendTableChangedEvent(TableObjectType::Type tableObjectType, const std::string& uuid, UIntN participantIndex);
 	void loadTableObjectMap();
 	void loadAcprTableObject();
 	void loadApatTableObject();
@@ -123,6 +123,7 @@ private:
 	void loadPsh2TableObject();
 	void loadPshaTableObject();
 	void loadPsvtTableObject();
+	void loadRfimTableObject();
 	void loadSwOemVariablesTableObject();
 	void loadTpgaTableObject();
 	void loadTrtTableObject();

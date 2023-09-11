@@ -31,12 +31,15 @@ public:
 
 	virtual eLogType getCurrentLogVerbosityLevel(void) const override;
 	virtual void setCurrentLogVerbosityLevel(eLogType currentLogVerbosityLevel) override;
+	virtual EsifAppServicesInterface* getEsifAppServices() const override;
 
 	// Read/write configuration data.
 
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) override;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) override;
+	virtual Power readConfigurationPower(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) override;
+	virtual void writeConfigurationString(const std::string& elementPath, const std::string& elementValue) override;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual void writeConfigurationBinary(
@@ -241,7 +244,7 @@ private:
 	EsifAppServicesInterface* m_appServices;
 	eLogType m_currentLogVerbosityLevel;
 
-	void writeMessage(eLogType messageLevel, MessageCategory::Type messageCategory, const std::string& message);
+	void writeMessage(eLogType messageLevel, MessageCategory::Type messageCategory, const std::string& message) const;
 
 	std::string getParticipantName(UIntN participantIndex);
 	std::string getDomainName(UIntN participantIndex, UIntN domainIndex);
@@ -252,7 +255,7 @@ private:
 		const std::string& executingFunctionName,
 		eEsifError returnCode,
 		UIntN participantIndex,
-		UIntN domainIndex);
+		UIntN domainIndex) const;
 	void throwIfNotSuccessful(
 		const std::string& fileName,
 		UIntN lineNumber,
@@ -261,19 +264,19 @@ private:
 		esif_primitive_type primitive,
 		UIntN participantIndex,
 		UIntN domainIndex,
-		UInt8 instance);
+		UInt8 instance)const;
 	void throwIfNotSuccessful(
 		const std::string& fileName,
 		UIntN lineNumber,
 		const std::string& executingFunctionName,
 		eEsifError returnCode,
-		const std::string& messageText);
+		const std::string& messageText) const;
 	void throwIfParticipantDomainCombinationInvalid(
 		const std::string& fileName,
 		UIntN lineNumber,
 		const std::string& executingFunctionName,
 		UIntN participantIndex,
-		UIntN domainIndex);
+		UIntN domainIndex) const;
 
 	EsifServicesInterface* getEsifServices() const;
 };

@@ -87,11 +87,11 @@ Bool EsifEventCache_IsEventCacheable(esif_event_type_t eventType);
 
 esif_error_t EsifEventCache_GetValue(
 	esif_event_type_t eventType,
-	EsifData* dataPtr
+	EsifData *dataPtr
 )
 {
 	esif_error_t rc = ESIF_E_NOT_SUPPORTED;
-	EsifEventCacheEntry* curEntryPtr = g_CachedEvents;
+	EsifEventCacheEntry *curEntryPtr = g_CachedEvents;
 	size_t index = 0;
 
 	if (!g_EventCacheMgr.isStarted) {
@@ -123,7 +123,52 @@ esif_error_t EsifEventCache_GetValue(
 		}
 		esif_ccb_write_unlock(&g_EventCacheMgr.dataLock);
 	}
-	exit:
+exit:
+	return rc;
+}
+
+/* WARNING:  Caller is responsible for releasing returned buffer in dataPtr->buf_ptr */
+esif_error_t EsifEventCache_GetValueClone(
+	esif_event_type_t eventType,
+	EsifData *dataPtr
+	)
+{
+	esif_error_t rc = ESIF_E_NOT_SUPPORTED;
+	EsifEventCacheEntry *curEntryPtr = g_CachedEvents;
+	size_t index = 0;
+
+	if (!g_EventCacheMgr.isStarted) {
+		goto exit;
+	}
+
+	rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (dataPtr) {
+
+		rc = ESIF_E_NOT_FOUND;
+
+		esif_ccb_write_lock(&g_EventCacheMgr.dataLock);
+
+		for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
+			if (curEntryPtr->eventType == eventType) {
+				if (curEntryPtr->data.buf_ptr != NULL) {
+
+					rc = ESIF_E_NO_MEMORY;
+					dataPtr->buf_ptr = esif_ccb_malloc(curEntryPtr->data.data_len);
+					if (dataPtr->buf_ptr) {
+						dataPtr->type = curEntryPtr->data.type;
+						dataPtr->buf_len = curEntryPtr->data.data_len;
+						dataPtr->data_len = curEntryPtr->data.data_len;
+						esif_ccb_memcpy(dataPtr->buf_ptr, curEntryPtr->data.buf_ptr, curEntryPtr->data.data_len);
+						rc = ESIF_OK;
+					}
+				}
+				break;
+			}
+		}
+		esif_ccb_write_unlock(&g_EventCacheMgr.dataLock);
+	}
+exit:
 	return rc;
 }
 
@@ -152,7 +197,7 @@ static esif_error_t UpdateData_Locked(
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
-
+		entryPtr->data.type = dataPtr->type;
 		entryPtr->data.buf_len = dataPtr->data_len;
 		entryPtr->data.data_len = dataPtr->data_len;
 	}

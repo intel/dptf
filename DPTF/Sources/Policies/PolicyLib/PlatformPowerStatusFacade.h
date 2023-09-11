@@ -42,7 +42,7 @@ public:
 	virtual Percentage getAC1msPercentageOverload(void) override;
 	virtual Percentage getAC2msPercentageOverload(void) override;
 	virtual Percentage getAC10msPercentageOverload(void) override;
-	virtual void notifyForProchotDeassertion(void) override;
+	virtual void notifyForProcHotDeAssertion(void) override;
 
 	std::shared_ptr<XmlNode> getXml() const;
 

@@ -16,20 +16,14 @@
 **
 ******************************************************************************/
 #include "PlatformCpuIdCommand.h"
-
 #include "DptfManagerInterface.h"
-#include "EnvironmentProfiler.h"
 
 using namespace std;
 
-#define CPUID_STEPPING_BIT_OFFSET 4
+enum { CPUID_STEPPING_BIT_OFFSET = 4};
 
 PlatformCpuIdCommand::PlatformCpuIdCommand(DptfManagerInterface* dptfManager)
 	: CommandHandler(dptfManager)
-{
-}
-
-PlatformCpuIdCommand::~PlatformCpuIdCommand()
 {
 }
 

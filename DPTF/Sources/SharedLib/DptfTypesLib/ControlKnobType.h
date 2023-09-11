@@ -25,7 +25,7 @@ namespace ControlKnobType
 	enum Type
 	{
 		Invalid = 0,
-		PowerControlPl1 = 0x00010000, // PL1 in mW
+		PowerControlPL1 = 0x00010000, // PL1 in mW
 		PowerControlPl2 = 0x00010001, // PL2 in mW
 		PowerControlPl3 = 0x00010002, // PL3 in mW
 		PowerControlPl4 = 0x00010003, // PL4 in mW

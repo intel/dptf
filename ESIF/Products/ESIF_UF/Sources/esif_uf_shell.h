@@ -73,6 +73,9 @@ extern esif_error_t CreateVpuParticipant();
 extern esif_error_t CreateWifiParticipant();
 extern esif_error_t CreateIdg2Participant();
 extern esif_error_t CreateMcpParticipant();
+extern esif_error_t CreateIvramParticipant();
+extern esif_error_t CreateIpuParticipant();
+extern esif_error_t CreateAudioParticipant();
 
 #ifdef __cplusplus
 }

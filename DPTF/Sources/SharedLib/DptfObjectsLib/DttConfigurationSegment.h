@@ -33,6 +33,12 @@ public:
 	DttConfigurationSegment() = default;
 	DttConfigurationSegment(const std::map<std::string, std::string>& keyValues);
 	static DttConfigurationSegment createFromBson(const std::vector<unsigned char>& bson);
+	static DttConfigurationSegment createFromJsonString(const std::string& jsonString);
+
+	DttConfigurationSegment operator+(const DttConfigurationSegment& higherPriority) const;
+	bool operator<(const DttConfigurationSegment& other) const;
+	bool operator==(const DttConfigurationSegment& other) const;
+	bool operator!=(const DttConfigurationSegment& other) const;
 
 	std::set<std::string> getKeys() const;
 	std::set<std::string> getKeysThatMatch(const DttConfigurationQuery& query) const;
@@ -41,14 +47,18 @@ public:
 	bool hasValue(const std::string& value) const;
 	bool hasProperties(const std::set<DttConfigurationProperty>& properties) const;
 	bool matchesEnvironmentProfile(const EnvironmentProfile& environmentProfile) const;
+	bool matchesCpuIdInEpoSegment(const std::string& environmentProfile) const;
+	bool matchesEnvironmentProfileIncludingEmptyValue(const EnvironmentProfile& environmentProfile) const;
+	bool hasLabel(const std::string& label) const;
 	std::set<std::string> getKeysWithValue(const std::string& value) const;
 	bool empty() const;
-
 	void keepOnlyKeysThatMatch(const DttConfigurationQuery& query);
 	void keepOnlyKeysThatMatch(const std::set<DttConfigurationQuery>& regexPatterns);
+	std::string toString() const;
 
 private:
 
 	std::map<std::string, std::string> m_keyValues;
 	void throwIfKeyDoesNotExist(const std::string& key) const;
+	bool hasPropertiesIncludingEmptyValue(const std::set<DttConfigurationProperty>& properties) const;
 };

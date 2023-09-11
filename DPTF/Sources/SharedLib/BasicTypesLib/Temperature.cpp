@@ -189,6 +189,18 @@ std::string Temperature::toStringTenthKelvin() const
 	}
 }
 
+std::string Temperature::toStringAsCelsius(int precision) const
+{
+	if (isValid() && m_temperature != Constants::MaxUInt32)
+	{
+		return friendlyValueWithPrecision(getTemperatureInCelsius(), precision);
+	}
+	else
+	{
+		return std::string(Constants::InvalidString);
+	}
+}
+
 void Temperature::throwIfInvalid(const Temperature& temperature) const
 {
 	if (temperature.isValid() == false)
@@ -249,6 +261,6 @@ Temperature Temperature::createFromDptfBuffer(const DptfBuffer& buffer)
 	DptfBufferStream stream(bufferCopy);
 	Temperature newTemperature;
 	newTemperature.m_valid = stream.readNextBool();
-	newTemperature.m_temperature = stream.readNextUint32();
+	newTemperature.m_temperature = stream.readNextUInt32();
 	return newTemperature;
 }

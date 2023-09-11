@@ -20,6 +20,7 @@
 #include "Participant.h"
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
+#include "EventPayloadParticipantDomainId.h"
 
 WIDomainCreate::WIDomainCreate(
 	DptfManagerInterface* dptfManager,
@@ -32,10 +33,6 @@ WIDomainCreate::WIDomainCreate(
 	, m_domainDataPtr(domainDataPtr)
 	, m_domainEnabled(domainEnabled)
 	, m_domainCreated(domainCreated)
-{
-}
-
-WIDomainCreate::~WIDomainCreate(void)
 {
 }
 
@@ -63,18 +60,22 @@ void WIDomainCreate::onExecute(void)
 
 	if (domainCreated == true)
 	{
+		getDptfManager()->getEventNotifier()->notify(
+			getFrameworkEventType(), 
+			EventPayloadParticipantDomainId(getParticipantIndex(), getDomainIndex()));
+
 		//
 		// Iterate through the list of policies and let them know about the new domain
 		//
 
-		auto policyManager = getPolicyManager();
-		auto policyIndexes = policyManager->getPolicyIndexes();
+		const auto policyManager = getPolicyManager();
+		const auto policyIndexes = policyManager->getPolicyIndexes();
 
-		for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+		for (const auto& policyIndex : policyIndexes)
 		{
 			try
 			{
-				auto policy = policyManager->getPolicyPtr(*i);
+				const auto policy = policyManager->getPolicyPtr(policyIndex);
 				policy->bindDomain(getParticipantIndex(), getDomainIndex());
 			}
 			catch (const policy_index_invalid&)
@@ -87,7 +88,7 @@ void WIDomainCreate::onExecute(void)
 			}
 			catch (const std::exception& ex)
 			{
-				writeDomainWorkItemErrorMessagePolicy(ex, "Policy::bindDomain", *i);
+				writeDomainWorkItemErrorMessagePolicy(ex, "Policy::bindDomain", policyIndex);
 			}
 		}
 	}

@@ -101,6 +101,9 @@ void WIPolicyTableObjectChanged::onExecute(void)
 			case TableObjectType::Psvt:
 				policy->executePolicyPassiveTableChanged();
 				break;
+			case TableObjectType::Rfim:
+				policy->executePolicyRfimTableChanged();
+				break;
 			case TableObjectType::Tpga:
 				policy->executePolicyTpgaTableChanged();
 				break;

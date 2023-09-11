@@ -29,3 +29,9 @@ UtilizationStatus PolicyServicesDomainUtilization::getUtilizationStatus(UIntN pa
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getUtilizationStatus(domainIndex);
 }
+
+Percentage PolicyServicesDomainUtilization::getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getMaxCoreUtilization(domainIndex);
+}

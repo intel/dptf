@@ -24,8 +24,13 @@
 #include "ipf_dll_esif.h"
 #include "ipf_dll_core.h"
 #include "ipf_apploader.h"
-#include "ipf_trace.h"
 #include "ipf_sdk_version.h"
+
+#ifndef IPF_TRACE_AVAILABLE
+#include "ipf_trace.h"
+#else
+#include "Tracing.h" // For EF support
+#endif
 
 #ifdef NO_IPFCORE_SUPPORT
 // IpfCoreLib currently unsupported in Open Source distributions
@@ -45,13 +50,13 @@ typedef void (ESIF_CALLCONV* SetIpfLibraryFuncPtr)(const char* libname);
 typedef void (ESIF_CALLCONV* SetAppLibraryFuncPtr)(const char* libname);
 
 typedef enum {
+	UNINIT = 0,
 	INIT,
 	RUNNING,
-	STOPPED,
-	EXIT
+	STOPPED
 } RunState_t;
 
-typedef struct AppContext_s {
+typedef struct AppLoader_s {
 	char applibpath[MAX_PATH];
 
 	esif_lib_t appLibObj;
@@ -67,13 +72,14 @@ typedef struct AppContext_s {
 
 	esif_error_t connectState;
 	signal_t signal;
-} AppContext;
+} AppLoader;
 
+// Singleton Object used for Legacy Support
+static AppLoader* g_singleton = NULL;
 
-AppContext g_appContext = { 0 };
-
-
-static esif_error_t ESIF_CALLCONV LoadLibraries(AppContext* self) {
+// Load IPF Core Library or ESIF App and IPF Libraries
+static esif_error_t ESIF_CALLCONV LoadLibraries(AppLoader* self)
+{
 	esif_error_t rc = ESIF_OK;
 	GetIpfInterfaceFuncPtr getIpfIfaceFP = NULL;
 	GetAppInterfaceV2FuncPtr getEsifIfaceFP = NULL;
@@ -128,11 +134,11 @@ exit:
 	return (int)rc;
 }
 
-
-
-static void* ESIF_CALLCONV AppWorkerThread(void* ctx) {
+// Worker Thread to load App libraries and maintain a persistent IPC connection for App
+static void* ESIF_CALLCONV AppWorkerThread(void* ctx)
+{
 	esif_error_t rc = ESIF_OK;
-	AppContext *self = (AppContext *)ctx;
+	AppLoader* self = (AppLoader*)ctx;
 
 	if (self == NULL) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -171,12 +177,12 @@ static void* ESIF_CALLCONV AppWorkerThread(void* ctx) {
 			else {
 				IPF_TRACE_DEBUG("%s\n", esif_rc_str(rc));
 			}
-			// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+			// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
 			esif_ccb_write_lock(&self->lock);
 			(coreIface->IpfCore_SessionDestroy ? coreIface->IpfCore_SessionDestroy(self->client) : VOIDRESULT);
 			esif_ccb_write_unlock(&self->lock);
 		}
-		// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+		// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
 		esif_ccb_write_lock(&self->lock);
 		(coreIface->IpfCore_Exit ? coreIface->IpfCore_Exit() : VOIDRESULT); 
 		esif_ccb_write_unlock(&self->lock);
@@ -193,7 +199,7 @@ static void* ESIF_CALLCONV AppWorkerThread(void* ctx) {
 			rc = (self->ipcObj.iface.Ipc_SetAppIface ? self->ipcObj.iface.Ipc_SetAppIface(&self->esifObj.ifaceSet) : ESIF_E_NOT_IMPLEMENTED);
 		}
 
-		// Create IPC Client
+		// Create IPC Client Session
 		self->client = IPC_INVALID_SESSION;
 		if (rc == ESIF_OK) {
 			self->client = (self->ipcObj.iface.IpcSession_Create ? self->ipcObj.iface.IpcSession_Create(&self->info) : IPC_INVALID_SESSION);
@@ -216,12 +222,12 @@ static void* ESIF_CALLCONV AppWorkerThread(void* ctx) {
 			else {
 				IPF_TRACE_DEBUG("%s\n", esif_rc_str(rc));
 			}	
-			// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+			// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
 			esif_ccb_write_lock(&self->lock);
 			(self->ipcObj.iface.IpcSession_Destroy ? self->ipcObj.iface.IpcSession_Destroy(self->client) : VOIDRESULT);
 			esif_ccb_write_unlock(&self->lock);
 		}
-		// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+		// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
 		esif_ccb_write_lock(&self->lock);
 		(self->ipcObj.iface.Ipc_Exit ? self->ipcObj.iface.Ipc_Exit() : VOIDRESULT);
 		esif_ccb_write_unlock(&self->lock);
@@ -241,9 +247,11 @@ exit:
 	return NULL;
 }
 
-static void* ESIF_CALLCONV AppManagerThread(void* ctx) {
+// Main thread to maintain a peristent IPC connection until Service is Stopped
+static void* ESIF_CALLCONV AppManagerThread(void* ctx)
+{
 	esif_error_t rc = ESIF_OK;
-	AppContext* self = (AppContext*)ctx;
+	AppLoader* self = (AppLoader*)ctx;
 	RunState_t runstate = STOPPED;
 
 	esif_wthread_t appThread;
@@ -286,126 +294,182 @@ exit:
 	return 0;
 }
 
+// Legacy support for Singleton Object
+AppLoader* ESIF_CALLCONV AppLoader_GetInstance()
+{
+	if (g_singleton == NULL) {
+		g_singleton = AppLoader_Create();
+	}
+	return g_singleton;
+}
 
-esif_error_t ESIF_CALLCONV Apploader_Init(const char* applibpath, const char* serveraddr) {
+// Create a new Uninitialized AppLoader object
+AppLoader* ESIF_CALLCONV AppLoader_Create()
+{
+	AppLoader* obj = (AppLoader*)esif_ccb_malloc(sizeof(AppLoader));
+	return obj;
+}
+
+// Destroy an Uninitialized AppLoader object
+void ESIF_CALLCONV AppLoader_Destroy(AppLoader* self)
+{
+	esif_ccb_free(self);
+}
+
+// Initialize an AppLoader object
+// This may be called multiple times before AppLoader_Start() to change path and server parameters
+esif_error_t ESIF_CALLCONV AppLoader_Init(
+	AppLoader* self,
+	const char* libpath,
+	const char* serveraddr)
+{
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	AppContext* self = &g_appContext;
 
-	self->runState = INIT;
-	self->coreObj = (const IpfCoreLib){ 0 };
-	self->esifObj = (const EsifAppLib){ 0 };
-	self->ipcObj = (const IpfIpcLib){ 0 };
-	self->client = IPC_INVALID_SESSION;
+	if (self) {
+		// Initialize object once
+		if (self->runState == UNINIT) {
+			*self->applibpath = 0;
+			self->info = (const IpfSessionInfo){ 0 };
+			self->coreObj = (const IpfCoreLib){ 0 };
+			self->esifObj = (const EsifAppLib){ 0 };
+			self->ipcObj = (const IpfIpcLib){ 0 };
+			self->client = IPC_INVALID_SESSION;
 
-	// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
-	esif_ccb_lock_init(&self->lock);
+			// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+			esif_ccb_lock_init(&self->lock);
 
-	// Connection Suspend Signal
-	self->connectState = ESIF_E_WS_DISC;
-	signal_init(&self->signal);
+			// Connection Suspend Signal
+			self->connectState = ESIF_E_WS_DISC;
+			signal_init(&self->signal);
 
-	// Initialize Library Path and Session Parameters
-	if (applibpath && serveraddr) {
-		esif_ccb_strcpy(self->applibpath, applibpath, ESIF_ARRAY_LEN(self->applibpath));
-		self->info.v1.revision = IPF_SESSIONINFO_REVISION;
-		esif_ccb_strcpy(self->info.v1.serverAddr, serveraddr, ESIF_ARRAY_LEN(self->info.v1.serverAddr));
-		rc = ESIF_OK;
+			self->runState = INIT;
+		}
+
+		// Initialize App Library Path and Session Parameters; May be called multiple times
+		if (libpath) {
+			esif_ccb_strcpy(self->applibpath, libpath, sizeof(self->applibpath));
+		}
+		if (serveraddr) {
+			self->info.v1.revision = IPF_SESSIONINFO_REVISION;
+			esif_ccb_strcpy(self->info.v1.serverAddr, serveraddr, sizeof(self->info.v1.serverAddr));
+		}
+		if (self->applibpath[0] && self->info.v1.serverAddr[0]) {
+			rc = ESIF_OK;
+		}
 	}
 	return rc;
 }
 
+// Load Core or ESIF App Libraries and start App after establishing IPC connection
+esif_error_t ESIF_CALLCONV AppLoader_Start(AppLoader* self)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
-esif_error_t ESIF_CALLCONV Apploader_Start() {
-	esif_error_t rc = ESIF_OK;
-	AppContext* self = &g_appContext;
+	if (self) {
+		self->runState = RUNNING;
 
-	self->runState = RUNNING;
+		// Load DLLs for the app configuration
+		rc = LoadLibraries(self);
 
-	// Load DLLs for the app configuration
-	rc = LoadLibraries(self);
-	
-	// Init and create the app manager thread that will start the application
-	if (ESIF_OK == rc) {
-		esif_ccb_wthread_init(&self->appMgrThread);
-		rc = esif_ccb_wthread_create(&self->appMgrThread, AppManagerThread, self);
+		// Init and create the app manager thread that will start the application
+		if (ESIF_OK == rc) {
+			esif_ccb_wthread_init(&self->appMgrThread);
+			rc = esif_ccb_wthread_create(&self->appMgrThread, AppManagerThread, self);
+		}
 	}
-
 	return rc;
 }
 
-void ESIF_CALLCONV Apploader_Stop() {
-	AppContext* self = &g_appContext;
+// Stop App, Disconnect IPC, and wait for Worker Threads to stop
+void ESIF_CALLCONV AppLoader_Stop(AppLoader* self)
+{
+	if (self) {
+		// Wake up Suspended Worker Thread
+		if (self->connectState == ESIF_E_WS_UNAUTHORIZED) {
+			esif_ccb_write_lock(&self->lock);
+			self->runState = STOPPED;
+			esif_ccb_write_unlock(&self->lock);
+			self->connectState = ESIF_E_WS_DISC;
+			signal_post(&self->signal);
+		}
 
-	// Wake up Suspended Worker Thread
-	if (self->connectState == ESIF_E_WS_UNAUTHORIZED) {
-		esif_ccb_write_lock(&self->lock);
-		self->runState = STOPPED;
-		esif_ccb_write_unlock(&self->lock);
-		self->connectState = ESIF_E_WS_DISC;
-		signal_post(&self->signal);
+		// Calling disconnect will cause the application to exit.
+		// The application manager thread will exit when the runState is STOPPED
+		if (esif_ccb_library_isloaded(self->coreObj.libModule)) {
+			IpfIface* coreIface = &self->coreObj.iface;
+			// Disconnect and Close Session
+			// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+			esif_ccb_write_lock(&self->lock);
+			self->runState = STOPPED;
+			(coreIface->IpfCore_SessionDisconnect ? coreIface->IpfCore_SessionDisconnect(self->client) : VOIDRESULT);
+			esif_ccb_write_unlock(&self->lock);
+
+			// Wait for app manager thread to exit and uninit
+			esif_ccb_wthread_join(&self->appMgrThread);
+			esif_ccb_wthread_uninit(&self->appMgrThread);
+		}
+		else if (
+			esif_ccb_library_isloaded(self->ipcObj.libModule) &&
+			esif_ccb_library_isloaded(self->esifObj.libModule)) {
+			// Disconnect and close session
+			// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
+			esif_ccb_write_lock(&self->lock);
+			self->runState = STOPPED;
+			(self->ipcObj.iface.IpcSession_Disconnect ? self->ipcObj.iface.IpcSession_Disconnect(self->client) : VOIDRESULT);
+			esif_ccb_write_unlock(&self->lock);
+
+			// Wait for app manager thread to exit and uninit
+			esif_ccb_wthread_join(&self->appMgrThread);
+			esif_ccb_wthread_uninit(&self->appMgrThread);
+		}
 	}
-
-	// Calling disconnect will cause the application to exit.
-	// The application manager thread will exit when the runState is STOPPED
-	if (esif_ccb_library_isloaded(self->coreObj.libModule)) {
-		IpfIface* coreIface = &self->coreObj.iface;
-		// Disconnect and Close Session
-		// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
-		esif_ccb_write_lock(&self->lock);
-		self->runState = STOPPED;
-		(coreIface->IpfCore_SessionDisconnect ? coreIface->IpfCore_SessionDisconnect(self->client) : VOIDRESULT);
-		esif_ccb_write_unlock(&self->lock);
-
-		// Wait for app manager thread to exit and uninit
-		esif_ccb_wthread_join(&self->appMgrThread);
-		esif_ccb_wthread_uninit(&self->appMgrThread);
-	}
-	else if ( esif_ccb_library_isloaded(self->ipcObj.libModule) && 
-		esif_ccb_library_isloaded(self->esifObj.libModule)) {
-		// Disconnect and close session
-		// WORKAROUND: Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
-		esif_ccb_write_lock(&self->lock);
-		self->runState = STOPPED;
-		(self->ipcObj.iface.IpcSession_Disconnect ? self->ipcObj.iface.IpcSession_Disconnect(self->client) : VOIDRESULT);
-		esif_ccb_write_unlock(&self->lock);
-
-		// Wait for app manager thread to exit and uninit
-		esif_ccb_wthread_join(&self->appMgrThread);
-		esif_ccb_wthread_uninit(&self->appMgrThread);
-	}
-
 	return;
 }
 
-void ESIF_CALLCONV Apploader_Exit() {
-	AppContext* self = &g_appContext;
-
-	if (self->runState != EXIT) {
+// Uninitialize AppLoader Object after Stopping App, if necessary
+void ESIF_CALLCONV AppLoader_Exit(AppLoader* self)
+{
+	if (self && self->runState != UNINIT) {
 		if (self->runState != STOPPED) {
-			Apploader_Stop();
+			AppLoader_Stop(self);
 		}
 
 		IpfIpcLib_Unload(&self->ipcObj);
 		esif_ccb_library_unload(self->appLibObj);
 		self->appLibObj = NULL;
 		esif_ccb_lock_uninit(&self->lock);
-		self->runState = EXIT;
 		signal_uninit(&self->signal);
+		*self = (const AppLoader){ 0 };
+		self->runState = UNINIT;
 		self->connectState = ESIF_E_WS_DISC;
 	}
 
+	// Destroy Singleton Object
+	if (self && self == g_singleton) {
+		AppLoader_Destroy(g_singleton);
+		g_singleton = NULL;
+	}
 	return;
 }
 
-esif_error_t ESIF_CALLCONV Apploader_Pause() {
-	esif_error_t rc = ESIF_OK;
-	Apploader_Stop();
+// Pause (Stop) App
+esif_error_t ESIF_CALLCONV AppLoader_Pause(AppLoader* self)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (self) {
+		AppLoader_Stop(self);
+		rc = ESIF_OK;
+	}
 	return rc;
 }
 
-esif_error_t ESIF_CALLCONV Apploader_Continue() {
-	esif_error_t rc = ESIF_OK;
-	rc = Apploader_Start();
+// Resume (Start) App
+esif_error_t ESIF_CALLCONV AppLoader_Continue(AppLoader* self)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (self) {
+		rc = AppLoader_Start(self);
+	}
 	return rc;
 }
 

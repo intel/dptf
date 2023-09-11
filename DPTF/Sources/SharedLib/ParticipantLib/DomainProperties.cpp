@@ -21,13 +21,13 @@
 using namespace StatusFormat;
 
 DomainProperties::DomainProperties(
-	Guid guid,
+	const Guid& guid,
 	UIntN domainIndex,
 	Bool domainEnabled,
 	DomainType::Type domainType,
-	std::string domainName,
-	std::string domainDescription,
-	DomainFunctionalityVersions domainFunctionalityVersions)
+	const std::string& domainName,
+	const std::string& domainDescription,
+	const DomainFunctionalityVersions& domainFunctionalityVersions)
 	: m_guid(guid)
 	, m_domainIndex(domainIndex)
 	, m_enabled(domainEnabled)
@@ -38,32 +38,32 @@ DomainProperties::DomainProperties(
 {
 }
 
-Guid DomainProperties::getGuid(void) const
+Guid DomainProperties::getGuid() const
 {
 	return m_guid;
 }
 
-UIntN DomainProperties::getDomainIndex(void) const
+UIntN DomainProperties::getDomainIndex() const
 {
 	return m_domainIndex;
 }
 
-Bool DomainProperties::isEnabled(void) const
+Bool DomainProperties::isEnabled() const
 {
 	return m_enabled;
 }
 
-DomainType::Type DomainProperties::getDomainType(void) const
+DomainType::Type DomainProperties::getDomainType() const
 {
 	return m_domainType;
 }
 
-std::string DomainProperties::getName(void) const
+std::string DomainProperties::getName() const
 {
 	return m_name;
 }
 
-std::string DomainProperties::getDescription(void) const
+std::string DomainProperties::getDescription() const
 {
 	return m_description;
 }
@@ -73,102 +73,102 @@ DomainFunctionalityVersions DomainProperties::getDomainFunctionalityVersions() c
 	return m_domainFunctionalityVersions;
 }
 
-Bool DomainProperties::implementsActiveControlInterface(void) const
+Bool DomainProperties::implementsActiveControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.activeControlVersion);
 }
 
-Bool DomainProperties::implementsActivityStatusInterface(void) const
+Bool DomainProperties::implementsActivityStatusInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.activityStatusVersion);
 }
 
-Bool DomainProperties::implementsCoreControlInterface(void) const
+Bool DomainProperties::implementsCoreControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.coreControlVersion);
 }
 
-Bool DomainProperties::implementsDisplayControlInterface(void) const
+Bool DomainProperties::implementsDisplayControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.displayControlVersion);
 }
 
-Bool DomainProperties::implementsEnergyControlInterface(void) const
+Bool DomainProperties::implementsEnergyControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.energyControlVersion);
 }
 
-Bool DomainProperties::implementsPeakPowerControlInterface(void) const
+Bool DomainProperties::implementsPeakPowerControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.peakPowerControlVersion);
 }
 
-Bool DomainProperties::implementsPerformanceControlInterface(void) const
+Bool DomainProperties::implementsPerformanceControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.performanceControlVersion);
 }
 
-Bool DomainProperties::implementsPowerControlInterface(void) const
+Bool DomainProperties::implementsPowerControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.powerControlVersion);
 }
 
-Bool DomainProperties::implementsPowerStatusInterface(void) const
+Bool DomainProperties::implementsPowerStatusInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.powerStatusVersion);
 }
 
-Bool DomainProperties::implementsSystemPowerControlInterface(void) const
+Bool DomainProperties::implementsSystemPowerControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.systemPowerControlVersion);
 }
 
-Bool DomainProperties::implementsBatteryStatusInterface(void) const
+Bool DomainProperties::implementsBatteryStatusInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.batteryStatusVersion);
 }
 
-Bool DomainProperties::implementsPlatformPowerStatusInterface(void) const
+Bool DomainProperties::implementsPlatformPowerStatusInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.platformPowerStatusVersion);
 }
 
-Bool DomainProperties::implementsDomainPriorityInterface(void) const
+Bool DomainProperties::implementsDomainPriorityInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.domainPriorityVersion);
 }
 
-Bool DomainProperties::implementsRfProfileControlInterface(void) const
+Bool DomainProperties::implementsRfProfileControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.rfProfileControlVersion);
 }
 
-Bool DomainProperties::implementsRfProfileStatusInterface(void) const
+Bool DomainProperties::implementsRfProfileStatusInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.rfProfileStatusVersion);
 }
 
-Bool DomainProperties::implementsTemperatureInterface(void) const
+Bool DomainProperties::implementsTemperatureInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.temperatureVersion);
 }
 
-Bool DomainProperties::implementsTemperatureThresholdInterface(void) const
+Bool DomainProperties::implementsTemperatureThresholdInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.temperatureThresholdVersion);
 }
 
-Bool DomainProperties::implementsProcessorControlInterface(void) const
+Bool DomainProperties::implementsProcessorControlInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.processorControlVersion);
 }
 
-Bool DomainProperties::implementsUtilizationInterface(void) const
+Bool DomainProperties::implementsUtilizationInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.utilizationVersion);
 }
 
-Bool DomainProperties::implementsSocWorkloadClassificationInterface(void) const
+Bool DomainProperties::implementsSocWorkloadClassificationInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.socWorkloadClassificationVersion);
 }
@@ -190,7 +190,7 @@ std::shared_ptr<XmlNode> DomainProperties::getXml() const
 	return properties;
 }
 
-Bool DomainProperties::isInterfaceImplemented(UInt8 version) const
+Bool DomainProperties::isInterfaceImplemented(UInt8 version)
 {
 	return (version != 0);
 }

@@ -34,6 +34,7 @@ public:
 	static Power createFromDptfBuffer(const class DptfBuffer& buffer);
 
 	double asWatts() const;
+	double asMilliwatts() const;
 
 	Bool operator==(const Power& rhs) const;
 	Bool operator!=(const Power& rhs) const;
@@ -48,6 +49,7 @@ public:
 
 	Bool isValid() const;
 	std::string toString() const;
+	std::string toStringAsWatts(int precision) const;
 	Int32 toInt32() const;
 	class DptfBuffer toDptfBuffer() const;
 
@@ -55,5 +57,5 @@ private:
 	Bool m_valid;
 	UInt32 m_power;
 
-	void throwIfInvalid(const Power& power) const;
+	static void throwIfInvalid(const Power& power);
 };

@@ -26,10 +26,6 @@ TableObjectGetCommand::TableObjectGetCommand(DptfManagerInterface* dptfManager)
 {
 }
 
-TableObjectGetCommand::~TableObjectGetCommand()
-{
-}
-
 string TableObjectGetCommand::getCommandName() const
 {
 	return "get";
@@ -42,7 +38,7 @@ void TableObjectGetCommand::execute(const CommandArguments& arguments)
 
 	try
 	{
-		auto results = getTableObjectXmlString(arguments);
+		const auto results = getTableObjectXmlString(arguments);
 		setResultMessage(results);
 		setResultCode(ESIF_OK);
 	}
@@ -52,7 +48,7 @@ void TableObjectGetCommand::execute(const CommandArguments& arguments)
 	}
 	catch (...)
 	{
-		string message = string("Error generating TableObject XML.");
+		const auto message = string("Error generating TableObject XML.");
 		setResultMessage(message);
 		throw command_failure(ESIF_E_UNSPECIFIED, message);
 	}
@@ -60,11 +56,11 @@ void TableObjectGetCommand::execute(const CommandArguments& arguments)
 
 string TableObjectGetCommand::getTableObjectXmlString(const CommandArguments& arguments)
 {
-	auto tableName = arguments[1].getDataAsString();
+	const auto tableName = arguments[1].getDataAsString();
 	string uuid = Constants::EmptyString;
-	auto dataManager = m_dptfManager->getDataManager();
-	auto tableType = TableObjectType::ToType(tableName);
-	Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(TableObjectType::ToType(tableName));
+	const auto dataManager = m_dptfManager->getDataManager();
+	const auto tableType = TableObjectType::ToType(tableName);
+	const Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(TableObjectType::ToType(tableName));
 
 	if (isParticipantTable)
 	{
@@ -72,17 +68,17 @@ string TableObjectGetCommand::getTableObjectXmlString(const CommandArguments& ar
 		throwIfBadArgumentsForParticipantTable(arguments);
 		throwIfParticipantNotExist(arguments);
 
-		string participantName = arguments[2].getDataAsString();
-		UIntN participantIndex =
+		const string participantName = arguments[2].getDataAsString();
+		const UIntN participantIndex =
 			m_dptfManager->getParticipantManager()->getParticipant(participantName)->getParticipantIndex();
 
 		return dataManager->getTableObject(tableType, uuid, participantIndex).getXmlString();
 	}
 	else if (arguments.size() > 3)
 	{
-		auto dvName = arguments[2].getDataAsString();
-		auto dvType = DataVaultType::ToType(dvName);
-		auto key = arguments[3].getDataAsString();
+		const auto dvName = arguments[2].getDataAsString();
+		const auto dvType = DataVaultType::ToType(dvName);
+		const auto key = arguments[3].getDataAsString();
 
 		// tableobject get itmt override /shared/tables/itmt/test
 		return dataManager->getTableObjectBasedOnAlternativeDataSourceAndKey(tableType, dvType, key).getXmlString();
@@ -105,7 +101,7 @@ void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& argument
 {
 	if (arguments.size() < 2)
 	{
-		string description = string(
+		const auto description = string(
 			"Invalid argument count given to 'tableobject get' command.  "
 			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
@@ -114,7 +110,7 @@ void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& argument
 
 	if ((arguments[0].isDataTypeString() == false) || (arguments[1].isDataTypeString() == false))
 	{
-		string description = string(
+		const auto description = string(
 			"Invalid argument type given to 'tableobject get' command.  "
 			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
@@ -124,11 +120,11 @@ void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& argument
 
 void TableObjectGetCommand::throwIfTableObjectNotExist(const CommandArguments& arguments)
 {
-	auto tableName = arguments[1].getDataAsString();
-	auto tableExists = m_dptfManager->getDataManager()->tableObjectExists(TableObjectType::ToType(tableName));
+	const auto tableName = arguments[1].getDataAsString();
+	const auto tableExists = m_dptfManager->getDataManager()->tableObjectExists(TableObjectType::ToType(tableName));
 	if (tableExists == false)
 	{
-		string description = string("TableObject schema not found.");
+		const auto description = string("TableObject schema not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}
@@ -136,10 +132,10 @@ void TableObjectGetCommand::throwIfTableObjectNotExist(const CommandArguments& a
 
 void TableObjectGetCommand::throwIfParticipantNotExist(const CommandArguments& arguments)
 {
-	auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[2].getDataAsString());
+	const auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[2].getDataAsString());
 	if (participantExists == false)
 	{
-		string description = string("The participant specified was not found.");
+		const auto description = string("The participant specified was not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}
@@ -149,7 +145,7 @@ void TableObjectGetCommand::throwIfBadArgumentsForParticipantTable(const Command
 {
 	if (arguments.size() < 3)
 	{
-		string description = string(
+		const auto description = string(
 			"Invalid argument count given to 'tableobject get' command for a participant table. "
 			"Run 'dptf help' command for more information.");
 		setResultMessage(description);

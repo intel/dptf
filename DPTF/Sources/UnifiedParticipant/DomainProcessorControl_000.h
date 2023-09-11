@@ -34,12 +34,18 @@ public:
 		UIntN domainIndex,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
+	// DomainProcessorControl
+	virtual void updatePcieThrottleRequestState(UInt32 pcieThrottleRequestState) override;
+
 	// DomainProcessorControlInterface
 	virtual Temperature getTccOffsetTemperature() override;
 	virtual void setTccOffsetTemperature(const Temperature& tccOffset) override;
 	virtual Temperature getMaxTccOffsetTemperature() override;
 	virtual Temperature getMinTccOffsetTemperature() override;
 	virtual void setUnderVoltageThreshold(const UInt32 voltageThreshold) override;
+	virtual void setPerfPreferenceMax(const Percentage& cpuMaxRatio) override;
+	virtual void setPerfPreferenceMin(const Percentage& cpuMinRatio) override;
+	virtual UInt32 getPcieThrottleRequestState() override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

@@ -26,8 +26,10 @@ class StringConverter final
 public:
 	static UInt32 toUInt32(const std::string& input);
 	static UInt64 toUInt64(const std::string& input);
+	static UInt32 toUInt32(const std::string& input, UInt32 defaultValue);
 	static Int32 toInt32(const std::string& input);
 	static double toDouble(const std::string& input);
+	static float toFloat(const std::string& input);
 	static std::string toHexString(UInt8 value);
 	static std::string toHexString(UInt16 value);
 	static std::string toHexString(UInt32 value);
@@ -37,4 +39,6 @@ public:
 	static std::string trimWhitespace(const std::string& input);
 	static std::string trimQuotes(const std::string& input);
 	static std::string clone(const std::string& input);
+	static std::string toString(const std::wstring& input);
+	static std::wstring toWideString(const std::string& input);
 };

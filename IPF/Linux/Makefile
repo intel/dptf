@@ -17,10 +17,10 @@
 ################################################################################
 
 # Default Build Options unless overriden on command line: make PLAT=x86 BUILD=Debug OS=Chrome
-PLAT  := x64
-BUILD := Release
-OS    := Linux
-
+PLAT      := x64
+BUILD     := Release
+OS        := Linux
+OPT_CAP   := 0
 # Default compiler = gcc
 ifneq ($(filter default undefined,$(origin CC)),)
 CC=gcc
@@ -87,6 +87,10 @@ CFLAGS += -fvisibility=hidden
 ifeq ($(OS), Chrome)
 	CPPFLAGS += -DESIF_ATTR_OS_CHROME
 	CPPFLAGS += -std=gnu99
+	ifeq ($(OPT_CAP), 1)
+		LDLIBS += -lcap -lpsx
+		CPPFLAGS += -DESIF_FEAT_OPT_DYNAMIC_CAPABILITY
+	endif
 else
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX
 	CPPFLAGS += -std=gnu99
@@ -99,10 +103,15 @@ else
 		CFLAGS += -m32
 		CFLAGS += -msse2
 	endif
-
+	ifeq ($(OPT_CAP), 1)
+		LDLIBS += -lcap -lpsx
+		CPPFLAGS += -DESIF_FEAT_OPT_DYNAMIC_CAPABILITY
+	endif
 endif
 #Compile with -g by default and strip it at the end
 CFLAGS   += -g
+# Catch undefined symbol errors during compilation
+CFLAGS   += -Wl,--no-undefined
 
 # make BUILD=Debug
 ifeq ($(BUILD), Debug)
@@ -147,6 +156,7 @@ IPFSRV_OBJ += $(IPF_SOURCES)/ipfsrv/ipfsrv_appmgr.o
 IPFSRV_OBJ += $(IPF_SOURCES)/ipfsrv/ipfsrv_authmgr.o
 IPFSRV_OBJ += $(IPF_SOURCES)/ipfsrv/ipfsrv_iface_cli.o
 IPFSRV_OBJ += $(IPF_SOURCES)/ipfsrv/ipfsrv_iface_srv.o
+IPFSRV_OBJ += $(IPF_SOURCES)/ipfsrv/lin/ipfsrv_capability_helper.o
 
 # ipfipc.so
 IPFIPC_OBJ := $(IPF_SOURCES)/Common/ipf_ibinary.o

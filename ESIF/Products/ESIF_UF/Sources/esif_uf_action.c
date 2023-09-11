@@ -161,7 +161,7 @@ eEsifError EsifAct_CreateAction(
 	}
 
 	ESIF_TRACE_DEBUG("\n"
-		"Created new action:"
+		"Created new action:\n"
 		"  Name   : %s\n"
 		"  Desc   : %s\n"
 		"  Type   : %d\n"
@@ -796,9 +796,18 @@ static eEsifError ESIF_CALLCONV EsifActEventRegistrationHandler(
 	eEsifError rc = ESIF_OK;
 
 	if (eventRegister) {
+
+		ESIF_TRACE_INFO("Registering Event - Type: %s(%d); Action: %s(%d)\n",
+			esif_event_type_str(eventType), eventType,
+			esif_action_type_str(actionType), actionType);
+
 		rc = EsifEventMgr_RegisterEventByType(eventType, participantHandle, domain, EsifAct_EventCallback, actionType);
 	}
 	else {
+		ESIF_TRACE_INFO("Unregistering Event - Type: %s(%d); Action: %s(%d)\n",
+			esif_event_type_str(eventType), eventType,
+			esif_action_type_str(actionType), actionType);
+
 		rc = EsifEventMgr_UnregisterEventByType(eventType, participantHandle, domain, EsifAct_EventCallback, actionType);
 	}
 	

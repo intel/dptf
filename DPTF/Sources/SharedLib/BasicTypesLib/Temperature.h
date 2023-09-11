@@ -46,6 +46,7 @@ public:
 	Bool isValid() const;
 	std::string toString() const;
 	std::string toStringTenthKelvin() const;
+	std::string toStringAsCelsius(int precision) const;
 	double getTemperatureInCelsius() const;
 	DptfBuffer toDptfBuffer() const;
 	static Temperature createFromDptfBuffer(const DptfBuffer& buffer);

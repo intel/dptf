@@ -31,53 +31,79 @@ RfProfileDataSet::RfProfileDataSet()
 {
 }
 
-RfProfileDataSet RfProfileDataSet::createRfProfileDataFromDptfBuffer(const DptfBuffer& buffer)
+RfProfileDataSet RfProfileDataSet::createActiveRfProfileDataFromDptfBuffer(const DptfBuffer& buffer)
+{
+	throwIfBufferIsUnexpectedSize(buffer);
+
+	const auto activeChannels = reinterpret_cast<struct ActiveRfChannels_s*>(buffer.get());
+	auto numberOfChannels = activeChannels->numberOfChannels;
+	std::vector<RfProfileData> rfProfileDataSet;
+	Bool fillWithEmptyData = false;
+	if (numberOfChannels == 0)
+	{
+		fillWithEmptyData = true;
+	}
+	if (numberOfChannels <= MAX_ACTIVE_RF_CHANNELS)
+	{
+		for (UIntN i = 0; i < numberOfChannels || fillWithEmptyData; i++)
+		{
+			const auto is5GDevice = activeChannels->rfChannels[i].is5G == 1 ? true : false;
+			const auto channelPriority = activeChannels->rfChannels[i].channelPriority;
+			const auto centerFrequency = Frequency(activeChannels->rfChannels[i].centerFrequency);
+			const auto frequencySpread = Frequency((UInt64)activeChannels->rfChannels[i].frequencySpread);
+			const auto connectStatus = activeChannels->rfChannels[i].connectStatus;
+			const auto channelNumber = activeChannels->rfChannels[i].channelNumber;
+			const auto band = activeChannels->rfChannels[i].band;
+			const auto rssi = activeChannels->rfChannels[i].rssi;
+
+			RfProfileSupplementalData rfProfileSupplementalData(RadioConnectionStatus::ToType(connectStatus));
+			RfProfileData rfProfileData(
+				is5GDevice,
+				channelPriority,
+				centerFrequency,
+				frequencySpread / 2,
+				frequencySpread / 2,
+				Frequency(0),
+				channelNumber,
+				band,
+				rfProfileSupplementalData,
+				rssi);
+
+			rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
+			fillWithEmptyData = false;
+		}
+	}
+
+	return RfProfileDataSet(rfProfileDataSet);
+}
+
+RfProfileDataSet RfProfileDataSet::createActiveRfProfileDataFromEmptyData()
 {
 	std::vector<RfProfileData> rfProfileDataSet;
-	RadioConnectionStatus::Type connectionStatus = RadioConnectionStatus::NotConnected;
-	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-	struct esif_data_rfprofile* currentRow =
-		reinterpret_cast<struct esif_data_rfprofile*>(data);
-	Bool is5GDevice = false;
 
-	if (buffer.size() == 0)
-	{
-		throw dptf_exception("Received empty Rf Channel Info buffer.");
-	}
-	if ( buffer.size() < sizeof(esif_data_rfprofile))
-	{
-		throw dptf_exception("Received Invalid Rf Channel Info buffer.");
-	}
+	const auto is5GDevice = false;
+	const auto channelPriority = 0;
+	const auto centerFrequency = Frequency(0);
+	const auto frequencySpread = Frequency(0);
+	const auto connectStatus = 0;
+	const auto channelNumber = Constants::Invalid;
+	const auto band = 0;
+	const auto rssi = 0;
 
-	UIntN rows = buffer.size() / sizeof(esif_data_rfprofile);
+	RfProfileSupplementalData rfProfileSupplementalData(RadioConnectionStatus::ToType(connectStatus));
+	RfProfileData rfProfileData(
+		is5GDevice,
+		channelPriority,
+		centerFrequency,
+		frequencySpread / 2,
+		frequencySpread / 2,
+		Frequency(0),
+		channelNumber,
+		band,
+		rfProfileSupplementalData,
+		rssi);
 
-	for (UIntN i = 0; i < rows; i++)
-	{
-		auto is5G = static_cast<UInt32>(currentRow->is5G.integer.value);
-		if (is5G == 1)
-		{
-			is5GDevice = true;
-		}
-		auto servingCellInfo = static_cast<UInt32>(currentRow->servingCellInfo.integer.value);
-		auto centerFrequency = Frequency(static_cast<UInt64>(currentRow->centerFrequency.integer.value));
-		auto frequencySpread = Frequency(static_cast<UInt64>(currentRow->frequencySpread.integer.value));
-		auto connectStatus = static_cast<UInt32>(currentRow->connectStatus.integer.value);
-		auto channelNumber = static_cast<UInt32>(currentRow->channelNumber.integer.value);
-		auto band = static_cast<UInt32>(currentRow->band.integer.value);
-		if (RadioConnectionStatus::Connected == connectStatus)
-		{
-			connectionStatus = RadioConnectionStatus::Connected;
-		}
-
-		RfProfileSupplementalData rfProfileSupplementalData(connectionStatus);
-		RfProfileData rfProfileData(is5GDevice, servingCellInfo,
-			centerFrequency, frequencySpread / 2, frequencySpread / 2, Frequency(0), channelNumber, band, rfProfileSupplementalData);
-
-		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
-
-		data += sizeof(struct esif_data_rfprofile);
-		currentRow = reinterpret_cast<struct esif_data_rfprofile*>(data);
-	}
+	rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 
 	return RfProfileDataSet(rfProfileDataSet);
 }
@@ -107,4 +133,21 @@ std::shared_ptr<XmlNode> RfProfileDataSet::getXml()
 	}
 
 	return root;
+}
+
+void RfProfileDataSet::throwIfBufferIsUnexpectedSize(const DptfBuffer& buffer)
+{
+	if (buffer.size() < sizeof(UInt8))
+	{
+		throw dptf_exception("Received Invalid Active Rf Channel number buffer.");
+	}
+
+	const auto activeChannels = reinterpret_cast<struct ActiveRfChannels_s*>(buffer.get());
+	auto numberOfChannels = activeChannels->numberOfChannels;
+
+	if (buffer.size() < (sizeof(UInt8) + numberOfChannels * sizeof(RfProfile)))
+	{
+		throw dptf_exception("Received Invalid Active Rf Channel Info buffer.");
+	}
+
 }

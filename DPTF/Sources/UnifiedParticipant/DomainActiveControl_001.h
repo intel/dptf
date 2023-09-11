@@ -29,43 +29,44 @@ public:
 	DomainActiveControl_001(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-	virtual ~DomainActiveControl_001(void);
+		const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface);
+	~DomainActiveControl_001() override;
+
+	// remove the copy constructor and = operator
+	DomainActiveControl_001(const DomainActiveControl_001& rhs) = delete;
+	DomainActiveControl_001& operator=(const DomainActiveControl_001& rhs) = delete;
 
 	// ParticipantActivityLoggingInterface
-	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void onClearCachedData(void) override;
-	virtual std::string getName(void) override;
-	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	void onClearCachedData() override;
+	std::string getName() override;
+	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-	virtual void capture(void) override;
-	virtual void restore(void) override;
+	void capture() override;
+	void restore() override;
 
-	virtual DptfBuffer getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getActiveControlFanOperatingMode(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getActiveControlFanCapabilities(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
-	virtual void setActiveControlFanDirection(UInt32 fanDirection) override;
-	virtual void setActiveControlDynamicCaps(
+	DptfBuffer getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	DptfBuffer getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	UInt32 getActiveControlFanOperatingMode(UIntN participantIndex, UIntN domainIndex) override;
+	UInt32 getActiveControlFanCapabilities(UIntN participantIndex, UIntN domainIndex) override;
+	void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
+	void setActiveControlFanDirection(UInt32 fanDirection) override;
+	void setActiveControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		ActiveControlDynamicCaps newCapabilities) override;
-	virtual void setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
-	virtual void setActiveControlFanOperatingMode(UInt32 fanOperatingMode) override;
+	void setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	void setActiveControlFanOperatingMode(UInt32 fanOperatingMode) override;
 
 private:
-	// hide the copy constructor and = operator
-	DomainActiveControl_001(const DomainActiveControl_001& rhs);
-	DomainActiveControl_001& operator=(const DomainActiveControl_001& rhs);
 
 	// Functions
-	ActiveControlSet createActiveControlSet(UIntN domainIndex);
+	ActiveControlSet createActiveControlSet(UIntN domainIndex) const;
 	void throwIfFineGrainedControlIsNotSupported(UIntN participantIndex, UIntN domainIndex);
 
 	// Vars

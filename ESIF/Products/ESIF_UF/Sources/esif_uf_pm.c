@@ -33,8 +33,7 @@
 #include "esif_sdk_iface_conjure.h"
 
 
-#define ESIF_PARTICIPANT0_INDEX	0
-
+#define ESIF_PARTICIPANT0_INDEX 0
 
 /* This Module */
 EsifUppMgr g_uppMgr = {0};
@@ -143,7 +142,7 @@ static EsifUpManagerEntryPtr EsifUpPm_GetEntryByInstanceLocked(
  * PRIVATE
  * ===========================================================================
  */
-static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadataLocked(
+static EsifUpManagerEntryPtr EsifUpPm_GetOverlappingEntryFromMetadataLocked(
 	const eEsifParticipantOrigin origin,
 	const void *metadataPtr
 	);
@@ -166,6 +165,12 @@ static eEsifError EsifUpPm_ActionChangeHandler(
 static void EsifUpPm_SuspendDynamicUfParticipants();
 static void EsifUpPm_ResumeDynamicUfParticipants();
 static esif_error_t EsifUpPm_CreateLPfromUFMeta(EsifParticipantIface *upDataPtr);
+
+static Bool DoesPartNameMatchMetadata(
+	EsifUpPtr upPtr,
+	const eEsifParticipantOrigin origin,
+	const void *metadataPtr
+);
 
 
 static void *ESIF_CALLCONV EsifUfPollWorkerThread(void *ptr)
@@ -281,10 +286,13 @@ eEsifError EsifUpPm_RegisterParticipant(
 	EsifUpPtr newUpPtr = NULL;
 	EsifUpPtr tempUpPtr = NULL;
 	EsifUpManagerEntryPtr entryPtr = NULL;
+	struct esif_ipc_event_data_create_participant *lfDataPtr = NULL;
+	EsifParticipantIfacePtr ufDataPtr = NULL;
 	UInt8 i = 0;
 	Bool isUppMgrLocked = ESIF_FALSE;
 	Bool isPreferredParticipant = ESIF_FALSE;
 	esif_handle_t newUpInstance = ESIF_INVALID_HANDLE;
+	char *nameToDestroy = NULL;
 
 	/* Validate parameters */
 	if ((NULL == metadataPtr) || (NULL == upInstancePtr)) {
@@ -294,14 +302,22 @@ eEsifError EsifUpPm_RegisterParticipant(
 
 	*upInstancePtr = ESIF_INVALID_HANDLE;
 
+	if (eParticipantOriginLF == origin) {
+		lfDataPtr = (struct esif_ipc_event_data_create_participant *)metadataPtr;
+	}
+	else {
+		ufDataPtr = (EsifParticipantIfacePtr)metadataPtr;
+	}
+
+
 	esif_ccb_write_lock(&g_uppMgr.fLock);
 	isUppMgrLocked = ESIF_TRUE;
 	
 	/*
-	 * Check if a participant has already been created, but was then removed.
-	 * In that case, just re-enable the participant.
+	 * Check if there is a participant that already exists with colliding
+	 * functional equivalence (name, ptype, etc.)
 	 */
-	entryPtr = EsifUpPm_GetParticipantEntryFromMetadataLocked(origin, metadataPtr);
+	entryPtr = EsifUpPm_GetOverlappingEntryFromMetadataLocked(origin, metadataPtr);
 
 	if (NULL != entryPtr) {
 
@@ -310,14 +326,32 @@ eEsifError EsifUpPm_RegisterParticipant(
 		isPreferredParticipant = EsifUp_IsPreferredParticipant(tempUpPtr, origin, metadataPtr);
 		if (!isPreferredParticipant) {
 
-			if (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_LF_REMOVED) {
+			/*
+			* If not a preferred participant and not resuming, we need to destroy the conjured LF
+			* part (if present) or resume if same participant
+			*/
+			if (!DoesPartNameMatchMetadata(tempUpPtr, origin, metadataPtr)) {
+				if ((eParticipantOriginLF == origin) && (ESIF_PARTICIPANT_ENUM_CONJURE == lfDataPtr->enumerator)) {
+					nameToDestroy = esif_ccb_strdup(lfDataPtr->name);
+					ESIF_TRACE_DEBUG("Destroying LF participant that was not preferred %s\n", nameToDestroy);
+				}
+				ESIF_TRACE_DEBUG("Participant not preferred over %s and not same so not creating\n", EsifUp_GetName(tempUpPtr));
 				goto exit;
 			}
+			else {
+				/* If same name but not resuming; exit */
+				if (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_LF_REMOVED) {
+					ESIF_TRACE_DEBUG("%s not resuming; exiting without new creation\n", EsifUp_GetName(tempUpPtr));
+					goto exit;
+				}
+			}
 
+			/* Set the returned upPtr to the existing upPtr after checks above */
 			upPtr = entryPtr->fUpPtr;
 			ESIF_ASSERT(upPtr != NULL);
 
 			rc = EsifUp_GetRef(upPtr);
+			ESIF_TRACE_DEBUG("Resuming participant %s\n", EsifUp_GetName(upPtr));
 			if (ESIF_OK != rc) {
 				/* clear upPtr since we don't need to call EsifUp_PutRef in the end */
 				upPtr = NULL;
@@ -366,6 +400,15 @@ eEsifError EsifUpPm_RegisterParticipant(
 			isUppMgrLocked = ESIF_FALSE;
 
 			EsifAppMgr_DestroyParticipantInAllApps(tempUpPtr);
+			/*
+			* If participant is being replaced, we need to destroy any conjured LF part
+			*/
+			if ((eParticipantOriginLF == EsifUp_GetOrigin(tempUpPtr)) &&
+				(ESIF_PARTICIPANT_ENUM_CONJURE == EsifUp_GetEnumerator(tempUpPtr)))
+			{
+				/* Set name to destroy */
+				nameToDestroy = esif_ccb_strdup(EsifUp_GetName(tempUpPtr));
+			}
 			EsifUp_DestroyParticipant(tempUpPtr);
 
 			upPtr = newUpPtr;
@@ -456,6 +499,8 @@ exit:
 		/* Unlock manager */
 		esif_ccb_write_unlock(&g_uppMgr.fLock);
 	}
+	EsifUpPm_DestroyConjuredLfParticipant(nameToDestroy);
+	esif_ccb_free(nameToDestroy);
 
 	EsifUp_PutRef(upPtr);
 
@@ -618,6 +663,7 @@ static eEsifError EsifUpPm_ActionChangeHandler(
 	}
 
 	actionType = *((UInt32 *)eventDataPtr->buf_ptr);
+	ESIF_TRACE_DEBUG("Action change for %s, arrival/removal = %d\n", esif_action_type_str(actionType), isArrival);
 
 	//
 	// Create participants based on the arrival of KPE actions
@@ -810,7 +856,36 @@ exit:
 	return rc;
 }
 
+eEsifError EsifUpPm_ResumeParticipantByType(char *acpiDevice, eDomainType acpiType)
+{
+	UInt8 i = 0;
+	EsifUpPtr upPtr = NULL;
+	eEsifError rc = ESIF_OK;
+	esif_handle_t participantId = ESIF_INVALID_HANDLE;
 
+	for (i = ESIF_PARTICIPANT0_INDEX + 1; i < MAX_PARTICIPANT_ENTRY; i++) {
+
+		esif_ccb_write_lock(&g_uppMgr.fLock);
+		upPtr = g_uppMgr.fEntries[i].fUpPtr;
+		rc = EsifUp_GetRef(upPtr);
+		if (rc != ESIF_OK) {
+			upPtr = NULL;
+		}
+		participantId = EsifUp_GetInstance(upPtr);
+		esif_ccb_write_unlock(&g_uppMgr.fLock);
+
+		if (upPtr != NULL) {
+			if( !esif_ccb_strncmp(upPtr->fMetadata.fAcpiDevice, acpiDevice, esif_ccb_strlen(acpiDevice, MAX_ACPI_DEVICE_STRING_LENGTH))
+				&& upPtr->fMetadata.fAcpiType == acpiType) {
+				EsifUpPm_ResumeParticipant(participantId);
+				ESIF_TRACE_DEBUG(" The resumption of participant fAcpidevice: %s; fAcpiType:%u is completed \n", upPtr->fMetadata.fAcpiDevice, upPtr->fMetadata.fAcpiType);
+			}
+		}
+		EsifUp_PutRef(upPtr);
+	}
+
+	return rc;
+}
 /* Resumes all upper participants instances (except primary) that exist */
 eEsifError EsifUpPm_ResumeParticipants()
 {
@@ -1075,8 +1150,6 @@ static EsifUpPtr EsifUpPm_GetAvailableParticipantByIndexLocked(
 	EsifUpPtr upPtr = NULL;
 	eEsifError rc = ESIF_OK;
 
-	ESIF_TRACE_DEBUG("Index %d\n", index);
-
 	if (index >= MAX_PARTICIPANT_ENTRY) {
 		ESIF_TRACE_ERROR("Instance id %d is out of range\n", index);
 		ESIF_ASSERT(ESIF_FALSE);
@@ -1331,13 +1404,15 @@ exit:
 }
 
 
-static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadataLocked(
+static EsifUpManagerEntryPtr EsifUpPm_GetOverlappingEntryFromMetadataLocked(
 	const eEsifParticipantOrigin origin,
 	const void *metadataPtr
 	)
 {
 	EsifUpManagerEntryPtr entryPtr = NULL;
 	char *participantName = "";
+	esif_domain_type_t ptype = ESIF_DOMAIN_TYPE_INVALID;
+	Bool autoEnumerated = ESIF_FALSE;	
 	UInt8 i;
 
 	/* Validate parameters */
@@ -1345,7 +1420,6 @@ static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadataLocked(
 		ESIF_TRACE_ERROR("The meta data pointer is NULL\n");
 		goto exit;
 	}
-
 
 	switch (origin) {
 	case eParticipantOriginLF:
@@ -1358,6 +1432,8 @@ static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadataLocked(
 		}
 
 		participantName = ((struct esif_ipc_event_data_create_participant *)metadataPtr)->name;
+		autoEnumerated = (Bool)((((struct esif_ipc_event_data_create_participant *)metadataPtr)->flags & ESIF_FLAG_AUTO_ENUMERATED) != 0);
+		ptype = ((struct esif_ipc_event_data_create_participant *)metadataPtr)->acpi_type;
 		break;
 
 	case eParticipantOriginUF:
@@ -1370,6 +1446,8 @@ static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadataLocked(
 		}
 
 		participantName = ((EsifParticipantIfacePtr)metadataPtr)->name;
+		autoEnumerated = (Bool)((((EsifParticipantIfacePtr)metadataPtr)->flags & ESIF_FLAG_AUTO_ENUMERATED) != 0);
+		ptype = ((EsifParticipantIfacePtr)metadataPtr)->acpi_type;
 		break;
 
 	default:
@@ -1381,14 +1459,61 @@ static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadataLocked(
 		entryPtr = &g_uppMgr.fEntries[i];
 
 		if (NULL != entryPtr->fUpPtr) {
+
+			/* Check for name collisions */
 			if (!strcmp(EsifUp_GetName(entryPtr->fUpPtr), participantName)) {
+				ESIF_TRACE_DEBUG("Participant collision based on name = %s\n", participantName);
 				break;
+			}
+		
+			/*
+			* Check for matching PTYPEs. If not storage, they conflict if either is 
+			* auto-enumerated.  If storage, conflict only if one is auto-enumerated
+			* and the other is not.
+			* Note:  This allows multiple storage devices to be created and not conflict
+			*/
+			if (ptype == EsifUp_GetPtype(entryPtr->fUpPtr)) {
+				if (ESIF_DOMAIN_TYPE_NVME != ptype) {
+					if (autoEnumerated || ((EsifUp_GetFlags(entryPtr->fUpPtr) & ESIF_FLAG_AUTO_ENUMERATED))) {
+						ESIF_TRACE_DEBUG("Participant collision based auto-enumeration for ptype %d on %s\n", ptype, participantName);
+						break;
+					}
+				}
+				else if ((!autoEnumerated && ((EsifUp_GetFlags(entryPtr->fUpPtr) & ESIF_FLAG_AUTO_ENUMERATED))) ||
+					(autoEnumerated && !((EsifUp_GetFlags(entryPtr->fUpPtr) & ESIF_FLAG_AUTO_ENUMERATED)))) {
+					ESIF_TRACE_DEBUG("Participant collision based auto-enumeration for ptype %d on %s\n", ptype, participantName);
+					break;
+				}
 			}
 		}
 		entryPtr = NULL;
 	}
 exit:
 	return entryPtr;
+}
+
+
+static Bool DoesPartNameMatchMetadata(
+	EsifUpPtr upPtr,
+	const eEsifParticipantOrigin origin,
+	const void *metadataPtr
+	)
+{
+	Bool isMatch = ESIF_FALSE;
+	char *participantName = NULL;
+
+	if (upPtr && metadataPtr) {
+		if (eParticipantOriginLF == origin) {
+			participantName = ((struct esif_ipc_event_data_create_participant *)metadataPtr)->name;
+		}
+		else {
+			participantName = ((EsifParticipantIfacePtr)metadataPtr)->name;
+		}
+		if (esif_ccb_strcmp(EsifUp_GetName(upPtr), participantName) == 0) {
+			isMatch = ESIF_TRUE;
+		}
+	}
+	return isMatch;
 }
 
 
@@ -1411,8 +1536,11 @@ eEsifError EsifUpPm_MapLpidToParticipantInstance(
 	esif_ccb_read_lock(&g_uppMgr.fLock);
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		if (g_uppMgr.fEntries[i].fUpPtr && (EsifUp_GetLpInstance(g_uppMgr.fEntries[i].fUpPtr) == lpInstance)) {
-			break;
+		if (g_uppMgr.fEntries[i].fUpPtr) {
+			if ((EsifUp_GetLpInstance(g_uppMgr.fEntries[i].fUpPtr) == lpInstance) ||
+				((0 == i) && (g_uppMgr.fEntries[i].fUpPtr->fLpAlias == lpInstance))) {
+				break;
+			}
 		}
 	}
 
@@ -1637,7 +1765,7 @@ eEsifError EsifUpPm_Init(void)
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_OFF, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_ON, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
@@ -1658,7 +1786,7 @@ void EsifUpPm_Exit(void)
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_OFF, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_ON, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 
 	/* Clean up resources */

@@ -45,6 +45,12 @@ UtilizationStatus DomainUtilization_001::getUtilizationStatus(UIntN participantI
 	}
 }
 
+Percentage DomainUtilization_001::getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsPercentage(
+		esif_primitive_type::GET_PARTICIPANT_MAX_CORE_UTILIZATION, domainIndex);
+}
+
 void DomainUtilization_001::onClearCachedData(void)
 {
 	// Do nothing.  We don't cache domain utilization related data.

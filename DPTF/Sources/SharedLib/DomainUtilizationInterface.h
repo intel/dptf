@@ -27,4 +27,5 @@ public:
 	virtual ~DomainUtilizationInterface(){};
 
 	virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Percentage getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex) = 0;
 };

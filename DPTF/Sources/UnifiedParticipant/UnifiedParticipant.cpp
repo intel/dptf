@@ -20,6 +20,7 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 #include "MapOps.h"
+#include "SocWorkloadSource.h"
 
 const Guid FormatId(0xF0, 0xCB, 0x64, 0x06, 0xE4, 0x2B, 0x46, 0xB5, 0x9C, 0x85, 0x32, 0xD1, 0xA1, 0xB7, 0xCB, 0x68);
 
@@ -41,6 +42,7 @@ UnifiedParticipant::UnifiedParticipant(void)
 	, m_displayControlEventsRegistered(false)
 	, m_domainPriorityEventsRegistered(false)
 	, m_performanceControlEventsRegistered(false)
+	, m_processorControlEventsRegistered(false)
 	, m_powerControlEventsRegistered(false)
 	, m_rfProfileEventsRegistered(false)
 	, m_temperatureEventsRegistered(false)
@@ -74,6 +76,7 @@ UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
 	, m_displayControlEventsRegistered(false)
 	, m_domainPriorityEventsRegistered(false)
 	, m_performanceControlEventsRegistered(false)
+	, m_processorControlEventsRegistered(false)
 	, m_powerControlEventsRegistered(false)
 	, m_rfProfileEventsRegistered(false)
 	, m_temperatureEventsRegistered(false)
@@ -116,6 +119,7 @@ void UnifiedParticipant::initialize(void)
 	m_displayControlEventsRegistered = false;
 	m_domainPriorityEventsRegistered = false;
 	m_performanceControlEventsRegistered = false;
+	m_processorControlEventsRegistered = false;
 	m_powerControlEventsRegistered = false;
 	m_rfProfileEventsRegistered = false;
 	m_temperatureEventsRegistered = false;
@@ -323,6 +327,8 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	UIntN socWorkloadClassificationControlTotal = 0;
 	UIntN dynamicEppControlTotal = 0;
 	UIntN loggingTotal = 0;
+	SocWorkloadSource::Source socWorkloadSource = SocWorkloadSource::Software;
+	SocWorkloadSource::Source eppHintSource = SocWorkloadSource::Software;
 
 	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
 	{
@@ -358,6 +364,15 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 			{
 				loggingTotal = 1;
 			}
+			if (versions.socWorkloadClassificationVersion > 0)
+			{
+				socWorkloadSource =
+					domain->second->getSocWorkloadClassificationControl()->getSocWorkloadClassificationSource();
+			}
+			if (versions.dynamicEppVersion > 0)
+			{
+				eppHintSource = domain->second->getDynamicEppControl()->getEppSensitivityHintSource();
+			}
 		}
 	}
 
@@ -383,8 +398,14 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	m_performanceControlEventsRegistered = updateDomainEventRegistration(
 		performanceControlTotal, m_performanceControlEventsRegistered, performanceControlEvents);
 
+	std::set<ParticipantEvent::Type> processorControlEvents;
+	processorControlEvents.insert(ParticipantEvent::Type::DomainPcieThrottleRequested);
+	m_processorControlEventsRegistered = updateDomainEventRegistration(
+		processorControlTotal, m_processorControlEventsRegistered, processorControlEvents);
+
 	std::set<ParticipantEvent::Type> powerControlEvents;
 	powerControlEvents.insert(ParticipantEvent::Type::DomainPowerControlCapabilityChanged);
+	powerControlEvents.insert(ParticipantEvent::Type::DomainSocPowerFloorChanged);
 	m_powerControlEventsRegistered =
 		updateDomainEventRegistration(powerControlTotal, m_powerControlEventsRegistered, powerControlEvents);
 
@@ -443,7 +464,14 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 		updateDomainEventRegistration(activeControlTotal, m_activeControlEventsRegistered, activeControlEvents);
 
 	std::set<ParticipantEvent::Type> socWorkloadClassificationEvents;
-	socWorkloadClassificationEvents.insert(ParticipantEvent::Type::DomainSocWorkloadClassificationChanged);
+	if (socWorkloadSource == SocWorkloadSource::Hardware)
+	{
+		socWorkloadClassificationEvents.insert(ParticipantEvent::Type::DomainHardwareSocWorkloadHintChanged);
+	}
+	else
+	{
+		socWorkloadClassificationEvents.insert(ParticipantEvent::Type::DomainSocWorkloadClassificationChanged);
+	}
 	m_socWorkloadClassificationEventsRegistered = updateDomainEventRegistration(
 		socWorkloadClassificationControlTotal,
 		m_socWorkloadClassificationEventsRegistered,
@@ -457,7 +485,14 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 		extendedWorkloadPredictionEvents);
 
 	std::set<ParticipantEvent::Type> eppSensitivityHintEvents;
-	eppSensitivityHintEvents.insert(ParticipantEvent::Type::DomainEppSensitivityHintChanged);
+	if (eppHintSource == SocWorkloadSource::Hardware)
+	{
+		eppSensitivityHintEvents.insert(ParticipantEvent::Type::DomainHardwareSocWorkloadHintChanged);
+	}
+	else
+	{
+		eppSensitivityHintEvents.insert(ParticipantEvent::Type::DomainEppSensitivityHintChanged);
+	}
 	m_eppSensitivityHintEventsRegistered = updateDomainEventRegistration(
 		dynamicEppControlTotal, m_eppSensitivityHintEventsRegistered, eppSensitivityHintEvents);
 }
@@ -1123,6 +1158,51 @@ void UnifiedParticipant::domainFanOperatingModeChanged()
 		}
 	}
 }
+
+void UnifiedParticipant::domainSocPowerFloorChanged(UInt32 socPowerFloorState)
+{
+	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			try
+			{
+				domain->second->getPowerControl()->updateSocPowerFloorState(socPowerFloorState);
+			}
+			catch (const std::exception& ex)
+			{
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					return "Unable to update SOC Power Floor for domain " + std::to_string(domain->first)
+						   + ". Exception: " + std::string(ex.what());
+				});
+			}
+		}
+	}
+}
+
+void UnifiedParticipant::domainPcieThrottleRequested(UInt32 pcieThrottleRequest)
+{
+	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			try
+			{
+				domain->second->getProcessorControl()->updatePcieThrottleRequestState(pcieThrottleRequest);
+			}
+			catch (const std::exception& ex)
+			{
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					return "Unable to update PCIE Throttle Request for domain " + std::to_string(domain->first)
+						   + ". Exception: " + std::string(ex.what());
+				});
+			}
+		}
+	}
+}
+
 void UnifiedParticipant::domainCoreControlCapabilityChanged(void)
 {
 	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
@@ -1657,6 +1737,12 @@ void UnifiedParticipant::setPerformanceCapsLock(UIntN participantIndex, UIntN do
 	m_domains[domainIndex]->getPerformanceControl()->setPerformanceCapsLock(participantIndex, domainIndex, lock);
 }
 
+UInt32 UnifiedParticipant::getPcieThrottleRequestState(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getProcessorControl()->getPcieThrottleRequestState();
+}
+
 PowerControlDynamicCapsSet UnifiedParticipant::getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1836,10 +1922,10 @@ Percentage UnifiedParticipant::getAC10msPercentageOverload(UIntN participantInde
 		participantIndex, domainIndex);
 }
 
-void UnifiedParticipant::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
+void UnifiedParticipant::notifyForProcHotDeAssertion(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getPlatformPowerStatusControl()->notifyForProchotDeassertion(participantIndex, domainIndex);
+	m_domains[domainIndex]->getPlatformPowerStatusControl()->notifyForProcHotDeAssertion(participantIndex, domainIndex);
 }
 
 DomainPriority UnifiedParticipant::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
@@ -1900,13 +1986,32 @@ UInt32 UnifiedParticipant::getRfiDisable(UIntN participantIndex, UIntN domainInd
 	return m_domains[domainIndex]->getRfProfileStatusControl()->getRfiDisable(participantIndex, domainIndex);
 }
 
+UInt32 UnifiedParticipant::getDlvrSsc(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileStatusControl()->getDlvrSsc(participantIndex, domainIndex);
+}
+
+Frequency UnifiedParticipant::getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileStatusControl()->getDlvrCenterFrequency(participantIndex, domainIndex);
+}
+
 void UnifiedParticipant::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+	const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct)
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getRfProfileStatusControl()->setDdrRfiTable(participantIndex, domainIndex, ddrRfiStruct);
+}
+
+void UnifiedParticipant::sendMasterControlStatus(UIntN participantIndex, UIntN domainIndex, UInt32 masterControlStatus)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getRfProfileStatusControl()->sendMasterControlStatus(
+		participantIndex, domainIndex, masterControlStatus);
 }
 
 void UnifiedParticipant::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
@@ -1914,6 +2019,13 @@ void UnifiedParticipant::setProtectRequest(UIntN participantIndex, UIntN domainI
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getRfProfileStatusControl()->setProtectRequest(
 		participantIndex, domainIndex, frequencyRate);
+}
+
+void UnifiedParticipant::setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getRfProfileStatusControl()->setDlvrCenterFrequency(
+		participantIndex, domainIndex, frequency);
 }
 
 UInt64 UnifiedParticipant::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
@@ -1926,6 +2038,12 @@ UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantInde
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getUtilizationControl()->getUtilizationStatus(participantIndex, domainIndex);
+}
+
+Percentage UnifiedParticipant::getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getUtilizationControl()->getMaxCoreUtilization(participantIndex, domainIndex);
 }
 
 std::map<ParticipantSpecificInfoKey::Type, Temperature> UnifiedParticipant::getParticipantSpecificInfo(
@@ -2064,6 +2182,25 @@ Bool UnifiedParticipant::isSocPowerFloorSupported(UIntN participantIndex, UIntN 
 	return m_domains[domainIndex]->getPowerControl()->isSocPowerFloorSupported(participantIndex, domainIndex);
 }
 
+UInt32 UnifiedParticipant::getSocPowerFloorState(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->getSocPowerFloorState(participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setPowerLimitMin(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfDomainInvalid(domainIndex);
+	const auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
+	m_domains[domainIndex]->getPowerControl()->setPowerLimitMin(
+		participantIndex, domainIndex, controlType, snappedPowerLimit);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
 void UnifiedParticipant::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -2071,7 +2208,7 @@ void UnifiedParticipant::setPowerLimit(
 	const Power& powerLimit)
 {
 	throwIfDomainInvalid(domainIndex);
-	auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
+	const auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
 	m_domains[domainIndex]->getPowerControl()->setPowerLimit(
 		participantIndex, domainIndex, controlType, snappedPowerLimit);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
@@ -2084,7 +2221,7 @@ void UnifiedParticipant::setPowerLimitWithoutUpdatingEnabled(
 	const Power& powerLimit)
 {
 	throwIfDomainInvalid(domainIndex);
-	auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
+	const auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
 	m_domains[domainIndex]->getPowerControl()->setPowerLimitWithoutUpdatingEnabled(
 		participantIndex, domainIndex, controlType, snappedPowerLimit);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
@@ -2177,6 +2314,13 @@ void UnifiedParticipant::setSocPowerFloorState(UIntN participantIndex, UIntN dom
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
 }
 
+void UnifiedParticipant::clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPowerControl()->clearPowerLimitMin(participantIndex, domainIndex);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
 void UnifiedParticipant::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -2244,6 +2388,12 @@ Power UnifiedParticipant::getSlowPollPowerThreshold(UIntN participantIndex, UInt
 	return m_domains[domainIndex]->getPowerControl()->getSlowPollPowerThreshold(participantIndex, domainIndex);
 }
 
+Power UnifiedParticipant::getThermalDesignPower(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->getThermalDesignPower(participantIndex, domainIndex);
+}
+
 void UnifiedParticipant::removePowerLimitPolicyRequest(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -2262,13 +2412,10 @@ void UnifiedParticipant::setPowerSharePolicyPower(
 		participantIndex, domainIndex, powerSharePolicyPower);
 }
 
-void UnifiedParticipant::setPowerShareEffectiveBias(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 powerShareEffectiveBias)
+void UnifiedParticipant::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getActivityStatusControl()->setPowerShareEffectiveBias(
+	m_domains[domainIndex]->getPowerControl()->setPowerShareEffectiveBias(
 		participantIndex, domainIndex, powerShareEffectiveBias);
 }
 
@@ -2286,23 +2433,4 @@ void UnifiedParticipant::setRfProfileOverride(
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getRfProfileStatusControl()->setRfProfileOverride(
 		participantIndex, domainIndex, rfProfileBufferData);
-}
-
-void UnifiedParticipant::setPerfPreferenceMax(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getPerformanceControl()->setPerfPreferenceMax(
-		participantIndex, domainIndex, minMaxRatio);
-	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
-}
-
-void UnifiedParticipant::setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getPerformanceControl()->setPerfPreferenceMin(
-		participantIndex, domainIndex, minMaxRatio);
-	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
 }

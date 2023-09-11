@@ -26,13 +26,18 @@ class dptf_export ParticipantProperty
 {
 public:
 	ParticipantProperty(UIntN participantIndex, const PolicyServicesInterfaceContainer& policyServices);
-	~ParticipantProperty();
+	virtual ~ParticipantProperty() = default;
+
+	ParticipantProperty(const ParticipantProperty& other) = default;
+	ParticipantProperty& operator=(const ParticipantProperty& other) = default;
+	ParticipantProperty(ParticipantProperty&& other) = default;
+	ParticipantProperty& operator=(ParticipantProperty&& other) = default;
 
 	virtual Bool supportsProperty() = 0;
 
 protected:
-	PolicyServicesInterfaceContainer getPolicyServices();
-	UIntN getParticipantIndex();
+	PolicyServicesInterfaceContainer getPolicyServices() const;
+	UIntN getParticipantIndex() const;
 
 private:
 	UIntN m_participantIndex;

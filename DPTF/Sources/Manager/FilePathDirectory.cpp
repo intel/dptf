@@ -56,11 +56,15 @@ string FilePathDirectory::getInstallPath()
 
 string FilePathDirectory::getConfigurationInstallPath()
 {
+	#if defined(ESIF_ATTR_OS_CHROME) // Only for Chrome suggestion from Google to move to /etc/dptf/configuration
+	return R"(/etc/dptf/configuration)";
+	#else // Same path for Windows and Linux ( /usr/share/dptf/ufx64/configuration)
 	const auto installPath = getInstallPath();
 	return IFileIo::generatePathWithTrailingSeparator(installPath + "configuration"s);
+	#endif
 }
 
 string FilePathDirectory::getConfigurationOverridePath()
 {
-	return R"(/usr/share/dptf/config)";
+	return R"(/usr/share/dptf/configuration)";
 }

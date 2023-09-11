@@ -68,5 +68,4 @@ public:
 	CachedValue<OnOffToggle::Type> collaborationMode;
 	CachedValue<OnOffToggle::Type> tpgPowerState;
 	CachedValue<FanOperatingMode::Type> fanOperatingMode;
-	CachedValue<OsPowerSource::Type> tppPowerSource;
 };

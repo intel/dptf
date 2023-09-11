@@ -36,12 +36,18 @@ public:
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainProcessorControl_001(void);
 
+	// DomainProcessorControl
+	virtual void updatePcieThrottleRequestState(UInt32 pcieThrottleRequestState) override;
+
 	// DomainProcessorControlInterface
 	virtual Temperature getTccOffsetTemperature() override;
 	virtual void setTccOffsetTemperature(const Temperature& tccOffset) override;
 	virtual Temperature getMaxTccOffsetTemperature() override;
 	virtual Temperature getMinTccOffsetTemperature() override;
 	virtual void setUnderVoltageThreshold(const UInt32 voltageThreshold) override;
+	virtual void setPerfPreferenceMax(const Percentage& cpuMaxRatio) override;
+	virtual void setPerfPreferenceMin(const Percentage& cpuMinRatio) override;
+	virtual UInt32 getPcieThrottleRequestState() override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
@@ -60,4 +66,5 @@ private:
 	DomainProcessorControl_001& operator=(const DomainProcessorControl_001& rhs);
 
 	CachedValue<UInt32> m_uvth;
+	CachedValue<UInt32> m_pcieThrottleRequestState;
 };

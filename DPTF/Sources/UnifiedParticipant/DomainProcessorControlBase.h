@@ -35,6 +35,7 @@ public:
 		UIntN domainIndex,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainProcessorControlBase();
+	virtual void updatePcieThrottleRequestState(UInt32 pcieThrottleRequestState) = 0;
 
 protected:
 	ArbitratorProcessorControl m_arbitrator;
@@ -48,6 +49,9 @@ private:
 	DptfRequestResult handleSetTccOffsetTemperature(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetMaxTccOffsetTemperature(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetMinTccOffsetTemperature(const PolicyRequest& policyRequest);
+	DptfRequestResult handleSetPerfPreferenceMax(const PolicyRequest& policyRequest);
+	DptfRequestResult handleSetPerfPreferenceMin(const PolicyRequest& policyRequest);
+	DptfRequestResult handleGetPcieThrottleRequestState(const PolicyRequest& policyRequest);
 
 	DptfRequestResult removePolicySetUnderVoltageThresholdRequest(UIntN policyIndex, const DptfRequest& request);
 	DptfRequestResult removePolicySetTccOffsetTemperatureRequest(UIntN policyIndex, const DptfRequest& request);

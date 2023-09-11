@@ -43,6 +43,7 @@ public:
 	Int32 toSignedWholeNumber() const;
 	UIntN toWholeNumber() const;
 	UInt64 toCentiPercent() const;
+	Percentage toCentiPercentInPercentage() const;
 	std::string toString() const;
 	std::string toStringWithPrecision(UInt32 precision) const;
 	class DptfBuffer toDptfBuffer() const;

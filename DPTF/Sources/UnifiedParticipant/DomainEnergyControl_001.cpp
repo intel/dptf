@@ -44,15 +44,11 @@ UInt32 DomainEnergyControl_001::getRaplEnergyCounter(UIntN participantIndex, UIn
 
 EnergyCounterInfo DomainEnergyControl_001::getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex)
 {
-	if (m_raplEnergyUnit == 0.0)
-	{
-		getRaplEnergyUnit(participantIndex, domainIndex);
-	}
-
 	try
 	{
+		double raplEnergyUnit = getRaplEnergyUnit(participantIndex, domainIndex);
 		double raplEnergyCounter = static_cast<double>(getRaplEnergyCounter(participantIndex, domainIndex));
-		raplEnergyCounter = raplEnergyCounter * m_raplEnergyUnit;
+		raplEnergyCounter = raplEnergyCounter * raplEnergyUnit;
 
 		TimeSpan timestamp = EsifTime().getTimeStamp();
 
@@ -66,10 +62,14 @@ EnergyCounterInfo DomainEnergyControl_001::getRaplEnergyCounterInfo(UIntN partic
 
 double DomainEnergyControl_001::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
 {
-	auto raplEnergyUnit = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RAPL_ENERGY_UNIT, domainIndex, Constants::Esif::NoInstance);
-	
-	m_raplEnergyUnit = (1 / pow(2, raplEnergyUnit));
+	if (m_raplEnergyUnit == 0.0)
+	{
+		auto raplEnergyUnit = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_RAPL_ENERGY_UNIT, domainIndex, Constants::Esif::NoInstance);
+
+		m_raplEnergyUnit = convertEnergyStatusUnitToJoules(raplEnergyUnit);
+	}
+
 	return m_raplEnergyUnit;
 }
 

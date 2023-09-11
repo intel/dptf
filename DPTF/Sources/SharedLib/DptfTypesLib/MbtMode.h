@@ -29,7 +29,7 @@ namespace MbtMode
 		AcQuiet = 2,
 		AcBalanced = 3,
 		DcEnduranceGaming = 4,
-		AcCollaboration = 5,
+		Collaboration = 5,
 		Invalid
 	};
 

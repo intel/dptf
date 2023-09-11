@@ -52,6 +52,7 @@ public:
 
 	virtual std::string getName(void) const = 0;
 	virtual std::string getPolicyFileName(void) const = 0;
+	virtual UIntN getPolicyIndex() const = 0;
 	virtual std::string getStatusAsXml(void) const = 0;
 	virtual std::string getDiagnosticsAsXml(void) const = 0;
 
@@ -63,8 +64,11 @@ public:
 	virtual void executeIgccBroadcastReceived(
 		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void executeSwOemVariablesChanged(void) = 0;
+	virtual void executeEnvironmentProfileChanged(const EnvironmentProfile& environmentProfile) = 0;
 	virtual void executeConnectedStandbyEntry(void) = 0;
 	virtual void executeConnectedStandbyExit(void) = 0;
+	virtual void executeLowPowerModeEntry(void) = 0;
+	virtual void executeLowPowerModeExit(void) = 0;
 	virtual void executeSuspend(void) = 0;
 	virtual void executeResume(void) = 0;
 	virtual void executeDomainCoreControlCapabilityChanged(UIntN participantIndex) = 0;
@@ -105,6 +109,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) = 0;
+	virtual void executeDomainSocPowerFloorChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocPowerFloor::Type socPowerFloor) = 0;
 	virtual void executeDomainEppSensitivityHintChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -117,6 +125,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		FanOperatingMode::Type fanOperatingMode) = 0;
+	virtual void executeDomainPcieThrottleRequested(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		OnOffToggle::Type pcieThrottleRequested) = 0;
 	virtual void executePolicyActiveRelationshipTableChanged(void) = 0;
 	virtual void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
 	virtual void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
@@ -130,6 +142,7 @@ public:
 	virtual void executePolicyAdaptivePerformanceConditionsTableChanged(void) = 0;
 	virtual void executePolicyAdaptivePerformanceActionsTableChanged(void) = 0;
 	virtual void executePolicyDdrfTableChanged(void) = 0;
+	virtual void executePolicyRfimTableChanged(void) = 0;
 	virtual void executePolicyTpgaTableChanged(void) = 0;
 	virtual void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
 	virtual void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
@@ -149,6 +162,7 @@ public:
 	virtual void executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
 	virtual void executePolicyOperatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
 	virtual void executePolicyOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
+	virtual void executePolicyProcessLoaded(const std::string& processName) = 0;
 	virtual void executePolicySystemModeChanged(SystemMode::Type systemMode) = 0;
 	virtual void executePolicyOemVariablesChanged(void) = 0;
 	virtual void executePolicyPowerBossConditionsTableChanged(void) = 0;
@@ -175,16 +189,16 @@ public:
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) = 0;
 	virtual void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) = 0;
 	virtual void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) = 0;
-	virtual void executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource) = 0;
+	virtual void executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP) = 0;
 };
 
 class dptf_export Policy : public IPolicy
 {
 public:
 	Policy(DptfManagerInterface* dptfManager);
-	~Policy(void);
+	~Policy(void) override;
 
-	virtual void createPolicy(
+	void createPolicy(
 		const std::string& policyFileName,
 		UIntN newPolicyIndex,
 		std::shared_ptr<SupportedPolicyList> supportedPolicyList,
@@ -192,143 +206,158 @@ public:
 		Guid dynamicPolicyTemplateGuid,
 		const std::string& dynamicPolicyName,
 		const std::string& dynamicPolicyUuidString) override;
-	virtual void destroyPolicy(void) override;
+	void destroyPolicy(void) override;
 
-	virtual Guid getGuid(void) override;
+	Guid getGuid(void) override;
 
-	virtual void bindParticipant(UIntN participantIndex) override;
-	virtual void unbindParticipant(UIntN participantIndex) override;
-	virtual void bindDomain(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void unbindDomain(UIntN participantIndex, UIntN domainIndex) override;
+	void bindParticipant(UIntN participantIndex) override;
+	void unbindParticipant(UIntN participantIndex) override;
+	void bindDomain(UIntN participantIndex, UIntN domainIndex) override;
+	void unbindDomain(UIntN participantIndex, UIntN domainIndex) override;
 
-	virtual void enable(void) override;
-	virtual void disable(void) override;
+	void enable(void) override;
+	void disable(void) override;
 
-	virtual std::string getName(void) const override;
-	virtual std::string getPolicyFileName(void) const override;
-	virtual std::string getStatusAsXml(void) const override;
-	virtual std::string getDiagnosticsAsXml(void) const override;
+	std::string getName(void) const override;
+	std::string getPolicyFileName(void) const override;
+	UIntN getPolicyIndex() const override;
+	std::string getStatusAsXml(void) const override;
+	std::string getDiagnosticsAsXml(void) const override;
 
-	virtual Bool isDynamicPolicy(void) override;
-	virtual std::string getDynamicPolicyUuidString(void) const override;
+	Bool isDynamicPolicy(void) override;
+	std::string getDynamicPolicyUuidString(void) const override;
 
 	// Event handlers
-	virtual void executeIgccBroadcastReceived(
+	void executeIgccBroadcastReceived(
 		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
-	virtual void executeSwOemVariablesChanged(void) override;
-	virtual void executeConnectedStandbyEntry(void) override;
-	virtual void executeConnectedStandbyExit(void) override;
-	virtual void executeSuspend(void) override;
-	virtual void executeResume(void) override;
-	virtual void executeDomainCoreControlCapabilityChanged(UIntN participantIndex) override;
-	virtual void executeDomainDisplayControlCapabilityChanged(UIntN participantIndex) override;
-	virtual void executeDomainDisplayStatusChanged(UIntN participantIndex) override;
-	virtual void executeDomainPerformanceControlCapabilityChanged(UIntN participantIndex) override;
-	virtual void executeDomainPerformanceControlsChanged(UIntN participantIndex) override;
-	virtual void executeDomainPowerControlCapabilityChanged(UIntN participantIndex) override;
-	virtual void executeDomainPriorityChanged(UIntN participantIndex) override;
-	virtual void executeDomainRadioConnectionStatusChanged(
+	void executeSwOemVariablesChanged(void) override;
+	void executeEnvironmentProfileChanged(
+	const EnvironmentProfile& environmentProfile) override;
+	void executeConnectedStandbyEntry(void) override;
+	void executeConnectedStandbyExit(void) override;
+	void executeLowPowerModeEntry(void) override;
+	void executeLowPowerModeExit(void) override;
+	void executeSuspend(void) override;
+	void executeResume(void) override;
+	void executeDomainCoreControlCapabilityChanged(UIntN participantIndex) override;
+	void executeDomainDisplayControlCapabilityChanged(UIntN participantIndex) override;
+	void executeDomainDisplayStatusChanged(UIntN participantIndex) override;
+	void executeDomainPerformanceControlCapabilityChanged(UIntN participantIndex) override;
+	void executeDomainPerformanceControlsChanged(UIntN participantIndex) override;
+	void executeDomainPowerControlCapabilityChanged(UIntN participantIndex) override;
+	void executeDomainPriorityChanged(UIntN participantIndex) override;
+	void executeDomainRadioConnectionStatusChanged(
 		UIntN participantIndex,
 		RadioConnectionStatus::Type radioConnectionStatus) override;
-	virtual void executeDomainRfProfileChanged(UIntN participantIndex) override;
-	virtual void executeDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
-	virtual void executeParticipantSpecificInfoChanged(UIntN participantIndex) override;
-	virtual void executeDomainVirtualSensorCalibrationTableChanged(UIntN participantIndex) override;
-	virtual void executeDomainVirtualSensorPollingTableChanged(UIntN participantIndex) override;
-	virtual void executeDomainVirtualSensorRecalcChanged(UIntN participantIndex) override;
-	virtual void executeDomainBatteryStatusChanged(UIntN participantIndex) override;
-	virtual void executeDomainBatteryInformationChanged(UIntN participantIndex) override;
-	virtual void executeDomainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex) override;
-	virtual void executeDomainBatteryNoLoadVoltageChanged(UIntN participantIndex) override;
-	virtual void executeDomainMaxBatteryPeakCurrentChanged(UIntN participantIndex) override;
-	virtual void executeDomainPlatformPowerSourceChanged(UIntN participantIndex) override;
-	virtual void executeDomainAdapterPowerRatingChanged(UIntN participantIndex) override;
-	virtual void executeDomainChargerTypeChanged(UIntN participantIndex) override;
-	virtual void executeDomainPlatformRestOfPowerChanged(UIntN participantIndex) override;
-	virtual void executeDomainMaxBatteryPowerChanged(UIntN participantIndex) override;
-	virtual void executeDomainPlatformBatterySteadyStateChanged(UIntN participantIndex) override;
-	virtual void executeDomainACNominalVoltageChanged(UIntN participantIndex) override;
-	virtual void executeDomainACOperationalCurrentChanged(UIntN participantIndex) override;
-	virtual void executeDomainAC1msPercentageOverloadChanged(UIntN participantIndex) override;
-	virtual void executeDomainAC2msPercentageOverloadChanged(UIntN participantIndex) override;
-	virtual void executeDomainAC10msPercentageOverloadChanged(UIntN participantIndex) override;
-	virtual void executeDomainEnergyThresholdCrossed(UIntN participantIndex) override;
-	virtual void executeDomainFanCapabilityChanged(UIntN participantIndex) override;
-	virtual void executeDomainSocWorkloadClassificationChanged(
+	void executeDomainRfProfileChanged(UIntN participantIndex) override;
+	void executeDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
+	void executeParticipantSpecificInfoChanged(UIntN participantIndex) override;
+	void executeDomainVirtualSensorCalibrationTableChanged(UIntN participantIndex) override;
+	void executeDomainVirtualSensorPollingTableChanged(UIntN participantIndex) override;
+	void executeDomainVirtualSensorRecalcChanged(UIntN participantIndex) override;
+	void executeDomainBatteryStatusChanged(UIntN participantIndex) override;
+	void executeDomainBatteryInformationChanged(UIntN participantIndex) override;
+	void executeDomainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex) override;
+	void executeDomainBatteryNoLoadVoltageChanged(UIntN participantIndex) override;
+	void executeDomainMaxBatteryPeakCurrentChanged(UIntN participantIndex) override;
+	void executeDomainPlatformPowerSourceChanged(UIntN participantIndex) override;
+	void executeDomainAdapterPowerRatingChanged(UIntN participantIndex) override;
+	void executeDomainChargerTypeChanged(UIntN participantIndex) override;
+	void executeDomainPlatformRestOfPowerChanged(UIntN participantIndex) override;
+	void executeDomainMaxBatteryPowerChanged(UIntN participantIndex) override;
+	void executeDomainPlatformBatterySteadyStateChanged(UIntN participantIndex) override;
+	void executeDomainACNominalVoltageChanged(UIntN participantIndex) override;
+	void executeDomainACOperationalCurrentChanged(UIntN participantIndex) override;
+	void executeDomainAC1msPercentageOverloadChanged(UIntN participantIndex) override;
+	void executeDomainAC2msPercentageOverloadChanged(UIntN participantIndex) override;
+	void executeDomainAC10msPercentageOverloadChanged(UIntN participantIndex) override;
+	void executeDomainEnergyThresholdCrossed(UIntN participantIndex) override;
+	void executeDomainFanCapabilityChanged(UIntN participantIndex) override;
+	void executeDomainSocWorkloadClassificationChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) override;
+	virtual void executeDomainSocPowerFloorChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocPowerFloor::Type socPowerFloor) override;
 	virtual void executeDomainEppSensitivityHintChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		MbtHint::Type mbtHint) override;
-	virtual void executeDomainExtendedWorkloadPredictionChanged(
+	void executeDomainExtendedWorkloadPredictionChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction) override;
-	virtual void executeDomainFanOperatingModeChanged(
+	void executeDomainFanOperatingModeChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		FanOperatingMode::Type fanOperatingMode) override;
-	virtual void executePolicyActiveRelationshipTableChanged(void) override;
-	virtual void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) override;
-	virtual void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) override;
-	virtual void executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) override;
-	virtual void executePolicyPassiveTableChanged(void) override;
-	virtual void executePolicySensorOrientationChanged(SensorOrientation::Type sensorOrientation) override;
-	virtual void executePolicySensorMotionChanged(OnOffToggle::Type sensorMotion) override;
-	virtual void executePolicySensorSpatialOrientationChanged(
+	void executeDomainPcieThrottleRequested(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		OnOffToggle::Type pcieThrottleRequested) override;
+	void executePolicyActiveRelationshipTableChanged(void) override;
+	void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) override;
+	void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) override;
+	void executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) override;
+	void executePolicyPassiveTableChanged(void) override;
+	void executePolicySensorOrientationChanged(SensorOrientation::Type sensorOrientation) override;
+	void executePolicySensorMotionChanged(OnOffToggle::Type sensorMotion) override;
+	void executePolicySensorSpatialOrientationChanged(
 		SensorSpatialOrientation::Type sensorSpatialOrientation) override;
-	virtual void executePolicyThermalRelationshipTableChanged(void) override;
-	virtual void executePolicyAdaptivePerformanceConditionsTableChanged(void) override;
-	virtual void executePolicyAdaptivePerformanceActionsTableChanged() override;
-	virtual void executePolicyDdrfTableChanged(void) override;
-	virtual void executePolicyTpgaTableChanged(void) override;
-	virtual void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override;
-	virtual void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) override;
-	virtual void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override;
-	virtual void executePolicyOperatingSystemPowerSchemePersonalityChanged(
+	void executePolicyThermalRelationshipTableChanged(void) override;
+	void executePolicyAdaptivePerformanceConditionsTableChanged(void) override;
+	void executePolicyAdaptivePerformanceActionsTableChanged() override;
+	void executePolicyDdrfTableChanged(void) override;
+	void executePolicyRfimTableChanged(void) override;
+	void executePolicyTpgaTableChanged(void) override;
+	void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override;
+	void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) override;
+	void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override;
+	void executePolicyOperatingSystemPowerSchemePersonalityChanged(
 		OsPowerSchemePersonality::Type powerSchemePersonality) override;
-	virtual void executePolicyOperatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType) override;
-	virtual void executePolicyOperatingSystemDockModeChanged(OsDockMode::Type osDockMode) override;
-	virtual void executePolicyOperatingSystemEmergencyCallModeStateChanged(
+	void executePolicyOperatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType) override;
+	void executePolicyOperatingSystemDockModeChanged(OsDockMode::Type osDockMode) override;
+	void executePolicyOperatingSystemEmergencyCallModeStateChanged(
 		OnOffToggle::Type emergencyCallModeState) override;
-	virtual void executePolicyOperatingSystemMobileNotification(
+	void executePolicyOperatingSystemMobileNotification(
 		OsMobileNotificationType::Type notificationType,
 		UIntN value) override;
-	virtual void executePolicyOperatingSystemMixedRealityModeChanged(OnOffToggle::Type osMixedRealityMode) override;
-	virtual void executePolicyOperatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) override;
-	virtual void executePolicyOperatingSystemSessionStateChanged(OsSessionState::Type sessionState) override;
-	virtual void executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type screenState) override;
-	virtual void executePolicyOperatingSystemBatteryCountChanged(UIntN batteryCount) override;
-	virtual void executePolicyOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) override;
-	virtual void executePolicySystemModeChanged(SystemMode::Type systemMode) override;
-	virtual void executePolicyOemVariablesChanged(void) override;
-	virtual void executePolicyPowerBossConditionsTableChanged(void) override;
-	virtual void executePolicyPowerBossActionsTableChanged(void) override;
-	virtual void executePolicyPowerBossMathTableChanged(void) override;
-	virtual void executePolicyVoltageThresholdMathTableChanged(void) override;
-	virtual void executePolicyActivityLoggingEnabled(void) override;
-	virtual void executePolicyActivityLoggingDisabled(void) override;
-	virtual void executePolicyEmergencyCallModeTableChanged(void) override;
-	virtual void executePolicyPidAlgorithmTableChanged(void) override;
-	virtual void executePolicyActiveControlPointRelationshipTableChanged(void) override;
-	virtual void executePolicyPowerShareAlgorithmTableChanged(void) override;
-	virtual void executePolicyIntelligentThermalManagementTableChanged(void) override;
-	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) override;
-	virtual void executePowerLimitChanged(void) override;
-	virtual void executePowerLimitTimeWindowChanged(void) override;
-	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
-	virtual void executePolicyWorkloadHintConfigurationChanged(void) override;
-	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osMixedRealityMode) override;
-	virtual void executePolicyPowerShareAlgorithmTable2Changed(void) override;
-	virtual void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) override;
-	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) override;
-	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) override;
-	virtual void executePolicyForegroundRatioChanged(UIntN ratio) override;
-	virtual void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) override;
-	virtual void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override;
-	virtual void executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource) override;
+	void executePolicyOperatingSystemMixedRealityModeChanged(OnOffToggle::Type osMixedRealityMode) override;
+	void executePolicyOperatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) override;
+	void executePolicyOperatingSystemSessionStateChanged(OsSessionState::Type sessionState) override;
+	void executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type screenState) override;
+	void executePolicyOperatingSystemBatteryCountChanged(UIntN batteryCount) override;
+	void executePolicyOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) override;
+	void executePolicyProcessLoaded(const std::string& processName) override;
+	void executePolicySystemModeChanged(SystemMode::Type systemMode) override;
+	void executePolicyOemVariablesChanged(void) override;
+	void executePolicyPowerBossConditionsTableChanged(void) override;
+	void executePolicyPowerBossActionsTableChanged(void) override;
+	void executePolicyPowerBossMathTableChanged(void) override;
+	void executePolicyVoltageThresholdMathTableChanged(void) override;
+	void executePolicyActivityLoggingEnabled(void) override;
+	void executePolicyActivityLoggingDisabled(void) override;
+	void executePolicyEmergencyCallModeTableChanged(void) override;
+	void executePolicyPidAlgorithmTableChanged(void) override;
+	void executePolicyActiveControlPointRelationshipTableChanged(void) override;
+	void executePolicyPowerShareAlgorithmTableChanged(void) override;
+	void executePolicyIntelligentThermalManagementTableChanged(void) override;
+	void executePolicyEnergyPerformanceOptimizerTableChanged(void) override;
+	void executePowerLimitChanged(void) override;
+	void executePowerLimitTimeWindowChanged(void) override;
+	void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
+	void executePolicyWorkloadHintConfigurationChanged(void) override;
+	void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osMixedRealityMode) override;
+	void executePolicyPowerShareAlgorithmTable2Changed(void) override;
+	void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) override;
+	void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) override;
+	void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) override;
+	void executePolicyForegroundRatioChanged(UIntN ratio) override;
+	void executePolicyCollaborationChanged(OnOffToggle::Type collaboration) override;
+	void executePolicyThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override;
+	void executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP) override;
 
 private:
 	// hide the copy constructor and assignment operator.

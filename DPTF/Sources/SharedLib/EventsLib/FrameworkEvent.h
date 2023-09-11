@@ -35,6 +35,8 @@ namespace FrameworkEvent
 		// DPTF Events		
 		DptfConnectedStandbyEntry,
 		DptfConnectedStandbyExit,
+		DptfLowPowerModeEntry,
+		DptfLowPowerModeExit,
 		DptfSuspend,
 		DptfResume,
 		DptfGetStatus,
@@ -44,6 +46,9 @@ namespace FrameworkEvent
 		DptfPolicyActivityLoggingEnabled,
 		DptfPolicyActivityLoggingDisabled,
 		DptfSupportedPoliciesChanged,
+		DptfEnvironmentProfileChanged,
+		DptfSendParticipantCreate,
+		DptfSendParticipantDelete,
 
 		// Participant and Domain events
 		ParticipantAllocate,
@@ -89,6 +94,9 @@ namespace FrameworkEvent
 		DomainEppSensitivityHintChanged,
 		DomainExtendedWorkloadPredictionChanged,
 		DomainFanOperatingModeChanged,
+		DomainHardwareSocWorkloadHintChanged,
+		DomainSocPowerFloorChanged,
+		DomainPcieThrottleRequested,
 
 		// Policy events
 		PolicyCreate,
@@ -112,6 +120,7 @@ namespace FrameworkEvent
 		PolicyOperatingSystemScreenStateChanged,
 		PolicyOperatingSystemBatteryCountChanged,
 		PolicyOperatingSystemPowerSliderChanged,
+		PolicyProcessLoadNotification,
 		DptfPolicyLoadedUnloadedEvent,
 		PolicyEmergencyCallModeTableChanged,
 		PowerLimitChanged,

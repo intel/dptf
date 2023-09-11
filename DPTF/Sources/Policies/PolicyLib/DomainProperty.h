@@ -31,10 +31,15 @@ public:
 		UIntN domainIndex,
 		const DomainProperties& domainProperties,
 		const PolicyServicesInterfaceContainer& policyServices);
-	~DomainProperty();
+	~DomainProperty() override = default;
+
+	DomainProperty(const DomainProperty& other) = default;
+	DomainProperty& operator=(const DomainProperty& other) = default;
+	DomainProperty(DomainProperty&& other) = default;
+	DomainProperty& operator=(DomainProperty&& other) = default;
 
 protected:
-	UIntN getDomainIndex();
+	UIntN getDomainIndex() const;
 	DomainProperties getDomainProperties();
 
 private:

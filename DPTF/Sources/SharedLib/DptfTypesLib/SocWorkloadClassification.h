@@ -28,9 +28,20 @@ namespace SocWorkloadClassification
 		SemiActive = 2,
 		Bursty = 3,
 		Sustained = 4,
-		BatteryLife = 5
+		BatteryLife = 5,
+		Invalid = 6
 	};
 
-	std::string toString(SocWorkloadClassification::Type socWorkloadClassification);
+	enum HardwareHintType
+	{
+		HardwareHintIdle = 0,
+		HardwareHintBatteryLife = 1,
+		HardwareHintSustained = 2,
+		HardwareHintBursty = 3,
+		HardwareHintInvalid = 4
+	};
+
+	SocWorkloadClassification::Type toSocWorkloadClassificationHint(HardwareHintType socWorkloadHint);
+	std::string toString(Type socWorkloadClassification);
 	bool isValid (UInt32 workload);
 }

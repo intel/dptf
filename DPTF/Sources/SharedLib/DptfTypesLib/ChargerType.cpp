@@ -52,7 +52,7 @@ namespace ChargerType
 
 		DptfBuffer bufferCopy = buffer;
 		DptfBufferStream stream(bufferCopy);
-		ChargerType::Type newRequest = (ChargerType::Type)stream.readNextUint32();
+		ChargerType::Type newRequest = (ChargerType::Type)stream.readNextUInt32();
 		return newRequest;
 	}
 

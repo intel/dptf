@@ -71,6 +71,18 @@ eEsifError ActionExecutePrimitive(
 	EsifDataPtr responsePtr
 	);
 
+eEsifError ActionRegisterEvent(
+	const esif_handle_t participantHandle,
+	const UInt16 domain,
+	const enum esif_event_type eventType
+	);
+
+eEsifError ActionUnregisterEvent(
+	const esif_handle_t participantHandle,
+	const UInt16 domain,
+	const enum esif_event_type eventType
+	);
+
 extern eLogType g_upeTraceLevel;
 extern ActWriteLogFunction g_esifLogFuncPtr;
 

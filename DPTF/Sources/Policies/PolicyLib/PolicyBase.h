@@ -28,24 +28,24 @@
 class dptf_export PolicyBase : public PolicyInterface
 {
 public:
-	PolicyBase(void);
-	virtual ~PolicyBase(void);
+	PolicyBase();
+	~PolicyBase() override = default;
 
 	// Required policy events
-	virtual void onCreate(void) = 0;
-	virtual void onDestroy(void) = 0;
-	virtual void onEnable(void) = 0;
-	virtual void onDisable(void) = 0;
+	virtual void onCreate() = 0;
+	virtual void onDestroy() = 0;
+	virtual void onEnable() = 0;
+	virtual void onDisable() = 0;
 	virtual void onBindParticipant(UIntN participantIndex) = 0;
 	virtual void onUnbindParticipant(UIntN participantIndex) = 0;
 	virtual void onBindDomain(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void onUnbindDomain(UIntN participantIndex, UIntN domainIndex) = 0;
 
 	// Required policy properties
-	virtual Guid getGuid() const override = 0;
-	virtual std::string getName() const override = 0;
-	virtual std::string getStatusAsXml(void) const override = 0;
-	virtual std::string getDiagnosticsAsXml(void) const override = 0;
+	Guid getGuid() const override = 0;
+	std::string getName() const override = 0;
+	std::string getStatusAsXml() const override = 0;
+	std::string getDiagnosticsAsXml() const override = 0;
 	virtual Bool autoNotifyPlatformOscOnCreateDestroy() const = 0;
 	virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const = 0;
 	virtual Bool autoNotifyPlatformOscOnEnableDisable() const = 0;
@@ -94,22 +94,34 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification);
+	virtual void onDomainSocPowerFloorChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocPowerFloor::Type socPowerFloor);
 	virtual void onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint);
 	virtual void onDomainExtendedWorkloadPredictionChanged(UIntN participantIndex, UIntN domainIndex, ExtendedWorkloadPrediction::Type extendedWorkloadPrediction);
 	virtual void onDomainFanOperatingModeChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		FanOperatingMode::Type fanOperatingMode);
-	virtual void onActiveRelationshipTableChanged(void);
-	virtual void onThermalRelationshipTableChanged(void);
-	virtual void onAdaptivePerformanceConditionsTableChanged(void);
-	virtual void onAdaptivePerformanceActionsTableChanged(void);
-	virtual void onDdrfTableChanged(void);
+	virtual void onDomainPcieThrottleRequested(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		OnOffToggle::Type pcieThrottleRequested);
+	virtual void onActiveRelationshipTableChanged();
+	virtual void onThermalRelationshipTableChanged();
+	virtual void onAdaptivePerformanceConditionsTableChanged();
+	virtual void onAdaptivePerformanceActionsTableChanged();
+	virtual void onDdrfTableChanged();
+	virtual void onRfimTableChanged();
 	virtual void onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData);
-	virtual void onConnectedStandbyEntry(void);
-	virtual void onConnectedStandbyExit(void);
-	virtual void onSuspend(void);
-	virtual void onResume(void);
+	virtual void onEnvironmentProfileChanged(const EnvironmentProfile& environmentProfile);
+	virtual void onConnectedStandbyEntry();
+	virtual void onConnectedStandbyExit();
+	virtual void onLowPowerModeEntry();
+	virtual void onLowPowerModeExit();
+	virtual void onSuspend();
+	virtual void onResume();
 	virtual void onForegroundApplicationChanged(const std::string& foregroundApplicationName);
 	virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2);
 	virtual void onOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource);
@@ -126,171 +138,185 @@ public:
 	virtual void onOperatingSystemScreenStateChanged(OnOffToggle::Type screenState);
 	virtual void onOperatingSystemBatteryCountChanged(UIntN batteryCount);
 	virtual void onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider);
+	virtual void onProcessLoaded(const std::string& processName);
 	virtual void onSystemModeChanged(SystemMode::Type systemMode);
 	virtual void onCoolingModePolicyChanged(CoolingMode::Type coolingMode);
-	virtual void onTpgaTableChanged(void);
-	virtual void onPassiveTableChanged(void);
+	virtual void onTpgaTableChanged();
+	virtual void onPassiveTableChanged();
 	virtual void onSensorOrientationChanged(SensorOrientation::Type sensorOrientation);
 	virtual void onSensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
 	virtual void onSensorMotionChanged(OnOffToggle::Type sensorMotion);
-	virtual void onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject);
-	virtual void onOemVariablesChanged(void);
-	virtual void onSwOemVariablesChanged(void);
-	virtual void onPowerBossConditionsTableChanged(void);
-	virtual void onPowerBossActionsTableChanged(void);
-	virtual void onPowerBossMathTableChanged(void);
-	virtual void onVoltageThresholdMathTableChanged(void);
-	virtual void onEmergencyCallModeTableChanged(void);
-	virtual void onPidAlgorithmTableChanged(void);
-	virtual void onActiveControlPointRelationshipTableChanged(void);
-	virtual void onPowerShareAlgorithmTableChanged(void);
-	virtual void onPowerLimitChanged(void);
-	virtual void onPowerLimitTimeWindowChanged(void);
+	virtual void onOverrideTimeObject(const std::shared_ptr<TimeInterface>& timeObject);
+	virtual void onOemVariablesChanged();
+	virtual void onSwOemVariablesChanged();
+	virtual void onPowerBossConditionsTableChanged();
+	virtual void onPowerBossActionsTableChanged();
+	virtual void onPowerBossMathTableChanged();
+	virtual void onVoltageThresholdMathTableChanged();
+	virtual void onEmergencyCallModeTableChanged();
+	virtual void onPidAlgorithmTableChanged();
+	virtual void onActiveControlPointRelationshipTableChanged();
+	virtual void onPowerShareAlgorithmTableChanged();
+	virtual void onPowerLimitChanged();
+	virtual void onPowerLimitTimeWindowChanged();
 	virtual void onPerformanceCapabilitiesChanged(UIntN participantIndex);
-	virtual void onWorkloadHintConfigurationChanged(void);
+	virtual void onWorkloadHintConfigurationChanged();
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
-	virtual void onPowerShareAlgorithmTable2Changed(void);
-	virtual void onIntelligentThermalManagementTableChanged(void);
-	virtual void onEnergyPerformanceOptimizerTableChanged(void);
+	virtual void onPowerShareAlgorithmTable2Changed();
+	virtual void onIntelligentThermalManagementTableChanged();
+	virtual void onEnergyPerformanceOptimizerTableChanged();
 	virtual void onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
 	virtual void onForegroundRatioChanged(UIntN ratio);
 	virtual void onCollaborationModeChanged(OnOffToggle::Type collaborationModeState);
 	virtual void onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff);
-	virtual void onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type tppPowerSource);
+	virtual void onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP);
 
 	// Implementation of the Policy Interface
-	virtual void create(
+	void create(
 		Bool enabled,
 		const PolicyServicesInterfaceContainer& policyServices,
 		UIntN policyIndex,
 		const std::string& dynamicPolicyUuid = Constants::EmptyString,
-		const std::string& dynamicPolicyName = Constants::EmptyString) override final;
-	virtual void destroy(void) override final;
-	virtual void enable(void) override final;
-	virtual void disable(void) override final;
-	virtual void bindParticipant(UIntN participantIndex) override final;
-	virtual void unbindParticipant(UIntN participantIndex) override final;
-	virtual void bindDomain(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual void unbindDomain(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual void domainTemperatureThresholdCrossed(UIntN participantIndex) override final;
-	virtual void domainPowerControlCapabilityChanged(UIntN participantIndex) override final;
-	virtual void domainPerformanceControlCapabilityChanged(UIntN participantIndex) override final;
-	virtual void domainPerformanceControlsChanged(UIntN participantIndex) override final;
-	virtual void domainCoreControlCapabilityChanged(UIntN participantIndex) override final;
-	virtual void domainPriorityChanged(UIntN participantIndex) override final;
-	virtual void domainDisplayControlCapabilityChanged(UIntN participantIndex) override final;
-	virtual void domainDisplayStatusChanged(UIntN participantIndex) override final;
-	virtual void domainRadioConnectionStatusChanged(
+		const std::string& dynamicPolicyName = Constants::EmptyString) final;
+	void destroy() final;
+	void enable() final;
+	void disable() final;
+	void bindParticipant(UIntN participantIndex) final;
+	void unbindParticipant(UIntN participantIndex) final;
+	void bindDomain(UIntN participantIndex, UIntN domainIndex) final;
+	void unbindDomain(UIntN participantIndex, UIntN domainIndex) final;
+	void domainTemperatureThresholdCrossed(UIntN participantIndex) final;
+	void domainPowerControlCapabilityChanged(UIntN participantIndex) final;
+	void domainPerformanceControlCapabilityChanged(UIntN participantIndex) final;
+	void domainPerformanceControlsChanged(UIntN participantIndex) final;
+	void domainCoreControlCapabilityChanged(UIntN participantIndex) final;
+	void domainPriorityChanged(UIntN participantIndex) final;
+	void domainDisplayControlCapabilityChanged(UIntN participantIndex) final;
+	void domainDisplayStatusChanged(UIntN participantIndex) final;
+	void domainRadioConnectionStatusChanged(
 		UIntN participantIndex,
-		RadioConnectionStatus::Type radioConnectionStatus) override final;
-	virtual void domainRfProfileChanged(UIntN participantIndex) override final;
-	virtual void participantSpecificInfoChanged(UIntN participantIndex) override final;
-	virtual void domainVirtualSensorCalibrationTableChanged(UIntN participantIndex) override final;
-	virtual void domainVirtualSensorPollingTableChanged(UIntN participantIndex) override final;
-	virtual void domainVirtualSensorRecalcChanged(UIntN participantIndex) override final;
-	virtual void domainBatteryStatusChanged(UIntN participantIndex) override final;
-	virtual void domainBatteryInformationChanged(UIntN participantIndex) override final;
-	virtual void domainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex) override final;
-	virtual void domainBatteryNoLoadVoltageChanged(UIntN participantIndex) override final;
-	virtual void domainMaxBatteryPeakCurrentChanged(UIntN participantIndex) override final;
-	virtual void domainPlatformPowerSourceChanged(UIntN participantIndex) override final;
-	virtual void domainAdapterPowerRatingChanged(UIntN participantIndex) override final;
-	virtual void domainChargerTypeChanged(UIntN participantIndex) override final;
-	virtual void domainPlatformRestOfPowerChanged(UIntN participantIndex) override final;
-	virtual void domainMaxBatteryPowerChanged(UIntN participantIndex) override final;
-	virtual void domainPlatformBatterySteadyStateChanged(UIntN participantIndex) override final;
-	virtual void domainACNominalVoltageChanged(UIntN participantIndex) override final;
-	virtual void domainACOperationalCurrentChanged(UIntN participantIndex) override final;
-	virtual void domainAC1msPercentageOverloadChanged(UIntN participantIndex) override final;
-	virtual void domainAC2msPercentageOverloadChanged(UIntN participantIndex) override final;
-	virtual void domainAC10msPercentageOverloadChanged(UIntN participantIndex) override final;
-	virtual void domainEnergyThresholdCrossed(UIntN participantIndex) override final;
-	virtual void domainFanCapabilityChanged(UIntN participantIndex) override final;
-	virtual void domainSocWorkloadClassificationChanged(
+		RadioConnectionStatus::Type radioConnectionStatus) final;
+	void domainRfProfileChanged(UIntN participantIndex) final;
+	void participantSpecificInfoChanged(UIntN participantIndex) final;
+	void domainVirtualSensorCalibrationTableChanged(UIntN participantIndex) final;
+	void domainVirtualSensorPollingTableChanged(UIntN participantIndex) final;
+	void domainVirtualSensorRecalcChanged(UIntN participantIndex) final;
+	void domainBatteryStatusChanged(UIntN participantIndex) final;
+	void domainBatteryInformationChanged(UIntN participantIndex) final;
+	void domainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex) final;
+	void domainBatteryNoLoadVoltageChanged(UIntN participantIndex) final;
+	void domainMaxBatteryPeakCurrentChanged(UIntN participantIndex) final;
+	void domainPlatformPowerSourceChanged(UIntN participantIndex) final;
+	void domainAdapterPowerRatingChanged(UIntN participantIndex) final;
+	void domainChargerTypeChanged(UIntN participantIndex) final;
+	void domainPlatformRestOfPowerChanged(UIntN participantIndex) final;
+	void domainMaxBatteryPowerChanged(UIntN participantIndex) final;
+	void domainPlatformBatterySteadyStateChanged(UIntN participantIndex) final;
+	void domainACNominalVoltageChanged(UIntN participantIndex) final;
+	void domainACOperationalCurrentChanged(UIntN participantIndex) final;
+	void domainAC1msPercentageOverloadChanged(UIntN participantIndex) final;
+	void domainAC2msPercentageOverloadChanged(UIntN participantIndex) final;
+	void domainAC10msPercentageOverloadChanged(UIntN participantIndex) final;
+	void domainEnergyThresholdCrossed(UIntN participantIndex) final;
+	void domainFanCapabilityChanged(UIntN participantIndex) final;
+	void domainSocWorkloadClassificationChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		SocWorkloadClassification::Type socWorkloadClassification) override final;
-	virtual void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
-		override final;
-	virtual void domainExtendedWorkloadPredictionChanged(
+		SocWorkloadClassification::Type socWorkloadClassification) final;
+	void domainSocPowerFloorChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocPowerFloor::Type socPowerFloor) final;
+	void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
+		final;
+	void domainExtendedWorkloadPredictionChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
-		override final;
-	virtual void domainFanOperatingModeChanged(
+	final;
+	void domainFanOperatingModeChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		FanOperatingMode::Type fanOperatingMode) override final;
-	virtual void activeRelationshipTableChanged(void) override final;
-	virtual void thermalRelationshipTableChanged(void) override final;
-	virtual void adaptivePerformanceConditionsTableChanged(void) override final;
-	virtual void ddrfTableChanged(void) override final;
-	virtual void adaptivePerformanceActionsTableChanged(void) override final;
-	virtual void connectedStandbyEntry(void) override final;
-	virtual void igccBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override final;
-	virtual void connectedStandbyExit(void) override final;
-	virtual void suspend(void) override final;
-	virtual void resume(void) override final;
-	virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) override final;
-	virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) override final;
-	virtual void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override final;
-	virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) override final;
-	virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override final;
-	virtual void operatingSystemPowerSchemePersonalityChanged(
-		OsPowerSchemePersonality::Type powerSchemaPersonality) override final;
-	virtual void operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType) override final;
-	virtual void operatingSystemDockModeChanged(OsDockMode::Type dockMode) override final;
-	virtual void operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState) override final;
-	virtual void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
-		override final;
-	virtual void operatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode) override final;
-	virtual void operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) override final;
-	virtual void operatingSystemSessionStateChanged(OsSessionState::Type sessionState) override final;
-	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) override final;
-	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) override final;
-	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) override final;
-	virtual void systemModeChanged(SystemMode::Type powerSlider) override final;
-	virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) override final;
-	virtual void passiveTableChanged(void) override final;
-	virtual void tpgaTableChanged(void) override final;
-	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) override final;
-	virtual void sensorSpatialOrientationChanged(
-		SensorSpatialOrientation::Type sensorSpatialOrientation) override final;
-	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) override final;
-	virtual void oemVariablesChanged(void) override final;
-	virtual void swOemVariablesChanged() override final;
-	virtual void powerBossConditionsTableChanged(void) override final;
-	virtual void powerBossActionsTableChanged(void) override final;
-	virtual void powerBossMathTableChanged(void) override final;
-	virtual void voltageThresholdMathTableChanged(void) override final;
-	virtual void emergencyCallModeTableChanged(void) override final;
-	virtual void pidAlgorithmTableChanged(void) override final;
-	virtual void activeControlPointRelationshipTableChanged(void) override final;
-	virtual void powerShareAlgorithmTableChanged(void) override final;
-	virtual void intelligentThermalManagementTableChanged(void) override final;
-	virtual void energyPerformanceOptimizerTableChanged(void) override final;
-	virtual void powerLimitChanged(void) override final;
-	virtual void powerLimitTimeWindowChanged(void) override final;
-	virtual void performanceCapabilitiesChanged(UIntN participantIndex) override final;
-	virtual void workloadHintConfigurationChanged(void) override final;
-	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) override final;
-	virtual void powerShareAlgorithmTable2Changed(void) override final;
-	virtual void platformUserPresenceChanged(SensorUserPresence::Type userPresence) override final;
-	virtual void externalMonitorStateChanged(Bool externalMonitorState) override final;
-	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
-	virtual void foregroundRatioChanged(UIntN ratio) override final;
-	virtual void collaborationModeChanged(OnOffToggle::Type collaborationModeState) override final;
-	virtual void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) override final;
-	virtual void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type) override final;
+		FanOperatingMode::Type fanOperatingMode) final;
+	void domainPcieThrottleRequested(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		OnOffToggle::Type pcieThrottleRequested) final;
+	void activeRelationshipTableChanged() final;
+	void thermalRelationshipTableChanged() final;
+	void adaptivePerformanceConditionsTableChanged() final;
+	void ddrfTableChanged() final;
+	void rfimTableChanged() final;
+	void adaptivePerformanceActionsTableChanged() final;
+	void connectedStandbyEntry() final;
+	void igccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) final;
+	void environmentProfileChanged(const EnvironmentProfile& environmentProfile) final;
+	void connectedStandbyExit() final;
+	void lowPowerModeEntry() final;
+	void lowPowerModeExit() final;
+	void suspend() final;
+	void resume() final;
+	void foregroundApplicationChanged(const std::string& foregroundApplicationName) final;
+	void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) final;
+	void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) final;
+	void operatingSystemLidStateChanged(OsLidState::Type lidState) final;
+	void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) final;
+	void operatingSystemPowerSchemePersonalityChanged(
+		OsPowerSchemePersonality::Type powerSchemePersonality) final;
+	void operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType) final;
+	void operatingSystemDockModeChanged(OsDockMode::Type dockMode) final;
+	void operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState) final;
+	void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
+		final;
+	void operatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode) final;
+	void operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) final;
+	void operatingSystemSessionStateChanged(OsSessionState::Type sessionState) final;
+	void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) final;
+	void operatingSystemBatteryCountChanged(UIntN batteryCount) final;
+	void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) final;
+	void processLoaded(const std::string& processName) final;
+	void systemModeChanged(SystemMode::Type systemMode) final;
+	void coolingModePolicyChanged(CoolingMode::Type coolingMode) final;
+	void passiveTableChanged() final;
+	void tpgaTableChanged() final;
+	void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) final;
+	void sensorSpatialOrientationChanged(
+		SensorSpatialOrientation::Type sensorSpatialOrientation) final;
+	void sensorMotionChanged(OnOffToggle::Type sensorMotion) final;
+	void oemVariablesChanged() final;
+	void swOemVariablesChanged() final;
+	void powerBossConditionsTableChanged() final;
+	void powerBossActionsTableChanged() final;
+	void powerBossMathTableChanged() final;
+	void voltageThresholdMathTableChanged() final;
+	void emergencyCallModeTableChanged() final;
+	void pidAlgorithmTableChanged() final;
+	void activeControlPointRelationshipTableChanged() final;
+	void powerShareAlgorithmTableChanged() final;
+	void intelligentThermalManagementTableChanged() final;
+	void energyPerformanceOptimizerTableChanged() final;
+	void powerLimitChanged() final;
+	void powerLimitTimeWindowChanged() final;
+	void performanceCapabilitiesChanged(UIntN participantIndex) final;
+	void workloadHintConfigurationChanged() final;
+	void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) final;
+	void powerShareAlgorithmTable2Changed() final;
+	void platformUserPresenceChanged(SensorUserPresence::Type userPresence) final;
+	void externalMonitorStateChanged(Bool externalMonitorState) final;
+	void userInteractionChanged(UserInteraction::Type userInteraction) final;
+	void foregroundRatioChanged(UIntN ratio) final;
+	void collaborationModeChanged(OnOffToggle::Type collaborationModeState) final;
+	void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) final;
+	void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type) final;
 
 	// allows overriding the default time object with a different one
-	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);
+	void overrideTimeObject(const std::shared_ptr<TimeInterface>& timeObject);
 
 	// trip point statistics
-	std::shared_ptr<XmlNode> getXmlForTripPointStatistics(std::set<UIntN> targetIndexes) const;
+	std::shared_ptr<XmlNode> getXmlForTripPointStatistics(const std::set<UIntN>& targetIndexes) const;
 
 protected:
 	// policy state access for subclasses
@@ -313,13 +339,13 @@ private:
 	mutable std::shared_ptr<TimeInterface> m_time;
 
 	// sets/updates OSC on behalf of policy
-	void sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled);
+	void sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled) const;
 	void updateOscRequestIfNeeded(
 		Bool hasActiveControlCapabilityLastSet = false,
 		Bool hasPassiveControlCapabilityLastSet = false,
-		Bool hasCriticalShutdownCapabilityLastSet = false);
+		Bool hasCriticalShutdownCapabilityLastSet = false) const;
 
 	// checks for errors and throws an exception
-	void throwIfPolicyRequirementsNotMet();
-	void throwIfPolicyIsDisabled();
+	void throwIfPolicyRequirementsNotMet() const;
+	void throwIfPolicyIsDisabled() const;
 };

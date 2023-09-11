@@ -48,6 +48,8 @@
 
  /*
  * Value used to represent any participant
+ * Note: May only be used as the participant handle for events which do not
+ * require 'enabling'
  */
 #define ACTION_UPE_MATCH_ANY ESIF_HANDLE_MATCH_ANY_EVENT
 

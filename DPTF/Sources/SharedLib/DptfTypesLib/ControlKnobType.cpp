@@ -21,10 +21,10 @@ using namespace std;
 
 const map<ControlKnobType::Type, string> typeNames =
 {
-	{ControlKnobType::PowerControlPl1, "PowerControlPl1"s},
-	{ControlKnobType::PowerControlPl2, "PowerControlPl2"s},
-	{ControlKnobType::PowerControlPl3, "PowerControlPl3"s},
-	{ControlKnobType::PowerControlPl4, "PowerControlPl4"s},
+	{ControlKnobType::PowerControlPL1, "PowerControlPL1"s},
+	{ControlKnobType::PowerControlPl2, "PowerControlPL2"s},
+	{ControlKnobType::PowerControlPl3, "PowerControlPL3"s},
+	{ControlKnobType::PowerControlPl4, "PowerControlPL4"s},
 	{ControlKnobType::PerformanceControlPerfFrequency, "PerformanceControlPerfFrequency"s},
 	{ControlKnobType::PerformanceControlThrottleFrequency, "PerformanceControlThrottleFrequency"s},
 	{ControlKnobType::DbptControlIccMax, "DbptControlIccMax"s},

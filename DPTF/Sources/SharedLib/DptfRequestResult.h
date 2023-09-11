@@ -27,17 +27,22 @@ class DptfRequestResult
 public:
 	DptfRequestResult();
 	DptfRequestResult(Bool isSuccessful, const std::string& message, const DptfRequest& request);
-	virtual ~DptfRequestResult();
+	virtual ~DptfRequestResult() = default;
+
+	DptfRequestResult(const DptfRequestResult& other) = default;
+	DptfRequestResult& operator=(const DptfRequestResult& other) = default;
+	DptfRequestResult(DptfRequestResult&& other) = default;
+	DptfRequestResult& operator=(DptfRequestResult&& other) = default;
 
 	Bool isSuccessful() const;
 	Bool isFailure() const;
 	void throwIfFailure() const;
 	void setData(const DptfBuffer& data);
-	void setDataFromUInt32(const UInt32 data);
-	void setDataFromBool(const Bool data);
+	void setDataFromUInt32(UInt32 data);
+	void setDataFromBool(Bool data);
 	const DptfBuffer& getData() const;
-	const UInt32 getDataAsUInt32() const;
-	const Bool getDataAsBool() const;
+	UInt32 getDataAsUInt32() const;
+	Bool getDataAsBool() const;
 	const DptfRequest& getRequest() const;
 	const std::string getMessage() const;
 

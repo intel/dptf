@@ -41,6 +41,7 @@ public:
 	virtual void setPL2PowerLimitControlToMax() override;
 	virtual void setCapability(const PowerControlDynamicCaps& capability) override;
 	virtual void refreshCapabilities() override;
+	virtual void setPowerLimitMinPL1(const Power& powerLimit) override;
 	virtual void setPowerLimitPL1(const Power& powerLimit) override;
 	virtual void setPowerLimitPL2(const Power& powerLimit) override;
 	virtual void setPowerLimitPL3(const Power& powerLimit) override;
@@ -54,6 +55,8 @@ public:
 	virtual void unlockCapabilities() override;
 	virtual void removePowerLimitPolicyRequest(PowerControlType::Type controlType) override;
 	virtual void setPowerSharePolicyPower(const Power& powerSharePolicyPower) override;
+	virtual void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias) override;
+	virtual void clearPowerLimitMin() override;
 	virtual void clearPowerLimit() override;
 
 	// queries
@@ -83,7 +86,9 @@ public:
 	virtual Percentage getLivePowerLimitDutyCyclePL3() override;
 	virtual Bool isSocPowerFloorEnabled() override;
 	virtual Bool isSocPowerFloorSupported() override;
+	virtual UInt32 getSocPowerFloorState() override;
 	virtual void updatePowerLimitTimeWindowPL1(const TimeSpan& timeWindow) override;
+	virtual Power getThermalDesignPower() override;
 
 private:
 	PolicyServicesInterfaceContainer m_policyServices;

@@ -22,23 +22,22 @@
 
 class XmlNode;
 
-struct esif_data_energy_counter_info
-{
-	union esif_data_variant energyCount;    // ULONG
-	union esif_data_variant timestamp;      // ULONG
-};
-
-class EnergyCounterInfo final
+class EnergyCounterInfo
 {
 public:
 	EnergyCounterInfo();
-	EnergyCounterInfo(double m_energyCountInJoules, UInt64 timestampInMicroseconds);
-	const double getEnergyCounter();
-	const TimeSpan getTimestamp();
-	const Bool isValid();
-	static EnergyCounterInfo getEnergyCounterInfoFromBuffer(const DptfBuffer& buffer, UInt64 timestampInMicroseconds);
+	EnergyCounterInfo(double energyCountInJoules, UInt64 timestampInMicroseconds);
+	virtual ~EnergyCounterInfo() = default;
+	EnergyCounterInfo(const EnergyCounterInfo& other) = default;
+	EnergyCounterInfo& operator=(const EnergyCounterInfo& other) = default;
+	EnergyCounterInfo(EnergyCounterInfo&& other) = default;
+	EnergyCounterInfo& operator=(EnergyCounterInfo&& other) = default;
 
-	~EnergyCounterInfo();
+	double getEnergyCounterInJoules(double energyUnit) const;
+	double getEnergyCounter() const;
+	TimeSpan getTimestamp() const;
+	Bool isValid() const;
+	static EnergyCounterInfo fromDptfBuffer(const DptfBuffer& buffer);
 
 private:
 	double m_energyCount;

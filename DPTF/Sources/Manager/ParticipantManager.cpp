@@ -24,22 +24,31 @@
 #include "Utility.h"
 #include "ManagerLogger.h"
 
+using namespace std;
+
 ParticipantManager::ParticipantManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
 	, m_participants()
 {
 }
 
-ParticipantManager::~ParticipantManager(void)
+ParticipantManager::~ParticipantManager()
 {
-	destroyAllParticipants();
+	try
+	{
+		ParticipantManager::destroyAllParticipants();
+	}
+	catch (...)
+	{
+		// best effort	
+	}
 }
 
 UIntN ParticipantManager::allocateNextParticipantIndex()
 {
 	UIntN firstAvailableIndex = Constants::Invalid;
 
-	auto indexesInUse = MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
+	auto indexesInUse = MapOps<UIntN, shared_ptr<Participant>>::getKeys(m_participants);
 	firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
 
 	return firstAvailableIndex;
@@ -60,24 +69,24 @@ void ParticipantManager::createParticipant(
 		// create an instance of the participant class and save at the first available index.
 		// When this completes the actual participant will be instantiated and the functionality will
 		// be available through the interface function pointers.
-		m_participants[participantIndex] = std::make_shared<Participant>(m_dptfManager);
+		m_participants[participantIndex] = make_shared<Participant>(m_dptfManager);
 		m_participants[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
 	}
 	catch (...)
 	{
-		throw dptf_exception("Failed to create participant at index " + std::to_string(participantIndex));
+		throw dptf_exception("Failed to create participant at index " + to_string(participantIndex));
 	}
 }
 
-void ParticipantManager::destroyAllParticipants(void)
+void ParticipantManager::destroyAllParticipants()
 {
-	auto participantIndexes = MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
-	for (auto index = participantIndexes.begin(); index != participantIndexes.end(); ++index)
+	const auto participantIndexes = MapOps<UIntN, shared_ptr<Participant>>::getKeys(m_participants);
+	for (const auto participantIndex : participantIndexes)
 	{
 		try
 		{
 			// Queue up a work item and wait for the return.
-			auto workItem = std::make_shared<WIParticipantDestroy>(m_dptfManager, *index);
+			auto workItem = make_shared<WIParticipantDestroy>(m_dptfManager, participantIndex);
 			m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 		}
 		catch (...)
@@ -89,7 +98,7 @@ void ParticipantManager::destroyAllParticipants(void)
 					_line,
 					_function,
 					"Failed while trying to enqueue and wait for WIParticipantDestroy.");
-				message.addMessage("Participant Index", *index);
+					message.addMessage("Participant Index", participantIndex);
 				return message;
 			});
 		}
@@ -98,7 +107,7 @@ void ParticipantManager::destroyAllParticipants(void)
 
 void ParticipantManager::destroyParticipant(UIntN participantIndex)
 {
-	auto requestedParticipant = m_participants.find(participantIndex);
+	const auto requestedParticipant = m_participants.find(participantIndex);
 	if (requestedParticipant != m_participants.end())
 	{
 		if (requestedParticipant->second != nullptr)
@@ -124,12 +133,12 @@ void ParticipantManager::destroyParticipant(UIntN participantIndex)
 
 std::set<UIntN> ParticipantManager::getParticipantIndexes(void) const
 {
-	return MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
+	return MapOps<UIntN, shared_ptr<Participant>>::getKeys(m_participants);
 }
 
 Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex) const
 {
-	auto requestedParticipant = m_participants.find(participantIndex);
+	const auto requestedParticipant = m_participants.find(participantIndex);
 	if ((requestedParticipant == m_participants.end()) || (requestedParticipant->second == nullptr))
 	{
 		throw participant_index_invalid();
@@ -140,37 +149,37 @@ Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex) const
 
 void ParticipantManager::clearAllParticipantCachedData()
 {
-	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
+	for (auto& [index, participant] : m_participants)
 	{
-		if (p->second != nullptr)
+		if (participant)
 		{
-			p->second->clearParticipantCachedData();
+			participant->clearParticipantCachedData();
 		}
 	}
 }
 
-std::string ParticipantManager::GetStatusAsXml(void)
+string ParticipantManager::GetStatusAsXml(void)
 {
 	throw implement_me();
 }
 
-std::shared_ptr<IParticipant> ParticipantManager::getParticipant(const std::string& participantName) const
+shared_ptr<IParticipant> ParticipantManager::getParticipant(const std::string& participantName) const
 {
-	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
+	for (const auto& [index, participant] : m_participants)
 	{
-		if (participantName == p->second->getParticipantName())
+		if (participant && participantName == participant->getParticipantName())
 		{
-			return p->second;
+			return participant;
 		}
 	}
-	throw dptf_exception(std::string("Participant ") + participantName + std::string(" not found."));
+	throw dptf_exception("Participant "s + participantName + " not found."s);
 }
 
 Bool ParticipantManager::participantExists(const std::string& participantName) const
 {
-	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
+	for (const auto& [index, participant] : m_participants)
 	{
-		if (participantName == p->second->getParticipantName())
+		if (participant && participantName == participant->getParticipantName())
 		{
 			return true;
 		}
@@ -178,7 +187,7 @@ Bool ParticipantManager::participantExists(const std::string& participantName) c
 	return false;
 }
 
-EsifServicesInterface* ParticipantManager::getEsifServices()
+EsifServicesInterface* ParticipantManager::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
 }

@@ -285,12 +285,12 @@ static esif_error_t WebSocket_BuildFrame(
 
 void IpfSrv_Init(void)
 {
-	IpfTrxMgr_Init();
+	IpfTrxMgr_Init(IpfTrxMgr_GetInstance());
 }
 
 void IpfSrv_Uninit(void)
 {
-	IpfTrxMgr_Uninit();
+	IpfTrxMgr_Uninit(IpfTrxMgr_GetInstance());
 }
 
 // Process an incoming RPC Message by adding it to RPC Message Queue
@@ -337,7 +337,7 @@ esif_error_t WebServer_IrpcRequest(IrpcTransaction *trx)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (trx) {
-		rc = IpfTrxMgr_AddTransaction(trx);
+		rc = IpfTrxMgr_AddTransaction(IpfTrxMgr_GetInstance(), trx);
 		if (rc == ESIF_OK) {
 			rc = WebServer_SendMsg(g_WebServer, trx->ipfHandle, IBinary_GetBuf(trx->request), IBinary_GetLen(trx->request));
 		}
@@ -387,7 +387,7 @@ esif_error_t WebServer_IrpcProcess(WebServerPtr self, WebClientPtr client, IBina
 			UInt64 trxId = Irpc_Uncast_UInt64(ipcmsg->trxId);
 
 			// Lookup Transaction
-			trx = IpfTrxMgr_GetTransaction(client->ipfHandle, trxId);
+			trx = IpfTrxMgr_GetTransaction(IpfTrxMgr_GetInstance(), client->ipfHandle, trxId);
 
 			// Signal Waiting Thread that the Response has been received
 			if (trx) {

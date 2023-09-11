@@ -167,9 +167,12 @@ static esif_error_t EsifGetActionDelegateUid(
 	EsifDataPtr responsePtr
 	);
 
+static esif_error_t EsifGetActionDelegateGael(EsifDataPtr responsePtr);
+
+static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr);
 
 
-#define set_nv_tgp_value(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+
 #define set_nv_tgp_min_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_tgp_max_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_dynamic_boost_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -185,8 +188,8 @@ static esif_error_t EsifGetActionDelegateUid(
 #define set_workstation_lock() (ESIF_E_NOT_IMPLEMENTED)
 #define set_app_ratio_period(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_utilization(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
-#define get_nv_rapl_power(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_rapl_energy(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_rapl_energy_info(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_tgp_min_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_tgp_max_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_temperature(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -198,6 +201,7 @@ static esif_error_t EsifGetActionDelegateUid(
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_aggregate_display_information(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePpmParamValuesSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegatePpmParamValuesSettingForNonBalancedSchemePersonality(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifGetActionDelegatePpmParamValuesSetting(requestPtr, rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateActivePowerScheme() (ESIF_E_NOT_IMPLEMENTED)
@@ -206,6 +210,10 @@ static esif_error_t EsifGetActionDelegateUid(
 #define EsifGetActionDelegateGurc(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateSurr(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateSres() (ESIF_E_NOT_IMPLEMENTED)
+#define EsifGetActionDelegateGpam(reqPtr, rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateSpam(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateSadb(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateDadb(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifActDelegateInitOs() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifActDelegateExitOs() (ESIF_E_NOT_IMPLEMENTED)
 
@@ -221,6 +229,7 @@ static esif_error_t EsifGetActionDelegateUid(
 #define ESIF_INVALID_DATA        0xFFFFFFFF
 UInt32 g_cpuEnergyUnit = ESIF_INVALID_DATA;
 UInt32 g_gpuEnergyUnit = ESIF_INVALID_DATA;
+UInt32 g_gpuEnergyCounter = ESIF_INVALID_DATA;
 
 /*
 ** Handle ESIF Action Request
@@ -241,7 +250,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 	EsifUpDomainPtr domainPtr = NULL;
 
 	UNREFERENCED_PARAMETER(actCtx);
-	UNREFERENCED_PARAMETER(upPtr);
 
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
@@ -313,12 +321,12 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = get_nv_utilization(responsePtr);
 		break;
 
-	case 'PRGN': /* NGRP */
-		rc = get_nv_rapl_power(responsePtr);
-		break;
-
 	case '0CEG': /* GEC0 */
 		rc = get_nv_rapl_energy(responsePtr);
+		break;
+
+	case '1CEG': /* GEC1 */
+		rc = get_nv_rapl_energy_info(responsePtr);
 		break;
 
 	case 'ALPN': /* NPLA */
@@ -375,6 +383,18 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 
 	case 'DIU_': /* _UID - Get participant _UID (name) */
 		rc = EsifGetActionDelegateUid(upPtr, responsePtr);
+		break;
+
+	case 'LEAG': /* GAEL - Get Auto Enum List */
+		rc = EsifGetActionDelegateGael(responsePtr);
+		break;
+
+	case 'MAPG': /* GPAM - Get Processor Affinity Mask */
+		rc = EsifGetActionDelegateGpam(requestPtr, responsePtr);
+		break;
+
+	case 'LHPG': /* GPHL - Get Participant Handle List */
+		rc = EsifGetActionDelegateGphl(responsePtr);
 		break;
 
 	default:
@@ -544,6 +564,11 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegatePpmParamValuesSetting(requestPtr);
 		break;
 
+	case 'BNPS':	/* SPNB: Set PPM Non Balanced Values */
+		ESIF_TRACE_INFO("Set PPM Parameter Values request For Non-Balanced Scheme Personality received\n");
+		rc = EsifSetActionDelegatePpmParamValuesSettingForNonBalancedSchemePersonality(requestPtr);
+		break;
+
 	case 'ESPS':	/* SPSE: Set Power Scheme EPP */
 		ESIF_TRACE_INFO("Set Power Scheme EPP request received\n");
 		rc = EsifSetActionDelegatePowerSchemeEpp(requestPtr);
@@ -603,10 +628,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = set_nv_tgp_max_AC(requestPtr);
 		break;
 
-	case 'PGTN': /* NTGP */
-		rc = set_nv_tgp_value(requestPtr);
-		break;
-
 	case 'APTN': /* NTPA */
 		rc = set_nv_tpp_limit_AC(requestPtr);
 		break;
@@ -645,6 +666,18 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'SERS': /* SRES - Set User-Based Refresh Rate Reset*/
 		rc = EsifSetActionDelegateSres();
+		break;
+
+	case 'MAPS': /* SPAM - Set Processor Affinity Mask */
+		rc = EsifSetActionDelegateSpam(requestPtr);
+		break;
+
+	case 'BDAS': /* SADB - Set App Compat DB */
+		rc = EsifSetActionDelegateSadb(requestPtr);
+		break;
+
+	case 'BDAD': /* DADB - Delete App Compat DB */
+		rc = EsifSetActionDelegateDadb(requestPtr);
 		break;
 
 	default:
@@ -1466,7 +1499,17 @@ static eEsifError EsifGetActionDelegateMcppEnergy(
 		goto summationExit;
 	}
 
+	if (gpuRaplEnergy != 0)
+	{
+		g_gpuEnergyCounter = gpuRaplEnergy;
+	}
 summationExit:
+
+	if (gpuRaplEnergy == 0 && g_gpuEnergyCounter != ESIF_INVALID_DATA)
+	{
+		ESIF_TRACE_DEBUG("GPU Energy Counter reported as 0, using previously cached value instead: %lu", g_gpuEnergyCounter);
+		gpuRaplEnergy = g_gpuEnergyCounter;
+	}
 	*(UInt32*)responsePtr->buf_ptr = (cpuRaplEnergy + gpuRaplEnergy);
 exit:
 	return rc;
@@ -1813,6 +1856,103 @@ static esif_error_t EsifGetActionDelegateUid(
 
 	return rc;
 }
+
+
+/*
+* Get the auto-enumeration list from the TCPU
+* NOTE:  The auto-enumeration list is currently a "disallowed" list of domain
+* types separated by "|"
+*/
+static esif_error_t EsifGetActionDelegateGael(EsifDataPtr responsePtr)
+{
+	esif_error_t rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+	EsifPrimitiveTuple tuple = { GET_AUTO_ENUM_LIST, ESIF_PRIMITIVE_DOMAIN_D0, 255 };
+	EsifData listData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
+	size_t listLen = 0;
+
+	ESIF_ASSERT(responsePtr);
+	ESIF_ASSERT(responsePtr->buf_ptr);
+
+	/* Find the TCPU participant; if not found, assume no support */
+	upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+	if (!upPtr) {
+		ESIF_TRACE_DEBUG("CPU not available\n");
+		goto exit;
+	}
+
+	/* Get the list for the current platform */
+	rc = EsifUp_ExecutePrimitive(upPtr, &tuple, NULL, &listData);
+
+	if (ESIF_OK == rc) {
+		if (!listData.buf_ptr || (listData.data_len < 1)) {
+			ESIF_TRACE_DEBUG("List not available for current platform.\n");
+			rc = ESIF_E_NOT_IMPLEMENTED;
+			goto exit;
+		}
+
+		listLen = esif_ccb_strlen(listData.buf_ptr, listData.data_len);
+
+		responsePtr->data_len = (UInt32)(listLen + 1);
+		if (responsePtr->buf_len < responsePtr->data_len) {
+			ESIF_TRACE_DEBUG("Buffer too small\n");
+			rc = ESIF_E_NEED_LARGER_BUFFER;
+			goto exit;
+		}
+		esif_ccb_strcpy(responsePtr->buf_ptr, listData.buf_ptr, responsePtr->buf_len);
+	}
+	else if (rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP) {
+		rc = ESIF_I_NO_LEGACY_SUPPORT; // Convert error code to indicate this primitive is not supported on legacy systems  
+	}		
+exit:
+	EsifUp_PutRef(upPtr);
+	esif_ccb_free(listData.buf_ptr);
+	return rc;
+}
+
+
+static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr)
+{
+	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
+	UfPmIterator upIter = { 0 };
+	EsifUpPtr upPtr = NULL;
+	size_t count = 0;
+	size_t maxCount = 0;
+	esif_handle_t *curHandlePtr = NULL;
+
+	ESIF_ASSERT(responsePtr);
+	ESIF_ASSERT(responsePtr->buf_ptr);
+
+	maxCount = responsePtr->buf_len / sizeof(*curHandlePtr);
+
+	curHandlePtr = (esif_handle_t *)responsePtr->buf_ptr;
+
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc == ESIF_OK) {
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
+
+	while (ESIF_OK == rc) {
+		if (count < maxCount) {
+			*curHandlePtr++ = EsifUp_GetInstance(upPtr);
+		}
+		count++;
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
+	if (rc == ESIF_E_ITERATION_DONE) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		responsePtr->data_len = (u32)(count * sizeof(*curHandlePtr));
+
+		if (count <= maxCount) {
+			rc = ESIF_OK;
+		}
+	}
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+	return rc;
+}
+
 
 /*
  *******************************************************************************

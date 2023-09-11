@@ -166,6 +166,8 @@ eEsifError EsifUpPm_StopAllParticipantsSlowPoll();
 
 eEsifError EsifUpPm_ResumeParticipants();
 
+eEsifError EsifUpPm_ResumeParticipantByType(char *acpiDevice, eDomainType acpiType);
+
 eEsifError EsifUpPm_DestroyParticipant(char *participantName);
 
 esif_error_t EsifUpPm_DestroyConjuredLfParticipant(esif_string name);

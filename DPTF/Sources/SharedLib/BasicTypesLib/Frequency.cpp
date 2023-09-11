@@ -17,24 +17,31 @@
 ******************************************************************************/
 
 #include "Frequency.h"
+#include "StringParser.h"
 
-const UInt64 mhzToHzMultiplier = 1000000;
+const UInt64 mhzToHzMultiplierInUint64 = 1000000;
+const double mhzToHzMultiplierInDouble = 1000000.0;
 
 Frequency::Frequency(void)
 	: m_valid(false)
-	, m_frequency(0)
+	, m_frequencyInHertz(0)
 {
 }
 
-Frequency::Frequency(UInt64 frequency)
+Frequency::Frequency(UInt64 frequencyInHertz)
 	: m_valid(true)
-	, m_frequency(frequency)
+	, m_frequencyInHertz(frequencyInHertz)
 {
+}
+
+Frequency Frequency::createFromHertz(UInt64 frequencyInHertz)
+{
+	return Frequency(frequencyInHertz);
 }
 
 Frequency Frequency::createFromMegahertz(UInt64 frequencyInMegahertz)
 {
-	UInt64 frequencyInHertz = frequencyInMegahertz * mhzToHzMultiplier;
+	UInt64 frequencyInHertz = frequencyInMegahertz * mhzToHzMultiplierInUint64;
 	return Frequency(frequencyInHertz);
 }
 
@@ -49,7 +56,7 @@ Bool Frequency::operator==(const Frequency& rhs) const
 
 	if (this->isValid() == true && rhs.isValid() == true)
 	{
-		return (this->m_frequency == rhs.m_frequency);
+		return (this->m_frequencyInHertz == rhs.m_frequencyInHertz);
 	}
 	else if (this->isValid() == false && rhs.isValid() == false)
 	{
@@ -71,35 +78,35 @@ Bool Frequency::operator>(const Frequency& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return (this->m_frequency > rhs.m_frequency);
+	return (this->m_frequencyInHertz > rhs.m_frequencyInHertz);
 }
 
 Bool Frequency::operator>=(const Frequency& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return (this->m_frequency >= rhs.m_frequency);
+	return (this->m_frequencyInHertz >= rhs.m_frequencyInHertz);
 }
 
 Bool Frequency::operator<(const Frequency& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return (this->m_frequency < rhs.m_frequency);
+	return (this->m_frequencyInHertz < rhs.m_frequencyInHertz);
 }
 
 Bool Frequency::operator<=(const Frequency& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return (this->m_frequency <= rhs.m_frequency);
+	return (this->m_frequencyInHertz <= rhs.m_frequencyInHertz);
 }
 
 Frequency Frequency::operator+(const Frequency& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return Frequency(this->m_frequency + rhs.m_frequency);
+	return Frequency(this->m_frequencyInHertz + rhs.m_frequencyInHertz);
 }
 
 Frequency Frequency::operator-(const Frequency& rhs) const
@@ -107,19 +114,25 @@ Frequency Frequency::operator-(const Frequency& rhs) const
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
 
-	if (rhs.m_frequency > this->m_frequency)
+	if (rhs.m_frequencyInHertz > this->m_frequencyInHertz)
 	{
 		throw dptf_exception("Invalid frequency subtraction requested.  rhs > lhs.");
 	}
 
-	return Frequency(this->m_frequency - rhs.m_frequency);
+	return Frequency(this->m_frequencyInHertz - rhs.m_frequencyInHertz);
 }
 
 Frequency Frequency::operator*(const Frequency& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return Frequency(this->m_frequency * rhs.m_frequency);
+	return Frequency(this->m_frequencyInHertz * rhs.m_frequencyInHertz);
+}
+
+Frequency Frequency::operator*(const int multiplier) const
+{
+	throwIfInvalid(*this);
+	return Frequency(this->m_frequencyInHertz * multiplier);
 }
 
 std::ostream& operator<<(std::ostream& os, const Frequency& frequency)
@@ -131,7 +144,7 @@ std::ostream& operator<<(std::ostream& os, const Frequency& frequency)
 Frequency::operator UInt64(void) const
 {
 	throwIfInvalid(*this);
-	return m_frequency;
+	return m_frequencyInHertz;
 }
 
 Bool Frequency::isValid() const
@@ -143,7 +156,7 @@ std::string Frequency::toString() const
 {
 	if (isValid())
 	{
-		return std::to_string(m_frequency);
+		return std::to_string(m_frequencyInHertz);
 	}
 	else
 	{
@@ -155,7 +168,7 @@ std::string Frequency::toStringAsMegahertz() const
 {
 	if (isValid())
 	{
-		return std::to_string(m_frequency / mhzToHzMultiplier);
+		return StringParser::removeTrailingZeros(std::to_string(m_frequencyInHertz / mhzToHzMultiplierInDouble));
 	}
 	else
 	{
@@ -166,8 +179,14 @@ std::string Frequency::toStringAsMegahertz() const
 UInt64 Frequency::toIntAsMegahertz() const
 {
 	throwIfInvalid(*this);
-	UInt64 asMegahertz = m_frequency / mhzToHzMultiplier;
+	UInt64 asMegahertz = m_frequencyInHertz / mhzToHzMultiplierInUint64;
 	return asMegahertz;
+}
+
+UInt64 Frequency::toIntAsHertz() const
+{
+	throwIfInvalid(*this);
+	return m_frequencyInHertz;
 }
 
 void Frequency::throwIfInvalid(const Frequency& frequency) const

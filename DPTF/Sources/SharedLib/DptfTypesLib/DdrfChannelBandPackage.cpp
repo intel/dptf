@@ -18,9 +18,11 @@
 
 #include "DdrfChannelBandPackage.h"
 
+using namespace std;
+
 namespace DdrfChannelBandPackage
 {
-	std::string toString(DdrfChannelBandPackage::WifiBand wifiGhzBandValue)
+	string toString(const DdrfChannelBandPackage::WifiBand& wifiGhzBandValue)
 	{
 		switch (wifiGhzBandValue)
 		{
@@ -37,5 +39,31 @@ namespace DdrfChannelBandPackage
 		default:
 			return "Unspecified Band Value";
 		}
+	}
+
+	DdrfChannelBandPackage::WifiBand toWifiBand(const string& wifiGhzBandString)
+	{
+		if (wifiGhzBandString == "WIFI_BAND_UNSUPPORTED" || wifiGhzBandString == "none")
+		{
+			return WIFI_BAND_UNSUPPORTED;
+		}
+		else if (wifiGhzBandString == "WIFI_BAND_2_4")
+		{
+			return WIFI_BAND_2_4;
+		}
+		else if (wifiGhzBandString == "WIFI_BAND_5_2" || wifiGhzBandString == "5G")
+		{
+			return WIFI_BAND_5_2;
+		}
+		else if (wifiGhzBandString == "WIFI_BAND_6" || wifiGhzBandString == "6G")
+		{
+			return WIFI_BAND_6;
+		}
+		else if (wifiGhzBandString == "WIFI_BAND_MAX")
+		{
+			return WIFI_BAND_MAX;
+		}
+
+		return WIFI_BAND_UNSUPPORTED;
 	}
 }

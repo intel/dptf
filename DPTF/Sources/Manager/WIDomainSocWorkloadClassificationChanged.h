@@ -30,10 +30,11 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification);
+
 	virtual ~WIDomainSocWorkloadClassificationChanged(void);
 
 	virtual void onExecute(void) override final;
 
 private:
-	const SocWorkloadClassification::Type m_socWorkloadClassification;
+	SocWorkloadClassification::Type m_socWorkloadClassification;
 };

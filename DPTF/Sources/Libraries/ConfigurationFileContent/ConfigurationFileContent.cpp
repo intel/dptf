@@ -154,38 +154,6 @@ string ConfigurationFileContent::toDatabaseString() const
 	return result;
 }
 
-string ConfigurationFileContent::toFilteredDatabaseString(const string& segmentFilter, const regex& regularExp) const
-{
-	string result;
-	for (const auto& segment : m_dataSegments)
-	{
-		const auto data = json::from_bson(segment);
-		const auto flattenedData = data.flatten();
-		auto formattedJsonText = flattenedData.dump(INDENT_WIDTH);
-
-		if (formattedJsonText.find(segmentFilter) == string::npos)
-		{
-			continue;
-		}
-
-		string regexMatchedEntry;
-
-		while (formattedJsonText.find(CONFIGDB_ENTRY_DELIMITER) != string::npos)
-		{
-			smatch match;
-			const auto delimiterIndex = formattedJsonText.find(CONFIGDB_ENTRY_DELIMITER);
-			const auto keyValueEntry = formattedJsonText.substr(0, delimiterIndex);
-			if (regex_search(keyValueEntry, match, regularExp))
-			{
-				regexMatchedEntry.append(keyValueEntry + CONFIGDB_ENTRY_DELIMITER);
-			}
-			formattedJsonText.erase(0, delimiterIndex + 1);
-		}
-		result.append(regexMatchedEntry);
-	}
-	return result;
-}
-
 vector<unsigned char> ConfigurationFileContent::serialize() const
 {
 	vector<unsigned char> result;

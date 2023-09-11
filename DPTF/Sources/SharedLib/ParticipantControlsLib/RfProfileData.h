@@ -36,7 +36,8 @@ public:
 		Frequency guardband,
 		UInt32 channelNumber,
 		UInt32 band,
-		RfProfileSupplementalData supplementalData);
+		RfProfileSupplementalData supplementalData,
+		UInt32 rssi = 0);
 
 	Bool is5G(void) const;
 	UInt32 getServingCellInfo(void) const;
@@ -54,6 +55,7 @@ public:
 	UInt32 getChannelNumber(void) const;
 	UInt32 getBand(void) const;
 	RfProfileSupplementalData getSupplementalData(void) const;
+	UInt32 getRssi(void) const;
 
 	Bool operator==(const RfProfileData& rhs) const;
 	Bool operator!=(const RfProfileData& rhs) const;
@@ -70,4 +72,5 @@ private:
 	UInt32 m_channelNumber;
 	UInt32 m_band;
 	RfProfileSupplementalData m_supplementalData;
+	UInt32 m_rssi;
 };

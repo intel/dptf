@@ -19,6 +19,7 @@
 #include "DomainRfProfileControlFactory.h"
 #include "DomainRfProfileControl_000.h"
 #include "DomainRfProfileControl_001.h"
+#include "DomainRfProfileControl_002.h"
 
 ControlBase* DomainRfProfileControlFactory::make(
 	UIntN participantIndex,
@@ -33,6 +34,9 @@ ControlBase* DomainRfProfileControlFactory::make(
 		break;
 	case 1:
 		return new DomainRfProfileControl_001(participantIndex, domainIndex, participantServicesInterface);
+		break;
+	case 2:
+		return new DomainRfProfileControl_002(participantIndex, domainIndex, participantServicesInterface);
 		break;
 	default:
 		std::stringstream message;

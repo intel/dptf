@@ -23,18 +23,18 @@
 DomainActiveControl_001::DomainActiveControl_001(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface)
 	: DomainActiveControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_capabilitiesLocked(false)
 	, m_fanCapabilities(Constants::Invalid)
 {
-	onClearCachedData();
-	capture();
+	DomainActiveControl_001::onClearCachedData();
+	DomainActiveControl_001::capture();
 }
 
-DomainActiveControl_001::~DomainActiveControl_001(void)
+DomainActiveControl_001::~DomainActiveControl_001()
 {
-	restore();
+	DomainActiveControl_001::restore();
 }
 
 DptfBuffer DomainActiveControl_001::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -52,8 +52,8 @@ DptfBuffer DomainActiveControl_001::getActiveControlDynamicCaps(UIntN participan
 	}
 	catch (...)
 	{
-		Percentage minSpeed = Percentage::fromWholeNumber(0);
-		Percentage maxSpeed = Percentage::fromWholeNumber(100);
+		const Percentage minSpeed = Percentage::fromWholeNumber(0);
+		const Percentage maxSpeed = Percentage::fromWholeNumber(100);
 		return ActiveControlDynamicCaps(minSpeed, maxSpeed).toFcdcBinary();
 	}
 }
@@ -86,7 +86,7 @@ void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN dom
 	{
 		throw dptf_exception("Fan speed percentage is not valid.");
 	}
-	UInt32 convertedFanSpeedPercentage = fanSpeed.toWholeNumber();
+	const UInt32 convertedFanSpeedPercentage = fanSpeed.toWholeNumber();
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_FAN_LEVEL, convertedFanSpeedPercentage, domainIndex);
 }
@@ -141,13 +141,13 @@ void DomainActiveControl_001::sendActivityLoggingDataIfEnabled(UIntN participant
 	}
 }
 
-void DomainActiveControl_001::onClearCachedData(void)
+void DomainActiveControl_001::onClearCachedData()
 {
 	if (m_capabilitiesLocked == false)
 	{
 		try
 		{
-			DptfBuffer capabilitiesBuffer = createResetPrimitiveTupleBinary(
+			const DptfBuffer capabilitiesBuffer = createResetPrimitiveTupleBinary(
 				esif_primitive_type::SET_FAN_CAPABILITIES, Constants::Esif::NoPersistInstance);
 			getParticipantServices()->primitiveExecuteSet(
 				esif_primitive_type::SET_CONFIG_RESET,
@@ -189,7 +189,7 @@ std::shared_ptr<XmlNode> DomainActiveControl_001::getXml(UIntN domainIndex)
 	}
 	try
 	{
-		auto dynamicCaps =
+		const auto dynamicCaps =
 			ActiveControlDynamicCaps::createFromFcdc(getActiveControlDynamicCaps(getParticipantIndex(), domainIndex));
 		root->addChild(dynamicCaps.getXml());
 	}
@@ -218,11 +218,11 @@ std::shared_ptr<XmlNode> DomainActiveControl_001::getXml(UIntN domainIndex)
 	return root;
 }
 
-void DomainActiveControl_001::capture(void)
+void DomainActiveControl_001::capture()
 {
 	try
 	{
-		auto status =
+		const auto status =
 			ActiveControlStatus::createFromFst(getActiveControlStatus(getParticipantIndex(), getDomainIndex()));
 		m_initialStatus.set(status);
 	}
@@ -244,42 +244,42 @@ void DomainActiveControl_001::capture(void)
 	}
 }
 
-void DomainActiveControl_001::restore(void)
+void DomainActiveControl_001::restore()
 {
-	if (m_initialStatus.isValid())
+	try
 	{
-		try
+		if (m_initialStatus.isValid())
 		{
 			getParticipantServices()->primitiveExecuteSetAsUInt32(
 				esif_primitive_type::SET_FAN_LEVEL, m_initialStatus.get().getCurrentControlId(), getDomainIndex());
 		}
-		catch (...)
-		{
-			// best effort
-			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial active control status. "; });
-		}
-	}
 
-	m_fanCapabilities.setFanCapabilities(0);
+		m_fanCapabilities.setFanCapabilities(0);
+	}
+	catch (...)
+	{
+		// best effort
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial active control status. "; });
+	}
 }
 
-ActiveControlSet DomainActiveControl_001::createActiveControlSet(UIntN domainIndex)
+ActiveControlSet DomainActiveControl_001::createActiveControlSet(UIntN domainIndex) const
 {
-	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+	const DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_FAN_PERFORMANCE_STATES, ESIF_DATA_BINARY, domainIndex);
 	return ActiveControlSet::createFromFps(buffer);
 }
 
 void DomainActiveControl_001::throwIfFineGrainedControlIsNotSupported(UIntN participantIndex, UIntN domainIndex)
 {
-	auto staticCaps = ActiveControlStaticCaps::createFromFif(getActiveControlStaticCaps(participantIndex, domainIndex));
+	const auto staticCaps = ActiveControlStaticCaps::createFromFif(getActiveControlStaticCaps(participantIndex, domainIndex));
 	if (staticCaps.supportsFineGrainedControl() == false)
 	{
 		throw dptf_exception("Fine grain control is not supported.");
 	}
 }
 
-std::string DomainActiveControl_001::getName(void)
+std::string DomainActiveControl_001::getName()
 {
 	return "Active Control";
 }
@@ -294,7 +294,7 @@ void DomainActiveControl_001::setActiveControlDynamicCaps(
 	UIntN domainIndex,
 	ActiveControlDynamicCaps newCapabilities)
 {
-	DptfBuffer buffer = newCapabilities.toFcdcBinary();
+	const DptfBuffer buffer = newCapabilities.toFcdcBinary();
 	getParticipantServices()->primitiveExecuteSet(
 		esif_primitive_type::SET_FAN_CAPABILITIES,
 		ESIF_DATA_BINARY,

@@ -40,7 +40,7 @@ public:
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void notifyForProcHotDeAssertion(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

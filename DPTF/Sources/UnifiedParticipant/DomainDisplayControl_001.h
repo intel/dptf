@@ -32,49 +32,49 @@ public:
 	DomainDisplayControl_001(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-	virtual ~DomainDisplayControl_001(void);
+		const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface);
+	~DomainDisplayControl_001() override;
 
-	virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UIntN getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
-	virtual void setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
-	virtual void updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setDisplayControlDynamicCaps(
+	// remove the copy constructor and = operator
+	DomainDisplayControl_001(const DomainDisplayControl_001& rhs) = delete;
+	DomainDisplayControl_001& operator=(const DomainDisplayControl_001& rhs) = delete;
+
+	DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
+	UIntN getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
+	Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
+	UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
+	DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	void setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	void updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
+	void restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex) override;
+	void setDisplayControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		DisplayControlDynamicCaps newCapabilities) override;
-	virtual void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
 	// ParticipantActivityLoggingInterface
-	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void onClearCachedData(void) override;
-	virtual std::string getName(void) override;
-	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	void onClearCachedData() override;
+	std::string getName() override;
+	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-	virtual void restore(void) override;
+	void restore() override;
 
 private:
-	// hide the copy constructor and = operator
-	DomainDisplayControl_001(const DomainDisplayControl_001& rhs);
-	DomainDisplayControl_001& operator=(const DomainDisplayControl_001& rhs);
-
 	// Functions
 	DisplayControlDynamicCaps createDisplayControlDynamicCaps(UIntN domainIndex);
-	DisplayControlSet createDisplayControlSet(UIntN domainIndex);
+	DisplayControlSet createDisplayControlSet(UIntN domainIndex) const;
 	void throwIfControlIndexIsOutOfRange(UIntN displayControlIndex, UIntN domainIndex);
-	void throwIfDisplaySetIsEmpty(UIntN sizeOfSet);
-	UIntN getLowerLimitIndex(UIntN domainIndex, DisplayControlSet displaySet);
-	UIntN getUpperLimitIndex(UIntN domainIndex, DisplayControlSet displaySet);
+	static void throwIfDisplaySetIsEmpty(UIntN sizeOfSet);
+	UIntN getLowerLimitIndex(UIntN domainIndex, DisplayControlSet displaySet) const;
+	UIntN getUpperLimitIndex(UIntN domainIndex, DisplayControlSet displaySet) const;
 	UIntN getAllowableDisplayBrightnessIndex(UIntN participantIndex, UIntN domainIndex, UIntN requestedIndex);
 	
 	// Vars (external)

@@ -29,6 +29,8 @@
 #include "ConfigurationFileManager.h"
 #include "RequestDispatcher.h"
 
+class EnvironmentProfileGenerator;
+class EventNotifierInterface;
 class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
 class PolicyManagerInterface;
@@ -39,28 +41,28 @@ class SystemModeManagerInterface;
 class DptfManagerInterface
 {
 public:
-	virtual ~DptfManagerInterface(){};
-
+	virtual ~DptfManagerInterface(){}
 	virtual void createDptfManager(
 		const esif_handle_t esifHandle,
 		EsifInterfacePtr esifInterfacePtr,
 		const std::string& dptfHomeDirectoryPath,
 		eLogType currentLogVerbosityLevel,
 		Bool dptfEnabled) = 0;
-	virtual Bool isDptfManagerCreated(void) const = 0;
-	virtual Bool isDptfShuttingDown(void) const = 0;
-	virtual Bool isWorkItemQueueManagerCreated(void) const = 0;
-	virtual EsifServicesInterface* getEsifServices(void) const = 0;
-	virtual std::shared_ptr<EventCache> getEventCache(void) const = 0;
-	virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const = 0;
-	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const = 0;
-	virtual PolicyManagerInterface* getPolicyManager(void) const = 0;
-	virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
+	virtual Bool isDptfManagerCreated() const = 0;
+	virtual Bool isDptfShuttingDown() const = 0;
+	virtual Bool isWorkItemQueueManagerCreated() const = 0;
+	virtual EsifServicesInterface* getEsifServices() const = 0;
+	virtual std::shared_ptr<EventCache> getEventCache() const = 0;
+	virtual std::shared_ptr<EventNotifierInterface> getEventNotifier() const = 0;
+	virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache() const = 0;
+	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager() const = 0;
+	virtual PolicyManagerInterface* getPolicyManager() const = 0;
+	virtual ParticipantManagerInterface* getParticipantManager() const = 0;
 	virtual ICommandDispatcher* getCommandDispatcher() const = 0;
-	virtual IndexContainerInterface* getIndexContainer(void) const = 0;
-	virtual DataManagerInterface* getDataManager(void) const = 0;
-	virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
-	virtual std::string getDptfReportDirectoryPath(void) const = 0;
+	virtual IndexContainerInterface* getIndexContainer() const = 0;
+	virtual DataManagerInterface* getDataManager() const = 0;
+	virtual std::string getDptfPolicyDirectoryPath() const = 0;
+	virtual std::string getDptfReportDirectoryPath() const = 0;
 	virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
 	virtual void unbindDomainsFromPolicies(UIntN participantIndex) const = 0;
 	virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;
@@ -72,4 +74,5 @@ public:
 	virtual std::shared_ptr<ConfigurationFileManagerInterface> getConfigurationManager() const = 0;
 	virtual void setCurrentLogVerbosityLevel(eLogType level) = 0;
 	virtual EnvironmentProfile getEnvironmentProfile() const = 0;
+	virtual std::shared_ptr<EnvironmentProfileGenerator> getEnvironmentProfileGenerator() const = 0;
 };

@@ -31,6 +31,11 @@ UInt32 DomainSocWorkloadClassification_000::getSocWorkloadClassification()
 	throw not_implemented();
 }
 
+SocWorkloadSource::Source DomainSocWorkloadClassification_000::getSocWorkloadClassificationSource()
+{
+	throw not_implemented();
+}
+
 UInt32 DomainSocWorkloadClassification_000::getExtendedWorkloadPrediction()
 {
 	throw not_implemented();

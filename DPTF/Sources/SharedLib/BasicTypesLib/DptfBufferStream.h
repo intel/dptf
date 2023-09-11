@@ -23,12 +23,11 @@ class DptfBufferStream
 {
 public:
 	DptfBufferStream(DptfBuffer& buffer);
-	virtual ~DptfBufferStream();
 
-	UInt8 readNextUint8();
-	UInt16 readNextUint16();
-	UInt32 readNextUint32();
-	UInt64 readNextUint64();
+	UInt8 readNextUInt8();
+	UInt16 readNextUInt16();
+	UInt32 readNextUInt32();
+	UInt64 readNextUInt64();
 	double readNextDouble();
 	float readNextFloat();
 	Bool readNextBool();
@@ -37,18 +36,18 @@ public:
 	void resetReadPosition();
 	Bool canReadNext(size_t bytes) const;
 
-	void appendUint8(UInt8 value);
-	void appendUint16(UInt16 value);
-	void appendUint32(UInt32 value);
-	void appendUint64(UInt64 value);
-	void appendDouble(double value);
-	void appendFloat(float value);
-	void appendBool(bool value);
+	void appendUInt8(UInt8 value) const;
+	void appendUInt16(UInt16 value) const;
+	void appendUInt32(UInt32 value) const;
+	void appendUInt64(UInt64 value) const;
+	void appendDouble(double value) const;
+	void appendFloat(float value) const;
+	void appendBool(bool value) const;
 
 	const DptfBuffer& getBuffer() const;
 
 private:
 	DptfBuffer& m_buffer;
 	UInt32 m_currentLocation;
-	void throwIfReadIsPastEndOfBuffer(size_t nextSize);
+	void throwIfReadIsPastEndOfBuffer(size_t nextSize) const;
 };

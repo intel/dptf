@@ -50,13 +50,36 @@ UInt64 PolicyServicesDomainRfProfileStatus::getDvfsPoints(UIntN participantIndex
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getDvfsPoints(domainIndex);
 }
 
+UInt32 PolicyServicesDomainRfProfileStatus::getDlvrSsc(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDlvrSsc(domainIndex);
+}
+
+Frequency PolicyServicesDomainRfProfileStatus::getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDlvrCenterFrequency(domainIndex);
+}
+
 void PolicyServicesDomainRfProfileStatus::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+	const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct)
 {
 	throwIfNotWorkItemThread();
 	getParticipantManager()->getParticipantPtr(participantIndex)->setDdrRfiTable(domainIndex, ddrRfiStruct);
+}
+
+void PolicyServicesDomainRfProfileStatus::sendMasterControlStatus(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 masterControlStatus)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->sendMasterControlStatus(domainIndex, masterControlStatus);
 }
 
 void PolicyServicesDomainRfProfileStatus::setProtectRequest(
@@ -66,6 +89,15 @@ void PolicyServicesDomainRfProfileStatus::setProtectRequest(
 {
 	throwIfNotWorkItemThread();
 	getParticipantManager()->getParticipantPtr(participantIndex)->setProtectRequest(domainIndex, frequencyRate);
+}
+
+void PolicyServicesDomainRfProfileStatus::setDlvrCenterFrequency(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Frequency frequency)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->setDlvrCenterFrequency(domainIndex, frequency);
 }
 
 void PolicyServicesDomainRfProfileStatus::setRfProfileOverride(

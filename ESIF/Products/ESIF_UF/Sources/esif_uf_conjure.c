@@ -165,7 +165,7 @@ static eEsifError ConjureCreate(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("\n\n"
+	ESIF_TRACE_DEBUG("\n"
 		"Conjure Lib Name   : %s\n"
 		"Conjure Lib Desc   : %s\n"
 		"Conjure Lib Type   : %s\n"

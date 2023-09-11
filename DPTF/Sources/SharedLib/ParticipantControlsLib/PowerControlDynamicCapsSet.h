@@ -29,7 +29,12 @@ class PowerControlDynamicCapsSet
 public:
 	PowerControlDynamicCapsSet();
 	PowerControlDynamicCapsSet(const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps);
-	~PowerControlDynamicCapsSet();
+	virtual ~PowerControlDynamicCapsSet() = default;
+
+	PowerControlDynamicCapsSet(const PowerControlDynamicCapsSet& other) = default;
+	PowerControlDynamicCapsSet& operator=(const PowerControlDynamicCapsSet& other) = default;
+	PowerControlDynamicCapsSet(PowerControlDynamicCapsSet&& other) = default;
+	PowerControlDynamicCapsSet& operator=(PowerControlDynamicCapsSet&& other) = default;
 
 	static PowerControlDynamicCapsSet createFromPpcc(const DptfBuffer& buffer, Power pl4PowerLimit);
 	Bool isEmpty() const;

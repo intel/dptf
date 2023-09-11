@@ -14,6 +14,9 @@
 modules.order
 .tmp_versions
 **/Linux/build
+**/Linux/ipf*
+**/Linux/sample*
+**/Linux/unit*
 !**/Linux/Makefile
 .*.cmd
 .cproject

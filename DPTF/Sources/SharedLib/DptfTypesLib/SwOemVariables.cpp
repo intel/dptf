@@ -22,9 +22,10 @@
 #include "StringConverter.h"
 #include "XmlNode.h"
 
+using namespace std;
 using namespace StatusFormat;
 
-#define SW_OEM_VARIABLES_REVISION 1
+enum {SW_OEM_VARIABLES_REVISION = 1};
 
 SwOemVariables::SwOemVariables()
 	: m_variables()
@@ -36,13 +37,9 @@ SwOemVariables::SwOemVariables(const std::map<UInt32, UInt32>& variables)
 	m_variables = variables;
 }
 
-SwOemVariables::~SwOemVariables()
-{
-}
-
 UIntN SwOemVariables::getNumberOfVariables(void) const
 {
-	return (UIntN)m_variables.size();
+	return static_cast<UIntN>(m_variables.size());
 }
 
 std::map<UInt32, UInt32> SwOemVariables::getSwOemVariables(void) const
@@ -58,7 +55,7 @@ UInt32 SwOemVariables::getValueForVariableId(UInt32 variableId) const
 	}
 	catch (...) 
 	{
-		throw dptf_exception("No value identified for SW OEM variable " + std::to_string(variableId));
+		throw dptf_exception("No value identified for SW OEM variable "s + std::to_string(variableId));
 	}
 }
 
@@ -70,19 +67,17 @@ Bool SwOemVariables::operator==(const SwOemVariables& swOemVariables) const
 DptfBuffer SwOemVariables::toSwOemVariablesBinary() const
 {
 	DptfBuffer swOemVariablesBuffer;
-	auto bufferSize = UInt32(sizeof(UInt32) * getNumberOfVariables());
+	const auto bufferSize = static_cast<UInt32>(sizeof(UInt32) * getNumberOfVariables());
 	swOemVariablesBuffer.allocate(bufferSize);
 	UInt32 dataAddress = 0;
 
-	for (auto variable = m_variables.begin(); variable != m_variables.end(); variable++)
+	for (const auto& [id, value] : m_variables)
 	{
-		UInt32 variableId = variable->first;
-		swOemVariablesBuffer.put(dataAddress, (UInt8*)(&variableId), sizeof(variableId));
-		dataAddress += sizeof(variableId);
+		swOemVariablesBuffer.put(dataAddress, reinterpret_cast<const UInt8*>(&id), sizeof(id));
+		dataAddress += sizeof(id);
 
-		UInt32 variableValue = variable->second;
-		swOemVariablesBuffer.put(dataAddress, (UInt8*)(&variableValue), sizeof(variableValue));
-		dataAddress += sizeof(variableValue);
+		swOemVariablesBuffer.put(dataAddress, reinterpret_cast<const UInt8*>(&value), sizeof(value));
+		dataAddress += sizeof(value);
 	}
 
 	return swOemVariablesBuffer;
@@ -90,31 +85,31 @@ DptfBuffer SwOemVariables::toSwOemVariablesBinary() const
 
 DptfBuffer SwOemVariables::toSwOemVariablesDvBinary() const
 {
-	esif_data_variant revisionField;
+	esif_data_variant revisionField{};
 	revisionField.integer.type = esif_data_type::ESIF_DATA_UINT64;
 	revisionField.integer.value = SW_OEM_VARIABLES_REVISION;
 	DptfBuffer swOemVariablesBuffer;
 
-	auto bufferSize = UInt32(sizeof(esif_data_variant) * getNumberOfVariables());
+	const auto bufferSize = static_cast<UInt32>(sizeof(esif_data_variant) * getNumberOfVariables());
 	swOemVariablesBuffer.allocate(bufferSize);
 	UInt32 dataAddress = 0;
 
-	for (auto variable = m_variables.begin(); variable != m_variables.end(); variable++)
+	for (const auto& [id, value] : m_variables)
 	{
-		esif_data_variant variableField;
+		esif_data_variant variableField{};
 		variableField.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		variableField.integer.value = variable->first;
-		swOemVariablesBuffer.put(dataAddress, (UInt8*)(&variableField), sizeof(variableField));
+		variableField.integer.value = id;
+		swOemVariablesBuffer.put(dataAddress, reinterpret_cast<UInt8*>(&variableField), sizeof(variableField));
 		dataAddress += sizeof(variableField);
 
 		variableField.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		variableField.integer.value = variable->second;
-		swOemVariablesBuffer.put(dataAddress, (UInt8*)(&variableField), sizeof(variableField));
+		variableField.integer.value = value;
+		swOemVariablesBuffer.put(dataAddress, reinterpret_cast<UInt8*>(&variableField), sizeof(variableField));
 		dataAddress += sizeof(variableField);
 	}
-	UInt32 sizeOfRevision = (UInt32)sizeof(revisionField);
+	constexpr auto sizeOfRevision = static_cast<UInt32>(sizeof(revisionField));
 	DptfBuffer buffer(sizeOfRevision + swOemVariablesBuffer.size());
-	buffer.put(0, (UInt8*)&revisionField, sizeOfRevision);
+	buffer.put(0, reinterpret_cast<UInt8*>(&revisionField), sizeOfRevision);
 	buffer.put(sizeOfRevision, swOemVariablesBuffer.get(), swOemVariablesBuffer.size());
 
 	return buffer;
@@ -155,19 +150,19 @@ ConditionType::Type SwOemVariables::getConditionForVariable(UInt32 variableId)
 
 ConditionType::Type SwOemVariables::getConditionForNewSwOemVariable(UInt32 variableId)
 {
-	auto newSwOemVarId = variableId - DefaultSwOemVarCount;
-	auto conditionId = (UInt32)(ConditionType::SwOemConditionBaseId);
-	return (ConditionType::Type)(conditionId + newSwOemVarId);
+	const auto newSwOemVarId = variableId - DefaultSwOemVarCount;
+	constexpr auto conditionId = static_cast<UInt32>(ConditionType::SwOemConditionBaseId);
+	return static_cast<ConditionType::Type>(conditionId + newSwOemVarId);
 }
 
-std::shared_ptr<XmlNode> SwOemVariables::getXml(void) const
+std::shared_ptr<XmlNode> SwOemVariables::getXml() const
 {
-	auto status = XmlNode::createWrapperElement("sw_oem_variables");
-	for (auto variable = m_variables.begin(); variable != m_variables.end(); ++variable)
+	auto status = XmlNode::createWrapperElement("sw_oem_variables"s);
+	for (const auto& [id, value] : m_variables)
 	{
-		auto swOemVariablesEntry = XmlNode::createWrapperElement("sw_oem_variables_entry");
-		swOemVariablesEntry->addChild(XmlNode::createDataElement("variable_id", friendlyValue(variable->first)));
-		swOemVariablesEntry->addChild(XmlNode::createDataElement("variable", friendlyValue(variable->second)));
+		const auto swOemVariablesEntry = XmlNode::createWrapperElement("sw_oem_variables_entry"s);
+		swOemVariablesEntry->addChild(XmlNode::createDataElement("variable_id"s, friendlyValue(id)));
+		swOemVariablesEntry->addChild(XmlNode::createDataElement("variable"s, friendlyValue(value)));
 		status->addChild(swOemVariablesEntry);
 	}
 	
@@ -176,10 +171,9 @@ std::shared_ptr<XmlNode> SwOemVariables::getXml(void) const
 
 void SwOemVariables::add(const SwOemVariables& newSwOemVariables)
 {
-	for (auto newVars = newSwOemVariables.m_variables.begin(); newVars != newSwOemVariables.m_variables.end();
-		 newVars++)
+	for (const auto& [id, value] : newSwOemVariables.m_variables)
 	{
-		m_variables[newVars->first] = newVars->second;
+		m_variables[id] = value;
 	}
 }
 
@@ -189,7 +183,7 @@ SwOemVariables SwOemVariables::createFromAppBroadcastData(const DptfBuffer& swOe
 
 	if (swOemVariablesData.size() == 0)
 	{
-		return SwOemVariables(variables);
+		return {variables};
 	}
 	
 	try
@@ -204,10 +198,10 @@ SwOemVariables SwOemVariables::createFromAppBroadcastData(const DptfBuffer& swOe
 	}
 	catch (...)
 	{
-		throw dptf_exception("Improper SW OEM Variables format from appBroadcast");
+		throw dptf_exception("Improper SW OEM Variables format from appBroadcast"s);
 	}
 
-	return SwOemVariables(variables);
+	return {variables};
 }
 
 SwOemVariables SwOemVariables::createFromTableObjectData(const DptfBuffer& swOemVariablesData)
@@ -217,7 +211,7 @@ SwOemVariables SwOemVariables::createFromTableObjectData(const DptfBuffer& swOem
 	try
 	{
 		UInt32 bufferOffset = 0;
-		UInt64 revision = extractUInt64FromVariant(swOemVariablesData, bufferOffset);
+		const UInt64 revision = extractUInt64FromVariant(swOemVariablesData, bufferOffset);
 		if (!isRevisionSupported(revision))
 		{
 			throw dptf_exception("Unsupported SW OEM Variables revision");
@@ -235,20 +229,20 @@ SwOemVariables SwOemVariables::createFromTableObjectData(const DptfBuffer& swOem
 		variables.clear();
 	}
 
-	return SwOemVariables(variables);
+	return {variables};
 }
 
 UInt64 SwOemVariables::extractUInt64FromVariant(const DptfBuffer& buffer, UInt32& bufferOffset) 
 {
-	UInt32 remainingBuffer = (buffer.size() - bufferOffset);
+	const auto remainingBuffer = (buffer.size() - bufferOffset);
 	if (bufferOffset > buffer.size() || remainingBuffer < sizeof(esif_data_variant))
 	{
 		throw dptf_exception("Buffer boundary reached");
 	}
 
-	UInt8* data = buffer.get();
+	auto data = buffer.get();
 	data += bufferOffset;
-	esif_data_variant* entry = reinterpret_cast<esif_data_variant*>(data);
+	const esif_data_variant* entry = reinterpret_cast<esif_data_variant*>(data);
 	if (entry->type != ESIF_DATA_UINT64) 
 	{
 		throw dptf_exception("Unexpected data type");
@@ -260,15 +254,15 @@ UInt64 SwOemVariables::extractUInt64FromVariant(const DptfBuffer& buffer, UInt32
 
 UInt32 SwOemVariables::extractUInt32FromBroadcastData(const DptfBuffer& buffer, UInt32& bufferOffset)
 {
-	UInt32 remainingBuffer = (buffer.size() - bufferOffset);
+	const auto remainingBuffer = (buffer.size() - bufferOffset);
 	if (bufferOffset > buffer.size() || remainingBuffer < sizeof(UInt32))
 	{
 		throw dptf_exception("Buffer boundary reached");
 	}
 
-	UInt8* data = buffer.get();
+	auto data = buffer.get();
 	data += bufferOffset;
-	UInt32* value = reinterpret_cast<UInt32*>(data);
+	const UInt32* value = reinterpret_cast<UInt32*>(data);
 	bufferOffset += sizeof(UInt32);
 	
 	return *value;

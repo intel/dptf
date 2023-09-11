@@ -21,9 +21,9 @@
 #include "Participant.h"
 #include "EsifServicesInterface.h"
 
-WIPolicyThirdPartyGraphicsTPPLimitChanged::WIPolicyThirdPartyGraphicsTPPLimitChanged(DptfManagerInterface* dptfManager, OsPowerSource::Type tppPowerSource)
+WIPolicyThirdPartyGraphicsTPPLimitChanged::WIPolicyThirdPartyGraphicsTPPLimitChanged(DptfManagerInterface* dptfManager, OsPowerSource::Type powerSourceForTPP)
 	: WorkItem(dptfManager, FrameworkEvent::PolicyThirdPartyGraphicsTPPLimitChanged)
-	, m_tppPowerSource(tppPowerSource)
+	, m_powerSourceForTPP(powerSourceForTPP)
 {
 }
 
@@ -42,9 +42,8 @@ void WIPolicyThirdPartyGraphicsTPPLimitChanged::onExecute(void)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->tppPowerSource.set(m_tppPowerSource);
 			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyThirdPartyGraphicsTPPLimitChanged(m_tppPowerSource);
+			policy->executePolicyThirdPartyGraphicsTPPLimitChanged(m_powerSourceForTPP);
 		}
 		catch (policy_index_invalid&)
 		{

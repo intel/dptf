@@ -27,13 +27,18 @@ class dptf_export CachedProperty
 {
 public:
 	CachedProperty();
-	~CachedProperty();
+	virtual ~CachedProperty() = default;
+
+	CachedProperty(const CachedProperty& other) = default;
+	CachedProperty& operator=(const CachedProperty& other) = default;
+	CachedProperty(CachedProperty&& other) = default;
+	CachedProperty& operator=(CachedProperty&& other) = default;
 
 	void refresh();
 	void invalidate();
 
 protected:
-	Bool isCacheValid();
+	Bool isCacheValid() const;
 	virtual void refreshData() = 0;
 
 private:

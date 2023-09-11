@@ -16,27 +16,14 @@
 **
 ******************************************************************************/
 
-#include "EnvironmentProfiler.h"
-#include "esif_ccb_cpuid.h"
-#include <string>
+#pragma once
+#include "Dptf.h"
+#include "EnvironmentProfile.h"
 
-using namespace std;
-
-EnvironmentProfiler::EnvironmentProfiler()
+class dptf_export EnvironmentProfileGenerator
 {
-}
-
-EnvironmentProfile EnvironmentProfiler::generate() const
-{
-	const auto cpuId = getCpuId();
-	return {cpuId};
-}
-
-
-UInt64 EnvironmentProfiler::getCpuId(void)
-{
-	esif_ccb_cpuid_t esifCpuId = {0, 0, 0, 0, 0};
-	esifCpuId.leaf = ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE;
-	esif_ccb_cpuid(&esifCpuId);
-	return esifCpuId.eax & CPUID_FAMILY_MODEL_MASK;
-}
+public:
+	virtual ~EnvironmentProfileGenerator() = default;
+	virtual EnvironmentProfile generateWithCpuIdOnly() const = 0;
+	virtual EnvironmentProfile generateWithFullProfile(UInt32 socParticipant, UInt32 socDomain) const = 0;
+};

@@ -23,13 +23,16 @@
 class dptf_export EnvironmentProfile
 {
 public:
+	EnvironmentProfile();
 	EnvironmentProfile(UInt64 cpuId);
+	EnvironmentProfile(UInt64 cpuId, const Power& socBasePower);
 	~EnvironmentProfile() = default;
 
 	std::string toString() const;
 
 	UInt64 cpuIdValue;
 	UInt64 cpuIdWithoutSteppingValue;
+	Power socBasePower;
 	std::string cpuId;
 	std::string cpuIdWithoutStepping;
 	std::string platformGeneration;

@@ -175,6 +175,8 @@ typedef struct IpcSession_s {
 	esif_wthread_t		ioThread;		// I/O Worker Thread to handle all Network Socket I/O
 	esif_wthread_t		rpcThread;		// RPC Worker Thread to Decode and Process incoming RPC Requests in recvQueue
 	signal_t			rpcSignal;		// RPC Semaphore to signal RPC Worker Thread that there are pending messages
+
+	IpfTrxMgr			trxMgr;			// Session Transaction Manager
 } IpcSession;
 
 /* Public Methods */
@@ -206,3 +208,7 @@ esif_error_t IpcSession_ReceiveMsg(IpcSession *self, const char *messageBuf, siz
 // Worker Thread Functions
 void * ESIF_CALLCONV IpcSession_IoWorkerThread(void *ctx);
 void * ESIF_CALLCONV IpcSession_RpcWorkerThread(void *ctx);
+
+// IPC Session Manager Public Functions
+IpcSession *IpcSessionMgr_GetSessionByHandle(IpcSession_t handle);
+IpcSession *IpcSessionMgr_GetSessionByEsifHandle(esif_handle_t handle);

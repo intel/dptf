@@ -101,6 +101,9 @@ static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
 	EsifDataPtr eventDataPtr
 	);
 
+static void EsifActMgr_CreateDependentParticipants();
+static void EsifActMgr_UpdateEnumerationActionList(EsifDataPtr eventDataPtr);
+
 /*
  * FUNCTION DEFINITIONS
  */
@@ -996,12 +999,33 @@ eEsifError EsifActMgrInit()
 		goto exit;
 	}
 
+	g_actMgr.loadedActions = esif_link_list_create();
+	if (NULL == g_actMgr.loadedActions) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
 		0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOAD_REQUEST,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOAD_REQUEST,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_LOADED,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
@@ -1029,11 +1053,24 @@ void EsifActMgrExit()
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
 		0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_LOADED,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		0);
 
 	/* Call before destroying action manager */
 	EsifActMgr_UninitActions();
 
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
+
+	esif_link_list_free_data_and_destroy(g_actMgr.loadedActions, NULL);
+	g_actMgr.loadedActions = NULL;
 
 	esif_link_list_free_data_and_destroy(g_actMgr.actions, EsifActMgr_LLEntryDestroyCallback);
 	g_actMgr.actions = NULL;
@@ -1099,11 +1136,98 @@ static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
 			}
 		}
 		break;
+	case ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE:
+		EsifActMgr_CreateDependentParticipants();
+		break;
+	case ESIF_EVENT_ACTION_LOADED:
+		EsifActMgr_UpdateEnumerationActionList(eventDataPtr);
+		break;
+
 	default:
 		break;
 	}
 exit:
 	return rc;
+}
+
+
+static void EsifActMgr_CreateDependentParticipants()
+{
+	EsifUpPtr upPtr = NULL;
+	struct esif_link_list_node *curNodePtr = NULL;
+	enum esif_action_type actionType = 0;
+
+	/* Add loaded actions to the list if the CPU has not arrived yet */
+	if (!g_actMgr.cpuArrived &&
+		g_actMgr.loadedActions) {
+
+		upPtr = EsifUpPm_GetAvailableParticipantByName("TCPU");
+		if (upPtr) {
+			ESIF_TRACE_DEBUG("TCPU now available for auto-enumeration\n");
+
+			/* For all the actions that were loaded before TCPU arrival, create auto-enumerated participants */
+			curNodePtr = g_actMgr.loadedActions->head_ptr;
+
+			while (curNodePtr) {
+				if (curNodePtr->data_ptr) {
+					actionType = *((enum esif_action_type *)curNodePtr->data_ptr);
+
+					CreateActionAssociatedParticipants(actionType);
+				}
+				curNodePtr = curNodePtr->next_ptr;
+			}
+			g_actMgr.cpuArrived = ESIF_TRUE;
+		}
+	}
+	EsifUp_PutRef(upPtr);
+	return;
+}
+
+
+static void EsifActMgr_UpdateEnumerationActionList(EsifDataPtr eventDataPtr)
+{
+	enum esif_action_type actionType = 0;
+	enum esif_action_type curActionType = 0;
+	enum esif_action_type *newActionPtr = NULL;
+	Bool actionFound = ESIF_FALSE;
+	struct esif_link_list_node *curNodePtr = NULL;
+
+	/* Add loaded actions to the list if the CPU has not arrived yet */
+	if (eventDataPtr && g_actMgr.loadedActions) {
+
+		if ((eventDataPtr->buf_len < sizeof(actionType)) ||
+			(eventDataPtr->data_len < sizeof(actionType))) {
+			goto exit;
+		}
+
+		actionType = *((enum esif_action_type *)eventDataPtr->buf_ptr);
+		ESIF_TRACE_DEBUG("Action loaded for %s\n", esif_action_type_str(actionType));
+
+		/* If action type not in list, add it */
+		curNodePtr = g_actMgr.loadedActions->head_ptr;
+
+		while (curNodePtr) {
+			if (curNodePtr->data_ptr) {
+				curActionType = *((enum esif_action_type *)curNodePtr->data_ptr);
+
+				if (actionType == curActionType) {
+					actionFound = ESIF_TRUE;
+					break;
+				}
+			}
+			curNodePtr = curNodePtr->next_ptr;
+		}
+
+		if (!actionFound) {
+			newActionPtr = esif_ccb_malloc(sizeof(*newActionPtr));
+			if (newActionPtr) {
+				*newActionPtr = actionType;
+				esif_link_list_add_at_front(g_actMgr.loadedActions, newActionPtr);
+			}
+		}
+	}
+exit:
+	return;
 }
 
 
@@ -1133,6 +1257,7 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_HWPF);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_NVAPI);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_CAPI);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_IPA);
 
 	EsifActConfigInit();
 	EsifActConstInit();
@@ -1146,12 +1271,24 @@ static eEsifError EsifActMgr_InitActions()
 void EsifActMgr_LoadAutomaticActions(void)
 {
 	//
-	// Always load specific UPE's in order for them to perform participant discovery.
+	// Load specific UPE's in order for them to perform participant discovery.
 	// UPE's which are unable to enumerate any participants will request UPE unload
 	// via ESIF_EVENT_ACTION_UNLOAD_REQUEST events.
 	//
-	EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_NVAPI);
-	EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_NVME);
+	if (esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_WIRELESS)) {
+		EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_RFPWIFI);
+	}
+	if (esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_NVDGX) || esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_DGFXMCP)) {
+		EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_NVAPI);
+	}
+	if (esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_NVME)) {
+		EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_NVME);
+	}
+	if (esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_WWANANALOG)
+		|| esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_WWANDIGITAL)
+		|| esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_WWANRFIM)) {
+		EsifActMgr_LoadDelayLoadAction(ESIF_ACTION_DPTFWWAN);
+	}
 }
 
 static void EsifActMgr_UninitActions()

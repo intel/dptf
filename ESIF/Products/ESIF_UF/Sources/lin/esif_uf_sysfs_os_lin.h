@@ -48,21 +48,6 @@ extern SysfsReadEntry gSysfsReadTable[MAX_SYSFS_READ_ENTRY_SIZE];
 extern UInt32 gNumberOfSysfsReadEntries;
 #pragma pack(push, 1)
 
-typedef struct _PerfCpuMapping {
-	UInt32 highestPerf;
-	UInt32 numberOfIndexes;
-	UInt32 indexes[MAX_CORE_COUNT_SUPPORTED];
-} PerfCpuMapping, *PerfCpuMappingPtr;
-
-typedef struct _SystemCpuIndexTable {
-	Bool isInitialized;
-	UInt32 highestPerformanceCpuIndex;
-	UInt32 lowestPerformanceCpuIndex;
-	UInt32 numberOfCpuTypes;
-	UInt32 numberOfCpus;
-	PerfCpuMapping perfCpuMapping[MAX_CPU_TYPES_SUPPORTED];
-} SystemCpuIndexTable, *SystemCpuIndexTablePtr;
-
 enum zoneType {
 	THERM,
 	CDEV,

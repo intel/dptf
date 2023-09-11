@@ -28,6 +28,7 @@ endif
 SOURCES := ../Sources
 ESIF_SDK_SOURCES := ../../../../Common
 ESIF_LIB_SOURCES := ../../ESIF_LIB/Sources
+IPF_SOURCES := ../../../../IPF/Sources/Common
 
 LDLIBS := -ldl -lpthread
 
@@ -51,6 +52,8 @@ CFLAGS  += -fno-delete-null-pointer-checks
 CFLAGS  += -fwrapv
 #Compile with -g by default and strip it at the end
 CFLAGS   += -g
+# Catch undefined symbol errors during compilation
+CFLAGS   += -Wl,--no-undefined
 
 # Linker Flags added for security purposes
 LDFLAGS += -z noexecstack 
@@ -90,6 +93,7 @@ endif
 # make BUILD=Debug
 ifeq ($(BUILD), Debug)
 	CPPFLAGS += -DESIF_ATTR_DEBUG
+	CPPFLAGS += -DESIF_ATTR_MEMTRACE
 endif
 
 $(info ++++ )
@@ -106,6 +110,9 @@ OBJ += $(SOURCES)/esif_ws_socket.o
 OBJ += $(SOURCES)/esif_ws.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_sdk_base64_enc.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
+ifeq ($(BUILD), Debug)
+	OBJ += $(IPF_SOURCES)/ipf_memtrace.o
+endif
 
 ###############################################################################
 # BUILD 

@@ -82,6 +82,20 @@ Bool DomainPowerControl_000::isSocPowerFloorSupported(
 	throw not_implemented();
 }
 
+UInt32 DomainPowerControl_000::getSocPowerFloorState(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainPowerControl_000::setPowerLimitMin(
+	UIntN participantIndex, 
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throw not_implemented();
+}
+
 void DomainPowerControl_000::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -169,6 +183,11 @@ void DomainPowerControl_000::setSocPowerFloorState(
 	throw not_implemented();
 }
 
+void DomainPowerControl_000::clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 void DomainPowerControl_000::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
@@ -232,6 +251,11 @@ Power DomainPowerControl_000::getSlowPollPowerThreshold(UIntN participantIndex, 
 	throw not_implemented();
 }
 
+Power DomainPowerControl_000::getThermalDesignPower(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 void DomainPowerControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
@@ -249,6 +273,16 @@ void DomainPowerControl_000::setPowerSharePolicyPower(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	const Power& powerSharePolicyPower)
+{
+	throw not_implemented();
+}
+
+void DomainPowerControl_000::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
+{
+	throw not_implemented();
+}
+
+void DomainPowerControl_000::updateSocPowerFloorState(UInt32 socPowerFloorState)
 {
 	throw not_implemented();
 }

@@ -712,6 +712,7 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ EsifArbMgr_Start,					EsifArbMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ EsifAppMgr_Start,					EsifAppMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE },
+	{ esif_ccb_participants_ready_init,	NULL,								ESIF_INIT_FLAG_NONE },
 	{ EsifEventCache_Init,				EsifEventCache_Exit,				ESIF_INIT_FLAG_NONE },
 	{ EsifEventCache_Start,				EsifEventCache_Stop,				ESIF_INIT_FLAG_NONE },
 	{ EsifEventMgr_Start,				NULL,								ESIF_INIT_FLAG_IGNORE_ERROR },
@@ -937,6 +938,68 @@ exit:
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
+
+#define ESIF_AUTO_ENUM_LIST_SEPERATOR "|"
+
+/* Indicates if auto-enumeration is allowed for the input participant type */
+Bool esif_uf_is_auto_enum_allowed(esif_domain_type_t partType)
+{
+	Bool autoEnumAllowed = ESIF_TRUE; /* Assume allowed */
+	esif_error_t rc = ESIF_OK;
+	EsifData listData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
+	esif_string tokenContext = NULL;
+	esif_string token = NULL;
+	esif_string curPtr = NULL;
+	size_t listLen = 0;
+
+	if (ESIF_DOMAIN_TYPE_INVALID == partType) {
+		autoEnumAllowed = ESIF_FALSE;
+		goto exit;
+	}
+
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_AUTO_ENUM_LIST, "D0", 255, NULL, &listData);
+
+	/*
+	* We have to cover a couple of special cases for VPU and DG VRAM, as they were auto-enumerated in a
+	* release version before we implemented enumeration list in DSP. As the VPU and DG VRAM participants
+	* are only created based on the VPU or IDG2 KPE arrival, all we check is whether
+	* no legacy support is present for the list.
+	*/
+	if (((ESIF_DOMAIN_TYPE_VPU == partType) || (ESIF_DOMAIN_TYPE_DGFXMEM == partType)) && (ESIF_I_NO_LEGACY_SUPPORT == rc)) {
+		ESIF_TRACE_DEBUG("Allowing enumeration of VPU\n");
+		autoEnumAllowed = ESIF_TRUE;
+		goto exit;
+	}
+
+	/* If we fail to get the list assume support is disallowed */
+	if ((rc != ESIF_OK) || !listData.buf_ptr) {
+		ESIF_TRACE_DEBUG("Primitive failure, enumeration disallowed\n");
+		autoEnumAllowed = ESIF_FALSE;
+		goto exit;
+	}
+	listLen = esif_ccb_strlen(listData.buf_ptr, listData.data_len);
+	if (listLen < 1) {
+		ESIF_TRACE_DEBUG("Empty list present, enumeration disallowed\n");
+		autoEnumAllowed = ESIF_FALSE;
+		goto exit;
+	}
+
+	token = esif_ccb_strtok(listData.buf_ptr, ESIF_AUTO_ENUM_LIST_SEPERATOR, &tokenContext);
+	while (token) {
+		curPtr = token;
+		if (esif_ccb_strlen(curPtr, listLen) > 0) {
+			if (partType == esif_domain_type_str2enum(curPtr)) {
+				autoEnumAllowed = ESIF_FALSE;
+				break;
+			}
+		}
+		token = esif_ccb_strtok(NULL, ESIF_AUTO_ENUM_LIST_SEPERATOR, &tokenContext);
+	}
+exit:
+	esif_ccb_free(listData.buf_ptr);
+	return autoEnumAllowed;
+}
+
 
 /* Create enumerated and persisted dynamic participants */
 static eEsifError esif_uf_exec_startup_dynamic_parts(void)

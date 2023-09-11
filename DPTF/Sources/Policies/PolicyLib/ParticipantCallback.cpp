@@ -32,10 +32,6 @@ ParticipantCallback::ParticipantCallback(const TimeSpan& callbackTime, const Tim
 {
 }
 
-ParticipantCallback::~ParticipantCallback()
-{
-}
-
 const TimeSpan& ParticipantCallback::getTimeDelta() const
 {
 	return m_timeDelta;

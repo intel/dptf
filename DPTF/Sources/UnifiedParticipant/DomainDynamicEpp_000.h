@@ -35,6 +35,7 @@ public:
 
 	// DomainDynamicEppInterface
 	virtual UInt32 getEppSensitivityHint() override;
+	virtual SocWorkloadSource::Source getEppSensitivityHintSource() override;
 	virtual void updateEppSensitivityHint(UInt32 eppSensitivityHint) override;
 	virtual void setDynamicEppSupport(UInt32 dynamicEppSupport) override;
 

@@ -33,6 +33,5 @@ public:
 	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias) = 0;
 	virtual UInt32 getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex) = 0;
 };

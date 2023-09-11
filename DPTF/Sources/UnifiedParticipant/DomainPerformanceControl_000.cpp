@@ -103,19 +103,3 @@ std::string DomainPerformanceControl_000::getName(void)
 {
 	return "Performance Control (Version 0)";
 }
-
-void DomainPerformanceControl_000::setPerfPreferenceMax(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	throw not_implemented();
-}
-
-void DomainPerformanceControl_000::setPerfPreferenceMin(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	throw not_implemented();
-}

@@ -59,6 +59,7 @@
 #include "esif_event.h"
 #include "esif_dsp.h"
 #include "esif_ccb.h"
+#include "esif_sdk_participant.h"
 
 #define ESIF_PARTICIPANT_INVALID_UID ""
 
@@ -97,122 +98,22 @@ static ESIF_INLINE esif_string esif_lp_state_str(
 	return ESIF_NOT_AVAILABLE;
 }
 
-/*
-** Create Participant Data.  Will be tacked on the bottom
-** of an IPC Event for participant creation.  Note the IPC event and
-** This data must be contiguous in memory space.
-*/
-/* USE Native Data Types With Packed Structures */
-#pragma pack(push, 1)
-struct esif_ipc_event_data_create_participant {
-	u8    id;				/* Participant ID */
-	u8    version;				/* Version */
-	u8    class_guid[ESIF_GUID_LEN];	/* Class GUID */
-	enum esif_participant_enum enumerator; /* Device Enumerator If Any */
-	u32   flags;				/* Flags If Any */
-	char  name[ESIF_NAME_LEN];		/* Friendly Name */
-	char  desc[ESIF_DESC_LEN];		/* Description */
-	char  driver_name[ESIF_NAME_LEN];	/* Driver Name */
-	char  device_name[ESIF_NAME_LEN];	/* Device Name */
-	char  device_path[ESIF_PATH_LEN];	/* Device Path */
-	char  acpi_device[ESIF_SCOPE_LEN];
-	char  acpi_scope[ESIF_SCOPE_LEN];
-	char  acpi_uid[ESIF_ACPI_UID_LEN];	/* Unique ID If Any */
-	u32   acpi_type;			/* Participant Type If Any */
-	u32   pci_vendor;			/* PCI Vendor For PCI Devices */
-	u32   pci_device;			/* PCE Device For PCI Devices */
-	u8    pci_bus;				/* Bus Device Enumerated On */
-	u8    pci_bus_device;			/* Device Number On Bus */
-	u8    pci_function;			/* PCI Function Of Device */
-	u8    pci_revision;			/* PCI Hardware Revision */
-	u8    pci_class;			/* PCI Hardware Class */
-	u8    pci_sub_class;			/* PCI Hardware Sub Class */
-	u8    pci_prog_if;			/* PCI Hardware Iface */
-};
-
-
-/*
-* This version is a diversion from ESIF_PARTICIPANT_VERSION which is now only
-* used for the version of data reported to apps and client, and not the
-* structure used to create the participant internally
-*/
-#define ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION 6
-
-/* Structure used to create a UF participant in event data */
-struct _t_EsifParticipantIface {
-	esif_ver_t			version;			/* Should be ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION */
-	esif_guid_t			class_guid;			/* Class GUID */
-	enum esif_participant_enum enumerator;  /* Device Enumerator If Any */
-	esif_flags_t		flags;				/* Flags If Any */
-	char				name[ESIF_NAME_LEN];		/* Friendly Name */
-	char				desc[ESIF_DESC_LEN];		/* Description */
-	char				driver_name[ESIF_NAME_LEN];	/* Driver Name */
-	char				device_name[ESIF_NAME_LEN];	/* Device Name */
-	char				device_path[ESIF_PATH_LEN];	/* Device Path /sys/bus/platform...*/
-	char				object_id[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g.\_UF.CNJR.WIDI  */
-	u32					acpi_type;
-	/* EVENT Send Event From Conjure To Framework */
-	enum esif_rc(ESIF_CALLCONV *send_event)(struct _t_EsifParticipantIface *pi,
-		enum esif_event_type type, void *data);
-	/* EVENT Receive Event From Framework To Conjure */
-	enum esif_rc(ESIF_CALLCONV *recv_event)(enum esif_event_type type, void *data);
-
-	/*
-	* Add new fields after this point to maintain compatibility with any existing Phidget
-	* conjure implementaiton where build versions may not match
-	*/
-	
-	/* Storage fields */
-	int scbl;
-	int port;
-};
-
-
-enum esif_event_data_create_participant_type
-{
-	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_INVALID = 0,
-	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_LP = 1, /* Creation notification from LF to UF */
-	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_UP = 2, /* UF creation request */
-	ESIF_EVENT_DATA_CREATE_PARTICIPANT_TYPE_UP_W_LP = 3, /* UF request for CNJ ACPI participant */
-};
-
-#define ESIF_EVENT_DATA_PARTICIPANT_CREATE_HDR_VERSION 1
-
-struct esif_event_data_create_participant_hdr
-{
-	esif_ver_t	version; /* Header version - Must be ESIF_EVENT_DATA_PARTICIPANT_CREATE_HDR_VERSION*/
-	enum esif_event_data_create_participant_type dataType;
-};
-
-struct esif_event_data_create_participant {
-
-	struct esif_event_data_create_participant_hdr hdr;
-	union {
-		struct esif_ipc_event_data_create_participant lfData; /* For LP creation */
-		struct _t_EsifParticipantIface ufData; /* For UP/UP_W_LP creation */
-	} data;
-};
-
-
-#pragma pack(pop)
 
 
 #include "esif_sdk_iface_app.h"
 #include "esif_uf_fpc.h"
 #include "esif_uf_domain.h"
 
-typedef struct esif_ipc_event_data_create_participant EsifLpData;
-typedef struct esif_event_data_create_participant EsifEventDataCreateParticipant;
-typedef struct esif_event_data_create_participant_hdr EsifEventDataCreateParticipantHdr;
-typedef enum esif_event_data_create_participant_type EsifEventDataCreateParticipantType;
-typedef struct _t_EsifParticipantIface EsifParticipantIface, *EsifParticipantIfacePtr;
 
 typedef enum {
 	eParticipantOriginLF,
 	eParticipantOriginUF
 } eEsifParticipantOrigin;
 
-/* Upper Particpant Data.  Everything we know about a participant */
+typedef struct _t_EsifParticipantIface * EsifParticipantIfacePtr;
+
+
+/* Upper Participant Data.  Everything we know about a participant */
 typedef struct _t_EsifUpData {
 	/* Common */
 	esif_ver_t    fVersion;				/* Version */
@@ -258,6 +159,7 @@ typedef struct _t_EsifUp {
 	 */
 	esif_handle_t fInstance; /* Unique Upper Participant Instance */
 	UInt8  fLpInstance;	/* Lower Participant Instance */
+	UInt8 fLpAlias; /* IETM Alias Participant in LF*/
 	EsifDspPtr fDspPtr; /* Pointer To Our DSP */
 	EsifUpData fMetadata; /* Participant Data */
 	void* arbitrationContext; /* Opaque arbitration information */
@@ -302,6 +204,30 @@ static ESIF_INLINE EsifString EsifUp_GetName(
 	)
 {
 	return (self != NULL) ? self->fMetadata.fName : (char *)"UNK";
+}
+
+
+static ESIF_INLINE esif_domain_type_t EsifUp_GetPtype(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fMetadata.fAcpiType : ESIF_DOMAIN_TYPE_INVALID;
+}
+
+
+static ESIF_INLINE esif_flags_t EsifUp_GetFlags(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fMetadata.fFlags : 0;
+}
+
+
+static ESIF_INLINE eEsifParticipantOrigin EsifUp_GetOrigin(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fOrigin : eParticipantOriginUF;
 }
 
 
@@ -398,7 +324,7 @@ EsifFpcEventPtr EsifUp_GetFpcEventByGuid(
 /*
  * Execute Primitive (Internal version)
  * NOTE: This version should only be called by functions within the
- * participant/domain while Participant Mangager or participant locks are
+ * participant/domain while Participant Manager or participant locks are
  * already or from within the participant when executing in a
  * known/guaranteed state.  EsifExecutePrimitive should be called when executing
  * outside the context of the participant.

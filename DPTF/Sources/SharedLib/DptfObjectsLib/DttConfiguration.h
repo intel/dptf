@@ -29,6 +29,7 @@ public:
 
 	DttConfiguration() = default;
 	explicit DttConfiguration(const DttConfigurationSegment& configSegment);
+	explicit DttConfiguration(const std::vector<DttConfigurationSegment>& segments);
 	explicit DttConfiguration(const ConfigurationFileContent& configurationFileContent);
 	explicit DttConfiguration(const std::shared_ptr<ConfigurationFileContentInterface>& configurationFileContent);
 
@@ -37,12 +38,31 @@ public:
 		const std::set<DttConfigurationProperty>& properties) const;
 	std::vector<DttConfigurationSegment> getSegmentsWithEnvironmentProfile(
 		const EnvironmentProfile& environmentProfile) const;
+	std::string toActiveConfigurationString(const EnvironmentProfile& environmentProfile, const std::regex& regularExp) const;
 	DttConfigurationSegment getDefaultSegment() const;
 	size_t numberOfSegments() const;
 	const DttConfigurationSegment& getSegment(size_t segmentNumber) const;
+	bool empty() const;
+
+	DttConfiguration operator+(const DttConfiguration& other) const;
+	bool operator<(const DttConfiguration& other) const;
 
 private:
+	std::vector<DttConfigurationSegment> getSegmentsWithExactEnvironmentProfile(
+		const EnvironmentProfile& environmentProfile) const;
+	std::vector<DttConfigurationSegment> getSegmentsWithEnvironmentProfileIncludingEmpty(
+		const EnvironmentProfile& environmentProfile) const;
+	std::vector<DttConfigurationSegment> getSegmentsWithMatchedCpuIdInEpoSegments(
+		const std::string& cpuId) const;
+	std::vector<DttConfigurationSegment> getSegmentsWithEnvironmentProfileAndLabel(
+		const EnvironmentProfile& environmentProfile,
+		const std::string& label) const;
+	void addUniqueSegments(
+		std::vector<DttConfigurationSegment>& existingSegments,
+		std::vector<DttConfigurationSegment>& segmentsToAdd) const;
+	void combineWithDefaultSegments(
+		std::vector<DttConfigurationSegment>& existingSegments,
+		std::vector<DttConfigurationSegment>& defaultSegments) const;
 
 	std::vector<DttConfigurationSegment> m_segments;
-
 };

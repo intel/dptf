@@ -37,6 +37,12 @@ public:
 		PowerControlType::Type controlType) = 0;
 	virtual Bool isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Bool isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getSocPowerFloorState(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setPowerLimitMin(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit) = 0;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -72,6 +78,7 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const TimeSpan& timeWindow) = 0;
+	virtual void clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void clearPowerLimit(UIntN participantIndex, UIntN domainIndex) = 0;
 
 	virtual Percentage getPowerLimitDutyCycle(
@@ -101,9 +108,11 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getThermalDesignPower(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void removePowerLimitPolicyRequest(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		PowerControlType::Type controlType) = 0;
 	virtual void setPowerSharePolicyPower(UIntN participantIndex, UIntN domainIndex, const Power& powerSharePolicyPower) = 0;
+	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias) = 0;
 };

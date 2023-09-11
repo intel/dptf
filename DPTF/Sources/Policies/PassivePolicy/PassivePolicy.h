@@ -65,7 +65,7 @@ public:
 	virtual void onThermalRelationshipTableChanged(void) override;
 
 	virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2) override;
-	virtual void onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject) override;
+	virtual void onOverrideTimeObject(const std::shared_ptr<TimeInterface>& timeObject) override;
 
 private:
 	// policy state

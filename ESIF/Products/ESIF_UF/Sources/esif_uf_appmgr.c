@@ -565,7 +565,7 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Creating app %s\n", appName);
+	ESIF_TRACE_INFO("Creating app %s\n", appName);
 
 	esif_ccb_write_lock(&g_appMgr.fLock);
 	g_appMgr.creationRefCount++;
@@ -631,9 +631,9 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 		(rc != ESIF_I_INIT_PAUSED)) {
 
 		ESIF_TRACE_DEBUG("Failure creating app %s\n", appName);
-
-		/* If the app has NOT already been destroyed; destroy it */
-		if (g_appMgr.fEntries[availableIndex] == newEntryPtr) {
+		
+		/* If the app has NOT already been destroyed and is not in the process of being stopped; destroy it */
+		if ((g_appMgr.fEntries[availableIndex] == newEntryPtr) && !newEntryPtr->svcRefOnly) {
 			g_appMgr.fEntries[availableIndex] = NULL;
 			g_appMgr.fEntryCount--;
 			g_appMgr.creationRefCount--;
@@ -644,7 +644,7 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 	}
 lockExit:
 	g_appMgr.creationRefCount--;
-	ESIF_TRACE_DEBUG("Done creating app %s\n", appName);
+	ESIF_TRACE_INFO("Done creating app %s; Exit code = %s(%d)\n", appName, esif_rc_str(rc), rc);
 	esif_ccb_write_unlock(&g_appMgr.fLock);
 	esif_queue_signal_event(g_appMgr.partQueuePtr);
 exit:
@@ -813,6 +813,8 @@ eEsifError EsifAppMgr_AppRename(
 			EsifString oldNamePtr = appPtr->fAppNamePtr;
 			appPtr->fAppNamePtr = newNamePtr;
 
+			ESIF_TRACE_INFO("Renaming app %s to %s\n", oldNamePtr, newNamePtr);
+
 			esif_ccb_write_unlock(&appPtr->objLock);
 			esif_ccb_write_unlock(&g_appMgr.fLock);
 
@@ -857,6 +859,7 @@ exit:
 	if (rc != ESIF_OK) {
 		EsifAppMgr_DestroyEntry(newEntryPtr);
 	}
+	ESIF_TRACE_VERBOSE("Exit status = %s(%d)", esif_rc_str(rc), rc);
 	return rc;
 }
 

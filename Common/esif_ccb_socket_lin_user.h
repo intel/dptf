@@ -61,13 +61,21 @@ static void ESIF_INLINE esif_ccb_socket_seterror(int err)
 // Call close only from the thread servicing the socket
 static int ESIF_INLINE esif_ccb_socket_close(esif_ccb_socket_t socket)
 {
-	return close(socket);
+	int err = SOCKET_ERROR;
+	if (socket != INVALID_SOCKET) {
+		err = close(socket);
+	}
+	return err;
 }
 
 // Call shutdown from another thread to signal a waiting select() to exit
 static int ESIF_INLINE esif_ccb_socket_shutdown(esif_ccb_socket_t socket, int how)
 {
-	return shutdown(socket, how);
+	int err = SOCKET_ERROR;
+	if (socket != INVALID_SOCKET) {
+		err = shutdown(socket, how);
+	}
+	return err;
 }
 
 #define esif_ccb_socket_ioctl(socket, cmd, argp)	do { if (argp) UNREFERENCED_PARAMETER(*argp); } while (0)

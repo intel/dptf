@@ -19,6 +19,8 @@
 #include "DptfRequestResult.h"
 #include "DptfBufferStream.h"
 
+using namespace std;
+
 DptfRequestResult::DptfRequestResult(Bool isSuccessful, const std::string& message, const DptfRequest& request)
 	: m_isSuccessful(isSuccessful)
 	, m_message(message)
@@ -33,10 +35,6 @@ DptfRequestResult::DptfRequestResult()
 	, m_message(Constants::EmptyString)
 	, m_data()
 	, m_request()
-{
-}
-
-DptfRequestResult::~DptfRequestResult()
 {
 }
 
@@ -82,29 +80,28 @@ const DptfBuffer& DptfRequestResult::getData() const
 	return m_data;
 }
 
-const UInt32 DptfRequestResult::getDataAsUInt32() const
+UInt32 DptfRequestResult::getDataAsUInt32() const
 {
 	if (m_data.size() != sizeof(UInt32))
 	{
-		throw dptf_exception("Data is not of UInt32 length.");
+		throw dptf_exception("Data is not of UInt32 length."s);
 	}
 
 	DptfBuffer bufferCopy = m_data;
 	DptfBufferStream stream(bufferCopy);
-	UInt32 dataAsUInt32 = stream.readNextUint32();
-	return dataAsUInt32;
+	return stream.readNextUInt32();
 }
 
-const Bool DptfRequestResult::getDataAsBool() const
+Bool DptfRequestResult::getDataAsBool() const
 {
 	if (m_data.size() != sizeof(Bool))
 	{
-		throw dptf_exception("Data is not of Bool length.");
+		throw dptf_exception("Data is not of Bool length."s);
 	}
 
 	DptfBuffer bufferCopy = m_data;
 	DptfBufferStream stream(bufferCopy);
-	Bool dataAsBool = stream.readNextBool();
+	const Bool dataAsBool = stream.readNextBool();
 	return dataAsBool;
 }
 

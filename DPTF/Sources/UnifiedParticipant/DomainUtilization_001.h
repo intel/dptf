@@ -32,6 +32,7 @@ public:
 
 	// DomainUtilizationInterface
 	virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Percentage getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
 	virtual void onClearCachedData(void) override;

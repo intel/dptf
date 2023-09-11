@@ -25,6 +25,8 @@
 
 
 #define ESIF_INVALID_DATA        0xFFFFFFFF
+#define SOFTWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE	0
+#define HARDWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE	1
 
 // Bounds checking
 #define MAX_SCHEDULER_MS	(24 * 60 * 60 * 1000)	// 24 hours; cannot exceed 2^31-1 (~24 days)
@@ -513,7 +515,7 @@ eEsifError EsifLogMgr_ParseCmdStart(
 	//Start the logging thread only if there are any data to log
 	rc = EsifLogMgr_StartLoggingIfRequired(self);
 	if (rc != ESIF_OK) {
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Error : Not able to start logging\n", OUT_BUF_LEN);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Error : Not able to start logging\n");
 		goto exit;
 	}
 
@@ -1200,6 +1202,8 @@ static void EsifLogMgr_CleanupLoggingContext(EsifLoggingManagerPtr self)
 
 void EsifLogMgr_ParticipantLogStart(EsifLoggingManagerPtr self)
 {
+	esif_error_t rc = ESIF_OK;
+
 	ESIF_ASSERT(self != NULL);
 
 	if (self->isLogStarted == ESIF_FALSE) {
@@ -1210,7 +1214,10 @@ void EsifLogMgr_ParticipantLogStart(EsifLoggingManagerPtr self)
 			self->isLogHeader = ESIF_TRUE;
 		}
 		esif_ccb_event_init(&self->pollingThread.pollStopEvent);
-		esif_ccb_thread_create(&self->pollingThread.thread, EsifLogMgr_ParticipantLogWorkerThread, self);
+		rc = esif_ccb_thread_create(&self->pollingThread.thread, EsifLogMgr_ParticipantLogWorkerThread, self);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_DEBUG("Error creating logging worker thread\n");
+		}
 	}
 
 	return;
@@ -2223,7 +2230,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 			"Display Orientation,OS Power Scheme Personality,OS Mixed Reality Mode,Platform User Presence,Foreground Background Ratio,Collaboration State,");
 		break;
 	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-		esif_ccb_sprintf_concat(dataLength, logString, "SOC Workload,");
+		esif_ccb_sprintf_concat(dataLength, logString, "SOC Workload,SOC Workload Classification Source,");
 		break;
 	case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
 		esif_ccb_sprintf_concat(dataLength, logString, "MBT Hint,EPP,");
@@ -2516,7 +2523,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-			esif_ccb_sprintf_concat(dataLength, logString, "%u,", capabilityPtr->data.workloadClassification.socWorkload);
+			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,", capabilityPtr->data.workloadClassification.socWorkload, capabilityPtr->data.workloadClassification.socWorkloadSource);
 			break;
 		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
 			esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,", capabilityPtr->data.dynamicEppControl.eppHint, capabilityPtr->data.dynamicEppControl.eppValue);
@@ -2532,7 +2539,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 		case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
 			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
@@ -2962,36 +2969,66 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 	}
 	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
 	{
-		UInt32 socwc = 0;
+		UInt32 workloadSource = SOFTWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE;
+		struct esif_data socWorkloadClassificationSource_response = { ESIF_DATA_UINT32, &workloadSource, sizeof(workloadSource), sizeof(workloadSource) };
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_SOCWLC_SOURCE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socWorkloadClassificationSource_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_SOCWLC_SOURCE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			workloadSource = SOFTWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE;
+		}
+
+		UInt32 socwc = ESIF_INVALID_DATA;
 		struct esif_data socwc_response = { ESIF_DATA_UINT32, &socwc, sizeof(socwc), sizeof(socwc) };
 
-		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_SOC_WORKLOAD, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socwc_response);
-		if (ESIF_OK != rc) {
-			ESIF_TRACE_INFO("Error while executing GET_SOC_WORKLOAD primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
-			socwc = 0;
+		if (workloadSource == HARDWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE) {
+			rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_HW_SOC_WORKLOAD, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socwc_response);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_INFO("Error while executing GET_HW_SOC_WORKLOAD primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			}
+		}
+		else {
+			rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_SOC_WORKLOAD, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socwc_response);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_INFO("Error while executing GET_SOC_WORKLOAD primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			}
 		}
 		dataNodePtr->capabilityData.data.workloadClassification.socWorkload = socwc;
+		dataNodePtr->capabilityData.data.workloadClassification.socWorkloadSource = workloadSource;
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
 	{
-		UInt32 eppHint = 0;
+		UInt32 workloadSource = SOFTWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE;
+		struct esif_data socWorkloadClassificationSource_response = { ESIF_DATA_UINT32, &workloadSource, sizeof(workloadSource), sizeof(workloadSource) };
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_SOCWLC_SOURCE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socWorkloadClassificationSource_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_SOCWLC_SOURCE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			workloadSource = SOFTWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE;
+		}
+
+		UInt32 eppHint = ESIF_INVALID_DATA;
 		struct esif_data epphint_response = { ESIF_DATA_UINT32, &eppHint, sizeof(eppHint), sizeof(eppHint) };
 
-		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_EPP_SENSITIVITY_HINT_MODEL, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &epphint_response);
-		if (ESIF_OK != rc) {
-			ESIF_TRACE_INFO("Error while executing GET_EPP_SENSITIVITY_HINT_MODEL primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
-			eppHint = 0;
+		if (workloadSource == HARDWARE_SOC_WORKLOAD_CLASSIFICATION_SOURCE) {
+			rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_HW_SOC_WORKLOAD, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &epphint_response);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_INFO("Error while executing GET_HW_SOC_WORKLOAD primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			}
+		}
+		else {
+			rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_EPP_SENSITIVITY_HINT_MODEL, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &epphint_response);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_INFO("Error while executing GET_EPP_SENSITIVITY_HINT_MODEL primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			}
 		}
 		dataNodePtr->capabilityData.data.dynamicEppControl.eppHint = eppHint;
 
-		UInt32 eppValue = 0;
+		UInt32 eppValue = ESIF_INVALID_DATA;
 		struct esif_data eppvalue_response = { ESIF_DATA_UINT32, &eppValue, sizeof(eppValue), sizeof(eppValue) };
 
 		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_HWP_EPP_VALUE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &eppvalue_response);
 		if (ESIF_OK != rc) {
 			ESIF_TRACE_INFO("Error while executing GET_HWP_EPP_VALUE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
-			eppValue = 0;
 		}
 		dataNodePtr->capabilityData.data.dynamicEppControl.eppValue = eppValue;
 		break;

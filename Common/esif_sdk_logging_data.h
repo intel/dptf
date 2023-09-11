@@ -265,6 +265,7 @@ typedef struct _t_EsifManagerStatusData {
 /* Workload Classification Data */
 typedef struct _t_EsifWorkloadClassification {
 	UInt32 socWorkload;
+	UInt32 socWorkloadSource;
 } EsifWorkloadClassification, * EsifWorkloadClassificationPtr;
 
 /* Dynamic EPP Data */

@@ -17,11 +17,10 @@
 ******************************************************************************/
 
 #pragma once
-
-#include "Dptf.h"
 #include "Policy.h"
 #include "SupportedPolicyList.h"
 #include "SupportedDynamicPolicyList.h"
+#include "Guid.h"
 
 class dptf_export PolicyManagerInterface
 {
@@ -39,6 +38,7 @@ public:
 
 	virtual void destroyAllPolicies(void) = 0;
 	virtual void destroyPolicy(UIntN policyIndex) = 0;
+	virtual void reloadPolicy(const std::string& policyName) = 0;
 
 	virtual std::set<UIntN> getPolicyIndexes(void) const = 0;
 	virtual std::shared_ptr<ISupportedPolicyList> getSupportedPolicyList(void) const = 0;

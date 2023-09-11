@@ -252,7 +252,7 @@ void AppSessionMgr_SetTimeout(size_t timeout)
 	AppSessionMgr *self = &g_sessionMgr;
 	if (self) {
 		atomic_set(&self->sessionTimeout, (timeout ? timeout : SESSION_EXPIRE_TIMEOUT_SECONDS));
-		IpfTrxMgr_SetTimeout(timeout);
+		IpfTrxMgr_SetTimeout(IpfTrxMgr_GetInstance(), timeout);
 	}
 }
 
@@ -269,7 +269,7 @@ void AppSessionMgr_ResumeTimeouts(void)
 {
 	AppSessionMgr *self = &g_sessionMgr;
 	if (self && atomic_read(&self->suspendTimeout)) {
-		IpfTrxMgr_ResetTimeouts();
+		IpfTrxMgr_ResetTimeouts(IpfTrxMgr_GetInstance());
 		AppSessionMgr_SetTimeout(atomic_read(&self->suspendTimeout));
 		atomic_set(&self->suspendTimeout, 0);
 	}
@@ -552,7 +552,7 @@ esif_error_t IpfClient_Stop(esif_handle_t ipfHandle)
 
 		// Close Active Tranactions
 		IrpcTransaction *trx = NULL;
-		while ((trx = IpfTrxMgr_GetTransaction(ipfHandle, IPFTRX_MATCHANY)) != NULL) {
+		while ((trx = IpfTrxMgr_GetTransaction(IpfTrxMgr_GetInstance(), ipfHandle, IPFTRX_MATCHANY)) != NULL) {
 			trx->result = ESIF_E_SESSION_DISCONNECTED;
 			signal_post(&trx->sync);
 		}
@@ -647,7 +647,7 @@ esif_error_t IpfClient_Close(esif_handle_t ipfHandle)
 	if (self) {
 		// Close Active Tranactions
 		IrpcTransaction *trx = NULL;
-		while ((trx = IpfTrxMgr_GetTransaction(self->ipfHandle, IPFTRX_MATCHANY)) != NULL) {
+		while ((trx = IpfTrxMgr_GetTransaction(IpfTrxMgr_GetInstance(), self->ipfHandle, IPFTRX_MATCHANY)) != NULL) {
 			trx->result = ESIF_E_SESSION_DISCONNECTED;
 			signal_post(&trx->sync);
 		}

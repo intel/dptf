@@ -29,4 +29,5 @@ namespace RadioConnectionStatus
 	};
 
 	std::string ToString(RadioConnectionStatus::Type type);
+	RadioConnectionStatus::Type ToType(UInt32 value);
 }

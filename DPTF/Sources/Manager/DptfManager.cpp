@@ -41,8 +41,10 @@
 #include "CaptureCommand.h"
 #include "DttConfiguration.h"
 #include "PlatformCpuIdCommand.h"
-#include "EnvironmentProfiler.h"
+#include "RealEnvironmentProfileGenerator.h"
 #include "PoliciesCommand.h"
+#include "RealEnvironmentProfileUpdater.h"
+#include "RealEventNotifier.h"
 
 using namespace std;
 
@@ -66,7 +68,6 @@ DptfManager::DptfManager(void)
 	, m_dataManager(nullptr)
 	, m_systemModeManager(nullptr)
 	, m_fileIo(nullptr)
-	, m_environmentProfile(0)
 {
 }
 
@@ -124,12 +125,11 @@ void DptfManager::createBasicObjects(
 	m_commandDispatcher = new CommandDispatcher();
 	m_indexContainer = new IndexContainer();
 	m_eventCache = make_shared<EventCache>();
+	m_eventNotifier = make_shared<RealEventNotifier>();
 	m_userPreferredCache = make_shared<UserPreferredCache>();
 	m_messageLogFilter = make_shared<LogMessageFilter>();
 	m_messageLogFilter->setLevel(currentLogVerbosityLevel);
 	m_requestDispatcher = make_shared<RequestDispatcher>();
-	const EnvironmentProfiler environmentProfiler;
-	m_environmentProfile = environmentProfiler.generate();
 }
 
 void DptfManager::createBasicServices(
@@ -151,6 +151,10 @@ void DptfManager::createBasicServices(
 	m_platformRequestHandler = make_shared<PlatformRequestHandler>(this);
 	m_dataManager = new DataManager(this);
 	m_systemModeManager = new SystemModeManager(this);
+	m_environmentProfileGenerator = make_shared<RealEnvironmentProfileGenerator>(m_messageLogger, m_esifServices);
+	m_environmentProfileUpdater = make_shared<RealEnvironmentProfileUpdater>(this);
+	m_eventNotifier->registerObserver(m_environmentProfileUpdater, {FrameworkEvent::DomainCreate});
+	m_participantRequestHandlers = make_shared<ParticipantRequestHandler>(this);
 }
 
 void DptfManager::createPolicies()
@@ -166,7 +170,8 @@ set<Guid> DptfManager::readDefaultEnabledPolicies() const
 	{
 		const auto configFileContent = m_configurationManager->getContent(DttConfigurationName);
 		const DttConfiguration config(configFileContent);
-		const auto segments = config.getSegmentsWithValue(m_environmentProfile.cpuIdWithoutStepping);
+		const auto environmentProfile = m_environmentProfileUpdater->getLastUpdatedProfile();
+		const auto segments = config.getSegmentsWithValue(environmentProfile.cpuIdWithoutStepping);
 		set<Guid> result;
 		if (!segments.empty())
 		{
@@ -188,55 +193,55 @@ set<Guid> DptfManager::readDefaultEnabledPolicies() const
 	}
 }
 
-void DptfManager::registerForEvents()
+void DptfManager::registerForEvents() const
 {
 	registerDptfFrameworkEvents();
 	m_systemModeManager->registerFrameworkEvents();
 }
 
-void DptfManager::notifyAppsThatDttHasLoaded()
+void DptfManager::notifyAppsThatDttHasLoaded() const
 {
-	constexpr EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
+	constexpr EsifData eventData = {ESIF_DATA_VOID, nullptr, 0, 0};
 	m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppLoaded, Constants::Invalid, Constants::Invalid, eventData);
 }
 
-DptfManager::~DptfManager(void)
+DptfManager::~DptfManager()
 {
 	unregisterCommands();
 	shutDown();
 }
 
-Bool DptfManager::isDptfManagerCreated(void) const
+Bool DptfManager::isDptfManagerCreated() const
 {
 	return m_dptfManagerCreateFinished;
 }
 
-Bool DptfManager::isDptfShuttingDown(void) const
+Bool DptfManager::isDptfShuttingDown() const
 {
 	return m_dptfShuttingDown;
 }
 
-Bool DptfManager::isWorkItemQueueManagerCreated(void) const
+Bool DptfManager::isWorkItemQueueManagerCreated() const
 {
 	return m_workItemQueueManagerCreated;
 }
 
-EsifServicesInterface* DptfManager::getEsifServices(void) const
+EsifServicesInterface* DptfManager::getEsifServices() const
 {
 	return m_esifServices;
 }
 
-WorkItemQueueManagerInterface* DptfManager::getWorkItemQueueManager(void) const
+WorkItemQueueManagerInterface* DptfManager::getWorkItemQueueManager() const
 {
 	return m_workItemQueueManager;
 }
 
-PolicyManagerInterface* DptfManager::getPolicyManager(void) const
+PolicyManagerInterface* DptfManager::getPolicyManager() const
 {
 	return m_policyManager;
 }
 
-ParticipantManagerInterface* DptfManager::getParticipantManager(void) const
+ParticipantManagerInterface* DptfManager::getParticipantManager() const
 {
 	return m_participantManager;
 }
@@ -246,17 +251,17 @@ ICommandDispatcher* DptfManager::getCommandDispatcher() const
 	return m_commandDispatcher;
 }
 
-IndexContainerInterface* DptfManager::getIndexContainer(void) const
+IndexContainerInterface* DptfManager::getIndexContainer() const
 {
 	return m_indexContainer;
 }
 
-DataManagerInterface* DptfManager::getDataManager(void) const
+DataManagerInterface* DptfManager::getDataManager() const
 {
 	return m_dataManager;
 }
 
-SystemModeManagerInterface* DptfManager::getSystemModeManager(void) const
+SystemModeManagerInterface* DptfManager::getSystemModeManager() const
 {
 	return m_systemModeManager;
 }
@@ -268,25 +273,30 @@ shared_ptr<ConfigurationFileManagerInterface> DptfManager::getConfigurationManag
 
 EnvironmentProfile DptfManager::getEnvironmentProfile() const
 {
-	return m_environmentProfile;
+	return m_environmentProfileUpdater->getLastUpdatedProfile();
 }
 
-string DptfManager::getDptfPolicyDirectoryPath(void) const
+std::shared_ptr<EnvironmentProfileGenerator> DptfManager::getEnvironmentProfileGenerator() const
+{
+	return m_environmentProfileGenerator;
+}
+
+string DptfManager::getDptfPolicyDirectoryPath() const
 {
 	return m_filePathDirectory->getPath(FilePathDirectory::Path::InstallFolder);
 }
 
-string DptfManager::getDptfReportDirectoryPath(void) const
+string DptfManager::getDptfReportDirectoryPath() const
 {
 	return m_filePathDirectory->getPath(FilePathDirectory::Path::LogFolder);
 }
 
-void DptfManager::shutDown(void)
+void DptfManager::shutDown()
 {
 	m_dptfShuttingDown = true;
 	m_dptfEnabled = false;
 
-	constexpr EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
+	constexpr EsifData eventData = {ESIF_DATA_VOID, nullptr, 0, 0};
 	m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppUnloaded, Constants::Invalid, Constants::Invalid, eventData);
 	unregisterDptfFrameworkEvents();
 
@@ -302,8 +312,8 @@ void DptfManager::shutDown(void)
 	deleteIndexContainer();
 	destroyUniqueIdGenerator();
 	destroyFrameworkEventInfo();
-	DELETE_MEMORY_TC(m_commandDispatcher);
-	DELETE_MEMORY_TC(m_dataManager);
+	DELETE_MEMORY_TC(m_commandDispatcher)
+	DELETE_MEMORY_TC(m_dataManager)
 }
 
 void DptfManager::disableAndEmptyAllQueues(void) const
@@ -323,7 +333,7 @@ void DptfManager::disableAndEmptyAllQueues(void) const
 	}
 }
 
-void DptfManager::destroyAllPolicies(void) const
+void DptfManager::destroyAllPolicies() const
 {
 	try
 	{
@@ -339,7 +349,7 @@ void DptfManager::destroyAllPolicies(void) const
 	}
 }
 
-void DptfManager::destroyAllParticipants(void) const
+void DptfManager::destroyAllParticipants() const
 {
 	try
 	{
@@ -355,43 +365,43 @@ void DptfManager::destroyAllParticipants(void) const
 	}
 }
 
-void DptfManager::deleteWorkItemQueueManager(void)
+void DptfManager::deleteWorkItemQueueManager()
 {
-	DELETE_MEMORY_TC(m_workItemQueueManager);
+	DELETE_MEMORY_TC(m_workItemQueueManager)
 }
 
-void DptfManager::deletePolicyManager(void)
+void DptfManager::deletePolicyManager()
 {
-	DELETE_MEMORY_TC(m_policyManager);
+	DELETE_MEMORY_TC(m_policyManager)
 }
 
-void DptfManager::deleteParticipantManager(void)
+void DptfManager::deleteParticipantManager()
 {
-	DELETE_MEMORY_TC(m_participantManager);
+	DELETE_MEMORY_TC(m_participantManager)
 }
 
-void DptfManager::deleteSystemModeManager(void)
+void DptfManager::deleteSystemModeManager()
 {
 	getSystemModeManager()->unregisterFrameworkEvents();
-	DELETE_MEMORY_TC(m_systemModeManager);
+	DELETE_MEMORY_TC(m_systemModeManager)
 }
 
-void DptfManager::deleteEsifAppServices(void)
+void DptfManager::deleteEsifAppServices()
 {
-	DELETE_MEMORY_TC(m_esifAppServices);
+	DELETE_MEMORY_TC(m_esifAppServices)
 }
 
-void DptfManager::deleteEsifServices(void)
+void DptfManager::deleteEsifServices()
 {
-	DELETE_MEMORY_TC(m_esifServices);
+	DELETE_MEMORY_TC(m_esifServices)
 }
 
-void DptfManager::deleteIndexContainer(void)
+void DptfManager::deleteIndexContainer()
 {
-	DELETE_MEMORY_TC(m_indexContainer);
+	DELETE_MEMORY_TC(m_indexContainer)
 }
 
-void DptfManager::destroyUniqueIdGenerator(void)
+void DptfManager::destroyUniqueIdGenerator()
 {
 	try
 	{
@@ -402,7 +412,7 @@ void DptfManager::destroyUniqueIdGenerator(void)
 	}
 }
 
-void DptfManager::destroyFrameworkEventInfo(void)
+void DptfManager::destroyFrameworkEventInfo()
 {
 	try
 	{
@@ -413,7 +423,7 @@ void DptfManager::destroyFrameworkEventInfo(void)
 	}
 }
 
-void DptfManager::registerDptfFrameworkEvents(void) const
+void DptfManager::registerDptfFrameworkEvents() const
 {
 	// FIXME:  Do these belong here?
 	//  DptfConnectedStandbyEntry
@@ -430,6 +440,22 @@ void DptfManager::registerDptfFrameworkEvents(void) const
 	try
 	{
 		m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyExit);
+	}
+	catch (...)
+	{
+	}
+
+	try
+	{
+		m_esifServices->registerEvent(FrameworkEvent::DptfLowPowerModeEntry);
+	}
+	catch (...)
+	{
+	}
+
+	try
+	{
+		m_esifServices->registerEvent(FrameworkEvent::DptfLowPowerModeExit);
 	}
 	catch (...)
 	{
@@ -500,7 +526,7 @@ void DptfManager::registerDptfFrameworkEvents(void) const
 	}
 }
 
-void DptfManager::unregisterDptfFrameworkEvents(void) const
+void DptfManager::unregisterDptfFrameworkEvents() const
 {
 	try
 	{
@@ -513,6 +539,22 @@ void DptfManager::unregisterDptfFrameworkEvents(void) const
 	try
 	{
 		m_esifServices->unregisterEvent(FrameworkEvent::DptfConnectedStandbyExit);
+	}
+	catch (...)
+	{
+	}
+
+	try
+	{
+		m_esifServices->unregisterEvent(FrameworkEvent::DptfLowPowerModeEntry);
+	}
+	catch (...)
+	{
+	}
+
+	try
+	{
+		m_esifServices->unregisterEvent(FrameworkEvent::DptfLowPowerModeExit);
 	}
 	catch (...)
 	{
@@ -583,19 +625,19 @@ void DptfManager::unregisterDptfFrameworkEvents(void) const
 	}
 }
 
-void DptfManager::registerCommands()
+void DptfManager::registerCommands() const
 {
-	for (auto command = m_commands.begin(); command != m_commands.end(); ++command)
+	for (const auto& command : m_commands)
 	{
-		m_commandDispatcher->registerHandler((*command)->getCommandName(), *command);
+		m_commandDispatcher->registerHandler(command->getCommandName(), command);
 	}
 }
 
-void DptfManager::unregisterCommands()
+void DptfManager::unregisterCommands() const
 {
-	for (auto command = m_commands.begin(); command != m_commands.end(); ++command)
+	for (const auto& command : m_commands)
 	{
-		m_commandDispatcher->unregisterHandler((*command)->getCommandName());
+		m_commandDispatcher->unregisterHandler(command->getCommandName());
 	}
 }
 
@@ -613,28 +655,34 @@ void DptfManager::createCommands()
 	registerCommands();
 }
 
-shared_ptr<EventCache> DptfManager::getEventCache(void) const
+shared_ptr<EventCache> DptfManager::getEventCache() const
 {
 	return m_eventCache;
 }
 
-shared_ptr<UserPreferredCache> DptfManager::getUserPreferredCache(void) const
+std::shared_ptr<EventNotifierInterface> DptfManager::getEventNotifier() const
+{
+	return m_eventNotifier;
+}
+
+shared_ptr<UserPreferredCache> DptfManager::getUserPreferredCache() const
 {
 	return m_userPreferredCache;
 }
 
 void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 {
-	const UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
+	const auto participant = m_participantManager->getParticipantPtr(participantIndex);
+	const UIntN domainCount = participant->getDomainCount();
 
 	for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 	{
 		auto policyIndexes = m_policyManager->getPolicyIndexes();
-		for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
+		for (unsigned int policyIndex : policyIndexes)
 		{
 			try
 			{
-				const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+				const auto policy = m_policyManager->getPolicyPtr(policyIndex);
 				policy->bindDomain(participantIndex, domainIndex);
 			}
 			catch (dptf_exception& ex)
@@ -647,8 +695,21 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 						_function,
 						"DPTF was not able to bind domain to policies: " + ex.getDescription() + ".");
 					message.addMessage("Participant Index", participantIndex);
+					message.addMessage("Participant Name", participant->getParticipantName());
 					message.addMessage("Domain Index", domainIndex);
-					message.addMessage("Policy Index", *policyIndex);
+					message.addMessage("Domain Name", participant->getDomainName(domainIndex));
+					message.addMessage("Policy Index", policyIndex);
+					string policyName;
+					try
+					{
+						const auto policy = m_policyManager->getPolicyPtr(policyIndex);
+						policyName = policy->getName();
+					}
+					catch (...)
+					{
+						policyName = "Unknown"s;
+					}
+					message.addMessage("Policy Name"s, policyName);
 					return message;
 				});
 			}
@@ -656,10 +717,23 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 			{
 				MANAGER_LOG_MESSAGE_WARNING({
 					ManagerMessage message =
-						ManagerMessage(this, _file, _line, _function, "DptfManager::bindDomainsToPolicies Failed.");
+						ManagerMessage(this, _file, _line, _function, "DptfManager::bindDomainsToPolicies Failed."s);
 					message.addMessage("Participant Index", participantIndex);
+					message.addMessage("Participant Name", participant->getParticipantName());
 					message.addMessage("Domain Index", domainIndex);
-					message.addMessage("Policy Index", *policyIndex);
+					message.addMessage("Domain Name", participant->getDomainName(domainIndex));
+					message.addMessage("Policy Index", policyIndex);
+					string policyName;
+					try
+					{
+						const auto policy = m_policyManager->getPolicyPtr(policyIndex);
+						policyName = policy->getName();
+					}
+					catch (...)
+					{
+						policyName = "Unknown"s;
+					}
+					message.addMessage("Policy Name"s, policyName);
 					return message;
 				});
 			}
@@ -674,11 +748,11 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 	for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 	{
 		auto policyIndexes = m_policyManager->getPolicyIndexes();
-		for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
+		for (unsigned int policyIndex : policyIndexes)
 		{
 			try
 			{
-				const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+				const auto policy = m_policyManager->getPolicyPtr(policyIndex);
 				policy->unbindDomain(participantIndex, domainIndex);
 			}
 			catch (dptf_exception& ex)
@@ -692,7 +766,7 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 						"DPTF was not able to unbind domain from policies: " + ex.getDescription() + ".");
 					message.addMessage("Participant Index", participantIndex);
 					message.addMessage("Domain Index", domainIndex);
-					message.addMessage("Policy Index", *policyIndex);
+					message.addMessage("Policy Index", policyIndex);
 					return message;
 				});
 			}
@@ -703,7 +777,7 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 						ManagerMessage(this, _file, _line, _function, "DptfManager::unbindDomainsFromPolicies Failed.");
 					message.addMessage("Participant Index", participantIndex);
 					message.addMessage("Domain Index", domainIndex);
-					message.addMessage("Policy Index", *policyIndex);
+					message.addMessage("Policy Index", policyIndex);
 					return message;
 				});
 			}
@@ -713,12 +787,12 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 
 void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 {
-	auto policyIndexes = m_policyManager->getPolicyIndexes();
-	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
+	const auto policyIndexes = m_policyManager->getPolicyIndexes();
+	for (unsigned int policyIndex : policyIndexes)
 	{
 		try
 		{
-			const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+			const auto policy = m_policyManager->getPolicyPtr(policyIndex);
 			policy->bindParticipant(participantIndex);
 		}
 		catch (dptf_exception& ex)
@@ -731,7 +805,7 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 					_function,
 					"DPTF was not able to bind participant to policies: " + ex.getDescription() + ".");
 				message.addMessage("Participant Index", participantIndex);
-				message.addMessage("Policy Index", *policyIndex);
+				message.addMessage("Policy Index", policyIndex);
 				return message;
 			});
 		}
@@ -741,7 +815,7 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 				ManagerMessage message =
 					ManagerMessage(this, _file, _line, _function, "DptfManager::bindParticipantToPolicies Failed.");
 				message.addMessage("Participant Index", participantIndex);
-				message.addMessage("Policy Index", *policyIndex);
+				message.addMessage("Policy Index", policyIndex);
 				return message;
 			});
 		}
@@ -750,12 +824,12 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 
 void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 {
-	auto policyIndexes = m_policyManager->getPolicyIndexes();
-	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
+	const auto policyIndexes = m_policyManager->getPolicyIndexes();
+	for (const auto policyIndex : policyIndexes)
 	{
 		try
 		{
-			const auto policy = m_policyManager->getPolicyPtr(*policyIndex);
+			const auto policy = m_policyManager->getPolicyPtr(policyIndex);
 			policy->unbindParticipant(participantIndex);
 		}
 		catch (dptf_exception& ex)
@@ -768,7 +842,7 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 					_function,
 					"DPTF was not able to unbind participant from policies: " + ex.getDescription() + ".");
 				message.addMessage("Participant Index", participantIndex);
-				message.addMessage("Policy Index", *policyIndex);
+				message.addMessage("Policy Index", policyIndex);
 				return message;
 			});
 		}
@@ -778,7 +852,7 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 				ManagerMessage message =
 					ManagerMessage(this, _file, _line, _function, "DptfManager::unbindParticipantFromPolicies Failed.");
 				message.addMessage("Participant Index", participantIndex);
-				message.addMessage("Policy Index", *policyIndex);
+				message.addMessage("Policy Index", policyIndex);
 				return message;
 			});
 		}
@@ -788,19 +862,16 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 {
 	const auto policy = m_policyManager->getPolicyPtr(policyIndex);
-	auto participantIndexes = m_participantManager->getParticipantIndexes();
-	for (auto participantIndex = participantIndexes.begin(); participantIndex != participantIndexes.end();
-		 ++participantIndex)
+	const auto participantIndexes = m_participantManager->getParticipantIndexes();
+	for (const auto participantIndex : participantIndexes)
 	{
 		try
 		{
-			policy->bindParticipant(*participantIndex);
-
-			const UIntN domainCount = m_participantManager->getParticipantPtr(*participantIndex)->getDomainCount();
-
+			policy->bindParticipant(participantIndex);
+			const UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
 			for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 			{
-				policy->bindDomain(*participantIndex, domainIndex);
+				policy->bindDomain(participantIndex, domainIndex);
 			}
 		}
 		catch (dptf_exception& ex)
@@ -812,7 +883,7 @@ void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 					_line,
 					_function,
 					"DPTF was not able to bind participant and domains to policy: " + ex.getDescription() + ".");
-				message.addMessage("Participant Index", *participantIndex);
+				message.addMessage("Participant Index", participantIndex);
 				message.addMessage("Policy Index", policyIndex);
 				return message;
 			});
@@ -822,7 +893,7 @@ void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 			MANAGER_LOG_MESSAGE_WARNING({
 				ManagerMessage message =
 					ManagerMessage(this, _file, _line, _function, "DptfManager::bindAllParticipantsToPolicy Failed.");
-				message.addMessage("Participant Index", *participantIndex);
+				message.addMessage("Participant Index", participantIndex);
 				message.addMessage("Policy Index", policyIndex);
 
 				return message;

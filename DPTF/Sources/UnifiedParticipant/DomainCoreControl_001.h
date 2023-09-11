@@ -32,37 +32,37 @@ public:
 	DomainCoreControl_001(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-	virtual ~DomainCoreControl_001(void);
+		const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface);
+	~DomainCoreControl_001() override;
+
+	// remove the copy constructor and = operator
+	DomainCoreControl_001(const DomainCoreControl_001& rhs) = delete;
+	DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs) = delete;
 
 	// DomainCoreControlInterface
-	virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) override;
-	virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveCoreControl(
+	CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) override;
+	CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	void setActiveCoreControl(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const CoreControlStatus& coreControlStatus) override;
 
 	// ParticipantActivityLoggingInterface
-	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void onClearCachedData(void) override;
-	virtual std::string getName(void) override;
-	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	void onClearCachedData() override;
+	std::string getName() override;
+	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-	virtual void restore(void) override;
+	void restore() override;
 
 private:
-	// hide the copy constructor and = operator
-	DomainCoreControl_001(const DomainCoreControl_001& rhs);
-	DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs);
-
 	// Functions
-	CoreControlStaticCaps createCoreControlStaticCaps(UIntN domainIndex);
+	CoreControlStaticCaps createCoreControlStaticCaps(UIntN domainIndex) const;
 	CoreControlDynamicCaps createCoreControlDynamicCaps(UIntN domainIndex);
 	void verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus);
 

@@ -72,7 +72,9 @@
   * Used to match any participant. (Useful for registration internally to ESIF
   * before participants are available) Only the event type will be available in
   * the callback of an event registered using this option.
-  * Note:  Can only be used when registering 'by type'
+  * Note(s):  Can only be used when registering 'by type'
+  * May only be used as the participant handle for events which do not require
+  * 'enabling'
   */
 #define EVENT_MGR_MATCH_ANY ESIF_HANDLE_MATCH_ANY_EVENT
 
@@ -94,6 +96,8 @@
 #define esif_disable_code_event(eventType) disable_code_event_lin(eventType)
 
 #define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifEventMgr_OsEnableEventByType(eventType, enable) (ESIF_E_NOT_IMPLEMENTED)
+
 
 typedef eEsifError (ESIF_CALLCONV * EVENT_OBSERVER_CALLBACK)(
 	esif_context_t context,
@@ -172,6 +176,17 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 );
 
 /*
+* Event data sent to the listeners will use data from the Event Cache if 
+* available, else uses the data passed in
+*/
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalEventWCacheData(
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventData
+);
+
+/*
  * Used to signal an event that will be processed synchronously for up to the
  * specified wait time
  * NOTE: Maximum allowed wait time is EVENT_MGR_SYNCHRONOUS_EVENT_TIME_MAX
@@ -231,6 +246,9 @@ esif_error_t EsifEventMgr_GetNextEvent(
 	UfEventIteratorPtr iterPtr,
 	EventMgr_IteratorDataPtr dataPtr
 	);
+
+/* Use to Enable/Disable Events using a Reference Count*/
+esif_error_t EsifEventMgr_ToggleEventRef(esif_event_type_t eventType, Bool enable);
 
 #ifdef __cplusplus
 }

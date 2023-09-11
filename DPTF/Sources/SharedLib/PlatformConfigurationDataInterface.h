@@ -24,11 +24,12 @@
 class PlatformConfigurationDataInterface
 {
 public:
-	virtual ~PlatformConfigurationDataInterface(){};
+	virtual ~PlatformConfigurationDataInterface() = default;
 
 	virtual UInt32 readConfigurationUInt32(const std::string& key) = 0;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) = 0;
 	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) = 0;
+	virtual void writeConfigurationString(const std::string& key, const std::string& data) = 0;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) = 0;
 	virtual void writeConfigurationBinary(
@@ -40,19 +41,19 @@ public:
 	virtual void deleteConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) = 0;
 
-	virtual TimeSpan getMinimumAllowableSamplePeriod(void) = 0;
+	virtual TimeSpan getMinimumAllowableSamplePeriod() = 0;
 
 	// FIXME:  ESIF Primitives
-	virtual DptfBuffer getActiveRelationshipTable(void) = 0;
+	virtual DptfBuffer getActiveRelationshipTable() = 0;
 	virtual void setActiveRelationshipTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getThermalRelationshipTable(void) = 0;
+	virtual DptfBuffer getThermalRelationshipTable() = 0;
 	virtual void setThermalRelationshipTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getPassiveTable(void) = 0;
+	virtual DptfBuffer getPassiveTable() = 0;
 	virtual void setPassiveTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) = 0;
 	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) = 0;
-	virtual DptfBuffer getOemVariables(void) = 0;
-	virtual DptfBuffer getSwOemVariables(void) = 0;
+	virtual DptfBuffer getOemVariables() = 0;
+	virtual DptfBuffer getSwOemVariables() = 0;
 	virtual void setSwOemVariables(const DptfBuffer& swOemVariablesData) = 0;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) = 0;
@@ -60,40 +61,45 @@ public:
 	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) const = 0;
 	virtual Temperature getProcessorTjMax(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual DptfBuffer getPowerBossConditionsTable(void) = 0;
-	virtual DptfBuffer getPowerBossActionsTable(void) = 0;
-	virtual DptfBuffer getPowerBossMathTable(void) = 0;
-	virtual DptfBuffer getVoltageThresholdMathTable(void) = 0;
-	virtual DptfBuffer getEmergencyCallModeTable(void) = 0;
-	virtual DptfBuffer getPidAlgorithmTable(void) = 0;
-	virtual Bool getDisplayRequired(void) = 0;
-	virtual TimeSpan getExpectedBatteryLife(void) = 0;
-	virtual UInt32 getAggressivenessLevel(void) = 0;
-	virtual DptfBuffer getDdrfTable(void) = 0;
-	virtual DptfBuffer getAggregateDisplayInformation(void) = 0;
-	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) = 0;
+	virtual DptfBuffer getPowerBossConditionsTable() = 0;
+	virtual DptfBuffer getPowerBossActionsTable() = 0;
+	virtual DptfBuffer getPowerBossMathTable() = 0;
+	virtual DptfBuffer getVoltageThresholdMathTable() = 0;
+	virtual DptfBuffer getEmergencyCallModeTable() = 0;
+	virtual DptfBuffer getPidAlgorithmTable() = 0;
+	virtual Bool getDisplayRequired() = 0;
+	virtual TimeSpan getExpectedBatteryLife() = 0;
+	virtual UInt32 getAggressivenessLevel() = 0;
+	virtual DptfBuffer getDdrfTable() = 0;
+	virtual DptfBuffer getRfimTable() = 0;
+	virtual DptfBuffer getAggregateDisplayInformation() = 0;
+	virtual DptfBuffer getEnergyPerformanceOptimizerTable() = 0;
 	virtual void setEnergyPerformanceOptimizerTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getTpgaTable(void) = 0;
+	virtual DptfBuffer getTpgaTable() = 0;
 	virtual void setTpgaTable(DptfBuffer data) = 0;
 	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;
+	virtual DptfBuffer getActiveControlPointRelationshipTable() = 0;
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getPowerShareAlgorithmTable(void) = 0;
+	virtual DptfBuffer getPowerShareAlgorithmTable() = 0;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getPowerShareAlgorithmTable2(void) = 0;
+	virtual DptfBuffer getPowerShareAlgorithmTable2() = 0;
 	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) = 0;
-	virtual DptfBuffer getIntelligentThermalManagementTable(void) = 0;
+	virtual DptfBuffer getIntelligentThermalManagementTable() = 0;
 	virtual void setIntelligentThermalManagementTable(DptfBuffer data) = 0;
 	virtual void setPpmPackage(DptfBuffer package) = 0;
+	virtual void setPpmPackageForNonBalancedSchemePersonality(DptfBuffer package) = 0;
 	virtual DptfBuffer getPpmPackage(DptfBuffer package) = 0;
 	virtual void setActivePowerScheme() = 0;
 	virtual void setPowerSchemeEpp(UInt32 value) = 0;
 	virtual void setForegroundAppRatioPeriod(UInt32 value) = 0;
+	virtual void setProcessAffinityMask(const std::string& processName, UInt32 maskValue) = 0;
+	virtual void setApplicationCompatibility(const DptfBuffer& processData) = 0;
+	virtual void deleteApplicationCompatibility() = 0;
 	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) = 0;
 	virtual UInt32 getTpgPowerStateWithoutCache(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual EnvironmentProfile getEnvironmentProfile() const = 0;
-	virtual void clearPpmPackageSettings(void) = 0;
+	virtual void clearPpmPackageSettings() = 0;
 	virtual UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) = 0;
 };
