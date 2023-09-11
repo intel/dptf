@@ -89,6 +89,16 @@
 #include <x86intrin.h>
 #define ESIF_SERIAL_FENCE()	_mm_lfence()
 
+/* Sleep Interface */
+#define esif_ccb_sleep(sec)		sleep(sec)
+
+#include <time.h>
+static inline void esif_ccb_sleep_msec(unsigned msec)
+{
+	struct timespec tv = { (time_t)(msec / 1000), (long)((msec % 1000) * 1000000l) };
+	(void)nanosleep(&tv, NULL);
+}
+
 
 /* Add Linux Base Types */
 typedef unsigned char u8;
@@ -127,10 +137,6 @@ typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 #endif
 
 #define UNREFERENCED_PARAMETER(x) (void)(x) /* Avoid Unused Variable Klocwork errors */
-
-/* Sleep Interface */
-#define esif_ccb_sleep(sec)		sleep(sec)
-#define esif_ccb_sleep_msec(msec)	usleep(msec * 1000)
 
 /* Deduce Platform based on predefined compiler flags */
 #ifdef __x86_64__

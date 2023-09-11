@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
+#include "SocWorkloadSource.h"
 
 class DomainDynamicEppInterface
 {
@@ -26,6 +27,7 @@ public:
 	virtual ~DomainDynamicEppInterface() {};
 
 	virtual UInt32 getEppSensitivityHint() = 0;
+	virtual SocWorkloadSource::Source getEppSensitivityHintSource() = 0;
 	virtual void updateEppSensitivityHint(UInt32 eppSensitivityHint) = 0;
 	virtual void setDynamicEppSupport(UInt32 dynamicEppSupport) = 0;
 };

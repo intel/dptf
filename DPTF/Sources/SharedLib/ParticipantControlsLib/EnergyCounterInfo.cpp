@@ -17,8 +17,9 @@
 ******************************************************************************/
 
 #include "EnergyCounterInfo.h"
+#include "esif_sdk_data_misc.h"
 
-#define MICROJOULESTOJOULES 1000000
+enum{MICRO_JOULES_TO_JOULES = 1000000};
 
 EnergyCounterInfo::EnergyCounterInfo()
 	: m_energyCount(0.0)
@@ -27,46 +28,51 @@ EnergyCounterInfo::EnergyCounterInfo()
 {
 }
 
-EnergyCounterInfo::EnergyCounterInfo(double m_energyCountInJoules, UInt64 timestampInMicroseconds)
-	: m_energyCount(m_energyCountInJoules)
+EnergyCounterInfo::EnergyCounterInfo(double energyCountInJoules, UInt64 timestampInMicroseconds)
+	: m_energyCount(energyCountInJoules)
 	, m_timestamp(TimeSpan::createFromMicroseconds(timestampInMicroseconds))
 	, m_isValid(true)
 {
 }
 
-EnergyCounterInfo EnergyCounterInfo::getEnergyCounterInfoFromBuffer(const DptfBuffer& buffer, UInt64 timestampInMicroseconds)
+EnergyCounterInfo EnergyCounterInfo::fromDptfBuffer(const DptfBuffer& buffer)
 {
-	if (buffer.size() == 0)
+	EnergyCounterInfo energyCounterInfo;
+
+	if (buffer.size() < sizeof(RaplEnergyInfo))
 	{
-		return EnergyCounterInfo();
+		throw dptf_exception("Incorrect buffer size for energyCounterInfo");
 	}
 
-	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-	struct esif_data_energy_counter_info* currentRow = reinterpret_cast<struct esif_data_energy_counter_info*>(data);
+	const auto currentRow = reinterpret_cast<struct RaplEnergyInfo_s*>(buffer.get());
+	const auto revision = currentRow->revision;
 
-	double energyCountInMicroJoules = static_cast<double>(currentRow->energyCount.integer.value);
-	double energyCountInJoules = energyCountInMicroJoules / MICROJOULESTOJOULES;
-
-	return EnergyCounterInfo(
-		energyCountInJoules,
-		timestampInMicroseconds);
+	if (revision == RAPL_ENERGY_INFO_REVISION)
+	{
+		const auto energyCountInJoules = static_cast<double>(currentRow->energyCounter);
+		const auto timestampInMicroseconds = currentRow->timestamp;
+		energyCounterInfo = EnergyCounterInfo(energyCountInJoules, timestampInMicroseconds);
+	}
+	
+	return energyCounterInfo;
 }
 
-const double EnergyCounterInfo::getEnergyCounter()
+double EnergyCounterInfo::getEnergyCounterInJoules(double energyUnit) const
+{
+	return m_energyCount * energyUnit;
+}
+
+double EnergyCounterInfo::getEnergyCounter() const
 {
 	return m_energyCount;
 }
 
-const TimeSpan EnergyCounterInfo::getTimestamp()
+TimeSpan EnergyCounterInfo::getTimestamp() const
 {
 	return m_timestamp;
 }
 
-const Bool EnergyCounterInfo::isValid()
+Bool EnergyCounterInfo::isValid() const
 {
 	return m_isValid;
-}
-
-EnergyCounterInfo::~EnergyCounterInfo()
-{
 }

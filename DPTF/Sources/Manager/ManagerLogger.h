@@ -21,27 +21,31 @@
 // clang-format off
 #define _MANAGER_LOG_MESSAGE(logLevel, logFunction, content) \
 	do { \
-		unsigned int __line = __LINE__; \
-		const std::string& __file = __FILE__; \
-		const std::string& __function = ESIF_FUNC; \
-		if (getEsifServices()->getLoggingLevel() >= logLevel) \
-		{ \
-			auto _message = [&](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
-			getEsifServices()->logFunction(_message(__file, __line, __function)); \
-		} \
+		try { \
+			unsigned int __line = __LINE__; \
+			const std::string& __file = __FILE__; \
+			const std::string& __function = ESIF_FUNC; \
+			if (getEsifServices()->getLoggingLevel() >= (logLevel)) \
+			{ \
+				auto _message = [&](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
+				getEsifServices()->logFunction(_message(__file, __line, __function)); \
+			} \
+		} catch (...) {} \
 	} while (0)
 
 #define _MANAGER_LOG_MESSAGE_EX(logLevel, logFunction, content) \
 	do { \
-		ex; \
-		unsigned int __line = __LINE__; \
-		const std::string& __file = __FILE__; \
-		const std::string& __function = ESIF_FUNC; \
-		if (getEsifServices()->getLoggingLevel() >= logLevel) \
-		{ \
-			auto _message = [&](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
-			getEsifServices()->logFunction(_message(__file, __line, __function)); \
-		} \
+		try { \
+			ex; \
+			unsigned int __line = __LINE__; \
+			const std::string& __file = __FILE__; \
+			const std::string& __function = ESIF_FUNC; \
+			if (getEsifServices()->getLoggingLevel() >= (logLevel)) \
+			{ \
+				auto _message = [&](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
+				getEsifServices()->logFunction(_message(__file, __line, __function)); \
+			} \
+		} catch (...) {} \
 	} while (0)
 
 #define MANAGER_LOG_MESSAGE_FATAL(content) \

@@ -42,7 +42,14 @@ PolicyManager::PolicyManager(DptfManagerInterface* dptfManager, const set<Guid>&
 
 PolicyManager::~PolicyManager(void)
 {
-	destroyAllPolicies();
+	try
+	{
+		PolicyManager::destroyAllPolicies();
+	}
+	catch (...)
+	{
+		
+	}
 }
 
 void PolicyManager::createAllPolicies(const string& dptfPolicyDirectoryPath)
@@ -50,7 +57,7 @@ void PolicyManager::createAllPolicies(const string& dptfPolicyDirectoryPath)
 	try
 	{
 		// Queue up a work item and wait for the return.
-		auto workItem = make_shared<WIPolicyCreateAll>(m_dptfManager, dptfPolicyDirectoryPath);
+		const auto workItem = make_shared<WIPolicyCreateAll>(m_dptfManager, dptfPolicyDirectoryPath);
 		m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 	}
 	catch (...)
@@ -61,7 +68,7 @@ void PolicyManager::createAllPolicies(const string& dptfPolicyDirectoryPath)
 				_file,
 				_line,
 				_function,
-				"Failed while trying to enqueue and wait for WIPolicyCreateAll.");
+				"Failed while trying to enqueue and wait for WIPolicyCreateAll."s);
 			return message;
 		});
 	}
@@ -93,10 +100,10 @@ UIntN PolicyManager::createPolicy(const string& policyFileName)
 			Constants::EmptyString);
 
 		MANAGER_LOG_MESSAGE_INFO({
-			ManagerMessage message = ManagerMessage(m_dptfManager, _file, _line, _function, "Policy has been created.");
+			ManagerMessage message = ManagerMessage(m_dptfManager, _file, _line, _function, "Policy has been created."s);
 			message.setPolicyIndex(firstAvailableIndex);
-			message.addMessage("Policy Index", firstAvailableIndex);
-			message.addMessage("Policy File Name", policyFileName);
+			message.addMessage("Policy Index"s, firstAvailableIndex);
+			message.addMessage("Policy File Name"s, policyFileName);
 			return message;
 		});
 	}
@@ -160,11 +167,11 @@ UIntN PolicyManager::createDynamicPolicy(
 
 		MANAGER_LOG_MESSAGE_INFO({
 			ManagerMessage message =
-				ManagerMessage(m_dptfManager, _file, _line, _function, "Dynamic Policy has been created.");
+				ManagerMessage(m_dptfManager, _file, _line, _function, "Dynamic Policy has been created."s);
 			message.setPolicyIndex(firstAvailableIndex);
-			message.addMessage("Policy Index", firstAvailableIndex);
-			message.addMessage("Policy File Name", policyFileName);
-			message.addMessage("Policy Name", dynamicPolicyName);
+			message.addMessage("Policy Index"s, firstAvailableIndex);
+			message.addMessage("Policy File Name"s, policyFileName);
+			message.addMessage("Policy Name"s, dynamicPolicyName);
 			return message;
 		});
 	}
@@ -191,17 +198,17 @@ UIntN PolicyManager::createDynamicPolicy(
 	return firstAvailableIndex;
 }
 
-void PolicyManager::destroyAllPolicies(void)
+void PolicyManager::destroyAllPolicies()
 {
-	auto policyIndexes = MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
-	for (auto index = policyIndexes.begin(); index != policyIndexes.end(); ++index)
+	const auto policyIndexes = MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
+	for (const auto& policyIndex : policyIndexes)
 	{
-		if (m_policies[*index] != nullptr)
+		if (m_policies[policyIndex] != nullptr)
 		{
 			try
 			{
 				// Queue up a work item and wait for the return.
-				auto workItem = make_shared<WIPolicyDestroy>(m_dptfManager, *index);
+				auto workItem = make_shared<WIPolicyDestroy>(m_dptfManager, policyIndex);
 				m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 			}
 			catch (...)
@@ -213,7 +220,7 @@ void PolicyManager::destroyAllPolicies(void)
 						_line,
 						_function,
 						"Failed while trying to enqueue and wait for WIPolicyDestroy.");
-					message.addMessage("Policy Index", *index);
+					message.addMessage("Policy Index", policyIndex);
 					return message;
 				});
 			}
@@ -223,7 +230,7 @@ void PolicyManager::destroyAllPolicies(void)
 
 void PolicyManager::destroyPolicy(UIntN policyIndex)
 {
-	auto matchedPolicy = m_policies.find(policyIndex);
+	const auto matchedPolicy = m_policies.find(policyIndex);
 	if ((matchedPolicy != m_policies.end()) && (matchedPolicy->second != nullptr))
 	{
 		try
@@ -234,8 +241,8 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
 		{
 			MANAGER_LOG_MESSAGE_ERROR({
 				ManagerMessage message =
-					ManagerMessage(m_dptfManager, _file, _line, _function, "Failed while trying to destroy policy.");
-				message.addMessage("Policy Index", policyIndex);
+					ManagerMessage(m_dptfManager, _file, _line, _function, "Failed while trying to destroy policy."s);
+				message.addMessage("Policy Index"s, policyIndex);
 				return message;
 			});
 		}
@@ -244,24 +251,36 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
 	}
 }
 
-set<UIntN> PolicyManager::getPolicyIndexes(void) const
+void PolicyManager::reloadPolicy(const string& policyName)
+{
+	if (policyExists(policyName))
+	{
+		const auto policy = getPolicy(policyName);
+		const auto index = policy->getPolicyIndex();
+		const auto fileName = policy->getPolicyFileName();
+		destroyPolicy(index);
+		createPolicy(fileName);
+	}
+}
+
+set<UIntN> PolicyManager::getPolicyIndexes() const
 {
 	return MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
 }
 
-shared_ptr<ISupportedPolicyList> PolicyManager::getSupportedPolicyList(void) const
+shared_ptr<ISupportedPolicyList> PolicyManager::getSupportedPolicyList() const
 {
 	return m_supportedPolicyList;
 }
 
-shared_ptr<ISupportedDynamicPolicyList> PolicyManager::getSupportedDynamicPolicyList(void) const
+shared_ptr<ISupportedDynamicPolicyList> PolicyManager::getSupportedDynamicPolicyList() const
 {
 	return m_supportedDynamicPolicyList;
 }
 
 IPolicy* PolicyManager::getPolicyPtr(UIntN policyIndex)
 {
-	auto matchedPolicy = m_policies.find(policyIndex);
+	const auto matchedPolicy = m_policies.find(policyIndex);
 	if ((matchedPolicy == m_policies.end()) || (matchedPolicy->second == nullptr))
 	{
 		throw policy_index_invalid();
@@ -275,7 +294,7 @@ void PolicyManager::registerEvent(UIntN policyIndex, PolicyEvent::Type policyEve
 	if ((m_registeredEvents.test(policyEvent) == false) && (PolicyEvent::RequiresEsifEventRegistration(policyEvent)))
 	{
 		// Let ESIF know since the first policy is registering
-		FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
+		const FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
 		m_dptfManager->getEsifServices()->registerEvent(frameworkEvent);
 	}
 
@@ -293,31 +312,31 @@ void PolicyManager::unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyE
 		if ((m_registeredEvents.test(policyEvent) == false)
 			&& (PolicyEvent::RequiresEsifEventRegistration(policyEvent)))
 		{
-			FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
+			const FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
 			m_dptfManager->getEsifServices()->unregisterEvent(frameworkEvent);
 		}
 	}
 }
 
-shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
+shared_ptr<XmlNode> PolicyManager::getStatusAsXml()
 {
 	auto root = XmlNode::createRoot();
-	root->addChild(XmlNode::createComment("format_id=10-E0-F6-61-4B-7D-F7-40-AE-90-CF-DA-99-0F-F9-1A"));
+	root->addChild(XmlNode::createComment("format_id=10-E0-F6-61-4B-7D-F7-40-AE-90-CF-DA-99-0F-F9-1A"s));
 
-	auto eventStatus = XmlNode::createWrapperElement("policy_manager_event_status");
+	const auto eventStatus = XmlNode::createWrapperElement("policy_manager_event_status"s);
 	eventStatus->addChild(getEventsInXml());
 
-	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	for (auto& policy : m_policies)
 	{
 		try
 		{
-			if (policy->second != nullptr)
+			if (policy.second != nullptr)
 			{
-				string name = policy->second->getName();
-				auto policyStatus = XmlNode::createWrapperElement("policy_event_status");
-				auto policyName = XmlNode::createDataElement("policy_name", name);
+				string name = policy.second->getName();
+				const auto policyStatus = XmlNode::createWrapperElement("policy_event_status"s);
+				const auto policyName = XmlNode::createDataElement("policy_name"s, name);
 				policyStatus->addChild(policyName);
-				policyStatus->addChild(getEventsXmlForPolicy(policy->first));
+				policyStatus->addChild(getEventsXmlForPolicy(policy.first));
 				eventStatus->addChild(policyStatus);
 			}
 		}
@@ -330,29 +349,29 @@ shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
 	return root;
 }
 
-string PolicyManager::getDiagnosticsAsXml(void)
+string PolicyManager::getDiagnosticsAsXml()
 {
-	auto root = XmlNode::createRoot();
+	const auto root = XmlNode::createRoot();
 	return root->toString();
 }
 
 shared_ptr<IPolicy> PolicyManager::getPolicy(const string& policyName) const
 {
-	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	for (const auto& policy : m_policies)
 	{
-		if (policyName == policy->second->getName())
+		if (policyName == policy.second->getName())
 		{
-			return policy->second;
+			return policy.second;
 		}
 	}
-	throw dptf_exception(string("Policy \"") + policyName + string("\" not found."));
+	throw dptf_exception("Policy \""s + policyName + "\" not found."s);
 }
 
 Bool PolicyManager::policyExists(const string& policyName) const
 {
-	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	for (const auto& policy : m_policies)
 	{
-		if (policyName == policy->second->getName())
+		if (policyName == policy.second->getName())
 		{
 			return true;
 		}
@@ -360,12 +379,12 @@ Bool PolicyManager::policyExists(const string& policyName) const
 	return false;
 }
 
-Bool PolicyManager::IsDynamicPolicyTemplateFileName(const std::string& policyName) const
+Bool PolicyManager::IsDynamicPolicyTemplateFileName(const string& policyName) const
 {
 	// TODO : Make this as list if there are more policy templates
-	const std::string policyTemplateFileName = "DptfPolicyAdaptivePerformance" ESIF_LIB_EXT;
+	const string policyTemplateFileName = "DptfPolicyAdaptivePerformance"s ESIF_LIB_EXT;
 
-	if ( policyName == policyTemplateFileName)
+	if (policyName == policyTemplateFileName)
 	{
 		return true;
 	}
@@ -375,7 +394,7 @@ Bool PolicyManager::IsDynamicPolicyTemplateFileName(const std::string& policyNam
 	}
 }
 
-void PolicyManager::throwIfPolicyAlreadyExists(string policyFileName)
+void PolicyManager::throwIfPolicyAlreadyExists(const string& policyFileName)
 {
 	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
 	{
@@ -383,10 +402,10 @@ void PolicyManager::throwIfPolicyAlreadyExists(string policyFileName)
 		{
 			MANAGER_LOG_MESSAGE_DEBUG({
 				ManagerMessage debugMessage =
-					ManagerMessage(m_dptfManager, _file, _line, _function, "Policy instance already exists.");
+					ManagerMessage(m_dptfManager, _file, _line, _function, "Policy instance already exists."s);
 				debugMessage.setPolicyIndex(policy->first);
-				debugMessage.addMessage("Policy Index", policy->first);
-				debugMessage.addMessage("Policy File Name", policyFileName);
+				debugMessage.addMessage("Policy Index"s, policy->first);
+				debugMessage.addMessage("Policy File Name"s, policyFileName);
 				return debugMessage;
 			});
 			throw policy_already_exists();
@@ -394,7 +413,7 @@ void PolicyManager::throwIfPolicyAlreadyExists(string policyFileName)
 	}
 }
 
-void PolicyManager::throwIfDynamicPolicyAlreadyExists(string policyFileName, string policyName)
+void PolicyManager::throwIfDynamicPolicyAlreadyExists(const string& policyFileName, const string& policyName)
 {
 	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
 	{
@@ -403,11 +422,11 @@ void PolicyManager::throwIfDynamicPolicyAlreadyExists(string policyFileName, str
 		{
 			MANAGER_LOG_MESSAGE_DEBUG({
 				ManagerMessage debugMessage =
-					ManagerMessage(m_dptfManager, _file, _line, _function, "Dynamic Policy instance already exists.");
+					ManagerMessage(m_dptfManager, _file, _line, _function, "Dynamic Policy instance already exists."s);
 				debugMessage.setPolicyIndex(policy->first);
-				debugMessage.addMessage("Policy Index", policy->first);
-				debugMessage.addMessage("Policy File Name", policyFileName);
-				debugMessage.addMessage("Policy Name", policyName);
+				debugMessage.addMessage("Policy Index"s, policy->first);
+				debugMessage.addMessage("Policy File Name"s, policyFileName);
+				debugMessage.addMessage("Policy Name"s, policyName);
 				return debugMessage;
 			});
 			throw policy_already_exists();
@@ -415,30 +434,27 @@ void PolicyManager::throwIfDynamicPolicyAlreadyExists(string policyFileName, str
 	}
 }
 
-Bool PolicyManager::isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent)
+Bool PolicyManager::isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent) const
 {
-	Bool policyRegistered = false;
-
-	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	for (const auto& policy : m_policies)
 	{
-		if ((policy->second != nullptr)
-			&& (dynamic_cast<Policy*>(policy->second.get())->isEventRegistered(policyEvent) == true))
+		const auto policyLink = dynamic_cast<Policy*>(policy.second.get());
+		if (policyLink && 
+		   (policyLink->isEventRegistered(policyEvent) == true))
 		{
-			policyRegistered = true;
-			break;
+			return true;
 		}
 	}
-
-	return policyRegistered;
+	return false;
 }
 
-UIntN PolicyManager::getPolicyCount(void)
+UIntN PolicyManager::getPolicyCount() const
 {
 	UIntN policyCount = 0;
 
-	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	for (const auto& policy : m_policies)
 	{
-		if (policy->second != nullptr)
+		if (policy.second != nullptr)
 		{
 			policyCount++;
 		}
@@ -449,37 +465,41 @@ UIntN PolicyManager::getPolicyCount(void)
 
 shared_ptr<XmlNode> PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
 {
-	auto status = XmlNode::createWrapperElement("event_values");
-	auto eventCount = PolicyEvent::Max;
-	auto policy = dynamic_cast<Policy*>(getPolicyPtr(policyIndex));
-	for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++) // Skip the "Invalid" event
+	auto status = XmlNode::createWrapperElement("event_values"s);
+	constexpr auto eventCount = PolicyEvent::Max;
+	const auto policy = dynamic_cast<Policy*>(getPolicyPtr(policyIndex));
+	if (policy)
 	{
-		auto event = XmlNode::createWrapperElement("event");
-		auto eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
-		event->addChild(eventName);
-		auto eventStatus = XmlNode::createDataElement(
-			"event_status", friendlyValue(policy->isEventRegistered((PolicyEvent::Type)eventIndex)));
-		event->addChild(eventStatus);
-		status->addChild(event);
+		for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++) // Skip the "Invalid" event
+		{
+			const auto event = XmlNode::createWrapperElement("event"s);
+			const auto eventName = XmlNode::createDataElement(
+				"event_name"s, PolicyEvent::toString(static_cast<PolicyEvent::Type>(eventIndex)));
+			event->addChild(eventName);
+			const auto eventStatus = XmlNode::createDataElement(
+				"event_status"s, friendlyValue(policy->isEventRegistered(static_cast<PolicyEvent::Type>(eventIndex))));
+			event->addChild(eventStatus);
+			status->addChild(event);
+		}
 	}
 	return status;
 }
 
 shared_ptr<XmlNode> PolicyManager::getEventsInXml()
 {
-	auto status = XmlNode::createWrapperElement("events");
-	auto eventCount = PolicyEvent::Max;
+	auto status = XmlNode::createWrapperElement("events"s);
+	constexpr auto eventCount = PolicyEvent::Max;
 	for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++) // Skip the "Invalid" event
 	{
-		auto event = XmlNode::createWrapperElement("event");
-		auto eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
+		const auto event = XmlNode::createWrapperElement("event"s);
+		const auto eventName = XmlNode::createDataElement("event_name"s, PolicyEvent::toString(static_cast<PolicyEvent::Type>(eventIndex)));
 		event->addChild(eventName);
 		status->addChild(event);
 	}
 	return status;
 }
 
-EsifServicesInterface* PolicyManager::getEsifServices()
+EsifServicesInterface* PolicyManager::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
 }

@@ -90,9 +90,9 @@ Percentage PolicyServicesDomainPlatformPowerStatus::getAC10msPercentageOverload(
 	return participant->getAC10msPercentageOverload(domainIndex);
 }
 
-void PolicyServicesDomainPlatformPowerStatus::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
+void PolicyServicesDomainPlatformPowerStatus::notifyForProcHotDeAssertion(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-	return participant->notifyForProchotDeassertion(domainIndex);
+	return participant->notifyForProcHotDeAssertion(domainIndex);
 }

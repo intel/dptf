@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "ParticipantProxy.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "TimeInterface.h"
 #include "ParticipantProxyInterface.h"
@@ -27,13 +26,14 @@
 class dptf_export ParticipantTrackerInterface
 {
 public:
-	virtual ~ParticipantTrackerInterface(){};
+	virtual ~ParticipantTrackerInterface() = default;
 
 	virtual void remember(UIntN participantIndex) = 0;
 	virtual Bool remembers(UIntN participantIndex) = 0;
 	virtual void forget(UIntN participantIndex) = 0;
 	virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) = 0;
 	virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType) = 0;
+	virtual std::vector<std::shared_ptr<DomainProxyInterface>> getAllDomains() = 0;
 	virtual std::vector<UIntN> getAllTrackedIndexes() const = 0;
 	virtual void setPolicyServices(const PolicyServicesInterfaceContainer& policyServices) = 0;
 	virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) = 0;

@@ -25,13 +25,13 @@ using namespace StatusFormat;
 
 PowerControlDynamicCaps::PowerControlDynamicCaps(
 	PowerControlType::Type powerControlType,
-	Power minPowerLimit,
-	Power maxPowerLimit,
-	Power powerStepSize,
-	TimeSpan minTimeWindow,
-	TimeSpan maxTimeWindow,
-	Percentage minDutyCycle,
-	Percentage maxDutyCycle)
+	const Power& minPowerLimit,
+	const Power& maxPowerLimit,
+	const Power& powerStepSize,
+	const TimeSpan& minTimeWindow,
+	const TimeSpan& maxTimeWindow,
+	const Percentage& minDutyCycle,
+	const Percentage& maxDutyCycle)
 	: m_valid(true)
 	, m_powerControlType(powerControlType)
 	, m_minPowerLimit(minPowerLimit)
@@ -50,17 +50,13 @@ PowerControlDynamicCaps::PowerControlDynamicCaps()
 {
 }
 
-PowerControlDynamicCaps::~PowerControlDynamicCaps()
-{
-}
-
-PowerControlType::Type PowerControlDynamicCaps::getPowerControlType(void) const
+PowerControlType::Type PowerControlDynamicCaps::getPowerControlType() const
 {
 	throwIfNotValid();
 	return m_powerControlType;
 }
 
-Bool PowerControlDynamicCaps::arePowerLimitCapsValid(void) const
+Bool PowerControlDynamicCaps::arePowerLimitCapsValid() const
 {
 	try
 	{
@@ -72,47 +68,47 @@ Bool PowerControlDynamicCaps::arePowerLimitCapsValid(void) const
 	}
 }
 
-Power PowerControlDynamicCaps::getMinPowerLimit(void) const
+Power PowerControlDynamicCaps::getMinPowerLimit() const
 {
 	return m_minPowerLimit;
 }
 
-Power PowerControlDynamicCaps::getMaxPowerLimit(void) const
+Power PowerControlDynamicCaps::getMaxPowerLimit() const
 {
 	return m_maxPowerLimit;
 }
 
-Power PowerControlDynamicCaps::getPowerStepSize(void) const
+Power PowerControlDynamicCaps::getPowerStepSize() const
 {
 	return m_powerStepSize;
 }
 
-void PowerControlDynamicCaps::setMinPowerLimit(Power minPower)
+void PowerControlDynamicCaps::setMinPowerLimit(const Power& minPower)
 {
 	m_minPowerLimit = minPower;
 }
 
-void PowerControlDynamicCaps::setMaxPowerLimit(Power maxPower)
+void PowerControlDynamicCaps::setMaxPowerLimit(const Power& maxPower)
 {
 	m_maxPowerLimit = maxPower;
 }
 
-void PowerControlDynamicCaps::setPowerStepSize(Power stepSize)
+void PowerControlDynamicCaps::setPowerStepSize(const Power& stepSize)
 {
 	m_powerStepSize = stepSize;
 }
 
-void PowerControlDynamicCaps::setMinTimeWindow(TimeSpan minTimeWindow)
+void PowerControlDynamicCaps::setMinTimeWindow(const TimeSpan& minTimeWindow)
 {
 	m_minTimeWindow = minTimeWindow;
 }
 
-void PowerControlDynamicCaps::setMaxTimeWindow(TimeSpan maxTimeWindow)
+void PowerControlDynamicCaps::setMaxTimeWindow(const TimeSpan& maxTimeWindow)
 {
 	m_maxTimeWindow = maxTimeWindow;
 }
 
-Bool PowerControlDynamicCaps::areTimeWindowCapsValid(void) const
+Bool PowerControlDynamicCaps::areTimeWindowCapsValid() const
 {
 	try
 	{
@@ -124,17 +120,17 @@ Bool PowerControlDynamicCaps::areTimeWindowCapsValid(void) const
 	}
 }
 
-TimeSpan PowerControlDynamicCaps::getMinTimeWindow(void) const
+TimeSpan PowerControlDynamicCaps::getMinTimeWindow() const
 {
 	return m_minTimeWindow;
 }
 
-TimeSpan PowerControlDynamicCaps::getMaxTimeWindow(void) const
+TimeSpan PowerControlDynamicCaps::getMaxTimeWindow() const
 {
 	return m_maxTimeWindow;
 }
 
-Bool PowerControlDynamicCaps::areDutyCycleCapsValid(void) const
+Bool PowerControlDynamicCaps::areDutyCycleCapsValid() const
 {
 	try
 	{
@@ -146,12 +142,12 @@ Bool PowerControlDynamicCaps::areDutyCycleCapsValid(void) const
 	}
 }
 
-Percentage PowerControlDynamicCaps::getMinDutyCycle(void) const
+Percentage PowerControlDynamicCaps::getMinDutyCycle() const
 {
 	return m_minDutyCycle;
 }
 
-Percentage PowerControlDynamicCaps::getMaxDutyCycle(void) const
+Percentage PowerControlDynamicCaps::getMaxDutyCycle() const
 {
 	return m_maxDutyCycle;
 }
@@ -170,7 +166,7 @@ Bool PowerControlDynamicCaps::operator!=(const PowerControlDynamicCaps& rhs) con
 	return !(*this == rhs);
 }
 
-std::shared_ptr<XmlNode> PowerControlDynamicCaps::getXml(void) const
+std::shared_ptr<XmlNode> PowerControlDynamicCaps::getXml() const
 {
 	throwIfNotValid();
 	auto root = XmlNode::createWrapperElement("power_control_dynamic_caps");
@@ -208,7 +204,7 @@ PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccRowValues(PowerCo
 	return temp;
 }
 
-PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccPl4RowValues(Power pl4PowerLimit) const
+PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccPl4RowValues(const Power& pl4PowerLimit) const
 {
 	PowerControlDynamicCaps temp(
 		static_cast<PowerControlType::Type>(PowerControlType::Type::PL4),
@@ -222,7 +218,7 @@ PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccPl4RowValues(Powe
 	return temp;
 }
 
-PowerControlDynamicCaps PowerControlDynamicCaps::getPpccPlRowValues(struct EsifDataBinaryPpccPackage* currentRow) const
+PowerControlDynamicCaps PowerControlDynamicCaps::getPpccPlRowValues(const EsifDataBinaryPpccPackage* currentRow) const
 {
 	auto powerMin = Power::createInvalid();
 	auto powerMax = Power::createInvalid();

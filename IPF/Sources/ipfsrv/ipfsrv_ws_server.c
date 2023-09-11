@@ -57,7 +57,7 @@ static void *ESIF_CALLCONV Irpc_WorkerThread(void *ctx);
 #define WS_SEND_FLAGS	0
 #define WS_RECV_FLAGS	0
 
-#define WS_NETWORK_BUFFER_LEN	(1*1024*1024) /*65535*/	// Network Buffer Size for HTTP/Websocket Send and Receive Buffer
+#define WS_NETWORK_BUFFER_LEN	(1*1024*1024)	// Network Buffer Size for HTTP/Websocket Send and Receive Buffer
 #define WS_SOCKET_TIMEOUT		30				// Socket activity timeout waiting on blocking select() [2 or greater]
 
 #define WS_MAX_CLIENT_SENDBUF	(8*1024*1024)	// Max size of client send buffer (multiple messages)
@@ -406,15 +406,29 @@ esif_error_t WebListener_Config(WebListenerPtr self, const AccessDef *listener)
 #include <grp.h>
 #define ERROR_SUCCESS	0
 
+esif_error_t enable_chown_capability();
+esif_error_t disable_chown_capability();
+
 // Set Security ACLs for Folder containing Unix Domain Socket files
 static int WebListener_SetSocketFolderSecurity(WebListenerPtr self)
 {
 	int rc = EINVAL;
 	if (self && self->sockaddr.type == AF_UNIX) {
+
+		rc = enable_chown_capability();
+		if (rc != ERROR_SUCCESS) {
+			WS_TRACE_WARNING("Error Enabling Capability\n");
+		}
+
 		// Change folder permissions and owner/group to: rwxr-xr-x root root
 		rc = chmod(IPC_NAMEDPIPE_PATH, 0755);
 		if (rc == ERROR_SUCCESS) {
 			rc = chown(IPC_NAMEDPIPE_PATH, 0, 0);
+		}
+
+		rc = disable_chown_capability();
+		if (rc != ERROR_SUCCESS) {
+			WS_TRACE_WARNING("Error Disabling Capability\n");
 		}
 	}
 	esif_ccb_socket_seterror(rc);
@@ -485,11 +499,22 @@ static int WebListener_SetSocketSecurity(WebListenerPtr self)
 			mode = mod;
 		}
 
+		rc = enable_chown_capability();
+		if (rc != ERROR_SUCCESS) {
+			WS_TRACE_WARNING("Error Enabling Capability\n");
+		}
+
 		// Set File Owner/Group and Access Mode
 		rc = chmod(self->sockaddr.un_addr.sun_path, mode);
 		if (rc == 0) {
 			rc = chown(self->sockaddr.un_addr.sun_path, owner, group);
 		}
+
+		rc = disable_chown_capability();
+		if (rc != ERROR_SUCCESS) {
+			WS_TRACE_WARNING("Error Enabling Capability\n");
+		}
+
 		esif_ccb_free(acl);
 	}
 	esif_ccb_socket_seterror(rc);
@@ -808,6 +833,7 @@ void WebServer_Init(WebServerPtr self)
 		self->fileDoorbell = NULL;
 		atomic_set(&self->isActive, 0);
 		atomic_set(&self->isPaused, 0);
+		atomic_set(&self->isDiagnostic, 0);
 		atomic_set(&self->activeThreads, 0);
 		atomic_set(&self->listenerMask, 0);
 		self->netBuf = NULL;
@@ -896,6 +922,7 @@ void WebServer_Close(WebServerPtr self)
 		self->netBufLen = 0;
 		atomic_set(&self->isActive, 0);
 		atomic_set(&self->isPaused, 0);
+		atomic_set(&self->isDiagnostic, 0);
 		MessageQueuePtr msgQueue = self->msgQueue;
 		self->msgQueue = NULL;
 		self->rpcQueueMax = 0;
@@ -1063,28 +1090,30 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 		}
 
 		// Create Listener Socket(s)
-		int running = 0;
-		esif_error_t last_error = ESIF_OK;
-		for (j = 0; j < IPF_WS_MAX_LISTENERS; j++) {
-			if (self->listeners[j].serverAddr[0]) {
-				rc = WebListener_Open(&self->listeners[j]);
+		if (ESIF_OK == rc) {
+			int running = 0;
+			esif_error_t last_error = ESIF_OK;
+			for (j = 0; j < IPF_WS_MAX_LISTENERS; j++) {
+				if (self->listeners[j].serverAddr[0]) {
+					rc = WebListener_Open(&self->listeners[j]);
 				
-				if (rc == ESIF_OK) {
-					running++;
-					WebServer_SetListenerMask(self, ((size_t)1 << j));
-					WS_TRACE_INFO("\nIPF Server Listening [%s]\n", self->listeners[j].serverAddr);
-				}
-				else {
-					last_error = rc;
-					WS_TRACE_ERROR("\nUnable to start IPF Server Listener [%s]\n", self->listeners[j].serverAddr);
+					if (rc == ESIF_OK) {
+						running++;
+						WebServer_SetListenerMask(self, ((size_t)1 << j));
+						WS_TRACE_INFO("\nIPF Server Listening [%s]\n", self->listeners[j].serverAddr);
+					}
+					else {
+						last_error = rc;
+						WS_TRACE_ERROR("\nUnable to start IPF Server Listener [%s]\n", self->listeners[j].serverAddr);
+					}
 				}
 			}
-		}
-		if (running) {
-			rc = ESIF_OK;
-		}
-		else {
-			rc = last_error;
+			if (running) {
+				rc = ESIF_OK;
+			}
+			else {
+				rc = last_error;
+			}
 		}
 
 		//// MAIN LOOP ////
@@ -1154,7 +1183,7 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 			}
 
 			// Use Lowest Remaining Transaction Timeout for all Active Connections, if any
-			double timeout = IpfTrxMgr_GetMinTimeout();
+			double timeout = IpfTrxMgr_GetMinTimeout(IpfTrxMgr_GetInstance());
 			double sessionTimeout = AppSessionMgr_GetMinTimeout();
 			timeout = esif_ccb_min(timeout, sessionTimeout);
 			tv.tv_sec = (long)timeout;
@@ -1177,7 +1206,7 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 				break;
 			}
 			else if (selectResult == 0) { // Timeout
-				IpfTrxMgr_ExpireInactive();
+				IpfTrxMgr_ExpireInactive(IpfTrxMgr_GetInstance());
 				AppSessionMgr_SessionCleanup();
 				continue;
 			}
@@ -1307,7 +1336,7 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 			}
 
 			// 6. Destroy Expired Transactions and Dead Sessions
-			IpfTrxMgr_ExpireInactive();
+			IpfTrxMgr_ExpireInactive(IpfTrxMgr_GetInstance());
 			AppSessionMgr_SessionCleanup();
 			rc = ESIF_OK;
 		}
@@ -1438,6 +1467,7 @@ esif_error_t WebServer_Start(WebServerPtr self)
 				}
 			}
 
+
 			// Start I/O and FileWatcher Threads
 			if (rc == ESIF_OK) {
 				rc = esif_ccb_thread_create(&self->mainThread, WebServer_WorkerThread, self);
@@ -1514,6 +1544,16 @@ Bool WebServer_IsPaused(WebServerPtr self)
 	Bool rc = ESIF_FALSE;
 	if (self) {
 		rc = (atomic_read(&self->isPaused) > 0);
+	}
+	return rc;
+}
+
+// Is Web Server in Diagnostic Mode?
+Bool WebServer_IsDiagnostic(WebServerPtr self)
+{
+	Bool rc = ESIF_FALSE;
+	if (self) {
+		rc = (atomic_read(&self->isDiagnostic) > 0);
 	}
 	return rc;
 }

@@ -103,14 +103,16 @@ std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 	auto control = XmlNode::createWrapperElement("radio_frequency_control");
 	control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
 	control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
-	control->addChild(XmlNode::createDataElement("min_frequency", minFrequency.toString()));
-	control->addChild(XmlNode::createDataElement("center_frequency", centerFrequency.toString()));
-	control->addChild(XmlNode::createDataElement("requested_frequency", m_lastSetFrequency.toString()));
-	control->addChild(XmlNode::createDataElement("max_frequency", maxFrequency.toString()));
+	control->addChild(XmlNode::createDataElement("min_frequency", minFrequency.toStringAsMegahertz()));
+	control->addChild(XmlNode::createDataElement("center_frequency", centerFrequency.toStringAsMegahertz()));
+	control->addChild(
+		XmlNode::createDataElement("requested_frequency", m_lastSetFrequency.toStringAsMegahertz()));
+	control->addChild(XmlNode::createDataElement("max_frequency", maxFrequency.toStringAsMegahertz()));
 	control->addChild(XmlNode::createDataElement("ssc", m_ssc.toString()));
 	control->addChild(XmlNode::createDataElement("default_ssc", defaultSsc.toString()));
 	control->addChild(XmlNode::createDataElement("requested_ssc", requestedSsc.toString()));
-	control->addChild(XmlNode::createDataElement("default_center_frequency", defaultCenterFrequency.toString()));
+	control->addChild(
+		XmlNode::createDataElement("default_center_frequency", defaultCenterFrequency.toStringAsMegahertz()));
 	return control;
 }
 

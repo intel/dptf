@@ -27,12 +27,32 @@ DomainProcessorControl_000::DomainProcessorControl_000(
 	// Do nothing.  Not an error.
 }
 
+void DomainProcessorControl_000::updatePcieThrottleRequestState(UInt32 pcieThrottleRequestState)
+{
+	throw not_implemented();
+}
+
 Temperature DomainProcessorControl_000::getTccOffsetTemperature()
 {
 	throw not_implemented();
 }
 
 void DomainProcessorControl_000::setTccOffsetTemperature(const Temperature& tccOffset)
+{
+	throw not_implemented();
+}
+
+void DomainProcessorControl_000::setPerfPreferenceMax(const Percentage& cpuMaxRatio)
+{
+	throw not_implemented();
+}
+
+void DomainProcessorControl_000::setPerfPreferenceMin(const Percentage& cpuMinRatio)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainProcessorControl_000::getPcieThrottleRequestState()
 {
 	throw not_implemented();
 }
@@ -71,3 +91,4 @@ std::shared_ptr<XmlNode> DomainProcessorControl_000::getXml(UIntN domainIndex)
 {
 	throw not_implemented();
 }
+

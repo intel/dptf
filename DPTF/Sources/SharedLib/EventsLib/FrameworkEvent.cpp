@@ -119,6 +119,8 @@ void FrameworkEventInfo::initializeEvents()
 	// DPTF Events
 	INIT_EVENT_WITH_GUID(DptfConnectedStandbyEntry, 0, DISPLAY_OFF);
 	INIT_EVENT_WITH_GUID(DptfConnectedStandbyExit, 0, DISPLAY_ON);
+	INIT_EVENT_WITH_GUID(DptfLowPowerModeEntry, 0, WINDOWS_LOW_POWER_MODE_ENTRY);
+	INIT_EVENT_WITH_GUID(DptfLowPowerModeExit, 0, WINDOWS_LOW_POWER_MODE_EXIT);
 	INIT_EVENT_WITH_GUID(DptfSuspend, 0, PARTICIPANT_SUSPEND);
 	INIT_EVENT_WITH_GUID(DptfResume, 0, PARTICIPANT_RESUME);
 	INIT_EVENT(DptfGetStatus, 0);
@@ -128,6 +130,9 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DptfPolicyActivityLoggingEnabled, 0, DTT_POLICY_ACTIVITY_LOGGING_ENABLED);
 	INIT_EVENT_WITH_GUID(DptfPolicyActivityLoggingDisabled, 0, DTT_POLICY_ACTIVITY_LOGGING_DISABLED);
 	INIT_EVENT_WITH_GUID(DptfSupportedPoliciesChanged, 0, DTT_SUPPORTED_POLICIES_CHANGED);
+	INIT_EVENT(DptfEnvironmentProfileChanged, 0);
+	INIT_EVENT_WITH_GUID(DptfSendParticipantCreate, 0, PARTICIPANT_CREATE);
+	INIT_EVENT_WITH_GUID(DptfSendParticipantDelete, 0, PARTICIPANT_UNREGISTER);
 
 	// Participant and Domain events
 	INIT_EVENT(ParticipantAllocate, 31);
@@ -171,7 +176,10 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DomainFanCapabilityChanged, 0, FAN_CAPABILITIES_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainSocWorkloadClassificationChanged, 0, WORKLOAD_CLASSIFICATION_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainEppSensitivityHintChanged, 0, DTT_EPP_SENSITIVITY_HINT_CHANGED);
-	INIT_EVENT_WITH_GUID(DomainExtendedWorkloadPredictionChanged, 0, EXTENDED_WORKLOAD_PREDICTION_CHANGED);
+	INIT_EVENT(DomainExtendedWorkloadPredictionChanged, 0);
+	INIT_EVENT_WITH_GUID(DomainHardwareSocWorkloadHintChanged, 0, SOC_WORKLOADTYPE_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainSocPowerFloorChanged, 0, SOC_POWER_FLOOR_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainPcieThrottleRequested, 0, PCIE_THROTTLE_REQUESTED);
 
 	// Policy events
 	INIT_EVENT(PolicyCreate, 31);
@@ -195,6 +203,7 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemScreenStateChanged, 0, OS_SCREEN_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemBatteryCountChanged, 0, BATTERY_COUNT_NOTIFICATION);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSliderChanged, 0, OS_POWER_SLIDER_VALUE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyProcessLoadNotification, 0, PROCESS_LOAD_NOTIFICATION);
 	INIT_EVENT_WITH_GUID(DptfPolicyLoadedUnloadedEvent, 0, DTT_POLICY_LOADED_UNLOADED);
 	INIT_EVENT_WITH_GUID(PolicyEmergencyCallModeTableChanged, 0, EMERGENCY_CALL_MODE_TABLE_CHANGED);
 	INIT_EVENT(PowerLimitChanged, 0);

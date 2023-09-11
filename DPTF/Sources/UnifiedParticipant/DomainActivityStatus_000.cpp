@@ -62,11 +62,6 @@ CoreActivityInfo DomainActivityStatus_000::getCoreActivityInfo(UIntN participant
 	throw not_implemented();
 }
 
-void DomainActivityStatus_000::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
-{
-	throw not_implemented();
-}
-
 void DomainActivityStatus_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	// do nothing

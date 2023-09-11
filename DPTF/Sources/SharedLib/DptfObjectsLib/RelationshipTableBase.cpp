@@ -18,16 +18,8 @@
 
 #include "RelationshipTableBase.h"
 
-RelationshipTableBase::RelationshipTableBase()
-{
-}
-
 RelationshipTableBase::RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries)
 	: m_entries(entries)
-{
-}
-
-RelationshipTableBase::~RelationshipTableBase()
 {
 }
 
@@ -110,15 +102,15 @@ Bool RelationshipTableBase::isParticipantTargetDevice(UIntN participantIndex) co
 
 UIntN RelationshipTableBase::getNumberOfEntries(void) const
 {
-	return (UIntN)m_entries.size();
+	return static_cast<UIntN>(m_entries.size());
 }
 
-std::vector<UIntN> RelationshipTableBase::findTableRowsWithParticipantScope(std::string participantScope) const
+std::vector<UIntN> RelationshipTableBase::findTableRowsWithParticipantScope(const std::string& participantScope) const
 {
 	std::vector<UIntN> rows;
 	for (UIntN row = 0; row < getNumberOfEntries(); ++row)
 	{
-		auto entry = m_entries.at(row);
+		const auto entry = m_entries.at(row);
 		if ((entry->getSourceDeviceScope() == participantScope) || (entry->getTargetDeviceScope() == participantScope))
 		{
 			rows.push_back(row);
@@ -132,7 +124,7 @@ std::vector<UIntN> RelationshipTableBase::findTableRowsWithParticipantIndex(UInt
 	std::vector<UIntN> rows;
 	for (UIntN row = 0; row < getNumberOfEntries(); ++row)
 	{
-		auto entry = m_entries.at(row);
+		const auto entry = m_entries.at(row);
 		if ((entry->getSourceDeviceIndex() == participantIndex) || (entry->getTargetDeviceIndex() == participantIndex))
 		{
 			rows.push_back(row);

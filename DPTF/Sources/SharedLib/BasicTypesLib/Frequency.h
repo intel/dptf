@@ -26,8 +26,9 @@ class Frequency final
 {
 public:
 	Frequency(void); // Initialized to invalid by default
-	Frequency(UInt64 frequency);
+	Frequency(UInt64 frequencyInHertz);
 	static Frequency createInvalid();
+	static Frequency createFromHertz(UInt64 frequencyInHertz);
 	static Frequency createFromMegahertz(UInt64 frequencyInMegahertz);
 
 	Bool operator==(const Frequency& rhs) const;
@@ -39,17 +40,20 @@ public:
 	Frequency operator+(const Frequency& rhs) const;
 	Frequency operator-(const Frequency& rhs) const;
 	Frequency operator*(const Frequency& rhs) const;
+	Frequency operator*(const int multipier) const;
 	friend std::ostream& operator<<(std::ostream& os, const Frequency& frequency);
 	operator UInt64(void) const;
 
 	Bool isValid() const;
 	std::string toString() const;
 	std::string toStringAsMegahertz() const;
+	UInt64 toIntAsHertz() const;
 	UInt64 toIntAsMegahertz() const;
 
 private:
 	Bool m_valid;
-	UInt64 m_frequency; // Units:  Hz
+	UInt64 m_frequencyInHertz; // Units:  Hz
 
 	void throwIfInvalid(const Frequency& frequency) const;
+	std::string removeTrailingZeros(const std::string& str) const;
 };

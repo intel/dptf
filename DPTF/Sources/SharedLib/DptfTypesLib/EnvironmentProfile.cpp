@@ -31,11 +31,23 @@ const map<UInt64, string> platformGenerations
 	{0xB06F, "RPL"s},
 	{0xA06A, "MTL"s},
 	{0xA06C, "MTL"s},
+	{0xC06C, "PTL"s},
 };
 
+EnvironmentProfile::EnvironmentProfile()
+	: EnvironmentProfile(0, Power::createInvalid())
+{
+}
+
 EnvironmentProfile::EnvironmentProfile(UInt64 cpuIdRaw)
+	: EnvironmentProfile(cpuIdRaw, Power::createInvalid())
+{
+}
+
+EnvironmentProfile::EnvironmentProfile(UInt64 cpuIdRaw, const Power& socBasePower)
 	: cpuIdValue(cpuIdRaw)
 	, cpuIdWithoutSteppingValue(cpuIdRaw >> SINGLE_HEXADECIMAL_LENGTH)
+	, socBasePower(socBasePower)
 	, cpuId(StringConverter::toHexString(cpuIdValue))
 	, cpuIdWithoutStepping(StringConverter::toHexString(cpuIdWithoutSteppingValue))
 	, platformGeneration(findPlatformGeneration(cpuIdWithoutSteppingValue))
@@ -48,6 +60,7 @@ std::string EnvironmentProfile::toString() const
 	stringstream stream;
 	stream << "Platform: "s << platformGeneration << ". "s;
 	stream << "CPUID: "s << cpuId << ". "s;
+	stream << "SocBasePower: "s << socBasePower.toStringAsWatts(0) << "W. "s;
 	return stream.str();
 }
 
@@ -60,10 +73,7 @@ string EnvironmentProfile::findPlatformGeneration(UInt64 cpuIdWithoutSteppingVal
 		{
 			return unknownPlatformGeneration;
 		}
-		else
-		{
-			return result->second;
-		}
+		return result->second;
 	}
 	catch (const exception&)
 	{

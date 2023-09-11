@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#pragma once
 #include "CommandHandler.h"
 #include "PolicyManagerInterface.h"
 
@@ -22,13 +23,14 @@ class dptf_export ReloadCommand : public CommandHandler
 {
 public:
 	ReloadCommand(DptfManagerInterface* dptfManager);
-	virtual ~ReloadCommand();
-	virtual std::string getCommandName() const override;
-	virtual void execute(const CommandArguments& arguments) override;
+	std::string getCommandName() const override;
+	void reloadSinglePolicy(const std::string& policyName);
+	void execute(const CommandArguments& arguments) override;
 
 private:
+	void reloadAllPolicies();
 	void throwIfBadArguments(const CommandArguments& arguments);
-	void bindAllParticipants(const std::set<UIntN>& participantIndexList);
-	void unbindAllParticipants(const std::set<UIntN>& participantIndexList);
+	void bindAllParticipants(const std::set<UIntN>& participantIndexList) const;
+	void unbindAllParticipants(const std::set<UIntN>& participantIndexList) const;
 	void recreateAllPolicies(PolicyManagerInterface* policyManager);
 };

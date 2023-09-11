@@ -21,6 +21,9 @@
 #include "ipf_sdk_version.h"
 #include "esif_sdk_iface_esif.h"
 
+#define IPF_SDK_MAJOR		1
+#define IPF_SDK_MINOR		0
+
 // Check whether Server SDK supports the given Client SDK Version (NULL=Use Current SDK)
 static ESIF_INLINE esif_error_t IpfSdk_VersionCheck(const char *serverSdkVersion, const char *clientSdkVersion)
 {
@@ -40,12 +43,12 @@ static ESIF_INLINE esif_error_t IpfSdk_VersionCheck(const char *serverSdkVersion
 				ipfsdk_version_t minver;	// Minimum Version Supported
 				ipfsdk_version_t maxver;	// Maximum Version Supported
 			} supported_releases[] = {
-				{ IPFSDK_VERSION(1, 0, 0), IPFSDK_VERSION(1, 0, 0xffff) },	// Support 1.0.x but nothing older
+				{ IPFSDK_VERSION(IPF_SDK_MAJOR, IPF_SDK_MINOR, 0), IPFSDK_VERSION(IPF_SDK_MAJOR, IPF_SDK_MINOR, 0xffff) },	// Support major.minor.x but nothing older
 				{ 0 }
 			};
 
 			// Allow Supported Versions Only
-			rc = ESIF_E_NOT_SUPPORTED;
+			rc = ESIF_E_UNSUPPORTED_CLIENT_SDK;
 			for (size_t j = 0; supported_releases[j].minver; j++) {
 				if (client >= supported_releases[j].minver && client <= supported_releases[j].maxver) {
 					rc = ESIF_OK;
@@ -59,7 +62,7 @@ static ESIF_INLINE esif_error_t IpfSdk_VersionCheck(const char *serverSdkVersion
 		}
 		// client > server with Major.Minor mismatch: Not supported
 		else {
-			rc = ESIF_E_NOT_SUPPORTED;
+			rc = ESIF_E_UNSUPPORTED_CLIENT_SDK;
 		}
 	}
 	return rc;

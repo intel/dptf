@@ -985,9 +985,11 @@ static struct dsp_map_s dsp_mapping[] = {
 		{"WWRF",	"ipf_wwrf"},
 		{"DGFXMCP",	"ipf_mcp"},
 		{"DGFXCORE","ipf_dgcr"},
-		{"DGFXMEM",	"ipf_dgmm"},
+		{"DGFXMEM",	"ipf_dgvram"},
 		{"IDG2",	"ipf_idg2"},
 		{"NVDGX",	"ipf_nvdgx"},
+		{"IPU",		"ipf_ipu"},
+		{"AUDIO",	"ipf_audio"},
 		/* Deprecated */
 		{"DPTFZ",	"ipf_ietm"},
 		{"DPLY",	"ipf_disp"},

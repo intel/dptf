@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "DomainEnergyControlBase.h"
+#include <cmath>
 
 DomainEnergyControlBase::DomainEnergyControlBase(
 	UIntN participantIndex,
@@ -28,4 +29,9 @@ DomainEnergyControlBase::DomainEnergyControlBase(
 
 DomainEnergyControlBase::~DomainEnergyControlBase()
 {
+}
+
+double DomainEnergyControlBase::convertEnergyStatusUnitToJoules(UInt32 raplEnergyUnit)
+{
+	return (1 / pow(2, raplEnergyUnit));
 }

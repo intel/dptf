@@ -77,6 +77,7 @@ static ESIF_INLINE void esif_ccb_event_init(esif_ccb_event_t *event_ptr)
 	esif_ccb_sem_init(&event_ptr->sem_obj);
 	event_ptr->waiters = 0;
 	event_ptr->signaled = ESIF_FALSE;
+	event_ptr->sig_count = 0;
 }
 
 

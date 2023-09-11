@@ -32,41 +32,46 @@ public:
 	PowerControlDynamicCaps();
 	PowerControlDynamicCaps(
 		PowerControlType::Type powerControlType,
-		Power minPowerLimit,
-		Power maxPowerLimit,
-		Power powerStepSize,
-		TimeSpan minTimeWindow,
-		TimeSpan maxTimeWindow,
-		Percentage minDutyCycle,
-		Percentage maxDutyCycle);
-	~PowerControlDynamicCaps();
+		const Power& minPowerLimit,
+		const Power& maxPowerLimit,
+		const Power& powerStepSize,
+		const TimeSpan& minTimeWindow,
+		const TimeSpan& maxTimeWindow,
+		const Percentage& minDutyCycle,
+		const Percentage& maxDutyCycle);
+	virtual ~PowerControlDynamicCaps() = default;
 
-	PowerControlType::Type getPowerControlType(void) const;
+	PowerControlDynamicCaps(const PowerControlDynamicCaps& other) = default;
+	PowerControlDynamicCaps& operator=(const PowerControlDynamicCaps& other) = default;
+	PowerControlDynamicCaps(PowerControlDynamicCaps&& other) = default;
+	PowerControlDynamicCaps& operator=(PowerControlDynamicCaps&& other) = default;
 
-	Bool arePowerLimitCapsValid(void) const;
-	Power getMinPowerLimit(void) const;
-	Power getMaxPowerLimit(void) const;
-	Power getPowerStepSize(void) const;
-	void setMinPowerLimit(Power minPower);
-	void setMaxPowerLimit(Power maxPower);
-	void setPowerStepSize(Power stepSize);
-	void setMinTimeWindow(TimeSpan minTimeWindow);
-	void setMaxTimeWindow(TimeSpan maxTimeWindow);
+	PowerControlType::Type getPowerControlType() const;
 
-	Bool areTimeWindowCapsValid(void) const;
-	TimeSpan getMinTimeWindow(void) const;
-	TimeSpan getMaxTimeWindow(void) const;
+	Bool arePowerLimitCapsValid() const;
+	Power getMinPowerLimit() const;
+	Power getMaxPowerLimit() const;
+	Power getPowerStepSize() const;
+	void setMinPowerLimit(const Power& minPower);
+	void setMaxPowerLimit(const Power& maxPower);
+	void setPowerStepSize(const Power& stepSize);
+	void setMinTimeWindow(const TimeSpan& minTimeWindow);
+	void setMaxTimeWindow(const TimeSpan& maxTimeWindow);
 
-	Bool areDutyCycleCapsValid(void) const;
-	Percentage getMinDutyCycle(void) const; // TODO: remove as this is not even in the PPCC
-	Percentage getMaxDutyCycle(void) const;
+	Bool areTimeWindowCapsValid() const;
+	TimeSpan getMinTimeWindow() const;
+	TimeSpan getMaxTimeWindow() const;
+
+	Bool areDutyCycleCapsValid() const;
+	Percentage getMinDutyCycle() const; // TODO: remove as this is not even in the PPCC
+	Percentage getMaxDutyCycle() const;
 
 	Bool operator==(const PowerControlDynamicCaps& rhs) const;
 	Bool operator!=(const PowerControlDynamicCaps& rhs) const;
-	std::shared_ptr<XmlNode> getXml(void) const;
+	std::shared_ptr<XmlNode> getXml() const;
 	PowerControlDynamicCaps getDefaultPpccRowValues(PowerControlType::Type PowerControlType) const;
-	PowerControlDynamicCaps getDefaultPpccPl4RowValues(Power pl4PowerLimit) const;
-	PowerControlDynamicCaps getPpccPlRowValues(struct EsifDataBinaryPpccPackage* currentRow) const;
+	PowerControlDynamicCaps getDefaultPpccPl4RowValues(const Power& pl4PowerLimit) const;
+	PowerControlDynamicCaps getPpccPlRowValues(const struct EsifDataBinaryPpccPackage* currentRow) const;
 
 private:
 	Bool m_valid;

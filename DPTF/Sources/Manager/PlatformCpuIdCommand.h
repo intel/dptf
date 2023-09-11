@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#pragma once
 #include "CommandHandler.h"
 #include "CommandDispatcher.h"
 
@@ -22,9 +23,8 @@ class dptf_export PlatformCpuIdCommand : public CommandHandler
 {
 public:
 	PlatformCpuIdCommand(DptfManagerInterface* dptfManager);
-	virtual ~PlatformCpuIdCommand();
-	virtual std::string getCommandName() const override;
-	virtual void execute(const CommandArguments& arguments) override;
+	std::string getCommandName() const override;
+	void execute(const CommandArguments& arguments) override;
 
 private:
 	std::string convertToHexString(UInt64 cpuId);

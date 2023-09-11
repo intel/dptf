@@ -70,7 +70,47 @@ static eEsifError EsifUpDomain_PowerControlDetectInit(
 	EsifUpDomainPtr self
 );
 
+static eEsifError EsifUpDomain_ActiveControlDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_DisplayControlDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_PeakPowerControlDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_ProcessorControlDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_PlatformPowerStatusDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_RfProfileStatusDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_RfProfileControlDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_EnergyControlDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_ActivityStatusDetectInit(
+	EsifUpDomainPtr self
+);
+
 static eEsifError EsifUpDomain_BatteryStatusDetectInit(
+	EsifUpDomainPtr self
+);
+
+static eEsifError EsifUpDomain_WorkloadClassificationDetectInit(
 	EsifUpDomainPtr self
 );
 
@@ -208,7 +248,36 @@ eEsifError EsifUpDomain_DspReadyInit(
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
 		rc = EsifUpDomain_BatteryStatusDetectInit(self);
 	}
-	
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_ActiveControlDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_DisplayControlDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_PeakPowerControlDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_ProcessorControlDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_PlatformPowerStatusDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_RfProfileStatusDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_RfProfileControlDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_EnergyControlDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_ActivityStatusDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED)) {
+		rc = EsifUpDomain_WorkloadClassificationDetectInit(self);
+	}
 /* Perf state detection handled in upper framework for Sysfs model */
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
@@ -517,9 +586,332 @@ static Bool EsifUpDomain_IsHwpEnabled(
 	return isEnabled != ESIF_FALSE;
 }
 
-static eEsifError EsifUpDomain_BatteryStatusDetectInit(
+static eEsifError EsifUpDomain_ActiveControlDetectInit(
 	EsifUpDomainPtr self
 )
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple fanInfoTuple = { GET_FAN_INFORMATION, 0, 255 };
+	EsifData fanInfoData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	EsifPrimitiveTuple fanCapabilityTuple = { GET_FAN_CAPABILITIES, 0, 255 };
+	EsifData fanCapabilityData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	EsifPrimitiveTuple fanStatusTuple = { GET_FAN_STATUS, 0, 255 };
+	EsifData fanStatusData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	EsifPrimitiveTuple fanPerformanceStateTuple = { GET_FAN_PERFORMANCE_STATES, 0, 255 };
+	EsifData fanPerformanceStateData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL, &fanInfoTuple, &fanInfoData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL, &fanCapabilityTuple, &fanCapabilityData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL, &fanStatusTuple, &fanStatusData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL, &fanPerformanceStateTuple, &fanPerformanceStateData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL);
+
+exit:
+	esif_ccb_free(fanInfoData.buf_ptr);
+	esif_ccb_free(fanCapabilityData.buf_ptr);
+	esif_ccb_free(fanStatusData.buf_ptr);
+	esif_ccb_free(fanPerformanceStateData.buf_ptr);
+	return rc;
+}
+
+static eEsifError EsifUpDomain_DisplayControlDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple displayBrightnessTuple = { GET_DISPLAY_BRIGHTNESS, 0, 255 };
+	EsifData displayBrightnessData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	EsifPrimitiveTuple brightnessLevelTuple = { GET_DISPLAY_BRIGHTNESS_LEVELS, 0, 255 };
+	EsifData brightnessLevelData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	UInt32 bdlValue = 0;
+	EsifPrimitiveTuple bdlTuple = { GET_DISPLAY_DEPTH_LIMIT, 0, 255 };
+	EsifData bdlData = { ESIF_DATA_UINT32, &bdlValue, sizeof(bdlValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL, &displayBrightnessTuple, &displayBrightnessData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL, &brightnessLevelTuple, &brightnessLevelData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL, &bdlTuple, &bdlData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL);
+
+exit:
+	esif_ccb_free(displayBrightnessData.buf_ptr);
+	esif_ccb_free(brightnessLevelData.buf_ptr);
+	return rc;
+}
+
+static eEsifError EsifUpDomain_PeakPowerControlDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 acPeakPowerValue = 0;
+	EsifPrimitiveTuple acPeakPowerTuple = { GET_AC_PEAK_POWER, 0, 255 };
+	EsifData acPeakPowerData = { ESIF_DATA_POWER, &acPeakPowerValue, sizeof(acPeakPowerValue), 0 };
+
+	UInt32 dcPeakPowerValue = 0;
+	EsifPrimitiveTuple dcPeakPowerTuple = { GET_DC_PEAK_POWER, 0, 255 };
+	EsifData dcPeakPowerData = { ESIF_DATA_POWER, &dcPeakPowerValue, sizeof(dcPeakPowerValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL, &acPeakPowerTuple, &acPeakPowerData);
+	if (rc != ESIF_OK) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL);
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL, &dcPeakPowerTuple, &dcPeakPowerData);
+	if (rc != ESIF_OK) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL);
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifUpDomain_ProcessorControlDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 tccValue = 0;
+	EsifPrimitiveTuple tccTuple = { GET_TCC_OFFSET, 0, 255 };
+	EsifData tccData = { ESIF_DATA_TEMPERATURE, &tccValue, sizeof(tccValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL, &tccTuple, &tccData);
+	if (rc != ESIF_OK) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL);
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	return rc;
+}
+
+static eEsifError EsifUpDomain_PlatformPowerStatusDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 platformPowerSourceValue = 0;
+	EsifPrimitiveTuple platformPowerSourceTuple = { GET_PLATFORM_POWER_SOURCE, 0, 255 };
+	EsifData platformPowerSourceData = { ESIF_DATA_UINT32, &platformPowerSourceValue, sizeof(platformPowerSourceValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS, &platformPowerSourceTuple, &platformPowerSourceData);
+	if (rc != ESIF_OK) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS);
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	return rc;
+}
+
+static eEsifError EsifUpDomain_RfProfileStatusDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt64 rfCenterFrequencyValue = 0;
+	EsifPrimitiveTuple rfCenterFrequencyTuple = { GET_RFPROFILE_CENTER_FREQUENCY, 0, 255 };
+	EsifData rfCenterFrequencyData = { ESIF_DATA_FREQUENCY, &rfCenterFrequencyValue, sizeof(rfCenterFrequencyValue), 0 };
+
+	EsifPrimitiveTuple rfActiveChannelsTuple = { GET_RF_ACTIVE_CHANNELS, 0, 255 };
+	EsifData rfActiveChannelsData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+	EsifData listData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS, &rfCenterFrequencyTuple, &rfCenterFrequencyData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS, &rfActiveChannelsTuple, &rfActiveChannelsData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+	else {
+		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_AUTO_ENUM_LIST, "D0", 255, NULL, &listData);
+				
+		if (ESIF_I_NO_LEGACY_SUPPORT == rc) {
+			ESIF_TRACE_DEBUG("Skipping disabling RFPROFILE Status\n");
+			goto exit;
+		}
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS);
+
+exit:
+	esif_ccb_free(rfActiveChannelsData.buf_ptr);
+	esif_ccb_free(listData.buf_ptr);
+	return rc;
+}
+
+static eEsifError EsifUpDomain_RfProfileControlDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt64 rfCenterFrequencyValue = 0;
+	EsifPrimitiveTuple rfCenterFrequencyTuple = { GET_RFPROFILE_CENTER_FREQUENCY, 0, 255 };
+	EsifData rfCenterFrequencyData = { ESIF_DATA_FREQUENCY, &rfCenterFrequencyValue, sizeof(rfCenterFrequencyValue), 0 };
+
+	UInt64 rfMinFrequencyValue = 0;
+	EsifPrimitiveTuple rfMinFrequencyTuple = { GET_RFPROFILE_MIN_FREQUENCY, 0, 255 };
+	EsifData rfMinFrequencyData = { ESIF_DATA_FREQUENCY, &rfMinFrequencyValue, sizeof(rfMinFrequencyValue), 0 };
+
+	UInt64 rfMaxFrequencyValue = 0;
+	EsifPrimitiveTuple rfMaxFrequencyTuple = { GET_RFPROFILE_MAX_FREQUENCY, 0, 255 };
+	EsifData rfMaxFrequencyData = { ESIF_DATA_FREQUENCY, &rfMaxFrequencyValue, sizeof(rfMaxFrequencyValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL, &rfCenterFrequencyTuple, &rfCenterFrequencyData);
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL);
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL, &rfMinFrequencyTuple, &rfMinFrequencyData);
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL);
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL, &rfMaxFrequencyTuple, &rfMaxFrequencyData);
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL);
+		goto exit;
+	}
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifUpDomain_EnergyControlDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 raplEnergyValue = 0;
+	EsifPrimitiveTuple raplEnergyTuple = { GET_RAPL_ENERGY, 0, 255 };
+	EsifData raplEnergyData = { ESIF_DATA_UINT32, &raplEnergyValue, sizeof(raplEnergyValue), 0 };
+
+	EsifPrimitiveTuple raplEnergyCounterInfoTuple = { GET_RAPL_ENERGY_COUNTER_INFO, 0, 255 };
+	EsifData raplEnergyCounterInfoData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ENERGY_CONTROL, &raplEnergyTuple, &raplEnergyData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ENERGY_CONTROL, &raplEnergyCounterInfoTuple, &raplEnergyCounterInfoData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_ENERGY_CONTROL);
+
+exit:
+	esif_ccb_free(raplEnergyCounterInfoData.buf_ptr);
+	return rc;
+}
+
+static eEsifError EsifUpDomain_ActivityStatusDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 residencyUtilizationValue = 0;
+	EsifPrimitiveTuple residencyUtilizationTuple = { GET_PARTICIPANT_RESIDENCY_UTILIZATION, 0, 255 };
+	EsifData residencyUtilizationData = { ESIF_DATA_PERCENT, &residencyUtilizationValue, sizeof(residencyUtilizationValue), 0 };
+
+	UInt64 coreActivityCounterValue = 0;
+	EsifPrimitiveTuple coreActivityCounterTuple = { GET_CORE_ACTIVITY_COUNTER, 0, 255 };
+	EsifData coreActivityCounterData = { ESIF_DATA_UINT64, &coreActivityCounterValue, sizeof(coreActivityCounterValue), 0 };
+
+	UInt64 procTscValue = 0;
+	EsifPrimitiveTuple procTscTuple = { GET_PROC_TSC, 0, 255 };
+	EsifData procTscData = { ESIF_DATA_UINT64, &procTscValue, sizeof(procTscValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS, &residencyUtilizationTuple, &residencyUtilizationData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS, &coreActivityCounterTuple, &coreActivityCounterData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS, &procTscTuple, &procTscData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS);
+
+exit:
+	return rc;
+}
+
+static eEsifError  EsifUpDomain_BatteryStatusDetectInit(
+	EsifUpDomainPtr self
+	)
 {
 	eEsifError rc = ESIF_OK;
 	UInt32 pmaxValue = 0;
@@ -571,6 +963,49 @@ static eEsifError EsifUpDomain_BatteryStatusDetectInit(
 
 	rc = ESIF_E_NOT_SUPPORTED;
 	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS);
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifUpDomain_WorkloadClassificationDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+
+	UInt32 socWorkloadSourceValue = 0;
+	EsifPrimitiveTuple socWorkloadSourceTuple = { GET_SOCWLC_SOURCE, 0, 255 };
+	EsifData socWorkloadSourceData = { ESIF_DATA_UINT32, &socWorkloadSourceValue, sizeof(socWorkloadSourceValue), 0 };
+
+	UInt32 socWorkloadValue = 0;
+	EsifPrimitiveTuple socWorkloadTuple;
+	EsifData socWorkloadData = { ESIF_DATA_UINT32, &socWorkloadValue, sizeof(socWorkloadValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION, &socWorkloadSourceTuple, &socWorkloadSourceData);
+	if (rc == ESIF_OK && socWorkloadSourceValue == ESIF_SOCWC_SOURCE_HARDWARE) {
+		socWorkloadTuple.id = GET_HW_SOC_WORKLOAD;
+		socWorkloadTuple.domain = 0;
+		socWorkloadTuple.instance = ESIF_INSTANCE_INVALID;
+	}
+	else {
+		//
+		// Calling GET_SOC_WORKLOAD here results in the UPE_SOCWC being loaded,
+		// and therefore, additional power consumption. Removing check for now
+		// while final solution is determined.
+		//
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION, &socWorkloadTuple, &socWorkloadData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION);
 
 exit:
 	return rc;
@@ -994,7 +1429,7 @@ static void EsifUpDomain_PollTemp(
 
 	if (self->tempPollPeriod > 0 && EsifUpDomain_AnyTempThresholdValid(self)) {
 		if (self->tempPollInitialized == ESIF_TRUE) {
-			pollPeriod = (self->tempInvalidValueDetected && (self->tempPollPeriod < ESIF_DOMAIN_TEMP_INVALID_POLL_PERIOD)) ? self->tempPollPeriod : self->tempPollPeriod;
+			pollPeriod = (self->tempInvalidValueDetected && (self->tempPollPeriod < ESIF_DOMAIN_TEMP_INVALID_POLL_PERIOD)) ? ESIF_DOMAIN_TEMP_INVALID_POLL_PERIOD : self->tempPollPeriod;
 			rc = esif_ccb_timer_set_msec(&self->tempPollTimer,
 				pollPeriod);
 		}

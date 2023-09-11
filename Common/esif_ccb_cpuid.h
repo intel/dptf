@@ -86,6 +86,7 @@
  * Various CPU Family models
  */
 // TBD: Merge the list from the windows file here eventually.
+#define CPUID_FAMILY_MODEL_STEP_MASK 0x0FFF0FFF		// 27:20-xFam, 19:16-xMod, 11:8-Fam, 7:4-Mod, 3:0-Step
 #define CPUID_FAMILY_MODEL_MASK     0x0FFF0FF0		// 27:20-xFam, 19:16-xMod, 11:8-Fam, 7:4-Mod
 #define CPUID_FAMILY_MODEL_SNB      0x000206A0		// Sandy Bridge
 #define CPUID_FAMILY_MODEL_IVB      0x000306A0		// Ivy Bridge
@@ -115,6 +116,7 @@
 #define CPUID_FAMILY_MODEL_RPL_P	0x000B06A0		// Raptor Lake P
 #define CPUID_FAMILY_MODEL_ADL_N	0x000B06E0		// Alder Lake N
 #define CPUID_FAMILY_MODEL_ADL_P	0x000906A0		// Alder Lake P
+#define CPUID_FAMILY_MODEL_PTL		0x000C06C0		// Panther Lake U/P/H
 #pragma pack(push, 1)
 
 typedef struct esif_ccb_cpuid_s {

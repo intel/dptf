@@ -54,8 +54,11 @@ namespace DptfRequestType
 		// Processor Control
 		ProcessorControlSetUnderVoltageThreshold,
 		ProcessorControlSetTccOffsetTemperature,
+		ProcessorControlSetPerfPreferenceMax,
+		ProcessorControlSetPerfPreferenceMin,
 		ProcessorControlGetMaxTccOffsetTemperature,
 		ProcessorControlGetMinTccOffsetTemperature,
+		ProcessorControlGetPcieThrottleRequestState,
 
 		// TemperatureControl
 		TemperatureControlGetTemperatureStatus,
@@ -85,6 +88,13 @@ namespace DptfRequestType
 
 		// Data
 		DataGetConfigurationFileContent,
+
+		// Publish Event
+		PublishEvent,
+
+		//Participant
+		CreateParticipant,
+		DeleteParticipant,
 
 		// END
 		END

@@ -19,8 +19,10 @@
 #include "DptfRequest.h"
 #include "DptfBufferStream.h"
 
+using namespace std;
+
 DptfRequest::DptfRequest()
-	: m_requestType((DptfRequestType::Enum)Constants::Invalid)
+	: m_requestType(static_cast<DptfRequestType::Enum>(Constants::Invalid))
 	, m_participantIndex(Constants::Invalid)
 	, m_domainIndex(Constants::Invalid)
 {
@@ -59,10 +61,6 @@ DptfRequest::DptfRequest(
 {
 }
 
-DptfRequest::~DptfRequest()
-{
-}
-
 DptfRequestType::Enum DptfRequest::getRequestType() const
 {
 	return m_requestType;
@@ -83,16 +81,29 @@ const DptfBuffer& DptfRequest::getData() const
 	return m_data;
 }
 
-const UInt32 DptfRequest::getDataAsUInt32() const
+UInt32 DptfRequest::getDataAsUInt32() const
 {
 	if (m_data.size() != sizeof(UInt32))
 	{
-		throw dptf_exception("Data is not of UInt32 length.");
+		throw dptf_exception("Data is not of UInt32 length."s);
 	}
 
 	DptfBuffer bufferCopy = m_data;
 	DptfBufferStream stream(bufferCopy);
-	UInt32 dataAsUInt32 = stream.readNextUint32();
+	UInt32 dataAsUInt32 = stream.readNextUInt32();
+	return dataAsUInt32;
+}
+
+UInt32 DptfRequest::getFirstUInt32Data() const
+{
+	if (m_data.size() < sizeof(UInt32))
+	{
+		throw dptf_exception("Data is less than UInt32 length.");
+	}
+
+	DptfBuffer bufferCopy = m_data;
+	DptfBufferStream stream(bufferCopy);
+	UInt32 dataAsUInt32 = stream.readNextUInt32();
 	return dataAsUInt32;
 }
 

@@ -83,10 +83,16 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "ProcessorControlSetUnderVoltageThreshold";
 	case ProcessorControlSetTccOffsetTemperature:
 		return "ProcessorControlSetTccOffsetTemperature";
+	case ProcessorControlSetPerfPreferenceMax:
+		return "ProcessorControlSetPerfPreferenceMax";
+	case ProcessorControlSetPerfPreferenceMin:
+		return "ProcessorControlSetPerfPreferenceMin";
 	case ProcessorControlGetMaxTccOffsetTemperature:
 		return "ProcessorControlGetMaxTccOffsetTemperature";
 	case ProcessorControlGetMinTccOffsetTemperature:
 		return "ProcessorControlGetMinTccOffsetTemperature";
+	case ProcessorControlGetPcieThrottleRequestState:
+		return "ProcessorControlGetPcieThrottleRequestState";
 	case TemperatureControlGetTemperatureStatus:
 		return "TemperatureControlGetTemperatureStatus";
 	case TemperatureControlGetTemperatureThresholds:
@@ -113,6 +119,12 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "SocWorkloadClassificationGetExtendedWorkloadPrediction";
 	case DataGetConfigurationFileContent:
 		return "DataGetConfigurationFileContent";
+	case PublishEvent:
+		return "PublishEvent";
+	case CreateParticipant:
+		return "CreateParticipant";
+	case DeleteParticipant:
+		return "DeleteParticipant";
 	default:
 		throw dptf_exception("Invalid request type given to ToString");
 	}

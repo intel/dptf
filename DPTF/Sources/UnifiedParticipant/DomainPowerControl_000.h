@@ -44,6 +44,12 @@ public:
 		PowerControlType::Type controlType) override;
 	virtual Bool isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getSocPowerFloorState(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setPowerLimitMin(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit) override;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -91,6 +97,7 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		Bool socPowerFloorState) override;
+	virtual void clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void clearPowerLimit(UIntN participantIndex, UIntN domainIndex) override;
 
 	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
@@ -110,6 +117,7 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Power getThermalDesignPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void removePowerLimitPolicyRequest(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -118,6 +126,13 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const Power& powerSharePolicyPower) override;
+	virtual void setPowerShareEffectiveBias(
+		UIntN participantIndex, 
+		UIntN domainIndex, 
+		UInt32 powerShareEffectiveBias) override;
+
+	// DomainPowerControl
+	virtual void updateSocPowerFloorState(UInt32 socPowerFloorState) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

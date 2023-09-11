@@ -18,35 +18,35 @@
 
 #include "DomainPropertiesSet.h"
 
-DomainPropertiesSet::DomainPropertiesSet(std::vector<DomainProperties> domainProperties)
+DomainPropertiesSet::DomainPropertiesSet(const std::vector<DomainProperties>& domainProperties)
 	: m_domainProperties(domainProperties)
 {
 }
 
-DomainPropertiesSet::DomainPropertiesSet(DomainProperties domainProperties)
+DomainPropertiesSet::DomainPropertiesSet(const DomainProperties& domainProperties)
 {
 	m_domainProperties.push_back(domainProperties);
 }
 
 DomainProperties DomainPropertiesSet::getDomainProperties(UIntN domainIndex) const
 {
-	for (auto properties = m_domainProperties.begin(); properties != m_domainProperties.end(); properties++)
+	for (const auto& properties : m_domainProperties)
 	{
-		if (properties->getDomainIndex() == domainIndex)
+		if (properties.getDomainIndex() == domainIndex)
 		{
-			return *properties;
+			return properties;
 		}
 	}
 
 	throw dptf_exception("Domain properties for domain index of " + std::to_string(domainIndex) + " does not exist.");
 }
 
-UIntN DomainPropertiesSet::getDomainCount(void) const
+UIntN DomainPropertiesSet::getDomainCount() const
 {
 	return static_cast<UIntN>(m_domainProperties.size());
 }
 
-const DomainProperties DomainPropertiesSet::operator[](UIntN index) const
+DomainProperties DomainPropertiesSet::operator[](UIntN index) const
 {
 	return m_domainProperties.at(index);
 }

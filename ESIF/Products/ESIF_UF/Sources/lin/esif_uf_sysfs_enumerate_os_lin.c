@@ -51,8 +51,10 @@
 #define NUM_CPU_LOCATIONS 3
 #define SIZE_OF_UINT64	(sizeof(UInt64))
 
-#define INTEL_VENDOR_STRING  "0x8086"
-#define SYSFS_VENDOR_ATTRIBUTE "vendor"
+#define INTEL_VENDOR_ID_STRING  "0x8086"
+#define INTEL_VENDOR_ID         (0x8086)
+#define SYSFS_VENDOR_ATTRIBUTE  "vendor"
+#define SYSFS_DEVICE_ATTRIBUTE  "device"
 
 static int g_zone_count = 0;
 const char *CPU_location[NUM_CPU_LOCATIONS] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1"};
@@ -76,9 +78,12 @@ SysfsAttrToEventMap gSysfsAttrToEventMapList[] = {
 #define ACPI_CPPC_SYSFS_REL_PATH    "/acpi_cppc/"
 #define HIGH_PERF_SYSFS_NAME        "highest_perf"
 
-Bool IsSystemCpuIndexTableInitialized(SystemCpuIndexTablePtr self);
-void AddEntryToSystemCpuIndexTable(SystemCpuIndexTablePtr self, UInt32 cpuIndex, UInt32 highestPerf);
-SystemCpuIndexTable g_systemCpuIndexTable = { 0 };
+
+typedef struct CapabilityData_t {
+	UInt32  capabilityMask;
+	UInt32  capabilityArray[MAX_MASK_SIZE];
+} CapabilityData , *CapabilityDataPtr;
+
 static Bool IsSupportedDttPlatformDevice(const char *hidDevice);
 static void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
 static Int32 scanPCI(void);
@@ -97,19 +102,23 @@ static eEsifError newParticipantCreate(
 	const char *deviceName,
 	const char *devicePath,
 	const char *objectId,
-	const UInt32 acpiType
+	const UInt32 acpiType,
+	UInt16 vendorId,
+	UInt16 deviceId
 	);
 static Bool IsValidDirectoryPath(const char* dirPath);
 static Bool IsValidFilePath(char* filePath);
 static eEsifError GetManagerSysfsPath();
 static void EnumerateSysfsReadAttributes(char *ACPI_name,char *participant_path);
 static void AddSysfsReadTableEntry(char *ACPI_name, char *sysfsAtrributePath, Int32 eventType);
-static eEsifError EnumerateCoresBasedOnPerformance();
 static Bool IsIETMDevice(const char *hidDevice);
 static Bool IsTCPUPlatformDevice(const char *hidDevice);
+static eEsifError GetPCIDeviceId();
 
 char g_ManagerSysfsPath[MAX_SYSFS_PATH] = { 0 };
 char g_TCPUSysfsPath[MAX_SYSFS_PATH] = { 0 };
+char g_PciDeviceIdStr[HID_LEN] = {0};
+UInt32 g_PciDeviceId = 0;
 
 struct participantInfo {
 	char sysfsType[MAX_ZONE_NAME_LEN];
@@ -165,12 +174,204 @@ static void createParticipantsFromThermalSysfs(void)
 					partInfo[j].deviceName, // "INT340X"
 					g_thermalZonePtr[i].thermalPath,
 					partInfo[j].acpiScope,
-					ESIF_PARTICIPANT_INVALID_TYPE); // Only WWAN/WIFI need to use different types
+					ESIF_PARTICIPANT_INVALID_TYPE, // Only WWAN/WIFI need to use different types
+					0,
+					0);
 
 				break;
 			}
 		}
 	}
+}
+
+static eEsifError ParseCapabilityStringConstant(char *capabilityStr,CapabilityDataPtr capabilityDataPtr )
+{
+	eEsifError rc = ESIF_OK;
+	char *token = NULL;
+	char *next_token = NULL;
+	UInt8 capabilityArrayIndex = 0;
+
+	//Extract the capability mask
+	token = esif_ccb_strtok(capabilityStr,":",&next_token);
+	if ( token == NULL ) {
+		rc = ESIF_E_INVALID_CAPABILITY_MASK;
+		goto exit;
+	}
+
+	esif_ccb_sscanf(token,"%x",&capabilityDataPtr->capabilityMask);
+	ESIF_TRACE_DEBUG("\n Capability Mask : %x",capabilityDataPtr->capabilityMask );
+
+	//Extract the capability array
+	token = esif_ccb_strtok(NULL,":",&next_token);
+	while (token != NULL) {
+		esif_ccb_sscanf(token,"%x",&capabilityDataPtr->capabilityArray[capabilityArrayIndex]);
+		ESIF_TRACE_DEBUG("\n Capability Array[%d] : %x",capabilityArrayIndex, capabilityDataPtr->capabilityArray[capabilityArrayIndex] );
+		capabilityArrayIndex++;
+		token = esif_ccb_strtok(NULL,":",&next_token);
+	}
+
+exit:
+	return rc;
+}
+
+static void DumpCapabilityData(const EsifDomainCapabilityPtr capabilityDataPtr)
+{
+	ESIF_ASSERT(NULL != capabilityDataPtr);
+
+	ESIF_TRACE_DEBUG("\n Capability Mask : %x", capabilityDataPtr->capability_flags);
+	for ( int i = 0; i < MAX_MASK_SIZE ; i++) {
+		ESIF_TRACE_DEBUG("\n Capability Array[%d] : %x",i, capabilityDataPtr->capability_mask[i]);
+	}
+}
+
+static eEsifError UpdateCapabilityInFpc(EsifUpPtr upPtr,CapabilityDataPtr capabilityDataPtr)
+{
+	eEsifError rc = ESIF_OK;
+	EsifDspPtr dspPtr = NULL;
+	eEsifError iterRc = ESIF_OK;
+	EsifFpcDomainIterator dspDomainiterator = { 0 };
+	EsifFpcDomainPtr fpcDomainPtr = NULL;
+
+	ESIF_ASSERT(NULL != upPtr);
+	ESIF_ASSERT(NULL != capabilityDataPtr);
+
+	// Update the capability in fpcptr first
+	dspPtr = EsifUp_GetDsp(upPtr);
+	if (NULL == dspPtr) {
+		rc = ESIF_E_NOT_FOUND;
+		ESIF_TRACE_DEBUG("\n Get DSP FAILED");
+		goto exit;
+	}
+
+	if ((NULL == dspPtr->init_fpc_iterator) ||
+		(NULL == dspPtr->get_next_fpc_domain)) {
+		ESIF_TRACE_DEBUG("\n DSP is not initialized");
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	iterRc = dspPtr->init_fpc_iterator(dspPtr, &dspDomainiterator);
+	if (ESIF_OK != iterRc) {
+		ESIF_TRACE_DEBUG("\n Init iterator Failed");
+		goto exit;
+	}
+
+	iterRc = dspPtr->get_next_fpc_domain(dspPtr, &dspDomainiterator, &fpcDomainPtr);
+	while (ESIF_OK == iterRc) {
+		if (NULL == fpcDomainPtr) {
+			iterRc = dspPtr->get_next_fpc_domain(dspPtr, &dspDomainiterator, &fpcDomainPtr);
+			continue;
+		}
+
+		if ((UInt16) fpcDomainPtr->descriptor.domain == ESIF_PRIMITIVE_DOMAIN_D0) {
+			ESIF_TRACE_DEBUG("\n Matching Domain ID found");
+			ESIF_TRACE_DEBUG("\n Default Capabilities:");
+			DumpCapabilityData(&fpcDomainPtr->capability_for_domain);
+
+			/* Reset capabilities on the fpcPtr */
+			fpcDomainPtr->capability_for_domain.capability_flags = capabilityDataPtr->capabilityMask;
+			for ( int capabilityIndex = 0; capabilityIndex < MAX_MASK_SIZE ; capabilityIndex++) {
+				fpcDomainPtr->capability_for_domain.capability_mask[capabilityIndex] = capabilityDataPtr->capabilityArray[capabilityIndex];
+				if (fpcDomainPtr->capability_for_domain.capability_flags & (1 << capabilityIndex)) {
+					fpcDomainPtr->capability_for_domain.number_of_capability_flags++;
+				}
+			}
+			ESIF_TRACE_DEBUG("\n New Capabilities after Update:");
+			DumpCapabilityData(&fpcDomainPtr->capability_for_domain);
+			break;
+		}
+
+		iterRc = dspPtr->get_next_fpc_domain(dspPtr, &dspDomainiterator, &fpcDomainPtr);
+	}
+
+	ESIF_TRACE_INFO("\n Capability updated in fpc succesfully!");
+
+exit:
+	return rc;
+}
+
+static eEsifError ReevaluateParticipantCapabilities(EsifUpPtr upPtr)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple tuple = {SET_PARTICIPANT_CAPABILITIES_EVAL, ESIF_PRIMITIVE_DOMAIN_D0, 255};
+	UInt32 dummyData = 0;
+	EsifData request = {ESIF_DATA_UINT32, &dummyData, sizeof(dummyData), sizeof(dummyData)};
+
+	ESIF_ASSERT(NULL != upPtr);
+
+	// Evaluate participant capability based on the new updated capabilities
+	rc = EsifUp_ExecutePrimitive(upPtr, &tuple, &request, NULL);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_WARN("Reevaluation of participant capabilities failed");
+		goto exit;
+	}
+
+	ESIF_TRACE_INFO("\n Capability updated succesfully!");
+
+exit:
+	return rc;
+}
+
+static eEsifError UpdateCapabilityVersionIfRequired()
+{
+	eEsifError rc = ESIF_OK;
+	CapabilityData capability = { 0 };
+	EsifFpcDomainPtr fpcDomainPtr = NULL;
+	EsifPrimitiveTuple capabilityTuple = { GET_CAPABILITY_LIST, ESIF_PRIMITIVE_DOMAIN_D0 , 255 };
+	char capabilityStr[128] = { 0 };
+	EsifData capabilityData = { ESIF_DATA_STRING, &capabilityStr, sizeof(capabilityStr), sizeof(capabilityStr) };
+	EsifUpPtr upPtr = NULL;
+
+	// Retrieve the PCI Device ID
+	rc = GetPCIDeviceId();
+	if ( rc!= ESIF_OK) {
+		goto exit;
+	}
+
+	// Retrieve the TCPU Participant handle
+	upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+	if ( upPtr == NULL ) {
+		ESIF_TRACE_WARN("TCPU Participant Not Found");
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;		
+	}
+
+	// Execute the GET_CAPABILITY_LIST primitive
+	// On legacy platforms this will fail and exit
+	// For MTL and later, evaluate SOC Specific primtive to update the capabiilty version accordingly
+	rc = EsifUp_ExecutePrimitive(upPtr, &capabilityTuple, NULL, &capabilityData);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Error Executing Primitive %d . Return code: %s\n",
+			capabilityTuple.id,
+			esif_rc_str(rc));
+		goto exit;
+	}
+
+	// Parse the capability string to structure
+	ESIF_TRACE_INFO("\n Capability Data Retrieved : %s", capabilityStr);
+	rc = ParseCapabilityStringConstant( capabilityStr, &capability);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_WARN("Capability string parse failed");
+		goto exit;
+	}
+
+	// Update the capability in fpc first
+	rc = UpdateCapabilityInFpc( upPtr, &capability);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	// Re-Evaluate participant capability based on the new updated capabilities
+	rc = ReevaluateParticipantCapabilities( upPtr);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	ESIF_TRACE_INFO("\n Capability updated succesfully!");
+
+exit:
+	EsifUp_PutRef(upPtr);
+	return rc;
 }
 
 void SysfsRegisterParticipants ()
@@ -201,10 +402,7 @@ void SysfsRegisterParticipants ()
 	/* we forced IETM to index 0 for now because ESIF expects that */
 	EsifUpPm_RegisterParticipant(origin, &sysPart, &newInstance);
 	GetManagerSysfsPath();
-	rc = EnumerateCoresBasedOnPerformance();
-	if ( rc!= ESIF_OK) {
-		ESIF_TRACE_WARN("\n Failure in enumerating Cores");
-	}
+
 	// Initialize TCPU sysfs path to 0
 	esif_ccb_memset(g_TCPUSysfsPath,0,sizeof(g_TCPUSysfsPath));
 
@@ -219,12 +417,20 @@ void SysfsRegisterParticipants ()
 	// commonly known types exposed in sysfs such as "x86_pkg_temp"
 	createParticipantsFromThermalSysfs();
 
+	// Check if capability version needs to be update for TCPU participant
+	rc = UpdateCapabilityVersionIfRequired();
+	if ( rc != ESIF_OK ) {
+		ESIF_TRACE_WARN("Failed to update the capability version\n");
+	}
+
 	// Special handling for Android OS that may have Java based participants
 	// Possibly add two more Java participants - Display and WWAN - but only if they do not exist yet
 	UNREFERENCED_PARAMETER(classGuid);
+exit:
+	return;
 }
 
-static eEsifError newParticipantCreate (
+static eEsifError newParticipantCreate(
 	const UInt8 version,
 	const esif_guid_t classGuid,
 	const enum esif_participant_enum enumerator,
@@ -235,7 +441,9 @@ static eEsifError newParticipantCreate (
 	const char *deviceName,
 	const char *devicePath,
 	const char *objectId,
-	const UInt32 acpiType
+	const UInt32 acpiType,
+	UInt16 vendorId,
+	UInt16 deviceId
 	)
 {
 	EsifParticipantIface sysPart;
@@ -255,6 +463,9 @@ static eEsifError newParticipantCreate (
 	sysPart.send_event = NULL;
 	sysPart.recv_event = NULL;
 	sysPart.acpi_type = acpiType;
+	sysPart.pciVendorId = vendorId;
+	sysPart.pciDeviceId = deviceId;
+
 	esif_ccb_strncpy(sysPart.name,name,ESIF_NAME_LEN);
 	esif_ccb_strncpy(sysPart.desc,desc,ESIF_DESC_LEN);
 	esif_ccb_strncpy(sysPart.object_id,objectId,ESIF_SCOPE_LEN);
@@ -289,7 +500,7 @@ static Bool IsIntelDevice(const char * pciDevicePath)
 		goto exit;
 	}
 
-	if (esif_ccb_strcmp(vendorIdStr, INTEL_VENDOR_STRING) != 0) {
+	if (esif_ccb_strcmp(vendorIdStr, INTEL_VENDOR_ID_STRING) != 0) {
 		// Not found, exiting
 		goto exit;
 	}
@@ -300,8 +511,39 @@ exit:
 	return vendorIdFound;
 }
 
+static eEsifError GetPCIDeviceId()
+{
+	eEsifError rc = ESIF_OK;
+
+	if ( esif_ccb_strlen(g_TCPUSysfsPath, sizeof(g_TCPUSysfsPath)) == 0) {
+		ESIF_TRACE_WARN("TCPU PCI path is not valid\n");
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	if (SysfsGetString(g_TCPUSysfsPath,SYSFS_DEVICE_ATTRIBUTE, g_PciDeviceIdStr, sizeof(g_PciDeviceIdStr)) < 0) {
+		ESIF_TRACE_ERROR("No Device info found for PCI Device\n");
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;
+	}
+
+	errno = 0;
+	g_PciDeviceId= strtol(g_PciDeviceIdStr, NULL, 0);
+	if (errno != 0) {
+		ESIF_TRACE_WARN("\n strtol falied with error code : %d", errno);
+		g_PciDeviceId = 0;
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	ESIF_TRACE_INFO("\n PCI Device ID : %s (%x)", g_PciDeviceIdStr, g_PciDeviceId);
+
+exit:
+	return rc;
+}
+
 static Int32 scanPCI(void)
 {
+	eEsifError rc = ESIF_OK;
 	Int32 returnCode = 0;
 	DIR *dir = NULL;
 	struct dirent **namelist = NULL;
@@ -309,7 +551,7 @@ static Int32 scanPCI(void)
 	char participant_path[MAX_SYSFS_PATH] = { 0 };
 	char firmware_path[MAX_SYSFS_PATH] = { 0 };
 	char participant_scope[ESIF_SCOPE_LEN] = { 0 };
-	UInt32 ptype = ESIF_DOMAIN_TYPE_PROCESSOR;
+	UInt32 ptype = ESIF_DOMAIN_TYPE_INVALID;
 	esif_guid_t classGuid = ESIF_PARTICIPANT_CPU_CLASS_GUID;
 
 	dir = opendir(SYSFS_PCI);
@@ -357,6 +599,7 @@ static Int32 scanPCI(void)
 
 		char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
 		esif_ccb_sprintf(sizeof(g_TCPUSysfsPath), g_TCPUSysfsPath, "%s", participant_path);
+
 		/* map to thermal zone (try pkg thermal zone first)*/
 		for (UInt32 thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
 			thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
@@ -367,18 +610,46 @@ static Int32 scanPCI(void)
 			}
 		}
 
-		newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
-			classGuid,
-			ESIF_PARTICIPANT_ENUM_SYSFS,
-			0x0,
-			ACPI_name,
-			ESIF_PARTICIPANT_CPU_DESC,
-			"N/A",
-			SYSFS_PROCESSOR_HID,
-			participant_path,
-			participant_scope,
-			ptype);
+		rc = GetPCIDeviceId();
+		if ( rc != 0 ) {
+			continue;
+		}
 
+		if ( esif_ccb_strcmp(esif_device_str(g_PciDeviceId), ESIF_NOT_AVAILABLE) == 0) {
+			ESIF_TRACE_WARN("Unsupported PCI Device ID detected. Enumerating as legacy tcpu participant device\n");
+			newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
+				classGuid,
+				ESIF_PARTICIPANT_ENUM_SYSFS,
+				0x0,
+				ESIF_PARTICIPANT_CPU_NAME,
+				ESIF_PARTICIPANT_CPU_DESC,
+				"N/A",
+				SYSFS_PROCESSOR_HID,
+				participant_path,
+				participant_scope,
+				ptype,
+				0,
+				0
+				);
+		}
+		else {
+			//Enumerating as PCI Participant
+			newParticipantCreate(ESIF_EVENT_DATA_PARTICIPANT_CREATE_UF_VERSION,
+				classGuid,
+				ESIF_PARTICIPANT_ENUM_PCI,
+				0x0,
+				ESIF_PARTICIPANT_CPU_NAME,
+				ESIF_PARTICIPANT_CPU_DESC,
+				"N/A",
+				"",
+				participant_path,
+				participant_scope,
+				ptype,
+				INTEL_VENDOR_ID, // TBAKP
+				g_PciDeviceId);
+		}
+
+		ESIF_TRACE_INFO("TCPU Participant Created\n");
 		gSocParticipantFound = ESIF_TRUE;
 		esif_ccb_free(namelist[i]);
 	}
@@ -495,7 +766,9 @@ static int scanPlat(void)
 					hid,
 					participant_path,
 					participant_scope,
-					ptype);
+					ptype,
+					0,
+					0);
 		}
 		// For devices with no mapping in thermal zone,
 		else {
@@ -509,7 +782,9 @@ static int scanPlat(void)
 					hid,
 					participant_path,
 					participant_scope,
-					ptype);
+					ptype,
+					0,
+					0);
 			ESIF_TRACE_INFO("Participant created with HID : %s", hid);
 			EnumerateSysfsReadAttributes(ACPI_name,participant_path);
 		}
@@ -774,139 +1049,3 @@ static Bool IsTCPUPlatformDevice(const char *hidDevice)
 	return ESIF_FALSE;
 }
 
-Int32 CpuSysfsFilter(const struct dirent * entry)
-{
-	// entry should be a link and prefix with cpu
-	if ((entry->d_type == DT_LNK ) && 
-		(esif_ccb_strstr(entry->d_name, "cpu") == entry->d_name)) {
-		return 1;
-	}
-	else {
-		return 0;
-	}
-}
-
-Bool IsSystemCpuIndexTableInitialized(SystemCpuIndexTablePtr self)
-{
-	return self->isInitialized;
-}
-
-void DumpSystemCpuIndexTable(SystemCpuIndexTablePtr self)
-{
-	ESIF_TRACE_DEBUG(" IsInitialized : %d", self->isInitialized);
-	ESIF_TRACE_DEBUG(" Highest Performance Index : %d" , self->highestPerformanceCpuIndex);
-	ESIF_TRACE_DEBUG(" Lowest Performance Index : %d" , self->lowestPerformanceCpuIndex);
-	ESIF_TRACE_DEBUG(" Number of CPU Types : %d" , self->numberOfCpuTypes);
-	ESIF_TRACE_DEBUG(" Number of CPUs : %d" , self->numberOfCpus);
-	for ( UInt32 i = 0 ; i < self->numberOfCpuTypes ; i++) {
-		ESIF_TRACE_DEBUG(" Performance State : %d" , self->perfCpuMapping[i].highestPerf);
-		ESIF_TRACE_DEBUG(" Number of Indexes : %d" , self->perfCpuMapping[i].numberOfIndexes);
-		for ( UInt32 j = 0 ; j < self->perfCpuMapping[i].numberOfIndexes ; j++) {
-			ESIF_TRACE_DEBUG(" %d" , self->perfCpuMapping[i].indexes[j]);
-		}
-	}
-}
-
-void AddEntryToSystemCpuIndexTable(SystemCpuIndexTablePtr self, UInt32 cpuIndex, UInt32 highestPerf)
-{
-	ESIF_ASSERT(self != NULL);
-
-	if ( self->numberOfCpuTypes > 0 ) {
-		// Check if an entry is there for this frequency already
-		for (UInt32 i = 0 ; i < self->numberOfCpuTypes; i++) {
-			if (self->perfCpuMapping[i].highestPerf == highestPerf ) {
-				UInt32 numberOfIndexes = self->perfCpuMapping[i].numberOfIndexes;
-				self->perfCpuMapping[i].indexes[numberOfIndexes] = cpuIndex;
-				//Increment the number of indexes
-				self->perfCpuMapping[i].numberOfIndexes++;
-				ESIF_TRACE_DEBUG("Updated the existing entry cpuIndex : %d perfState : %d\n" , cpuIndex, highestPerf);
-				goto exit;
-			}
-		}
-	}
-	//New Performance state entry to be added
-	self->perfCpuMapping[self->numberOfCpuTypes].highestPerf = highestPerf;
-	UInt32 numberOfIndexes = self->perfCpuMapping[self->numberOfCpuTypes].numberOfIndexes;
-	self->perfCpuMapping[self->numberOfCpuTypes].indexes[numberOfIndexes] = cpuIndex;
-	//Increment the number of indexes
-	self->perfCpuMapping[self->numberOfCpuTypes].numberOfIndexes++;
-	//Update the lowest perf index
-	if ( highestPerf <= self->perfCpuMapping[self->lowestPerformanceCpuIndex].highestPerf) {
-		self->lowestPerformanceCpuIndex = self->numberOfCpuTypes;
-	}
-	//Update the highest perf index	
-	if ( highestPerf >= self->perfCpuMapping[self->highestPerformanceCpuIndex].highestPerf) {
-		self->highestPerformanceCpuIndex = self->numberOfCpuTypes;
-	}
-	//Increment the number of CPU Types
-	self->numberOfCpuTypes++;
-	ESIF_TRACE_DEBUG("New entry added for index : %d perfState : %d\n" , cpuIndex, highestPerf);
-
-exit:	
-	return;
-}
-
-eEsifError EnumerateCoresBasedOnPerformance()
-{
-	eEsifError rc = ESIF_OK;
-	DIR *dir = NULL;
-	struct dirent **namelist = NULL;
-	Int32 numCores = 0;
-
-	//return if already initialized
-	if (IsSystemCpuIndexTableInitialized(&g_systemCpuIndexTable)) {
-		ESIF_TRACE_WARN("System CPU Index Table already Initialized\n");
-		return rc;
-	}
-
-	esif_ccb_memset(&g_systemCpuIndexTable, 0, sizeof(g_systemCpuIndexTable));
-	g_systemCpuIndexTable.isInitialized = ESIF_FALSE;
-
-	dir = opendir(CPU_SYSFS_PATH);
-	if (dir == NULL) {
-		ESIF_TRACE_ERROR("No CPU sysfs\n");
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-
-	numCores = scandir(CPU_SYSFS_PATH, &namelist, CpuSysfsFilter, alphasort);
-	if (numCores < 0) {
-		ESIF_TRACE_ERROR("No CPU sysfs directory to scan\n");
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-
-	for ( UInt32 i = 0; i < numCores ; i++ ) {
-		char acpiCppcPath[MAX_SYSFS_PATH] = { 0 };
-		Int32 highestPerformance = 0;
-		char cpuString[4] = { 0 };
-
-		esif_ccb_strcpy( cpuString, &namelist[i]->d_name[3], sizeof(cpuString));
-		UInt32 cpuIndex = esif_atoi(cpuString);
-		esif_ccb_strcpy(acpiCppcPath, CPU_SYSFS_PATH , sizeof(acpiCppcPath));
-		esif_ccb_strcat(acpiCppcPath,"/",sizeof(acpiCppcPath));
-		esif_ccb_strcat(acpiCppcPath,namelist[i]->d_name,sizeof(acpiCppcPath));
-		esif_ccb_strcat(acpiCppcPath,ACPI_CPPC_SYSFS_REL_PATH,sizeof(acpiCppcPath));
-		ESIF_TRACE_DEBUG("\n Constructed ACPI CPPC path : %s" , acpiCppcPath);
-		rc = SysfsGetInt(acpiCppcPath, HIGH_PERF_SYSFS_NAME, &highestPerformance);
-		if (rc != ESIF_OK) {
-			ESIF_TRACE_ERROR("Fail to get highest_perf\n");
-			esif_ccb_free(namelist[i]);
-			continue;
-		}
-		AddEntryToSystemCpuIndexTable(&g_systemCpuIndexTable, cpuIndex, highestPerformance);
-		esif_ccb_free(namelist[i]);
-	}
-	g_systemCpuIndexTable.numberOfCpus = numCores;
-	g_systemCpuIndexTable.isInitialized = ESIF_TRUE;
-	DumpSystemCpuIndexTable(&g_systemCpuIndexTable);
-	ESIF_TRACE_INFO("\n System CPU Index Table Initialized");
-exit:
-	if ( namelist != NULL ) {
-		esif_ccb_free(namelist);
-	}
-	if ( dir != NULL) {
-		closedir(dir);
-	}
-	return rc;
-}

@@ -22,28 +22,33 @@
 #include "ConditionType.h"
 #include "XmlNode.h"
 
-class dptf_export SwOemVariables final
+class dptf_export SwOemVariables
 {
 public:
 	SwOemVariables();
 	SwOemVariables(const std::map<UInt32, UInt32>& variables);
-	virtual ~SwOemVariables();
+	virtual ~SwOemVariables() = default;
 
-	std::map<UInt32, UInt32> getSwOemVariables(void) const;
+	SwOemVariables(const SwOemVariables& other) = default;
+	SwOemVariables& operator=(const SwOemVariables& other) = default;
+	SwOemVariables(SwOemVariables&& other) = default;
+	SwOemVariables& operator=(SwOemVariables&& other) = default;
+
+	std::map<UInt32, UInt32> getSwOemVariables() const;
 	void add(const SwOemVariables& newSwOemVariables);
 	static SwOemVariables createFromAppBroadcastData(const DptfBuffer& swOemVariablesData);
 	static SwOemVariables createFromTableObjectData(const DptfBuffer& swOemVariablesData);
 	static ConditionType::Type getConditionForVariable(UInt32 variableId);
 	static ConditionType::Type getConditionForNewSwOemVariable(UInt32 variableId);
-	UIntN getNumberOfVariables(void) const;
+	UIntN getNumberOfVariables() const;
 	UInt32 getValueForVariableId(UInt32 variableId) const;
 	Bool operator==(const SwOemVariables& swOemVariables) const;
 	DptfBuffer toSwOemVariablesBinary() const;
 	DptfBuffer toSwOemVariablesDvBinary() const;
 	static Bool isSwOemCondition(UInt64 condition);
-	std::shared_ptr<XmlNode> getXml(void) const;
+	std::shared_ptr<XmlNode> getXml() const;
 
-	static const UInt32 DefaultSwOemVarCount = 6;
+	static constexpr UInt32 DefaultSwOemVarCount = 6;
 
 private:
 	std::map<UInt32, UInt32> m_variables;

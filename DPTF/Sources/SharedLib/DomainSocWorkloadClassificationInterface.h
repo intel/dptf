@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
+#include "SocWorkloadSource.h"
 
 class DomainSocWorkloadClassificationInterface
 {
@@ -26,6 +27,7 @@ public:
 	virtual ~DomainSocWorkloadClassificationInterface(){};
 
 	virtual UInt32 getSocWorkloadClassification() = 0;
+	virtual SocWorkloadSource::Source getSocWorkloadClassificationSource() = 0;
 	virtual void updateSocWorkloadClassification(UInt32 socWorkloadClassification) = 0;
 
 	virtual UInt32 getExtendedWorkloadPrediction() = 0;

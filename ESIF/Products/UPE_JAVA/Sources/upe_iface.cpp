@@ -42,6 +42,7 @@ extern "C" {
  */
 ActSendEventFunction g_sendEventFuncPtr = NULL;
 ActExecutePrimitiveFunction g_execPrimFuncPtr = NULL;
+ActEventRegistrationFunction g_eventRegistrationFuncPtr = NULL;
 
 ActWriteLogFunction g_esifLogFuncPtr = NULL;
 eLogType g_upeTraceLevel = ACTION_UPE_TRACE_LEVEL_DEFAULT;
@@ -136,7 +137,7 @@ ESIF_EXPORT eEsifError  GetActionInterface(
 			upeIfacePtr->hdr.fIfaceType,
 			upeIfacePtr->hdr.fIfaceSize,
 			eIfaceTypeAction,
-			sizeof(*upeIfacePtr));
+			(UInt32)sizeof(*upeIfacePtr));
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
 	}
@@ -221,7 +222,7 @@ static eEsifError ESIF_CALLCONV ActionCreate(
 			upeIfacePtr->hdr.fIfaceSize,
 			upeIfacePtr->hdr.fIfaceVersion,
 			eIfaceTypeAction,
-			sizeof(*upeIfacePtr),
+			(UInt32)sizeof(*upeIfacePtr),
 			ACTION_UPE_IFACE_VERSION);
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
@@ -256,10 +257,13 @@ static eEsifError ESIF_CALLCONV ActionCreate(
 
 	g_sendEventFuncPtr = upeIfacePtr->sendEventFuncPtr;
 	g_execPrimFuncPtr = upeIfacePtr->execPrimitiveFuncPtr;
+	g_eventRegistrationFuncPtr = upeIfacePtr->eventRegistrationFuncPtr;
 
 
 	/* TODO:  Return the context required, if any */
 	*actCtxPtr = 0;
+
+	ActionRegisterEvent(ACTION_UPE_MATCH_ANY, ACTION_UPE_DOMAIN_D0, ESIF_EVENT_LOG_VERBOSITY_CHANGED);
 
 	UPE_TRACE_INFO("UPE_JAVA: \n"
 		"CREATED UPE ACTION\n"
@@ -292,6 +296,8 @@ static eEsifError ESIF_CALLCONV ActionDestroy(
  * there are no race conditions during access to the global items as they are
  * NULL'ed.
  */
+	ActionUnregisterEvent(ACTION_UPE_MATCH_ANY, ACTION_UPE_DOMAIN_D0, ESIF_EVENT_LOG_VERBOSITY_CHANGED);
+
 	g_esifLogFuncPtr = NULL;
 	g_sendEventFuncPtr = NULL;
 	g_execPrimFuncPtr = NULL;
@@ -605,5 +611,43 @@ exit:
 	return rc;
 }
 
+
+eEsifError ActionRegisterEvent(
+	const esif_handle_t participantHandle,
+	const UInt16 domain,
+	const enum esif_event_type eventType
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (NULL == g_eventRegistrationFuncPtr) {
+		UPE_TRACE_ERROR("Event registration function pointer not initialized");
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+	rc = (*g_eventRegistrationFuncPtr)(participantHandle, domain, ACTION_UPE_ACTION_TYPE, eventType, UPE_REGISTER_EVENT);
+exit:
+	return rc;
+}
+
+
+eEsifError ActionUnregisterEvent(
+	const esif_handle_t participantHandle,
+	const UInt16 domain,
+	const enum esif_event_type eventType
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (NULL == g_eventRegistrationFuncPtr) {
+		UPE_TRACE_ERROR("Trying to unregister but event registration function pointer not initialized");
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	rc = (*g_eventRegistrationFuncPtr)(participantHandle, domain, ACTION_UPE_ACTION_TYPE, eventType, UPE_UNREGISTER_EVENT);
+exit:
+	return rc;
+}
 
 } // extern "C"

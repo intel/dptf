@@ -50,5 +50,6 @@ namespace DdrfChannelBandPackage {
 		DdrDvfsPointInfo      dvfsPointsInfo[DVFS_POINTS_MAX];
 	} WifiRfiDdr, * WifiDdrRfiPtr;
 
-	std::string toString(DdrfChannelBandPackage::WifiBand wifiGhzBandValue);
+	std::string toString(const DdrfChannelBandPackage::WifiBand& wifiGhzBandValue);
+	DdrfChannelBandPackage::WifiBand toWifiBand(const std::string& wifiGhzBandString);
 }

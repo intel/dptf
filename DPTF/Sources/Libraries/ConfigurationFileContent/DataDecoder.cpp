@@ -66,7 +66,7 @@ vector<unsigned char> DataDecoder::extractFirstPayload(const DttConfigurationHea
 vector<unsigned char> DataDecoder::decompress(const DttConfigurationHeaderV0& header, const vector<unsigned char>& payload) const
 {
 	vector<unsigned char> extractedPayload(payload);
-	if (header.flags && DttConfigurationHeaderFlagMasks::compression)
+	if (header.flags & DttConfigurationHeaderFlagMasks::compression)
 	{
 		extractedPayload = m_compressor->decode(payload);
 	}

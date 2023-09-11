@@ -24,46 +24,46 @@ class dptf_export TableObjectSetCommand : public CommandHandler
 {
 public:
 	TableObjectSetCommand(DptfManagerInterface* dptfManager);
-	virtual ~TableObjectSetCommand();
-	virtual std::string getCommandName() const override;
-	virtual void execute(const CommandArguments& arguments) override;
+	~TableObjectSetCommand() override = default;
+	std::string getCommandName() const override;
+	void execute(const CommandArguments& arguments) override;
 
 private:
 	void throwIfBadArguments(const CommandArguments& arguments);
 	void throwIfTableObjectNotExist(const CommandArguments& arguments);
-	void throwIfFailedToAllocateMemory(char* tableValue);
-	void throwIfFailedToAllocateMemory(UInt8* tableValue);
+	void throwIfFailedToAllocateMemory(const char* tableValue);
+	void throwIfFailedToAllocateMemory(const UInt8* tableData);
 	void throwIfParticipantNotExist(const CommandArguments& arguments);
 	void throwIfBadArgumentsForParticipantTable(const CommandArguments& arguments);
 	void setTableObjectXmlString(const CommandArguments& arguments);
 	void convertToBinaryAndSet(
 		TableObjectType::Type tableType,
 		const char* textInput,
-		std::string uuid,
-		std::string dvName,
-		std::string key,
+		const std::string& uuid,
+		const std::string& dvName,
+		const std::string& key,
 		UIntN participantIndex);
 	void convertToEsifDataVariantBinaryAndSet(
 		TableObjectType::Type tableType,
 		const char* textInput,
-		std::string uuid,
-		std::string dvName,
-		std::string key,
+		const std::string& uuid,
+		const std::string& dvName,
+		const std::string& key,
 		UIntN participantIndex);
 	void convertToNonEsifDataVariantBinaryAndSet(
 		TableObjectType::Type tableType,
 		const char* textInput,
-		std::string uuid,
-		std::string dvName,
-		std::string key,
-		UIntN participantIndex);
-	UInt32 extractInteger(const esif_string str);
+		const std::string& uuid,
+		const std::string& dvName,
+		const std::string& key,
+		UIntN participantIndex) const;
+	static UInt32 extractInteger(const esif_string str);
 	void setTableData(
 		const DptfBuffer& tableData,
 		TableObjectType::Type tableType,
-		std::string uuid,
-		std::string dvName,
-		std::string key,
-		UIntN participantIndex);
+		const std::string& uuid,
+		const std::string& dvName,
+		const std::string& key,
+		UIntN participantIndex) const;
 	TableObject findTableObjectByType(TableObjectType::Type type) const;
 };

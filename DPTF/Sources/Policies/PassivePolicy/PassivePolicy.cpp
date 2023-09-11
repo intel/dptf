@@ -430,7 +430,7 @@ void PassivePolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, v
 	}
 }
 
-void PassivePolicy::onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
+void PassivePolicy::onOverrideTimeObject(const std::shared_ptr<TimeInterface>& timeObject)
 {
 	m_callbackScheduler->setTimeObject(timeObject);
 }

@@ -24,33 +24,33 @@ class dptf_export ParticipantManager : public ParticipantManagerInterface
 {
 public:
 	ParticipantManager(DptfManagerInterface* dptfManager);
-	~ParticipantManager(void);
+	~ParticipantManager() override;
 
-	virtual UIntN allocateNextParticipantIndex(void) override;
-	virtual void createParticipant(
+	// remove the copy constructor and assignment operator.
+	ParticipantManager(const ParticipantManager& rhs) = delete;
+	ParticipantManager& operator=(const ParticipantManager& rhs) = delete;
+
+	UIntN allocateNextParticipantIndex() override;
+	void createParticipant(
 		UIntN participantIndex,
 		const AppParticipantDataPtr participantDataPtr,
 		Bool participantEnabled) override;
 
-	virtual void destroyAllParticipants(void) override;
-	virtual void destroyParticipant(UIntN participantIndex) override;
+	void destroyAllParticipants() override;
+	void destroyParticipant(UIntN participantIndex) override;
 
-	virtual std::set<UIntN> getParticipantIndexes(void) const override;
-	virtual Participant* getParticipantPtr(UIntN participantIndex) const override;
+	std::set<UIntN> getParticipantIndexes() const override;
+	Participant* getParticipantPtr(UIntN participantIndex) const override;
 
 	// This will clear the cached data stored within all participants *within* the framework.  It will not ask the
 	// actual participants to clear their caches.
-	virtual void clearAllParticipantCachedData() override;
-	virtual Bool participantExists(const std::string& participantName) const override;
-	virtual std::shared_ptr<IParticipant> getParticipant(const std::string& participantName) const override;
-	virtual std::string GetStatusAsXml(void) override;
+	void clearAllParticipantCachedData() override;
+	Bool participantExists(const std::string& participantName) const override;
+	std::shared_ptr<IParticipant> getParticipant(const std::string& participantName) const override;
+	std::string GetStatusAsXml() override;
 
 private:
-	// hide the copy constructor and assignment operator.
-	ParticipantManager(const ParticipantManager& rhs);
-	ParticipantManager& operator=(const ParticipantManager& rhs);
-
 	DptfManagerInterface* m_dptfManager;
-	EsifServicesInterface* getEsifServices();
+	EsifServicesInterface* getEsifServices() const;
 	std::map<UIntN, std::shared_ptr<Participant>> m_participants;
 };

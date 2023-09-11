@@ -22,24 +22,25 @@
 #include <cmath>
 #include "ParticipantLogger.h"
 using namespace StatusFormat;
+using namespace std;
 
 DomainPowerControl_001::DomainPowerControl_001(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	const shared_ptr<ParticipantServicesInterface>& participantServicesInterface)
 	: DomainPowerControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_initialState(this)
 	, // the power control state needs the control to capture and restore
 	m_capabilitiesLocked(false)
 {
-	onClearCachedData();
-	capture();
+	DomainPowerControl_001::onClearCachedData();
+	DomainPowerControl_001::capture();
 	m_socPowerFloorSupported.invalidate();
 }
 
-DomainPowerControl_001::~DomainPowerControl_001(void)
+DomainPowerControl_001::~DomainPowerControl_001()
 {
-	restore();
+	DomainPowerControl_001::restore();
 }
 
 PowerControlDynamicCapsSet DomainPowerControl_001::getPowerControlDynamicCapsSet(
@@ -58,7 +59,7 @@ void DomainPowerControl_001::setPowerControlDynamicCapsSet(
 	UIntN domainIndex,
 	PowerControlDynamicCapsSet capsSet)
 {
-	DptfBuffer buffer = capsSet.toPpccBinary();
+	const DptfBuffer buffer = capsSet.toPpccBinary();
 	getParticipantServices()->primitiveExecuteSet(
 		esif_primitive_type::SET_RAPL_POWER_CONTROL_CAPABILITIES,
 		ESIF_DATA_BINARY,
@@ -88,7 +89,7 @@ Bool DomainPowerControl_001::isPowerShareControl(UIntN participantIndex, UIntN d
 
 PowerControlDynamicCapsSet DomainPowerControl_001::getDynamicCapabilities()
 {
-	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+	const DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES, ESIF_DATA_BINARY, getDomainIndex());
 
 	auto pl4PowerLimit = Power::createInvalid();
@@ -121,7 +122,7 @@ Power DomainPowerControl_001::getPowerLimit(
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForPowerLimit(controlType);
 	return getParticipantServices()->primitiveExecuteGetAsPower(
-		esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, (UInt8)controlType);
+		esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, static_cast<UInt8>(controlType));
 }
 
 Power DomainPowerControl_001::getPowerLimitWithoutCache(
@@ -140,7 +141,7 @@ Bool DomainPowerControl_001::isSocPowerFloorEnabled(UIntN participantIndex, UInt
 	{
 		try
 		{
-			UInt32 socPowerFloor = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			const UInt32 socPowerFloor = getParticipantServices()->primitiveExecuteGetAsUInt32(
 				esif_primitive_type::GET_RAPL_FLOOR_STATE, domainIndex);
 			isSocPowerFloorEnabled = socPowerFloor > 0 ? true : false;
 		}
@@ -174,6 +175,46 @@ Bool DomainPowerControl_001::isSocPowerFloorSupported(UIntN participantIndex, UI
 	return m_socPowerFloorSupported.get();
 }
 
+UInt32 DomainPowerControl_001::getSocPowerFloorState(UIntN participantIndex, UIntN domainIndex)
+{
+	if (m_socPowerFloorState.isInvalid())
+	{
+		try
+		{
+			const UInt32 socPowerFloorState = getParticipantServices()->primitiveExecuteGetAsUInt32(
+				esif_primitive_type::GET_SOC_POWER_FLOOR_STATE, domainIndex);
+			m_socPowerFloorState.set(socPowerFloorState);
+		}
+		catch (...)
+		{
+			PARTICIPANT_LOG_MESSAGE_DEBUG(
+				{ return "Failed to get SoC Power Floor State. SoC Power Floor is not supported"; });
+			m_socPowerFloorState.set((UInt32)0);
+		}
+	}
+	return m_socPowerFloorState.get();
+}
+
+void DomainPowerControl_001::setPowerLimitMin(
+	UIntN participantIndex, 
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfTypeInvalidForPowerLimit(controlType);
+	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
+	getParticipantServices()->primitiveExecuteSetAsPower(
+		esif_primitive_type::SET_RAPL_POWER_MIN, powerLimit, domainIndex);
+	PARTICIPANT_LOG_MESSAGE_DEBUG({
+		stringstream message;
+		message << "Successfully set RAPL Power Min Limit of control type " << PowerControlType::ToString(controlType)
+				<< " to " << to_string(powerLimit);
+		return message.str();
+		});
+	setAndUpdateEnabled(controlType);
+	throwIfLimitNotEnabled(controlType);
+}
+
 void DomainPowerControl_001::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -183,11 +224,11 @@ void DomainPowerControl_001::setPowerLimit(
 	throwIfTypeInvalidForPowerLimit(controlType);
 	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
 	getParticipantServices()->primitiveExecuteSetAsPower(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, static_cast<UInt8>(controlType));
 	PARTICIPANT_LOG_MESSAGE_DEBUG({
-		std::stringstream message;
+		stringstream message;
 		message << "Successfully set RAPL Power Limit of control type " << PowerControlType::ToString(controlType)
-				<< " to " << std::to_string(powerLimit);
+				<< " to " << to_string(powerLimit);
 		return message.str();
 	});
 	setAndUpdateEnabled(controlType);
@@ -203,11 +244,11 @@ void DomainPowerControl_001::setPowerLimitWithoutUpdatingEnabled(
 	throwIfTypeInvalidForPowerLimit(controlType);
 	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
 	getParticipantServices()->primitiveExecuteSetAsPower(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, static_cast<UInt8>(controlType));
 	PARTICIPANT_LOG_MESSAGE_DEBUG({
-		std::stringstream message;
+		stringstream message;
 		message << "Successfully set RAPL Power Limit of control type " << PowerControlType::ToString(controlType)
-				<< " to " << std::to_string(powerLimit);
+				<< " to " << to_string(powerLimit);
 		return message.str();
 	});
 }
@@ -220,7 +261,7 @@ void DomainPowerControl_001::setPowerLimitIgnoringCaps(
 {
 	throwIfTypeInvalidForPowerLimit(controlType);
 	getParticipantServices()->primitiveExecuteSetAsPower(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, static_cast<UInt8>(controlType));
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
 }
@@ -233,7 +274,7 @@ TimeSpan DomainPowerControl_001::getPowerLimitTimeWindow(
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForTimeWindow(controlType);
 	return getParticipantServices()->primitiveExecuteGetAsTimeInMilliseconds(
-		esif_primitive_type::GET_RAPL_POWER_LIMIT_TIME_WINDOW, domainIndex, (UInt8)controlType);
+		esif_primitive_type::GET_RAPL_POWER_LIMIT_TIME_WINDOW, domainIndex, static_cast<UInt8>(controlType));
 }
 
 void DomainPowerControl_001::setPowerLimitTimeWindow(
@@ -245,7 +286,7 @@ void DomainPowerControl_001::setPowerLimitTimeWindow(
 	throwIfTypeInvalidForTimeWindow(controlType);
 	throwIfTimeWindowIsOutsideCapabilityRange(controlType, timeWindow);
 	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, static_cast<UInt8>(controlType));
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
 	getParticipantServices()->createEventPowerLimitTimeWindowChanged();
@@ -259,7 +300,7 @@ void DomainPowerControl_001::setPowerLimitTimeWindowIgnoringCaps(
 {
 	throwIfTypeInvalidForTimeWindow(controlType);
 	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, static_cast<UInt8>(controlType));
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
 }
@@ -273,7 +314,7 @@ void DomainPowerControl_001::setPowerLimitTimeWindowWithoutUpdatingEnabled(
 	throwIfTypeInvalidForTimeWindow(controlType);
 	throwIfTimeWindowIsOutsideCapabilityRange(controlType, timeWindow);
 	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, static_cast<UInt8>(controlType));
 }
 
 Percentage DomainPowerControl_001::getPowerLimitDutyCycle(
@@ -284,7 +325,7 @@ Percentage DomainPowerControl_001::getPowerLimitDutyCycle(
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForDutyCycle(controlType);
 	return getParticipantServices()->primitiveExecuteGetAsPercentage(
-		esif_primitive_type::GET_RAPL_POWER_LIMIT_DUTY_CYCLE, domainIndex, (UInt8)controlType);
+		esif_primitive_type::GET_RAPL_POWER_LIMIT_DUTY_CYCLE, domainIndex, static_cast<UInt8>(controlType));
 }
 
 void DomainPowerControl_001::setPowerLimitDutyCycle(
@@ -296,7 +337,7 @@ void DomainPowerControl_001::setPowerLimitDutyCycle(
 	throwIfTypeInvalidForDutyCycle(controlType);
 	throwIfDutyCycleIsOutsideCapabilityRange(controlType, dutyCycle);
 	getParticipantServices()->primitiveExecuteSetAsPercentage(
-		esif_primitive_type::SET_RAPL_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, (UInt8)controlType);
+		esif_primitive_type::SET_RAPL_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, static_cast<UInt8>(controlType));
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
 }
@@ -304,16 +345,21 @@ void DomainPowerControl_001::setPowerLimitDutyCycle(
 void DomainPowerControl_001::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
 {
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_RAPL_FLOOR_STATE, socPowerFloorState ? (UInt32)1 : (UInt32)0, domainIndex);
+		esif_primitive_type::SET_RAPL_FLOOR_STATE, socPowerFloorState ? static_cast<UInt32>(1) : static_cast<UInt32>(0), domainIndex);
+}
+
+void DomainPowerControl_001::clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex)
+{
+	constexpr UInt32 unusedValue = 0;
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_RAPL_POWER_MIN_CLEAR, unusedValue, domainIndex);
 }
 
 void DomainPowerControl_001::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
 {
-	const UInt32 unusedValue = 0;
+	constexpr UInt32 unusedValue = 0;
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_CLEAR, unusedValue, domainIndex);
-	getParticipantServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_RAPL_POWER_MIN_CLEAR, unusedValue, domainIndex);
 }
 
 void DomainPowerControl_001::setAndUpdateEnabled(PowerControlType::Type controlType)
@@ -324,19 +370,10 @@ void DomainPowerControl_001::setAndUpdateEnabled(PowerControlType::Type controlT
 		switch (controlType)
 		{
 		case PowerControlType::PL1:
-			updateEnabled(controlType);
-			break;
 		case PowerControlType::PL2:
-			updateEnabled(controlType);
-			break;
 		case PowerControlType::PL3:
-			updateEnabled(controlType);
-			break;
 		case PowerControlType::PL4:
 			updateEnabled(controlType);
-			break;
-		case PowerControlType::max:
-			// do nothing
 			break;
 		default:
 			// do nothing
@@ -358,18 +395,18 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 			for (UInt32 powerType = PowerControlType::PL1; powerType < PowerControlType::max; powerType++)
 			{
 				capability.data.powerControl.powerDataSet[powerType].isEnabled =
-					(UInt32)isEnabled((PowerControlType::Type)powerType);
-				if (capability.data.powerControl.powerDataSet[powerType].isEnabled == (UInt32) true)
+					static_cast<UInt32>(isEnabled(static_cast<PowerControlType::Type>(powerType)));
+				if (capability.data.powerControl.powerDataSet[powerType].isEnabled == static_cast<UInt32>(true))
 				{
 					capability.data.powerControl.powerDataSet[powerType].powerType =
-						(PowerControlType::Type)powerType + 1;
+						static_cast<PowerControlType::Type>(powerType) + 1;
 					capability.data.powerControl.powerDataSet[powerType].powerLimit =
-						(UInt32)getPowerLimit(participantIndex, domainIndex, (PowerControlType::Type)powerType);
+						static_cast<UInt32>(getPowerLimit(participantIndex, domainIndex, static_cast<PowerControlType::Type>(powerType)));
 					try
 					{
 						PowerControlDynamicCaps powerControlCaps =
 							getPowerControlDynamicCapsSet(participantIndex, domainIndex)
-								.getCapability((PowerControlType::Type)powerType);
+								.getCapability(static_cast<PowerControlType::Type>(powerType));
 						capability.data.powerControl.powerDataSet[powerType].lowerLimit =
 							powerControlCaps.getMinPowerLimit();
 						capability.data.powerControl.powerDataSet[powerType].upperLimit =
@@ -377,9 +414,9 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 						capability.data.powerControl.powerDataSet[powerType].stepsize =
 							powerControlCaps.getPowerStepSize();
 						capability.data.powerControl.powerDataSet[powerType].minTimeWindow =
-							(UInt32)powerControlCaps.getMinTimeWindow().asMillisecondsUInt();
+							static_cast<UInt32>(powerControlCaps.getMinTimeWindow().asMillisecondsUInt());
 						capability.data.powerControl.powerDataSet[powerType].maxTimeWindow =
-							(UInt32)powerControlCaps.getMaxTimeWindow().asMillisecondsUInt();
+							static_cast<UInt32>(powerControlCaps.getMaxTimeWindow().asMillisecondsUInt());
 						capability.data.powerControl.powerDataSet[powerType].minDutyCycle =
 							powerControlCaps.getMinDutyCycle().toWholeNumber();
 						capability.data.powerControl.powerDataSet[powerType].maxDutyCycle =
@@ -400,9 +437,9 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 				}
 			}
 			capability.data.powerControl.socPowerFloorData.isSupported =
-				isSocPowerFloorSupported(participantIndex, domainIndex) ? (UInt32)1 : (UInt32)0;
+				isSocPowerFloorSupported(participantIndex, domainIndex) ? static_cast<UInt32>(1) : static_cast<UInt32>(0);
 			capability.data.powerControl.socPowerFloorData.socPowerFloorState =
-				isSocPowerFloorEnabled(participantIndex, domainIndex) ? (UInt32)1 : (UInt32)0;
+				isSocPowerFloorEnabled(participantIndex, domainIndex) ? static_cast<UInt32>(1) : static_cast<UInt32>(0);
 
 			getParticipantServices()->sendDptfEvent(
 				ParticipantEvent::DptfParticipantControlAction,
@@ -410,7 +447,7 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 				Capability::getEsifDataFromCapabilityData(&capability));
 
 			PARTICIPANT_LOG_MESSAGE_INFO({
-				std::stringstream message;
+				stringstream message;
 				message << "Published activity for participant " << getParticipantIndex() << ", "
 						<< "domain " << getName() << " "
 						<< "("
@@ -426,7 +463,7 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 	}
 }
 
-void DomainPowerControl_001::onClearCachedData(void)
+void DomainPowerControl_001::onClearCachedData()
 {
 	m_powerControlDynamicCaps.invalidate();
 
@@ -434,7 +471,7 @@ void DomainPowerControl_001::onClearCachedData(void)
 	{
 		try
 		{
-			DptfBuffer capabilitiesBuffer = createResetPrimitiveTupleBinary(
+			const DptfBuffer capabilitiesBuffer = createResetPrimitiveTupleBinary(
 				esif_primitive_type::SET_RAPL_POWER_CONTROL_CAPABILITIES, Constants::Esif::NoPersistInstance);
 			getParticipantServices()->primitiveExecuteSet(
 				esif_primitive_type::SET_CONFIG_RESET,
@@ -453,22 +490,22 @@ void DomainPowerControl_001::onClearCachedData(void)
 	}
 }
 
-std::shared_ptr<XmlNode> DomainPowerControl_001::getXml(UIntN domainIndex)
+shared_ptr<XmlNode> DomainPowerControl_001::getXml(UIntN domainIndex)
 {
-	auto participantIndex = getParticipantIndex();
+	const auto participantIndex = getParticipantIndex();
 	auto root = XmlNode::createWrapperElement("power_control");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 	root->addChild(getPowerControlDynamicCapsSet(participantIndex, domainIndex).getXml());
 
-	auto set = XmlNode::createWrapperElement("power_limit_set");
+	const auto set = XmlNode::createWrapperElement("power_limit_set");
 	set->addChild(createStatusNode(PowerControlType::PL1));
 	set->addChild(createStatusNode(PowerControlType::PL2));
 	set->addChild(createStatusNode(PowerControlType::PL3));
 	set->addChild(createStatusNode(PowerControlType::PL4));
 	root->addChild(set);
 
-	auto socPowerFloorStatus = XmlNode::createWrapperElement("soc_power_floor_status");
+	const auto socPowerFloorStatus = XmlNode::createWrapperElement("soc_power_floor_status");
 	socPowerFloorStatus->addChild(XmlNode::createDataElement(
 		"is_soc_power_floor_supported", friendlyValue(isSocPowerFloorSupported(participantIndex, domainIndex))));
 	socPowerFloorStatus->addChild(XmlNode::createDataElement(
@@ -478,17 +515,24 @@ std::shared_ptr<XmlNode> DomainPowerControl_001::getXml(UIntN domainIndex)
 	return root;
 }
 
-void DomainPowerControl_001::capture(void)
+void DomainPowerControl_001::capture()
 {
 	m_initialState.capture();
 }
 
-void DomainPowerControl_001::restore(void)
+void DomainPowerControl_001::restore()
 {
-	m_initialState.restore();
+	try
+	{
+		m_initialState.restore();
+	}
+	catch (...)
+	{
+		// best effort
+	}
 }
 
-std::shared_ptr<XmlNode> DomainPowerControl_001::createStatusNode(PowerControlType::Type controlType)
+shared_ptr<XmlNode> DomainPowerControl_001::createStatusNode(PowerControlType::Type controlType)
 {
 	auto pl = XmlNode::createWrapperElement("power_limit");
 	pl->addChild(XmlNode::createDataElement("type", PowerControlType::ToString(controlType)));
@@ -499,7 +543,7 @@ std::shared_ptr<XmlNode> DomainPowerControl_001::createStatusNode(PowerControlTy
 	return pl;
 }
 
-std::string DomainPowerControl_001::createStatusStringForEnabled(PowerControlType::Type controlType)
+string DomainPowerControl_001::createStatusStringForEnabled(PowerControlType::Type controlType) const
 {
 	switch (controlType)
 	{
@@ -516,13 +560,13 @@ std::string DomainPowerControl_001::createStatusStringForEnabled(PowerControlTyp
 	}
 }
 
-std::string DomainPowerControl_001::createStatusStringForLimitValue(PowerControlType::Type controlType)
+string DomainPowerControl_001::createStatusStringForLimitValue(PowerControlType::Type controlType)
 {
 	try
 	{
 		if (isEnabled(controlType))
 		{
-			Power powerLimit = getPowerLimit(getParticipantIndex(), getDomainIndex(), controlType);
+			const Power powerLimit = getPowerLimit(getParticipantIndex(), getDomainIndex(), controlType);
 			return powerLimit.toString();
 		}
 		else
@@ -540,14 +584,14 @@ std::string DomainPowerControl_001::createStatusStringForLimitValue(PowerControl
 	}
 }
 
-std::string DomainPowerControl_001::createStatusStringForTimeWindow(PowerControlType::Type controlType)
+string DomainPowerControl_001::createStatusStringForTimeWindow(PowerControlType::Type controlType)
 {
 	try
 	{
 		if (isEnabled(controlType)
 			&& ((controlType == PowerControlType::PL1) || (controlType == PowerControlType::PL3)))
 		{
-			TimeSpan timeWindow = getPowerLimitTimeWindow(getParticipantIndex(), getDomainIndex(), controlType);
+			const TimeSpan timeWindow = getPowerLimitTimeWindow(getParticipantIndex(), getDomainIndex(), controlType);
 			return timeWindow.toStringMilliseconds();
 		}
 		else
@@ -565,13 +609,13 @@ std::string DomainPowerControl_001::createStatusStringForTimeWindow(PowerControl
 	}
 }
 
-std::string DomainPowerControl_001::createStatusStringForDutyCycle(PowerControlType::Type controlType)
+string DomainPowerControl_001::createStatusStringForDutyCycle(PowerControlType::Type controlType)
 {
 	try
 	{
 		if (isEnabled(controlType) && (controlType == PowerControlType::PL3))
 		{
-			Percentage dutyCycle = getPowerLimitDutyCycle(getParticipantIndex(), getDomainIndex(), controlType);
+			const Percentage dutyCycle = getPowerLimitDutyCycle(getParticipantIndex(), getDomainIndex(), controlType);
 			return dutyCycle.toStringWithPrecision(0);
 		}
 		else
@@ -589,16 +633,16 @@ std::string DomainPowerControl_001::createStatusStringForDutyCycle(PowerControlT
 	}
 }
 
-std::string DomainPowerControl_001::getName(void)
+string DomainPowerControl_001::getName()
 {
 	return "Power Control";
 }
 
-void DomainPowerControl_001::throwIfLimitNotEnabled(PowerControlType::Type controlType)
+void DomainPowerControl_001::throwIfLimitNotEnabled(PowerControlType::Type controlType) const
 {
 	if (isEnabled(controlType) == false)
 	{
-		std::string message = PowerControlType::ToString(controlType) + " is disabled.";
+		const string message = PowerControlType::ToString(controlType) + " is disabled.";
 		throw dptf_exception(message);
 	}
 }
@@ -661,7 +705,7 @@ void DomainPowerControl_001::throwIfPowerLimitIsOutsideCapabilityRange(
 	PowerControlType::Type controlType,
 	const Power& powerLimit)
 {
-	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
+	const auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
 	if (capabilities.hasCapability(controlType))
 	{
 		if (capabilities.getCapability(controlType).arePowerLimitCapsValid() == false)
@@ -683,7 +727,7 @@ void DomainPowerControl_001::throwIfTimeWindowIsOutsideCapabilityRange(
 	PowerControlType::Type controlType,
 	const TimeSpan& timeWindow)
 {
-	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
+	const auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
 	if (capabilities.hasCapability(controlType))
 	{
 		if (capabilities.getCapability(controlType).areTimeWindowCapsValid() == false)
@@ -705,7 +749,7 @@ void DomainPowerControl_001::throwIfDutyCycleIsOutsideCapabilityRange(
 	PowerControlType::Type controlType,
 	const Percentage& dutyCycle)
 {
-	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
+	const auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
 	if (capabilities.hasCapability(controlType)
 		&& capabilities.getCapability(controlType).areDutyCycleCapsValid() == false)
 	{
@@ -752,6 +796,12 @@ Power DomainPowerControl_001::getSlowPollPowerThreshold(UIntN participantIndex, 
 	throw dptf_exception("Get Slow Poll Power Threshold is not supported by " + getName() + ".");
 }
 
+Power DomainPowerControl_001::getThermalDesignPower(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsPower(
+		esif_primitive_type::GET_PROC_THERMAL_DESIGN_POWER, domainIndex);
+}
+
 void DomainPowerControl_001::removePowerLimitPolicyRequest(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -776,10 +826,36 @@ void DomainPowerControl_001::setPowerSharePolicyPower(
 	catch (...)
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			std::stringstream message;
+			stringstream message;
 			message << "Failed to set Power Share Policy Power for participant index = "
-						   + std::to_string(participantIndex) + "and domain Index = " + std::to_string(domainIndex);
+						   + to_string(participantIndex) + "and domain Index = " + to_string(domainIndex);
 			return message.str();
 		});
 	}
+}
+
+void DomainPowerControl_001::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
+{
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_POWER_SHARE_EFFECTIVE_BIAS,
+			powerShareEffectiveBias,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			stringstream message;
+			message << "Failed to set Power Share Effective Bias for participant index = "
+				+ to_string(participantIndex) + " and domain Index = " + to_string(domainIndex);
+			return message.str();
+			});
+	}
+}
+
+void DomainPowerControl_001::updateSocPowerFloorState(UInt32 socPowerFloorState)
+{
+	m_socPowerFloorState.set(socPowerFloorState);
 }

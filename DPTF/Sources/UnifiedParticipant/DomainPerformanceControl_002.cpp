@@ -19,23 +19,25 @@
 #include "DomainPerformanceControl_002.h"
 #include "XmlNode.h"
 
+using namespace std;
+
 // Processor Participant (CPU Domain) Performance Controls
 
 DomainPerformanceControl_002::DomainPerformanceControl_002(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	const shared_ptr<ParticipantServicesInterface>& participantServicesInterface)
 	: DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_tdpFrequencyLimitControlIndex(0)
 	, m_capabilitiesLocked(false)
 {
-	onClearCachedData();
-	capture();
+	DomainPerformanceControl_002::onClearCachedData();
+	DomainPerformanceControl_002::capture();
 }
 
-DomainPerformanceControl_002::~DomainPerformanceControl_002(void)
+DomainPerformanceControl_002::~DomainPerformanceControl_002()
 {
-	restore();
+	DomainPerformanceControl_002::restore();
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_002::getPerformanceControlStaticCaps(
@@ -86,16 +88,16 @@ void DomainPerformanceControl_002::setPerformanceControl(
 	UIntN performanceControlIndex)
 {
 	PARTICIPANT_LOG_MESSAGE_DEBUG(
-		{ return "Requesting Performance Control Index: " + std::to_string(performanceControlIndex); });
+		{ return "Requesting Performance Control Index: " + to_string(performanceControlIndex); });
 
 	performanceControlIndex = snapIfPerformanceControlIndexIsOutOfBounds(domainIndex, performanceControlIndex);
 
-	auto performanceControlSet = getPerformanceControlSet(participantIndex, domainIndex);
-	PerformanceControlType::Type targetType =
+	const auto performanceControlSet = getPerformanceControlSet(participantIndex, domainIndex);
+	const PerformanceControlType::Type targetType =
 		(performanceControlSet)[performanceControlIndex].getPerformanceControlType();
 
-	auto throttlingStateSet = getThrottlingStateSet(domainIndex);
-	auto performanceStateSet = getPerformanceStateSet(domainIndex);
+	const auto throttlingStateSet = getThrottlingStateSet(domainIndex);
+	const auto performanceStateSet = getPerformanceStateSet(domainIndex);
 
 	switch (targetType)
 	{
@@ -122,11 +124,10 @@ void DomainPerformanceControl_002::setPerformanceControl(
 		break;
 	default:
 		throw dptf_exception("Invalid performance state requested.");
-		break;
 	}
 
 	PARTICIPANT_LOG_MESSAGE_DEBUG(
-		{ return "Set Performance Control Index: " + std::to_string(performanceControlIndex); });
+		{ return "Set Performance Control Index: " + to_string(performanceControlIndex); });
 	// Refresh the status
 	m_performanceControlStatus.set(PerformanceControlStatus(performanceControlIndex));
 }
@@ -136,11 +137,11 @@ void DomainPerformanceControl_002::setPerformanceControlDynamicCaps(
 	UIntN domainIndex,
 	PerformanceControlDynamicCaps newCapabilities)
 {
-	auto upperLimitIndex = newCapabilities.getCurrentUpperLimitIndex();
-	auto lowerLimitIndex = newCapabilities.getCurrentLowerLimitIndex();
+	const auto upperLimitIndex = newCapabilities.getCurrentUpperLimitIndex();
+	const auto lowerLimitIndex = newCapabilities.getCurrentLowerLimitIndex();
 
-	auto throttlingStateSet = getThrottlingStateSet(domainIndex);
-	auto performanceStateSet = getPerformanceStateSet(domainIndex);
+	const auto throttlingStateSet = getThrottlingStateSet(domainIndex);
+	const auto performanceStateSet = getPerformanceStateSet(domainIndex);
 
 	auto pstateUpperLimit = Constants::Invalid;
 	auto tstateUpperLimit = Constants::Invalid;
@@ -149,13 +150,13 @@ void DomainPerformanceControl_002::setPerformanceControlDynamicCaps(
 
 	if (upperLimitIndex != Constants::Invalid && lowerLimitIndex != Constants::Invalid)
 	{
-		auto pstateSetSize = performanceStateSet.getCount();
-		auto tstateSetSize = throttlingStateSet.getCount();
-		auto combinedSet = getPerformanceControlSet(participantIndex, domainIndex);
-		auto combinedSetSize = combinedSet.getCount();
-		UIntN ppdl = getParticipantServices()->primitiveExecuteGetAsUInt32(
+		const auto pstateSetSize = performanceStateSet.getCount();
+		const auto tstateSetSize = throttlingStateSet.getCount();
+		const auto combinedSet = getPerformanceControlSet(participantIndex, domainIndex);
+		const auto combinedSetSize = combinedSet.getCount();
+		const UIntN ppdl = getParticipantServices()->primitiveExecuteGetAsUInt32(
 			esif_primitive_type::GET_PROC_PERF_PSTATE_DEPTH_LIMIT, domainIndex);
-		auto minIndex = (ppdl < combinedSetSize) ? ppdl : combinedSetSize - 1;
+		const auto minIndex = (ppdl < combinedSetSize) ? ppdl : combinedSetSize - 1;
 
 		if (upperLimitIndex >= combinedSetSize)
 		{
@@ -251,7 +252,7 @@ UIntN DomainPerformanceControl_002::getCurrentPerformanceControlIndex(UIntN part
 	return getPerformanceControlStatus(participantIndex, domainIndex).getCurrentControlSetIndex();
 }
 
-void DomainPerformanceControl_002::onClearCachedData(void)
+void DomainPerformanceControl_002::onClearCachedData()
 {
 	m_performanceControlSet.invalidate();
 	m_performanceControlDynamicCaps.invalidate();
@@ -317,9 +318,9 @@ void DomainPerformanceControl_002::onClearCachedData(void)
 	}
 }
 
-PerformanceControlStaticCaps DomainPerformanceControl_002::createPerformanceControlStaticCaps(void)
+PerformanceControlStaticCaps DomainPerformanceControl_002::createPerformanceControlStaticCaps()
 {
-	return PerformanceControlStaticCaps(false); // This is hard-coded to FALSE in 7.0
+	return {false}; // This is hard-coded to FALSE in 7.0
 }
 
 PerformanceControlDynamicCaps DomainPerformanceControl_002::createPerformanceControlDynamicCaps(UIntN domainIndex)
@@ -352,7 +353,7 @@ PerformanceControlDynamicCaps DomainPerformanceControl_002::createPerformanceCon
 		tStateLowerLimitIndex,
 		overallUpperLimitIndex,
 		overallLowerLimitIndex);
-	return PerformanceControlDynamicCaps(overallLowerLimitIndex, overallUpperLimitIndex);
+	return {overallLowerLimitIndex, overallUpperLimitIndex};
 }
 
 void DomainPerformanceControl_002::calculatePerformanceStateLimits(
@@ -364,7 +365,7 @@ void DomainPerformanceControl_002::calculatePerformanceStateLimits(
 	// upper limit as first index.
 	// If table is empty, these are set as invalid.
 	UInt32 ppdl;
-	auto performanceStateSetSize = getPerformanceStateSet(domainIndex).getCount();
+	const auto performanceStateSetSize = getPerformanceStateSet(domainIndex).getCount();
 	if (performanceStateSetSize == 0)
 	{
 		pStateLowerLimitIndex = Constants::Invalid;
@@ -406,7 +407,7 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(
 		tStateUpperLimitIndex = 0;
 	}
 
-	auto throttlingStateSetSize = getThrottlingStateSet(domainIndex).getCount();
+	const auto throttlingStateSetSize = getThrottlingStateSet(domainIndex).getCount();
 	try
 	{
 		// _TDL is an optional object
@@ -445,8 +446,8 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
 	UIntN& overallUpperLimitIndex,
 	UIntN& overallLowerLimitIndex)
 {
-	auto performanceStateSetSize = getPerformanceStateSet(domainIndex).getCount();
-	auto throttlingStateSetSize = getThrottlingStateSet(domainIndex).getCount();
+	const auto performanceStateSetSize = getPerformanceStateSet(domainIndex).getCount();
+	const auto throttlingStateSetSize = getThrottlingStateSet(domainIndex).getCount();
 
 	overallUpperLimitIndex = pStateUpperLimitIndex;
 	if ((pStateUpperLimitIndex >= performanceStateSetSize - 1 || tStateUpperLimitIndex != 0)
@@ -456,9 +457,9 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
 																   : performanceStateSetSize + tStateUpperLimitIndex;
 	}
 
-	overallUpperLimitIndex = std::max(overallUpperLimitIndex, m_tdpFrequencyLimitControlIndex);
+	overallUpperLimitIndex = max(overallUpperLimitIndex, m_tdpFrequencyLimitControlIndex);
 	PARTICIPANT_LOG_MESSAGE_DEBUG(
-		{ return "Performance upper limit index is: " + std::to_string(overallUpperLimitIndex); });
+		{ return "Performance upper limit index is: " + to_string(overallUpperLimitIndex); });
 
 	overallLowerLimitIndex = pStateLowerLimitIndex;
 	if (pStateLowerLimitIndex >= performanceStateSetSize - 1 && throttlingStateSetSize > 0) // _PDL is P(n)
@@ -468,12 +469,12 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
 	}
 
 	PARTICIPANT_LOG_MESSAGE_DEBUG(
-		{ return "Performance lower limit index is: " + std::to_string(overallLowerLimitIndex); });
+		{ return "Performance lower limit index is: " + to_string(overallLowerLimitIndex); });
 }
 
-PerformanceControlSet DomainPerformanceControl_002::createPerformanceStateSet(UIntN domainIndex)
+PerformanceControlSet DomainPerformanceControl_002::createPerformanceStateSet(UIntN domainIndex) const
 {
-	DptfBuffer pstateBuffer = getParticipantServices()->primitiveExecuteGet(
+	const DptfBuffer pstateBuffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_PROC_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
 	auto performanceStateSet = PerformanceControlSet::createFromProcessorPss(pstateBuffer);
 	if (performanceStateSet.getCount() == 0)
@@ -504,11 +505,11 @@ PerformanceControlSet DomainPerformanceControl_002::getThrottlingStateSet(UIntN 
 
 PerformanceControlSet DomainPerformanceControl_002::createThrottlingStateSet(UIntN domainIndex)
 {
-	PerformanceControlSet performanceStateSet = getPerformanceStateSet(domainIndex);
+	const PerformanceControlSet performanceStateSet = getPerformanceStateSet(domainIndex);
 	PerformanceControlSet throttlingStateSet;
 	try
 	{
-		DptfBuffer tstateBuffer = getParticipantServices()->primitiveExecuteGet(
+		const DptfBuffer tstateBuffer = getParticipantServices()->primitiveExecuteGet(
 			esif_primitive_type::GET_TSTATES, ESIF_DATA_BINARY, domainIndex);
 		throttlingStateSet = PerformanceControlSet::createFromProcessorTss(
 			performanceStateSet[performanceStateSet.getCount() - 1], tstateBuffer);
@@ -526,18 +527,17 @@ Bool DomainPerformanceControl_002::isFirstTstateDeleted(UIntN domainIndex)
 	if (m_isFirstTstateDeleted.isInvalid())
 	{
 		m_isFirstTstateDeleted.set(false);
-		PerformanceControlSet performanceStateSet = getPerformanceStateSet(domainIndex);
-		PerformanceControlSet throttlingStateSet;
+		const PerformanceControlSet performanceStateSet = getPerformanceStateSet(domainIndex);
 
 		// Get T-States
 		if (performanceStateSet.getCount() > 0)
 		{
-			throttlingStateSet = getThrottlingStateSet(domainIndex);
+			const PerformanceControlSet throttlingStateSet = getThrottlingStateSet(domainIndex);
 
 			// Removing the first Tstate if the last Pstate and first Tstate are same.
 			if (throttlingStateSet.getCount() > 0)
 			{
-				auto lastPstateIndex = performanceStateSet.getCount() - 1;
+				const auto lastPstateIndex = performanceStateSet.getCount() - 1;
 				if (performanceStateSet[lastPstateIndex].getControlAbsoluteValue()
 					== throttlingStateSet[0].getControlAbsoluteValue())
 				{
@@ -552,7 +552,7 @@ Bool DomainPerformanceControl_002::isFirstTstateDeleted(UIntN domainIndex)
 
 PerformanceControlSet DomainPerformanceControl_002::createCombinedPerformanceControlSet(UIntN domainIndex)
 {
-	PerformanceControlSet performanceStateSet = getPerformanceStateSet(domainIndex);
+	const PerformanceControlSet performanceStateSet = getPerformanceStateSet(domainIndex);
 	PerformanceControlSet throttlingStateSet;
 
 	// Get T-States
@@ -566,11 +566,11 @@ PerformanceControlSet DomainPerformanceControl_002::createCombinedPerformanceCon
 	PerformanceControlSet combinedStateSet(performanceStateSet);
 
 	//    T-States
-	auto tStateStartIndex = isFirstTstateDeleted(domainIndex) ? 1 : 0;
+	const auto tStateStartIndex = isFirstTstateDeleted(domainIndex) ? 1 : 0;
 	combinedStateSet.append(throttlingStateSet, tStateStartIndex);
 
 	PARTICIPANT_LOG_MESSAGE_DEBUG({
-		std::stringstream message;
+		stringstream message;
 		message << "Performance controls created."
 				<< "Total Entries: " << combinedStateSet.getCount() << ", "
 				<< "P-State Count: " << performanceStateSet.getCount() << ", "
@@ -578,16 +578,16 @@ PerformanceControlSet DomainPerformanceControl_002::createCombinedPerformanceCon
 		return message.str();
 	});
 
-	return PerformanceControlSet(combinedStateSet);
+	return combinedStateSet;
 }
 
 UIntN DomainPerformanceControl_002::snapIfPerformanceControlIndexIsOutOfBounds(
 	UIntN domainIndex,
 	UIntN performanceControlIndex)
 {
-	auto caps = getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex);
-	auto capsUpperLimitIndex = caps.getCurrentUpperLimitIndex();
-	auto capsLowerLimitIndex = caps.getCurrentLowerLimitIndex();
+	const auto caps = getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex);
+	const auto capsUpperLimitIndex = caps.getCurrentUpperLimitIndex();
+	const auto capsLowerLimitIndex = caps.getCurrentLowerLimitIndex();
 	if (performanceControlIndex < capsUpperLimitIndex)
 	{
 		PARTICIPANT_LOG_MESSAGE_WARNING(
@@ -603,7 +603,7 @@ UIntN DomainPerformanceControl_002::snapIfPerformanceControlIndexIsOutOfBounds(
 	return performanceControlIndex;
 }
 
-std::shared_ptr<XmlNode> DomainPerformanceControl_002::getXml(UIntN domainIndex)
+shared_ptr<XmlNode> DomainPerformanceControl_002::getXml(UIntN domainIndex)
 {
 	auto root = XmlNode::createWrapperElement("performance_control");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
@@ -615,16 +615,16 @@ std::shared_ptr<XmlNode> DomainPerformanceControl_002::getXml(UIntN domainIndex)
 	return root;
 }
 
-void DomainPerformanceControl_002::capture(void)
+void DomainPerformanceControl_002::capture()
 {
 	try
 	{
 		m_initialStatus.set(getPerformanceControlDynamicCaps(getParticipantIndex(), getDomainIndex()));
 		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			std::stringstream message;
+			stringstream message;
 			message << "Initial performance capabilities are captured. MIN = "
-					<< std::to_string(m_initialStatus.get().getCurrentLowerLimitIndex())
-					<< " & MAX = " << std::to_string(m_initialStatus.get().getCurrentUpperLimitIndex());
+					<< to_string(m_initialStatus.get().getCurrentLowerLimitIndex())
+					<< " & MAX = " << to_string(m_initialStatus.get().getCurrentUpperLimitIndex());
 			return message.str();
 		});
 	}
@@ -638,18 +638,18 @@ void DomainPerformanceControl_002::capture(void)
 	}
 }
 
-void DomainPerformanceControl_002::restore(void)
+void DomainPerformanceControl_002::restore()
 {
-	if (m_initialStatus.isValid())
+	try
 	{
-		try
+		if (m_initialStatus.isValid())
 		{
-			auto restoreIndex = m_initialStatus.get().getCurrentUpperLimitIndex();
-			auto domainIndex = getDomainIndex();
+			const auto restoreIndex = m_initialStatus.get().getCurrentUpperLimitIndex();
+			const auto domainIndex = getDomainIndex();
 			PARTICIPANT_LOG_MESSAGE_DEBUG(
-				{ return "Restoring... P-state = P" + std::to_string(restoreIndex) + " & T-state = T0."; });
+				{ return "Restoring... P-state = P" + to_string(restoreIndex) + " & T-state = T0."; });
 
-			auto throttlingStateSet = getThrottlingStateSet(domainIndex);
+			const auto throttlingStateSet = getThrottlingStateSet(domainIndex);
 			// Set T0
 			if (throttlingStateSet.getCount() > 0)
 			{
@@ -659,45 +659,15 @@ void DomainPerformanceControl_002::restore(void)
 			getParticipantServices()->primitiveExecuteSetAsUInt32(
 				esif_primitive_type::SET_PERF_PRESENT_CAPABILITY, restoreIndex, domainIndex);
 		}
-		catch (...)
-		{
-			// best effort
-			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
-		}
+	}
+	catch (...)
+	{
+		// best effort
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
 	}
 }
 
-std::string DomainPerformanceControl_002::getName(void)
+string DomainPerformanceControl_002::getName()
 {
 	return "Processor Participant (CPU Domain) Performance Control";
-}
-
-void DomainPerformanceControl_002::setPerfPreferenceMax(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	getParticipantServices()->primitiveExecuteSetAsPercentage(
-		esif_primitive_type::SET_PERF_PREFERENCE_MAX, minMaxRatio, domainIndex);
-	PARTICIPANT_LOG_MESSAGE_DEBUG(
-		{
-			std::stringstream message;
-			message << "Successfully set max CPU frequency to " << std::to_string(minMaxRatio);
-			return message.str();
-		});
-}
-
-void DomainPerformanceControl_002::setPerfPreferenceMin(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	getParticipantServices()->primitiveExecuteSetAsPercentage(
-		esif_primitive_type::SET_PERF_PREFERENCE_MIN, minMaxRatio, domainIndex);
-	PARTICIPANT_LOG_MESSAGE_DEBUG(
-		{
-			std::stringstream message;
-			message << "Successfully set min CPU frequency to " << std::to_string(minMaxRatio);
-			return message.str();
-		});
 }

@@ -24,7 +24,13 @@
 class dptf_export RelationshipTableInterface
 {
 public:
-	virtual ~RelationshipTableInterface(){};
+	RelationshipTableInterface() = default;
+	virtual ~RelationshipTableInterface() = default;
+
+	RelationshipTableInterface(const RelationshipTableInterface& other) = default;
+	RelationshipTableInterface& operator=(const RelationshipTableInterface& other) = default;
+	RelationshipTableInterface(RelationshipTableInterface&& other) = default;
+	RelationshipTableInterface& operator=(RelationshipTableInterface&& other) = default;
 
 	virtual void associateParticipant(
 		std::string participantScope,

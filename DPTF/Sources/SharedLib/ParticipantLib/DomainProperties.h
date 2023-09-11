@@ -27,42 +27,42 @@ class DomainProperties final
 {
 public:
 	DomainProperties(
-		Guid guid,
+		const Guid& guid,
 		UIntN domainIndex,
 		Bool domainEnabled,
 		DomainType::Type domainType,
-		std::string domainName,
-		std::string domainDescription,
-		DomainFunctionalityVersions domainFunctionalityVersions);
+		const std::string& domainName,
+		const std::string& domainDescription,
+		const DomainFunctionalityVersions& domainFunctionalityVersions);
 
-	Guid getGuid(void) const;
-	UIntN getDomainIndex(void) const;
-	Bool isEnabled(void) const;
-	DomainType::Type getDomainType(void) const;
-	std::string getName(void) const;
-	std::string getDescription(void) const;
-	DomainFunctionalityVersions getDomainFunctionalityVersions(void) const;
+	Guid getGuid() const;
+	UIntN getDomainIndex() const;
+	Bool isEnabled() const;
+	DomainType::Type getDomainType() const;
+	std::string getName() const;
+	std::string getDescription() const;
+	DomainFunctionalityVersions getDomainFunctionalityVersions() const;
 
-	Bool implementsActiveControlInterface(void) const;
-	Bool implementsActivityStatusInterface(void) const;
-	Bool implementsCoreControlInterface(void) const;
-	Bool implementsDisplayControlInterface(void) const;
-	Bool implementsEnergyControlInterface(void) const;
-	Bool implementsPeakPowerControlInterface(void) const;
-	Bool implementsPerformanceControlInterface(void) const;
-	Bool implementsPowerControlInterface(void) const;
-	Bool implementsSystemPowerControlInterface(void) const;
-	Bool implementsBatteryStatusInterface(void) const;
-	Bool implementsPlatformPowerStatusInterface(void) const;
-	Bool implementsPowerStatusInterface(void) const;
-	Bool implementsDomainPriorityInterface(void) const;
-	Bool implementsRfProfileControlInterface(void) const;
-	Bool implementsRfProfileStatusInterface(void) const;
-	Bool implementsTemperatureInterface(void) const;
-	Bool implementsTemperatureThresholdInterface(void) const;
-	Bool implementsProcessorControlInterface(void) const;
-	Bool implementsUtilizationInterface(void) const;
-	Bool implementsSocWorkloadClassificationInterface(void) const;
+	Bool implementsActiveControlInterface() const;
+	Bool implementsActivityStatusInterface() const;
+	Bool implementsCoreControlInterface() const;
+	Bool implementsDisplayControlInterface() const;
+	Bool implementsEnergyControlInterface() const;
+	Bool implementsPeakPowerControlInterface() const;
+	Bool implementsPerformanceControlInterface() const;
+	Bool implementsPowerControlInterface() const;
+	Bool implementsSystemPowerControlInterface() const;
+	Bool implementsBatteryStatusInterface() const;
+	Bool implementsPlatformPowerStatusInterface() const;
+	Bool implementsPowerStatusInterface() const;
+	Bool implementsDomainPriorityInterface() const;
+	Bool implementsRfProfileControlInterface() const;
+	Bool implementsRfProfileStatusInterface() const;
+	Bool implementsTemperatureInterface() const;
+	Bool implementsTemperatureThresholdInterface() const;
+	Bool implementsProcessorControlInterface() const;
+	Bool implementsUtilizationInterface() const;
+	Bool implementsSocWorkloadClassificationInterface() const;
 	Bool implementsDynamicEppInterface() const;
 
 	Bool operator==(const DomainProperties& domain);
@@ -79,5 +79,5 @@ private:
 	std::string m_description;
 	DomainFunctionalityVersions m_domainFunctionalityVersions;
 
-	Bool isInterfaceImplemented(UInt8 version) const;
+	static Bool isInterfaceImplemented(UInt8 version);
 };

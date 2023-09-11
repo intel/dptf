@@ -31,6 +31,11 @@ UInt32 DomainDynamicEpp_000::getEppSensitivityHint()
 	throw not_implemented();
 }
 
+SocWorkloadSource::Source DomainDynamicEpp_000::getEppSensitivityHintSource()
+{
+	throw not_implemented();
+}
+
 void DomainDynamicEpp_000::updateEppSensitivityHint(UInt32 eppSensitivityHint)
 {
 	throw not_implemented();

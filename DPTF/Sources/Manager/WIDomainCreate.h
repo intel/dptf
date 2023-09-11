@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #pragma once
-
 #include "Dptf.h"
 #include "DomainWorkItem.h"
 #include "esif_sdk_iface_app.h"
@@ -32,9 +31,9 @@ public:
 		const AppDomainDataPtr domainDataPtr,
 		Bool domainEnabled,
 		Bool* domainCreated);
-	virtual ~WIDomainCreate(void);
+	~WIDomainCreate() override = default;
 
-	virtual void onExecute(void) override final;
+	void onExecute() final;
 
 private:
 	const AppDomainDataPtr m_domainDataPtr;

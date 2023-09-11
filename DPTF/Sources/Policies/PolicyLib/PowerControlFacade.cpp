@@ -111,6 +111,11 @@ Bool PowerControlFacade::isSocPowerFloorSupported()
 	return m_policyServices.domainPowerControl->isSocPowerFloorSupported(m_participantIndex, m_domainIndex);
 }
 
+UInt32 PowerControlFacade::getSocPowerFloorState()
+{
+	return m_policyServices.domainPowerControl->getSocPowerFloorState(m_participantIndex, m_domainIndex);
+}
+
 const PowerControlDynamicCapsSet& PowerControlFacade::getCapabilities()
 {
 	return m_powerControlCapabilitiesProperty.getDynamicCapsSet();
@@ -173,6 +178,13 @@ void PowerControlFacade::setPL2PowerLimitControlToMax()
 		const auto& caps = capsSet.getCapability(PowerControlType::PL2);
 		setPowerLimitPL2(caps.getMaxPowerLimit());
 	}
+}
+
+void PowerControlFacade::setPowerLimitMinPL1(const Power& powerLimit)
+{
+	throwIfControlNotSupported();
+	m_policyServices.domainPowerControl->setPowerLimitMin(
+		m_participantIndex, m_domainIndex, PowerControlType::PL1, powerLimit);
 }
 
 void PowerControlFacade::setPowerLimitPL1(const Power& powerLimit)
@@ -348,6 +360,17 @@ void PowerControlFacade::setPowerSharePolicyPower(const Power& powerSharePolicyP
 {
 	m_policyServices.domainPowerControl->setPowerSharePolicyPower(
 		m_participantIndex, m_domainIndex, powerSharePolicyPower);
+}
+
+void PowerControlFacade::setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias)
+{
+	m_policyServices.domainPowerControl->setPowerShareEffectiveBias(
+		m_participantIndex, m_domainIndex, powerShareEffectiveBias);
+}
+
+void PowerControlFacade::clearPowerLimitMin()
+{
+	m_policyServices.domainPowerControl->clearPowerLimitMin(m_participantIndex, m_domainIndex);
 }
 
 void PowerControlFacade::clearPowerLimit()
@@ -599,6 +622,12 @@ void PowerControlFacade::updatePowerLimitTimeWindowPL1(const TimeSpan& timeWindo
 {
 	throwIfControlNotSupported();
 	m_lastSetTimeWindow[PowerControlType::PL1] = timeWindow;
+}
+
+Power PowerControlFacade::getThermalDesignPower()
+{
+	throwIfControlNotSupported();
+	return m_policyServices.domainPowerControl->getThermalDesignPower(m_participantIndex, m_domainIndex);
 }
 
 const PolicyServicesInterfaceContainer& PowerControlFacade::getPolicyServices() const

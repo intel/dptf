@@ -30,44 +30,42 @@ public:
 	DomainPerformanceControl_001(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-	virtual ~DomainPerformanceControl_001(void);
+		const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface);
+	~DomainPerformanceControl_001() override;
+
+	// remove the copy constructor and = operator
+	DomainPerformanceControl_001(const DomainPerformanceControl_001& rhs) = delete;
+	DomainPerformanceControl_001& operator=(const DomainPerformanceControl_001& rhs) = delete;
 
 	// DomainPerformanceControlInterface
-	virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
+	PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 		override;
-	virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+	PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 		override;
-	virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
+	PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
 		override;
-	virtual void setPerformanceControlDynamicCaps(
+	void setPerformanceControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		PerformanceControlDynamicCaps newCapabilities) override;
-	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
-	virtual void setPerfPreferenceMax(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
-	virtual void setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
+	void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
 	// ComponentExtendedInterface
-	virtual void onClearCachedData(void) override;
-	virtual std::string getName(void) override;
-	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	void onClearCachedData() override;
+	std::string getName() override;
+	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-	virtual void capture(void) override;
-	virtual void restore(void) override;
-	virtual UIntN getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex) override;
+	void capture() override;
+	void restore() override;
+	UIntN getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex) override;
 
 private:
-	// hide the copy constructor and = operator
-	DomainPerformanceControl_001(const DomainPerformanceControl_001& rhs);
-	DomainPerformanceControl_001& operator=(const DomainPerformanceControl_001& rhs);
-
-	PerformanceControlStaticCaps createPerformanceControlStaticCaps();
+	static PerformanceControlStaticCaps createPerformanceControlStaticCaps();
 	PerformanceControlDynamicCaps createPerformanceControlDynamicCaps(UIntN domainIndex);
-	PerformanceControlSet createPerformanceControlSet(UIntN domainIndex);
+	PerformanceControlSet createPerformanceControlSet(UIntN domainIndex) const;
 	UIntN snapIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);
 
 	CachedValue<PerformanceControlStaticCaps> m_performanceControlStaticCaps;

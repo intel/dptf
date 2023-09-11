@@ -36,8 +36,11 @@ namespace PolicyEvent
 	{
 		switch (policyEventType)
 		{
+			CASE(DptfEnvironmentProfileChanged)
 			CASE(DptfConnectedStandbyEntry)
 			CASE(DptfConnectedStandbyExit)
+			CASE(DptfLowPowerModeEntry)
+			CASE(DptfLowPowerModeExit)
 			CASE(DptfSuspend)
 			CASE(DptfResume)
 			CASE(ParticipantSpecificInfoChanged)
@@ -73,9 +76,12 @@ namespace PolicyEvent
 			CASE(DomainEnergyThresholdCrossed)
 			CASE(DomainFanCapabilityChanged)
 			CASE(DomainSocWorkloadClassificationChanged)
+			CASE(DomainSocPowerFloorChanged)
+			CASE(DomainPcieThrottleRequested)
 			CASE(DomainEppSensitivityHintChanged)
 			CASE(DomainExtendedWorkloadPredictionChanged)
 			CASE(DomainFanOperatingModeChanged)
+			CASE(DomainHardwareSocWorkloadHintChanged)
 			CASE(PolicyCoolingModePolicyChanged)
 			CASE(PolicyForegroundApplicationChanged)
 			CASE(PolicyInitiatedCallback)
@@ -94,6 +100,7 @@ namespace PolicyEvent
 			CASE(PolicyOperatingSystemScreenStateChanged)
 			CASE(PolicyOperatingSystemBatteryCountChanged)
 			CASE(PolicyOperatingSystemPowerSliderChanged)
+			CASE(PolicyProcessLoadNotification)
 			CASE(DptfPolicyLoadedUnloadedEvent)
 			CASE(DptfPolicyActivityLoggingEnabled)
 			CASE(DptfPolicyActivityLoggingDisabled)
@@ -124,239 +131,256 @@ namespace PolicyEvent
 	Bool RequiresEsifEventRegistration(PolicyEvent::Type policyEventType)
 	{
 		return (
-			(policyEventType == PolicyEvent::PolicyCoolingModePolicyChanged)
-			|| (policyEventType == PolicyEvent::PolicyForegroundApplicationChanged)
-			|| (policyEventType == PolicyEvent::PolicySensorOrientationChanged)
-			|| (policyEventType == PolicyEvent::PolicySensorMotionChanged)
-			|| (policyEventType == PolicyEvent::PolicySensorSpatialOrientationChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSourceChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemLidStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryPercentageChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPlatformTypeChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemDockModeChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemMobileNotification)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemMixedRealityModeChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemUserPresenceChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemSessionStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemScreenStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryCountChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSliderChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged)
-			|| (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged)
-			|| (policyEventType == PolicyEvent::PolicyOperatingSystemGameModeChanged)
-			|| (policyEventType == PolicyEvent::PolicyPlatformUserPresenceChanged)
-			|| (policyEventType == PolicyEvent::PolicyExternalMonitorStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserInteractionChanged)
-			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged)
-			|| (policyEventType == PolicyEvent::PolicyCollaborationChanged)
-			|| (policyEventType == PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyOemVariablesChanged)
-			|| (policyEventType == PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged)
-			|| (policyEventType == PolicyEvent::DptfAppBroadcastPrivileged)
-			|| (policyEventType == PolicyEvent::DptfAppBroadcastUnprivileged));
+			(policyEventType == PolicyCoolingModePolicyChanged)
+			|| (policyEventType == PolicyForegroundApplicationChanged)
+			|| (policyEventType == PolicySensorOrientationChanged)
+			|| (policyEventType == PolicySensorMotionChanged)
+			|| (policyEventType == PolicySensorSpatialOrientationChanged)
+			|| (policyEventType == PolicyOperatingSystemPowerSourceChanged)
+			|| (policyEventType == PolicyOperatingSystemLidStateChanged)
+			|| (policyEventType == PolicyOperatingSystemBatteryPercentageChanged)
+			|| (policyEventType == PolicyOperatingSystemPlatformTypeChanged)
+			|| (policyEventType == PolicyOperatingSystemDockModeChanged)
+			|| (policyEventType == PolicyOperatingSystemMobileNotification)
+			|| (policyEventType == PolicyOperatingSystemMixedRealityModeChanged)
+			|| (policyEventType == PolicyOperatingSystemUserPresenceChanged)
+			|| (policyEventType == PolicyOperatingSystemSessionStateChanged)
+			|| (policyEventType == PolicyOperatingSystemScreenStateChanged)
+			|| (policyEventType == PolicyOperatingSystemBatteryCountChanged)
+			|| (policyEventType == PolicyOperatingSystemPowerSliderChanged)
+			|| (policyEventType == PolicyOperatingSystemPowerSchemePersonalityChanged)
+			|| (policyEventType == PolicyProcessLoadNotification)
+			|| (policyEventType == PolicyEmergencyCallModeTableChanged)
+			|| (policyEventType == PolicyWorkloadHintConfigurationChanged)
+			|| (policyEventType == PolicyOperatingSystemGameModeChanged)
+			|| (policyEventType == PolicyPlatformUserPresenceChanged)
+			|| (policyEventType == PolicyExternalMonitorStateChanged)
+			|| (policyEventType == PolicyUserInteractionChanged)
+			|| (policyEventType == PolicyForegroundRatioChanged)
+			|| (policyEventType == PolicyCollaborationChanged)
+			|| (policyEventType == PolicyThirdPartyGraphicsPowerStateChanged)
+			|| (policyEventType == PolicyOemVariablesChanged)
+			|| (policyEventType == PolicyThirdPartyGraphicsTPPLimitChanged)
+			|| (policyEventType == DptfAppBroadcastPrivileged)
+			|| (policyEventType == DptfAppBroadcastUnprivileged));
 	}
 
-	std::string toString(Type type)
+	std::string toString(PolicyEvent::Type type)
 	{
 		switch (type)
 		{
-		case PolicyEvent::DptfAppBroadcastPrivileged:
+		case DptfEnvironmentProfileChanged:
+			return "DptfEnvironmentProfileChanged";
+		case DptfAppBroadcastPrivileged:
 			return "DptfAppBroadcastPrivileged";
-		case PolicyEvent::DptfAppBroadcastUnprivileged:
+		case DptfAppBroadcastUnprivileged:
 			return "DptfAppBroadcastUnprivileged";
-		case PolicyEvent::DptfConnectedStandbyEntry:
+		case DptfConnectedStandbyEntry:
 			return "DptfConnectedStandbyEntry";
-		case PolicyEvent::DptfConnectedStandbyExit:
+		case DptfConnectedStandbyExit:
 			return "DptfConnectedStandbyExit";
-		case PolicyEvent::DptfSuspend:
+		case DptfLowPowerModeEntry:
+			return "DptfLowPowerModeEntry";
+		case DptfLowPowerModeExit:
+			return "DptfLowPowerModeExit";
+		case DptfSuspend:
 			return "DptfSuspend";
-		case PolicyEvent::DptfResume:
+		case DptfResume:
 			return "DptfResume";
-		case PolicyEvent::ParticipantSpecificInfoChanged:
+		case ParticipantSpecificInfoChanged:
 			return "ParticipantSpecificInfoChanged";
-		case PolicyEvent::DomainCoreControlCapabilityChanged:
+		case DomainCoreControlCapabilityChanged:
 			return "DomainCoreControlCapabilityChanged";
-		case PolicyEvent::DomainDisplayControlCapabilityChanged:
+		case DomainDisplayControlCapabilityChanged:
 			return "DomainDisplayControlCapabilityChanged";
-		case PolicyEvent::DomainDisplayStatusChanged:
+		case DomainDisplayStatusChanged:
 			return "DomainDisplayStatusChanged";
-		case PolicyEvent::DomainPerformanceControlCapabilityChanged:
+		case DomainPerformanceControlCapabilityChanged:
 			return "DomainPerformanceControlCapabilityChanged";
-		case PolicyEvent::DomainPerformanceControlsChanged:
+		case DomainPerformanceControlsChanged:
 			return "DomainPerformanceControlsChanged";
-		case PolicyEvent::DomainPowerControlCapabilityChanged:
+		case DomainPowerControlCapabilityChanged:
 			return "DomainPowerControlCapabilityChanged";
-		case PolicyEvent::DomainPriorityChanged:
+		case DomainPriorityChanged:
 			return "DomainPriorityChanged";
-		case PolicyEvent::DomainRadioConnectionStatusChanged:
+		case DomainRadioConnectionStatusChanged:
 			return "DomainRadioConnectionStatusChanged";
-		case PolicyEvent::DomainRfProfileChanged:
+		case DomainRfProfileChanged:
 			return "DomainRfProfileChanged";
-		case PolicyEvent::DomainTemperatureThresholdCrossed:
+		case DomainTemperatureThresholdCrossed:
 			return "DomainTemperatureThresholdCrossed";
-		case PolicyEvent::DomainVirtualSensorCalibrationTableChanged:
+		case DomainVirtualSensorCalibrationTableChanged:
 			return "DomainVirtualSensorCalibrationTableChanged";
-		case PolicyEvent::DomainVirtualSensorPollingTableChanged:
+		case DomainVirtualSensorPollingTableChanged:
 			return "DomainVirtualSensorPollingTableChanged";
-		case PolicyEvent::DomainVirtualSensorRecalcChanged:
+		case DomainVirtualSensorRecalcChanged:
 			return "DomainVirtualSensorRecalcChanged";
-		case PolicyEvent::DomainBatteryStatusChanged:
+		case DomainBatteryStatusChanged:
 			return "DomainBatteryStatusChanged";
-		case PolicyEvent::DomainBatteryInformationChanged:
+		case DomainBatteryInformationChanged:
 			return "DomainBatteryInformationChanged";
-		case PolicyEvent::DomainBatteryHighFrequencyImpedanceChanged:
+		case DomainBatteryHighFrequencyImpedanceChanged:
 			return "DomainBatteryHighFrequencyImpedanceChanged";
-		case PolicyEvent::DomainBatteryNoLoadVoltageChanged:
+		case DomainBatteryNoLoadVoltageChanged:
 			return "DomainBatteryNoLoadVoltageChanged";
-		case PolicyEvent::DomainMaxBatteryPeakCurrentChanged:
+		case DomainMaxBatteryPeakCurrentChanged:
 			return "DomainMaxBatteryPeakCurrentChanged";
-		case PolicyEvent::DomainPlatformPowerSourceChanged:
+		case DomainPlatformPowerSourceChanged:
 			return "DomainPlatformPowerSourceChanged";
-		case PolicyEvent::DomainAdapterPowerRatingChanged:
+		case DomainAdapterPowerRatingChanged:
 			return "DomainAdapterPowerRatingChanged";
-		case PolicyEvent::DomainChargerTypeChanged:
+		case DomainChargerTypeChanged:
 			return "DomainChargerTypeChanged";
-		case PolicyEvent::DomainPlatformRestOfPowerChanged:
+		case DomainPlatformRestOfPowerChanged:
 			return "DomainPlatformRestOfPowerChanged";
-		case PolicyEvent::DomainMaxBatteryPowerChanged:
+		case DomainMaxBatteryPowerChanged:
 			return "DomainMaxBatteryPowerChanged";
-		case PolicyEvent::DomainPlatformBatterySteadyStateChanged:
+		case DomainPlatformBatterySteadyStateChanged:
 			return "DomainPlatformBatterySteadyStateChanged";
-		case PolicyEvent::DomainACNominalVoltageChanged:
+		case DomainACNominalVoltageChanged:
 			return "DomainACNominalVoltageChanged";
-		case PolicyEvent::DomainACOperationalCurrentChanged:
+		case DomainACOperationalCurrentChanged:
 			return "DomainACOperationalCurrentChanged";
-		case PolicyEvent::DomainAC1msPercentageOverloadChanged:
+		case DomainAC1msPercentageOverloadChanged:
 			return "DomainAC1msPercentageOverloadChanged";
-		case PolicyEvent::DomainAC2msPercentageOverloadChanged:
+		case DomainAC2msPercentageOverloadChanged:
 			return "DomainAC2msPercentageOverloadChanged";
-		case PolicyEvent::DomainAC10msPercentageOverloadChanged:
+		case DomainAC10msPercentageOverloadChanged:
 			return "DomainAC10msPercentageOverloadChanged";
-		case PolicyEvent::DomainEnergyThresholdCrossed:
+		case DomainEnergyThresholdCrossed:
 			return "DomainEnergyThresholdCrossed";
-		case PolicyEvent::DomainFanCapabilityChanged:
+		case DomainFanCapabilityChanged:
 			return "DomainFanCapabilityChanged";
-		case PolicyEvent::DomainSocWorkloadClassificationChanged:
+		case DomainSocWorkloadClassificationChanged:
 			return "DomainSocWorkloadClassificationChanged";
-		case PolicyEvent::DomainEppSensitivityHintChanged:
+		case DomainSocPowerFloorChanged:
+			return "DomainSocPowerFloorChanged";
+		case DomainPcieThrottleRequested:
+			return "DomainPcieThrottleRequested";
+		case DomainEppSensitivityHintChanged:
 			return "DomainEppSensitivityHintChanged";
-		case PolicyEvent::DomainExtendedWorkloadPredictionChanged:
+		case DomainExtendedWorkloadPredictionChanged:
 			return "DomainExtendedWorkloadPredictionChanged";
-		case PolicyEvent::DomainFanOperatingModeChanged:
+		case DomainFanOperatingModeChanged:
 			return "DomainFanOperatingModeChanged";
-		case PolicyEvent::PolicyCoolingModePolicyChanged:
+		case DomainHardwareSocWorkloadHintChanged:
+			return "DomainHardwareSocWorkloadHintChanged";
+		case PolicyCoolingModePolicyChanged:
 			return "PolicyCoolingModePolicyChanged";
-		case PolicyEvent::PolicyForegroundApplicationChanged:
+		case PolicyForegroundApplicationChanged:
 			return "PolicyForegroundApplicationChanged";
-		case PolicyEvent::PolicyInitiatedCallback:
+		case PolicyInitiatedCallback:
 			return "PolicyInitiatedCallback";
-		case PolicyEvent::PolicyPassiveTableChanged:
+		case PolicyPassiveTableChanged:
 			return "PolicyPassiveTableChanged";
-		case PolicyEvent::PolicySensorOrientationChanged:
+		case PolicySensorOrientationChanged:
 			return "PolicySensorOrientationChanged";
-		case PolicyEvent::PolicySensorMotionChanged:
+		case PolicySensorMotionChanged:
 			return "PolicySensorMotionChanged";
-		case PolicyEvent::PolicySensorSpatialOrientationChanged:
+		case PolicySensorSpatialOrientationChanged:
 			return "PolicySensorSpatialOrientationChanged";
-		case PolicyEvent::PolicyThermalRelationshipTableChanged:
+		case PolicyThermalRelationshipTableChanged:
 			return "PolicyThermalRelationshipTableChanged";
-		case PolicyEvent::PolicyActiveRelationshipTableChanged:
+		case PolicyActiveRelationshipTableChanged:
 			return "PolicyActiveRelationshipTableChanged";
-		case PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged:
+		case PolicyAdaptivePerformanceConditionsTableChanged:
 			return "PolicyAdaptivePerformanceConditionsTableChanged";
-		case PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged:
+		case PolicyAdaptivePerformanceActionsTableChanged:
 			return "PolicyAdaptivePerformanceActionsTableChanged";
-		case PolicyEvent::PolicyDdrfTableChanged:
+		case PolicyDdrfTableChanged:
 			return "PolicyDdrfTableChanged";
-		case PolicyEvent::PolicyTpgaTableChanged:
+		case PolicyRfimTableChanged:
+			return "PolicyRfimTableChanged";
+		case PolicyTpgaTableChanged:
 			return "PolicyTpgaTableChanged";
-		case PolicyEvent::PolicyOperatingSystemPowerSourceChanged:
+		case PolicyOperatingSystemPowerSourceChanged:
 			return "PolicyOperatingSystemPowerSourceChanged";
-		case PolicyEvent::PolicyOperatingSystemLidStateChanged:
+		case PolicyOperatingSystemLidStateChanged:
 			return "PolicyOperatingSystemLidStateChanged";
-		case PolicyEvent::PolicyOperatingSystemBatteryPercentageChanged:
+		case PolicyOperatingSystemBatteryPercentageChanged:
 			return "PolicyOperatingSystemBatteryPercentageChanged";
-		case PolicyEvent::PolicyOperatingSystemPlatformTypeChanged:
+		case PolicyOperatingSystemPlatformTypeChanged:
 			return "PolicyOperatingSystemPlatformTypeChanged";
-		case PolicyEvent::PolicyOperatingSystemDockModeChanged:
+		case PolicyOperatingSystemDockModeChanged:
 			return "PolicyOperatingSystemDockModeChanged";
-		case PolicyEvent::PolicyOperatingSystemMobileNotification:
+		case PolicyOperatingSystemMobileNotification:
 			return "PolicyOperatingSystemMobileNotification";
-		case PolicyEvent::PolicyOperatingSystemMixedRealityModeChanged:
+		case PolicyOperatingSystemMixedRealityModeChanged:
 			return "PolicyOperatingSystemMixedRealityModeChanged";
-		case PolicyEvent::PolicyOperatingSystemUserPresenceChanged:
+		case PolicyOperatingSystemUserPresenceChanged:
 			return "PolicyOperatingSystemUserPresenceChanged";
-		case PolicyEvent::PolicyOperatingSystemSessionStateChanged:
+		case PolicyOperatingSystemSessionStateChanged:
 			return "PolicyOperatingSystemSessionStateChanged";
-		case PolicyEvent::PolicyOperatingSystemScreenStateChanged:
+		case PolicyOperatingSystemScreenStateChanged:
 			return "PolicyOperatingSystemScreenStateChanged";
-		case PolicyEvent::PolicyOperatingSystemBatteryCountChanged:
+		case PolicyOperatingSystemBatteryCountChanged:
 			return "PolicyOperatingSystemBatteryCountChanged";
-		case PolicyEvent::PolicyOperatingSystemPowerSliderChanged:
+		case PolicyOperatingSystemPowerSliderChanged:
 			return "PolicyOperatingSystemPowerSliderChanged";
-		case PolicyEvent::PolicyOemVariablesChanged:
+		case PolicyOemVariablesChanged:
 			return "PolicyOemVariablesChanged";
-		case PolicyEvent::PolicyPowerBossConditionsTableChanged:
+		case PolicyProcessLoadNotification:
+			return "PolicyProcessLoadNotification";
+		case PolicyPowerBossConditionsTableChanged:
 			return "PolicyPowerBossConditionsTableChanged";
-		case PolicyEvent::PolicyPowerBossActionsTableChanged:
+		case PolicyPowerBossActionsTableChanged:
 			return "PolicyPowerBossActionsTableChanged";
-		case PolicyEvent::PolicyPowerBossMathTableChanged:
+		case PolicyPowerBossMathTableChanged:
 			return "PolicyPowerBossMathTableChanged";
-		case PolicyEvent::PolicyVoltageThresholdMathTableChanged:
+		case PolicyVoltageThresholdMathTableChanged:
 			return "PolicyVoltageThresholdMathTableChanged";
-		case PolicyEvent::DptfPolicyLoadedUnloadedEvent:
+		case DptfPolicyLoadedUnloadedEvent:
 			return "DptfPolicyLoadedUnloadedEvent";
-		case PolicyEvent::DptfPolicyActivityLoggingEnabled:
+		case DptfPolicyActivityLoggingEnabled:
 			return "DptfPolicyActivityLoggingEnabled";
-		case PolicyEvent::DptfPolicyActivityLoggingDisabled:
+		case DptfPolicyActivityLoggingDisabled:
 			return "DptfPolicyActivityLoggingDisabled";
-		case PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged:
+		case PolicyOperatingSystemPowerSchemePersonalityChanged:
 			return "PolicyOperatingSystemPowerSchemePersonalityChanged";
-		case PolicyEvent::PolicyEmergencyCallModeTableChanged:
+		case PolicyEmergencyCallModeTableChanged:
 			return "PolicyEmergencyCallModeTableChanged";
-		case PolicyEvent::PolicyPidAlgorithmTableChanged:
+		case PolicyPidAlgorithmTableChanged:
 			return "PolicyPidAlgorithmTableChanged";
-		case PolicyEvent::PolicyIntelligentThermalManagementTableChanged:
+		case PolicyIntelligentThermalManagementTableChanged:
 			return "PolicyIntelligentThermalManagementTableChanged";
-		case PolicyEvent::PolicyActiveControlPointRelationshipTableChanged:
+		case PolicyActiveControlPointRelationshipTableChanged:
 			return "PolicyActiveControlPointRelationshipTableChanged";
-		case PolicyEvent::PolicyPowerShareAlgorithmTableChanged:
+		case PolicyPowerShareAlgorithmTableChanged:
 			return "PolicyPowerShareAlgorithmTableChanged";
-		case PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged:
+		case PolicyEnergyPerformanceOptimizerTableChanged:
 			return "PolicyEnergyPerformanceOptimizerTableChanged";
-		case PolicyEvent::PowerLimitChanged:
+		case PowerLimitChanged:
 			return "PowerLimitChanged";
-		case PolicyEvent::PowerLimitTimeWindowChanged:
+		case PowerLimitTimeWindowChanged:
 			return "PowerLimitTimeWindowChanged";
-		case PolicyEvent::PerformanceCapabilitiesChanged:
+		case PerformanceCapabilitiesChanged:
 			return "PerformanceCapabilitiesChanged";
-		case PolicyEvent::PolicyWorkloadHintConfigurationChanged:
+		case PolicyWorkloadHintConfigurationChanged:
 			return "PolicyWorkloadHintConfigurationChanged";
-		case PolicyEvent::PolicyOperatingSystemGameModeChanged:
+		case PolicyOperatingSystemGameModeChanged:
 			return "PolicyOperatingSystemGameModeChanged";
-		case PolicyEvent::PolicyPowerShareAlgorithmTable2Changed:
+		case PolicyPowerShareAlgorithmTable2Changed:
 			return "PolicyPowerShareAlgorithmTable2Changed";
-		case PolicyEvent::PolicyPlatformUserPresenceChanged:
+		case PolicyPlatformUserPresenceChanged:
 			return "PolicyPlatformUserPresenceChanged";
-		case PolicyEvent::PolicyExternalMonitorStateChanged:
+		case PolicyExternalMonitorStateChanged:
 			return "PolicyExternalMonitorStateChanged";
-		case PolicyEvent::PolicyUserInteractionChanged:
+		case PolicyUserInteractionChanged:
 			return "PolicyUserInteractionChanged";
-		case PolicyEvent::PolicyForegroundRatioChanged:
+		case PolicyForegroundRatioChanged:
 			return "PolicyForegroundRatioChanged";
-		case PolicyEvent::PolicySystemModeChanged:
+		case PolicySystemModeChanged:
 			return "PolicySystemModeChanged";
-		case PolicyEvent::PolicyCollaborationChanged:
+		case PolicyCollaborationChanged:
 			return "PolicyCollaborationChanged";
-		case PolicyEvent::PolicyThirdPartyGraphicsPowerStateChanged:
+		case PolicyThirdPartyGraphicsPowerStateChanged:
 			return "PolicyThirdPartyGraphicsPowerStateChanged";
-		case PolicyEvent::PolicySwOemVariablesChanged:
+		case PolicySwOemVariablesChanged:
 			return "PolicySwOemVariablesChanged";
-		case PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged:
+		case PolicyThirdPartyGraphicsTPPLimitChanged:
 			return "PolicyThirdPartyGraphicsTPPLimitChanged";
-		case PolicyEvent::Invalid:
-		case PolicyEvent::Max:
+		case Invalid:
+		case Max:
 		default:
 			throw dptf_exception("Event type is not a Policy Event.");
 		}

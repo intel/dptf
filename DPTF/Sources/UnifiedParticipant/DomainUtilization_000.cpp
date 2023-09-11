@@ -32,6 +32,11 @@ UtilizationStatus DomainUtilization_000::getUtilizationStatus(UIntN participantI
 	throw not_implemented();
 }
 
+Percentage DomainUtilization_000::getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 void DomainUtilization_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.

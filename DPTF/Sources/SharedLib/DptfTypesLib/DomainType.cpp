@@ -59,6 +59,7 @@ namespace DomainType
 														{Nvdgx, "Nvdgx"},
 														{Pcie, "Pcie"},
 														{Vpu, "Vpu"},
+														{Ipu, "Ipu"},
 														{All, "All"},
 														{Invalid, Constants::NotAvailableString}};
 
@@ -168,6 +169,8 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::Pcie;
 	case ESIF_DOMAIN_TYPE_VPU:
 		return DomainType::Vpu;
+	case ESIF_DOMAIN_TYPE_IPU:
+		return DomainType::Ipu;
 	case ESIF_DOMAIN_TYPE_MANAGER:
 		return DomainType::Manager;
 	case ESIF_DOMAIN_TYPE_ALL:
@@ -261,6 +264,8 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_PCIE;
 	case DomainType::Vpu:
 		return ESIF_DOMAIN_TYPE_VPU;
+	case DomainType::Ipu:
+		return ESIF_DOMAIN_TYPE_IPU;
 	case DomainType::Manager:
 		return ESIF_DOMAIN_TYPE_MANAGER;
 	case DomainType::All:

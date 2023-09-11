@@ -122,22 +122,21 @@ esif_error_t IrpcTransaction_Wait(IrpcTransaction *self)
 #define TRX_EXPIRE_ALL				0						// Expire All Active Transactions Immediately
 #define TRX_EXPIRE_TIMEOUT_NEVER	0x7fffffff				// Never Expire Transactions
 
-// IPF Transaction Manager
-typedef struct IpfTrxMgr_s {
-	esif_ccb_lock_t	lock;		// Transaction Manager Lock
-	IrpcTransaction	**trxPool;	// Active Transaction Pool
-	size_t poolSize;			// Active Transaction Pool size
-	atomic_t rpcTimeout;		// RPC Timeout in Seconds
-} IpfTrxMgr;
+// Private
+static void IpfTrxMgr_ExpireTimeout(IpfTrxMgr *self, size_t seconds);
 
-static IpfTrxMgr g_trxMgr;	// Singleton Instance
+// Public IpfTrxMgr Singleton Instance Functions
+IpfTrxMgr* IpfTrxMgr_GetInstance(void)
+{
+	static IpfTrxMgr singleton = { 0 };
+	return &singleton;
+}
 
-static void IpfTrxMgr_ExpireTimeout(size_t seconds);
+// Public IpfTrxMgr Instance Functions
 
-esif_error_t IpfTrxMgr_Init(void)
+esif_error_t IpfTrxMgr_Init(IpfTrxMgr *self)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	IpfTrxMgr *self = &g_trxMgr;
 	if (self) {
 		self->trxPool = (IrpcTransaction **)esif_ccb_malloc(sizeof(IrpcTransaction *) * TRX_POOL_INITIAL);
 		if (self->trxPool == NULL) {
@@ -153,11 +152,10 @@ esif_error_t IpfTrxMgr_Init(void)
 	return rc;
 }
 
-void IpfTrxMgr_Uninit(void)
+void IpfTrxMgr_Uninit(IpfTrxMgr *self)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	if (self) {
-		IpfTrxMgr_ExpireAll();
+		IpfTrxMgr_ExpireAll(self);
 		esif_ccb_free(self->trxPool);
 		self->trxPool = NULL;
 		self->poolSize = 0;
@@ -165,22 +163,18 @@ void IpfTrxMgr_Uninit(void)
 	}
 }
 
-void IpfTrxMgr_ExpireInactive(void)
+void IpfTrxMgr_ExpireInactive(IpfTrxMgr *self)
 {
-	IpfTrxMgr *self = &g_trxMgr;
-	if (self) {
-		IpfTrxMgr_ExpireTimeout(atomic_read(&self->rpcTimeout));
-	}
+	IpfTrxMgr_ExpireTimeout(self, atomic_read(&self->rpcTimeout));
 }
 
-void IpfTrxMgr_ExpireAll(void)
+void IpfTrxMgr_ExpireAll(IpfTrxMgr *self)
 {
-	IpfTrxMgr_ExpireTimeout(TRX_EXPIRE_ALL);
+	IpfTrxMgr_ExpireTimeout(self, TRX_EXPIRE_ALL);
 }
 
-static void IpfTrxMgr_ExpireTimeout(size_t seconds)
+static void IpfTrxMgr_ExpireTimeout(IpfTrxMgr *self, size_t seconds)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	if (self && seconds < TRX_EXPIRE_TIMEOUT_NEVER) {
 		esif_ccb_write_lock(&self->lock);
 		esif_ccb_realtime_t now = esif_ccb_realtime_current();
@@ -202,9 +196,8 @@ static void IpfTrxMgr_ExpireTimeout(size_t seconds)
 	}
 }
 
-esif_error_t IpfTrxMgr_AddTransaction(IrpcTransaction *trx)
+esif_error_t IpfTrxMgr_AddTransaction(IpfTrxMgr *self, IrpcTransaction *trx)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (self && trx) {
 		rc = ESIF_E_MAXIMUM_CAPACITY_REACHED;
@@ -237,9 +230,8 @@ esif_error_t IpfTrxMgr_AddTransaction(IrpcTransaction *trx)
 	return rc;
 }
 
-IrpcTransaction *IpfTrxMgr_GetTransaction(esif_handle_t ipfHandle, UInt64 trxId)
+IrpcTransaction *IpfTrxMgr_GetTransaction(IpfTrxMgr *self, esif_handle_t ipfHandle, UInt64 trxId)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	IrpcTransaction *trx = NULL;
 	if (self) {
 		esif_ccb_write_lock(&self->lock);
@@ -258,9 +250,8 @@ IrpcTransaction *IpfTrxMgr_GetTransaction(esif_handle_t ipfHandle, UInt64 trxId)
 	return trx;
 }
 
-double IpfTrxMgr_GetMinTimeout()
+double IpfTrxMgr_GetMinTimeout(IpfTrxMgr *self)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	double result = TRX_EXPIRE_TIMEOUT_NEVER;
 	if (self) {
 		esif_ccb_realtime_t now = esif_ccb_realtime_current();
@@ -279,9 +270,8 @@ double IpfTrxMgr_GetMinTimeout()
 }
 
 // Get Current RPC Transaction Timeout
-size_t IpfTrxMgr_GetTimeout()
+size_t IpfTrxMgr_GetTimeout(IpfTrxMgr *self)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	size_t timeout = 0;
 	if (self) {
 		timeout = atomic_read(&self->rpcTimeout);
@@ -290,18 +280,16 @@ size_t IpfTrxMgr_GetTimeout()
 }
 
 // Set RPC Transaction Timeout (0 = Use Default)
-void IpfTrxMgr_SetTimeout(size_t timeout)
+void IpfTrxMgr_SetTimeout(IpfTrxMgr *self, size_t timeout)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	if (self) {
 		atomic_set(&self->rpcTimeout, (timeout ? timeout : TRX_EXPIRE_TIMEOUT_SECONDS));
 	}
 }
 
 // Reset all Pending Transaction Timeouts after Resuming Timeouts
-void IpfTrxMgr_ResetTimeouts()
+void IpfTrxMgr_ResetTimeouts(IpfTrxMgr *self)
 {
-	IpfTrxMgr *self = &g_trxMgr;
 	if (self) {
 		esif_ccb_realtime_t now = esif_ccb_realtime_current();
 		esif_ccb_read_lock(&self->lock);

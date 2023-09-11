@@ -18,17 +18,13 @@
 
 #include "DptfExceptions.h"
 
-dptf_exception::dptf_exception(const std::string& description) throw()
+dptf_exception::dptf_exception(const std::string& description) noexcept
 	: std::logic_error(description.c_str())
 	, m_description(description)
 {
 }
 
-dptf_exception::~dptf_exception() throw()
-{
-}
-
-const char* dptf_exception::what() const throw()
+const char* dptf_exception::what() const noexcept
 {
 	return m_description.c_str();
 }

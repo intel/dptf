@@ -72,6 +72,7 @@ typedef enum esif_rc {
 	ESIF_I_AGAIN,	     /* Come Back And Try Again Later */
 	ESIF_I_MSR_AFFINITY, /* Not All MSR Affinities Operational/Supported */
 	ESIF_I_INIT_PAUSED,				/* Init paused - for later completion */
+	ESIF_I_NO_LEGACY_SUPPORT,	/* Primitive is not supported in current DSP */
 
 	/*
 	 **********************************************************************
@@ -91,6 +92,7 @@ typedef enum esif_rc {
 	ESIF_E_MAXIMUM_CAPACITY_REACHED,/* Unable to insert object due to lack of entries */
 	ESIF_E_DISABLED,				/* Optional support disabled by configuration */
 	ESIF_E_NOT_INITIALIZED,			/* Required support has not been initialized */
+	ESIF_E_UNSUPPORTED_CLIENT_SDK,	/* Client SDK not compatible with core/IPC */
 
 
 	/* ACPI */
@@ -255,6 +257,7 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_I_AGAIN);
 	ESIF_CASE_ENUM(ESIF_I_MSR_AFFINITY);
 	ESIF_CASE_ENUM(ESIF_I_INIT_PAUSED);
+	ESIF_CASE_ENUM(ESIF_I_NO_LEGACY_SUPPORT);
 
 	ESIF_CASE_ENUM(ESIF_E_NOT_IMPLEMENTED);
 	ESIF_CASE_ENUM(ESIF_E_NO_LOWER_FRAMEWORK);
@@ -268,6 +271,7 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_MAXIMUM_CAPACITY_REACHED);
 	ESIF_CASE_ENUM(ESIF_E_DISABLED);
 	ESIF_CASE_ENUM(ESIF_E_NOT_INITIALIZED);
+	ESIF_CASE_ENUM(ESIF_E_UNSUPPORTED_CLIENT_SDK);
 
 	ESIF_CASE_ENUM(ESIF_E_NO_ACPI_SUPPORT);
 	ESIF_CASE_ENUM(ESIF_E_NO_ACPII_SUPPORT);

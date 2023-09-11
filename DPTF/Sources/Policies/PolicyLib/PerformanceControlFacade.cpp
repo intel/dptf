@@ -176,13 +176,3 @@ const PolicyServicesInterfaceContainer& PerformanceControlFacade::getPolicyServi
 {
 	return m_policyServices;
 }
-
-void PerformanceControlFacade::setPerfPreferenceMax(Percentage minMaxRatio)
-{
-	m_policyServices.domainPerformanceControl->setPerfPreferenceMax(m_participantIndex, m_domainIndex, minMaxRatio);
-}
-
-void PerformanceControlFacade::setPerfPreferenceMin(Percentage minMaxRatio)
-{
-	m_policyServices.domainPerformanceControl->setPerfPreferenceMin(m_participantIndex, m_domainIndex, minMaxRatio);
-}

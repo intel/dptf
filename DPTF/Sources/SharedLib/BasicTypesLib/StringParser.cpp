@@ -131,3 +131,58 @@ std::string StringParser::removeAll(const std::string& input, char character)
 
 	return inputCopy;
 }
+
+std::string StringParser::removeTrailingZeros(const std::string& input)
+{
+	auto pos = input.find_last_not_of('0');
+	if (pos == std::string::npos)
+	{
+		return "0";
+	}
+	else if (input[pos] == '.')
+	{
+		pos--;
+	}
+	return input.substr(0, pos + 1);
+}
+
+size_t StringParser::countWords(const std::string& input, const std::string& word)
+{
+	if (word.empty() || input.empty())
+	{
+		return 0;
+	}
+
+	size_t count = 0;
+	size_t nPos = input.find(word, 0);
+	while (nPos != std::string::npos)
+	{
+		++count;
+		nPos = input.find(word, nPos + word.size());
+	}
+	return count;
+}
+
+std::string StringParser::fromCharacters(const std::vector<unsigned char>& characters)
+{
+	string result;
+	result.reserve(characters.size());
+	result.assign(characters.begin(), characters.end());
+	return trimNulls(result);
+}
+
+string StringParser::trimWhitespace(const string& input, const string& whitespace)
+{
+	string result = input;
+	result.erase(result.find_last_not_of(whitespace) + 1);
+	result.erase(0, result.find_first_not_of(whitespace));
+	return result;
+}
+
+string StringParser::trimNulls(const string& input)
+{
+	string result = input;
+	result.erase(result.find_last_not_of('\0') + 1);
+	result.erase(0, result.find_first_not_of('\0'));
+	return result;
+}

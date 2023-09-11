@@ -30,10 +30,16 @@ DomainProcessorControl_001::DomainProcessorControl_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainProcessorControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
+	m_pcieThrottleRequestState.invalidate();
 }
 
 DomainProcessorControl_001::~DomainProcessorControl_001(void)
 {
+}
+
+void DomainProcessorControl_001::updatePcieThrottleRequestState(UInt32 pcieThrottleRequestState)
+{
+	m_pcieThrottleRequestState.set(pcieThrottleRequestState);
 }
 
 Temperature DomainProcessorControl_001::getTccOffsetTemperature()
@@ -47,6 +53,50 @@ void DomainProcessorControl_001::setTccOffsetTemperature(const Temperature& tccO
 	throwIfInvalidTemperature(tccOffset);
 	getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(
 		esif_primitive_type::SET_TCC_OFFSET, tccOffset, getDomainIndex());
+}
+
+void DomainProcessorControl_001::setPerfPreferenceMax(const Percentage& cpuMaxRatio)
+{
+	getParticipantServices()->primitiveExecuteSetAsPercentage(
+		esif_primitive_type::SET_PERF_PREFERENCE_MAX, cpuMaxRatio, getDomainIndex());
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{
+			std::stringstream message;
+			message << "Successfully set max CPU frequency to " << std::to_string(cpuMaxRatio);
+			return message.str();
+		});
+}
+
+void DomainProcessorControl_001::setPerfPreferenceMin(const Percentage& cpuMinRatio)
+{
+	getParticipantServices()->primitiveExecuteSetAsPercentage(
+		esif_primitive_type::SET_PERF_PREFERENCE_MIN, cpuMinRatio, getDomainIndex());
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{
+			std::stringstream message;
+			message << "Successfully set min CPU frequency to " << std::to_string(cpuMinRatio);
+			return message.str();
+		});
+}
+
+UInt32 DomainProcessorControl_001::getPcieThrottleRequestState()
+{
+	if (m_pcieThrottleRequestState.isInvalid())
+	{
+		try
+		{
+			UInt32 pcieThrottleRequestState = getParticipantServices()->primitiveExecuteGetAsUInt32(
+				esif_primitive_type::GET_PCIE_THROTTLING_OPTION, getDomainIndex());
+			m_pcieThrottleRequestState.set(pcieThrottleRequestState);
+		}
+		catch (...)
+		{
+			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get PCIe Throttle Request State"; });
+			m_pcieThrottleRequestState.set((UInt32)0);
+		}
+	}
+
+	return m_pcieThrottleRequestState.get();
 }
 
 Temperature DomainProcessorControl_001::getMaxTccOffsetTemperature()
@@ -158,3 +208,4 @@ void DomainProcessorControl_001::throwIfInvalidTemperature(const Temperature& te
 		throw dptf_exception("Attempting to set an invalid Temperature value for TCC Offset Control");
 	}
 }
+

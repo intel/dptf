@@ -28,16 +28,27 @@ void IrpcTransaction_PutRef(IrpcTransaction *self);
 void IrpcTransaction_Signal(IrpcTransaction *self);
 esif_error_t IrpcTransaction_Wait(IrpcTransaction *self);
 
-// IPF RPC Transaction Manager
-esif_error_t IpfTrxMgr_Init(void);
-void IpfTrxMgr_Uninit(void);
-void IpfTrxMgr_ExpireInactive(void);
-void IpfTrxMgr_ExpireAll(void);
-esif_error_t IpfTrxMgr_AddTransaction(IrpcTransaction *trx);
-IrpcTransaction *IpfTrxMgr_GetTransaction(esif_handle_t ipfHandle, UInt64 trxId);
-double IpfTrxMgr_GetMinTimeout();
-size_t IpfTrxMgr_GetTimeout();
-void IpfTrxMgr_SetTimeout(size_t timeout);
-void IpfTrxMgr_ResetTimeouts();
+// IPF Transaction Manager
+typedef struct IpfTrxMgr_s {
+	esif_ccb_lock_t	lock;		// Transaction Manager Lock
+	IrpcTransaction** trxPool;	// Active Transaction Pool
+	size_t poolSize;			// Active Transaction Pool size
+	atomic_t rpcTimeout;		// RPC Timeout in Seconds
+} IpfTrxMgr;
+
+// Use to Get Singleton Instance; Multiple Instances also supported
+IpfTrxMgr *IpfTrxMgr_GetInstance(void);
+
+// IPF Transaction Manager Multiple Instances
+esif_error_t IpfTrxMgr_Init(IpfTrxMgr *self);
+void IpfTrxMgr_Uninit(IpfTrxMgr *self);
+void IpfTrxMgr_ExpireInactive(IpfTrxMgr *self);
+void IpfTrxMgr_ExpireAll(IpfTrxMgr *self);
+esif_error_t IpfTrxMgr_AddTransaction(IpfTrxMgr *self, IrpcTransaction *trx);
+IrpcTransaction * IpfTrxMgr_GetTransaction(IpfTrxMgr *self, esif_handle_t ipfHandle, UInt64 trxId);
+double IpfTrxMgr_GetMinTimeout(IpfTrxMgr *self);
+size_t IpfTrxMgr_GetTimeout(IpfTrxMgr *self);
+void IpfTrxMgr_SetTimeout(IpfTrxMgr *self, size_t timeout);
+void IpfTrxMgr_ResetTimeouts(IpfTrxMgr *self);
 
 #define IPFTRX_MATCHANY		0xffffffffffffffff	// Match Any Transaction ID for given IPF Handle

@@ -48,9 +48,10 @@ void DomainRfProfileStatus_002::setRfProfileOverride(
 				<< "DomainType " << domainType;
 		return message.str();
 	});
-	if (rfProfileBufferData.size() >= sizeof(esif_data_rfprofile) && domainType == DomainType::WwanRfim)
+
+	if (domainType == DomainType::WwanRfim)
 	{
-		m_overrideRfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(rfProfileBufferData);
+		m_overrideRfProfileDataSet = RfProfileDataSet::createActiveRfProfileDataFromDptfBuffer(rfProfileBufferData);
 		auto guardband = getRfProfileGuardband(participantIndex, domainIndex) / 2;
 		auto rfProfileData = m_overrideRfProfileDataSet.getRfProfileData();
 		std::vector<RfProfileData> newRfProfileDataSet;
@@ -82,9 +83,16 @@ RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participan
 		}
 		else 
 		{
-			DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
-				esif_primitive_type::GET_RF_CHANNEL_INFO, ESIF_DATA_BINARY, domainIndex);
-			m_rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);	
+			try
+			{
+				DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+					esif_primitive_type::GET_RF_ACTIVE_CHANNELS, ESIF_DATA_STRUCTURE, domainIndex);
+				m_rfProfileDataSet = RfProfileDataSet::createActiveRfProfileDataFromDptfBuffer(buffer);
+			}
+			catch (...)
+			{
+				m_rfProfileDataSet = RfProfileDataSet::createActiveRfProfileDataFromEmptyData();
+			}
 			auto guardband = getRfProfileGuardband(participantIndex, domainIndex) / 2;
 			auto rfProfileData = m_rfProfileDataSet.getRfProfileData();
 			std::vector<RfProfileData> newRfProfileDataSet;
@@ -140,10 +148,20 @@ UInt64 DomainRfProfileStatus_002::getDvfsPoints(UIntN participantIndex, UIntN do
 	throw not_implemented();
 }
 
+UInt32 DomainRfProfileStatus_002::getDlvrSsc(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Frequency DomainRfProfileStatus_002::getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 void DomainRfProfileStatus_002::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+	const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct)
 {
 	try
 	{
@@ -153,8 +171,13 @@ void DomainRfProfileStatus_002::setDdrRfiTable(
 				+ StatusFormat::friendlyValue(ddrRfiStruct.numberOfDvfsPoints) + " dvfs points");
 		});
 
+		auto packageCopy = ddrRfiStruct;
 		getParticipantServices()->primitiveExecuteSet(
-			SET_DDR_RFI_TABLE, ESIF_DATA_STRUCTURE, &ddrRfiStruct, sizeof(ddrRfiStruct), sizeof(ddrRfiStruct));
+			SET_DDR_RFI_TABLE,
+			ESIF_DATA_STRUCTURE,
+			&packageCopy,
+			sizeof(ddrRfiStruct),
+			sizeof(ddrRfiStruct));
 	}
 	catch (...)
 	{
@@ -162,7 +185,21 @@ void DomainRfProfileStatus_002::setDdrRfiTable(
 	}
 }
 
+void DomainRfProfileStatus_002::sendMasterControlStatus(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 masterControlStatus)
+{
+	getParticipantServices()->primitiveExecuteSetAsUInt32(SET_DTT_MASTER_TO_CNVI, masterControlStatus, domainIndex);
+	PARTICIPANT_LOG_MESSAGE_DEBUG({ return ("Sent Master Control Status to Cnvi."); });
+}
+
 void DomainRfProfileStatus_002::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_002::setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency)
 {
 	throw not_implemented();
 }

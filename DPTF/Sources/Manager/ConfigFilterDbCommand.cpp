@@ -17,6 +17,7 @@
 ******************************************************************************/
 #include "ConfigFilterDbCommand.h"
 #include "DptfManagerInterface.h"
+#include "DttConfiguration.h"
 
 using namespace std;
 
@@ -34,14 +35,6 @@ string ConfigFilterDbCommand::getCommandName() const
 	return "filterdb";
 }
 
-string ConfigFilterDbCommand::getFilteredContentByCpuId(
-	const shared_ptr<ConfigurationFileContentInterface>& cs,
-	const regex regularExp) const
-{
-	const auto environmentProfile = m_dptfManager->getEnvironmentProfile();
-	return cs->toFilteredDatabaseString(environmentProfile.cpuIdWithoutStepping, regularExp);
-}
-
 void ConfigFilterDbCommand::execute(const CommandArguments& arguments)
 {
 	try
@@ -54,7 +47,11 @@ void ConfigFilterDbCommand::execute(const CommandArguments& arguments)
 		if (configManager->contentExists(configName))
 		{
 			const auto cs = configManager->getContent(configName);
-			const auto result = getFilteredContentByCpuId(cs, filterRegex);
+			const auto dttConfiguration = DttConfiguration(cs);
+			const auto environmentProfile = m_dptfManager->getEnvironmentProfile();
+
+			string result = dttConfiguration.toActiveConfigurationString(environmentProfile, filterRegex);
+			
 			setResultCode(ESIF_OK);
 			setResultMessage(result);
 		}

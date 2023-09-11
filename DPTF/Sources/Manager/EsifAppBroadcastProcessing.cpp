@@ -20,58 +20,51 @@
 #include "NptWwanBandBroadcastData.h"
 #include "esif_sdk.h"
 
-#define MAX_BYTES_SW_OEM_VAR_DATA 8192
-#define MAX_BYTES_NPT_WWAN_DATA 10 * sizeof(esif_data_rfprofile)
+using namespace std;
 
-EsifAppBroadcastProcessing::EsifAppBroadcastProcessing()
-{
-}
+constexpr u32 MAX_BYTES_SW_OEM_VAR_DATA = 8192;
+constexpr u32 MAX_BYTES_NPT_WWAN_DATA = 10 * sizeof(esif_data_rfprofile);
 
-EsifAppBroadcastProcessing::~EsifAppBroadcastProcessing()
-{
-}
-
-std::shared_ptr<WorkItem> EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreateWorkItem(
+std::shared_ptr<WorkItem> EsifAppBroadcastProcessing::createWorkItem(
 	DptfManagerInterface* dptfManager,
 	const EsifDataPtr esifEventDataPtr)
 {
-	EsifAppBroadcastHeader* broadcastNotificationDataHeader = (EsifAppBroadcastHeader*)esifEventDataPtr->buf_ptr;
-	Guid broadcastGuid(broadcastNotificationDataHeader->UUID);
-	std::shared_ptr<WorkItem> wi= nullptr;
+	const auto broadcastHeader = static_cast<EsifAppBroadcastHeader*>(esifEventDataPtr->buf_ptr);
+	throwIfSizeMismatch(esifEventDataPtr, broadcastHeader);
+
+	const Guid broadcastGuid(broadcastHeader->UUID);
 	if (IGCC_BROADCAST_GUID == broadcastGuid)
 	{
-		IgccBroadcastData::IgccToDttNotificationPackage* igccNotificationData =
-			(IgccBroadcastData::IgccToDttNotificationPackage*)esifEventDataPtr->buf_ptr;
-		wi = std::make_shared<WIDptfIgccBroadcastReceived>(dptfManager, *igccNotificationData);
+		const auto igccNotificationData = static_cast<IgccBroadcastData::IgccToDttNotificationPackage*>(esifEventDataPtr->buf_ptr);
+		return make_shared<WIDptfIgccBroadcastReceived>(dptfManager, *igccNotificationData);
 	}
-	else if (SW_OEM_VAR_GUID == broadcastGuid)
+
+	if (SW_OEM_VAR_GUID == broadcastGuid)
 	{
-		UInt8* eventData = (UInt8*)(broadcastNotificationDataHeader->UUID + sizeof(EsifAppBroadcastHeader));
-		DptfBuffer swOemVariablesData;
-		if (broadcastNotificationDataHeader->dataLen >= MAX_BYTES_SW_OEM_VAR_DATA)
-		{
-			swOemVariablesData = DptfBuffer::fromExistingByteArray(eventData, MAX_BYTES_SW_OEM_VAR_DATA);
-		}
-		else
-		{
-			swOemVariablesData = DptfBuffer::fromExistingByteArray(eventData, broadcastNotificationDataHeader->dataLen);
-		}
-		wi = std::make_shared<WIDptfSwOemVariablesBroadcastReceived>(dptfManager, swOemVariablesData);
+		const auto eventData = reinterpret_cast<UInt8*>(broadcastHeader) + sizeof(EsifAppBroadcastHeader);
+		const auto eventDataLength = std::min(MAX_BYTES_SW_OEM_VAR_DATA, broadcastHeader->dataLen);
+		DptfBuffer swOemVariablesData = DptfBuffer::fromExistingByteArray(eventData, eventDataLength);
+		return make_shared<WIDptfSwOemVariablesBroadcastReceived>(dptfManager, swOemVariablesData);
 	}
-	else if (NPT_WWAN_BAND_BROADCAST_GUID == broadcastGuid)
-	{		
-		DptfBuffer nptWwanBandBroadcastData;
-		UInt8* eventData = (UInt8*)(broadcastNotificationDataHeader->UUID + sizeof(EsifAppBroadcastHeader));
-		if (broadcastNotificationDataHeader->dataLen >= MAX_BYTES_NPT_WWAN_DATA)
-		{
-			nptWwanBandBroadcastData = DptfBuffer::fromExistingByteArray(eventData, MAX_BYTES_NPT_WWAN_DATA);
-		}
-		else
-		{
-			nptWwanBandBroadcastData = DptfBuffer::fromExistingByteArray(eventData, broadcastNotificationDataHeader->dataLen);
-		}
-		wi = std::make_shared<WIDptfNptWwanBandBroadcastReceived>(
-			dptfManager, nptWwanBandBroadcastData);
+
+	if (NPT_WWAN_BAND_BROADCAST_GUID == broadcastGuid)
+	{
+		const auto eventData = reinterpret_cast<UInt8*>(broadcastHeader) + sizeof(EsifAppBroadcastHeader);
+		const auto eventDataLength = std::min(MAX_BYTES_NPT_WWAN_DATA, broadcastHeader->dataLen);
+		DptfBuffer nptWwanBandBroadcastData = DptfBuffer::fromExistingByteArray(eventData, eventDataLength);
+		return make_shared<WIDptfNptWwanBandBroadcastReceived>(dptfManager, nptWwanBandBroadcastData);
 	}
-	return wi;
+	return nullptr;
+}
+
+void EsifAppBroadcastProcessing::throwIfSizeMismatch(
+	const EsifDataPtr esifEventDataPtr,
+	const EsifAppBroadcastHeader* broadcastHeader)
+{
+	const auto expectedSize = esifEventDataPtr->data_len;
+	const auto actualSize = sizeof(*broadcastHeader) + broadcastHeader->dataLen;
+	if (actualSize != expectedSize)
+	{
+		throw dptf_exception("App Broadcast data length does not match expected length"s);
+	}
 }

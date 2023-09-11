@@ -52,6 +52,42 @@ Bool ProcessorControlFacade::setTccOffsetTemperature(const Temperature& tccOffse
 	return result.isSuccessful();
 }
 
+Bool ProcessorControlFacade::setPerfPreferenceMax(const Percentage& cpuMaxRatio)
+{
+	throwIfControlNotSupported();
+	DptfRequest request(DptfRequestType::ProcessorControlSetPerfPreferenceMax , m_participantIndex, m_domainIndex);
+	request.setData(cpuMaxRatio.toDptfBuffer());
+	auto result = m_policyServices.serviceRequest->submitRequest(request);
+
+	return result.isSuccessful();
+}
+
+Bool ProcessorControlFacade::setPerfPreferenceMin(const Percentage& cpuMinRatio)
+{
+	throwIfControlNotSupported();
+	DptfRequest request(DptfRequestType::ProcessorControlSetPerfPreferenceMin, m_participantIndex, m_domainIndex);
+	request.setData(cpuMinRatio.toDptfBuffer());
+	auto result = m_policyServices.serviceRequest->submitRequest(request);
+
+	return result.isSuccessful();
+}
+
+UInt32 ProcessorControlFacade::getPcieThrottleRequestState()
+{
+	if (supportsProcessorControl())
+	{
+		DptfRequest request(
+			DptfRequestType::ProcessorControlGetPcieThrottleRequestState, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		if (result.isSuccessful())
+		{
+			return result.getDataAsUInt32();
+		}
+	}
+
+	return (UInt32)0;
+}
+
 Temperature ProcessorControlFacade::getMaxTccOffsetTemperature(void)
 {
 	if (supportsProcessorControl())

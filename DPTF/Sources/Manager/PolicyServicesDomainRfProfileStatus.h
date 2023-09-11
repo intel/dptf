@@ -28,15 +28,20 @@ class PolicyServicesDomainRfProfileStatus final : public PolicyServices, public 
 public:
 	PolicyServicesDomainRfProfileStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual void setDdrRfiTable(
+	RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) override;
+	UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) override;
+	UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) override;
+	UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) override;
+	UInt32 getDlvrSsc(UIntN participantIndex, UIntN domainIndex) override;
+	Frequency getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex) override;
+	void setDdrRfiTable(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) override final;
-	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) override final;
-	virtual void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
-		override final;
+		const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct) override;
+	void sendMasterControlStatus(UIntN participantIndex, UIntN domainIndex, UInt32 masterControlStatus)
+		override;
+	void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) override;
+	void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
+		override;
+	void setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency) override;
 };

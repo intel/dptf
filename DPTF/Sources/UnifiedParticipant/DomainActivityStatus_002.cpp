@@ -68,30 +68,6 @@ CoreActivityInfo DomainActivityStatus_002::getCoreActivityInfo(UIntN participant
 	throw not_implemented();
 }
 
-void DomainActivityStatus_002::setPowerShareEffectiveBias(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 powerShareEffectiveBias)
-{
-	try
-	{
-		getParticipantServices()->primitiveExecuteSetAsUInt32(
-			esif_primitive_type::SET_POWER_SHARE_EFFECTIVE_BIAS,
-			powerShareEffectiveBias,
-			domainIndex,
-			Constants::Esif::NoPersistInstance);
-	}
-	catch (...)
-	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			std::stringstream message;
-			message << "Failed to set Power Share Effective Bias for participant index = "
-						   + std::to_string(participantIndex) + "and domain Index = " + std::to_string(domainIndex);
-			return message.str();
-		});
-	}
-}
-
 void DomainActivityStatus_002::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	// do nothing

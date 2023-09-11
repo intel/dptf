@@ -75,8 +75,8 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_obj_enable_timer(
 	)
 {
 	enum esif_rc rc = ESIF_OK;
-	struct sigevent se;
-	struct itimerspec its;
+	struct sigevent se = { 0 };
+	struct itimerspec its = { 0 };
 	u64 freq_nanosecs = timeout * 1000 * 1000; /* convert msec to nsec */
 	struct esif_tmrm_cb_obj *cb_object_ptr = NULL;
 

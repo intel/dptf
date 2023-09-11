@@ -202,7 +202,7 @@ esif_error_t WebListener_Open(WebListenerPtr self)
 			}
 		}
 		if (self->port < 1) {
-			WS_TRACE_DEBUG("Invalid Port Number: %s\n", self->port);
+			WS_TRACE_DEBUG("Invalid Port Number: %d\n", self->port);
 			return ESIF_E_WS_INVALID_ADDR;
 		}
 		listener.sin_port = esif_ccb_htons(self->port);
@@ -349,12 +349,12 @@ esif_error_t WebClient_Write(WebClientPtr self, void *buffer, size_t buf_len)
 				self->sendBuf = newBuffer;
 				self->sendBufLen = newBufLen;
 			}
-			WS_TRACE_DEBUG("WS SEND Buffering (%d): buffer=%zd sent=%d error=%d send_buf=%zd\n", (int)self->socket, buf_len, ret, esif_ccb_socket_error(), self->sendBufLen);
+			WS_TRACE_DEBUG("WS SEND Buffering (%d): buffer=%zd sent=%lu error=%d send_buf=%zd\n", (int)self->socket, buf_len, ret, esif_ccb_socket_error(), self->sendBufLen);
 		}
 
 		// Close Socket on Error
 		if (rc != ESIF_OK) {
-			WS_TRACE_DEBUG("WS SEND Failure (%d): buffer=%zd sent=%d error=%d send_buf=%zd [%zd total]\n", (int)self->socket, buf_len, ret, esif_ccb_socket_error(), self->sendBufLen, self->sendBufLen + buf_len);
+			WS_TRACE_DEBUG("WS SEND Failure (%d): buffer=%zd sent=%lu error=%d send_buf=%zd [%zd total]\n", (int)self->socket, buf_len, ret, esif_ccb_socket_error(), self->sendBufLen, self->sendBufLen + buf_len);
 			WebClient_Close(self);
 		}
 	}
@@ -433,7 +433,7 @@ esif_error_t WebServer_ProcessRequest(WebServerPtr self, WebClientPtr client)
 		ssize_t messageLength = 0;
 		u8 *messageBuffer = NULL;
 
-		esif_ccb_memset(self->netBuf, 0, self->netBufLen);
+		esif_ccb_memset(buffer, 0, buf_len);
 		rc = ESIF_OK;
 
 		// Read the next partial or complete message fragment from the client socket.

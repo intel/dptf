@@ -15,26 +15,13 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
 #pragma once
 
 #include "Dptf.h"
-#include "EnvironmentProfile.h"
 
-class dptf_export EnvironmentProfilerInterface
+class ConfigKeyParser final
 {
 public:
-	virtual EnvironmentProfile generate() const = 0;
-};
-
-class dptf_export EnvironmentProfiler : public EnvironmentProfilerInterface
-{
-public:
-	EnvironmentProfiler();
-	~EnvironmentProfiler() = default;
-
-	EnvironmentProfile generate() const override;
-
-private:
-	static UInt64 getCpuId(void);
+	static std::string getParentKey(const std::string& key);
+	static std::string combineKeys(const std::string& parentKey, const std::string& childKey);
 };

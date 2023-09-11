@@ -45,12 +45,12 @@ TableObject DataManager::getTableObject(TableObjectType::Type tableType, string 
 	if (tableObjectExists(tableType))
 	{
 		auto table = m_tableObjectMap.find(tableType)->second;
-		auto dataVaultPaths = table.dataVaultPathForGet();
+		const auto dataVaultPaths = table.dataVaultPathForGet();
 
-		for (auto path = dataVaultPaths.begin(); path != dataVaultPaths.end(); path++)
+		for (const auto& dataVaultPath : dataVaultPaths)
 		{
-			string nameSpace = DataVaultType::ToString(path->first);
-			string elementPath = path->second;
+			string nameSpace = DataVaultType::ToString(dataVaultPath.first);
+			string elementPath = dataVaultPath.second;
 
 			if (uuid.empty())
 			{
@@ -192,14 +192,14 @@ void DataManager::deleteAllTableObject(TableObjectType::Type tableType, string u
 		throw dptf_exception("TableObject schema not found.");
 	}
 
-	auto table = m_tableObjectMap.find(tableType)->second;
-	auto dataVaultPaths = table.dataVaultPathForGet();
-	Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(tableType);
+	const auto table = m_tableObjectMap.find(tableType)->second;
+	const auto dataVaultPaths = table.dataVaultPathForGet();
+	const Bool isParticipantTable = m_dptfManager->getDataManager()->isParticipantTable(tableType);
 
-	for (auto path = dataVaultPaths.begin(); path != dataVaultPaths.end(); path++)
+	for (const auto& path : dataVaultPaths)
 	{
-		string nameSpace = DataVaultType::ToString(path->first);
-		string elementPath = path->second;
+		string nameSpace = DataVaultType::ToString(path.first);
+		string elementPath = path.second;
 
 		if (uuid.empty())
 		{
@@ -236,11 +236,11 @@ TableObject DataManager::getTableObjectBasedOnAlternativeDataSourceAndKey(
 	if (tableObjectExists(tableType))
 	{
 		auto table = m_tableObjectMap.find(tableType)->second;
-		string nameSpace = DataVaultType::ToString(dvType);
-		string elementPath = key;
+		const string nameSpace = DataVaultType::ToString(dvType);
+		const string elementPath = key;
 		try
 		{
-			DptfBuffer data = m_dptfManager->getEsifServices()->readConfigurationBinary(nameSpace, elementPath);
+			const DptfBuffer data = m_dptfManager->getEsifServices()->readConfigurationBinary(nameSpace, elementPath);
 			table.setData(data);
 		}
 		catch (...)
@@ -266,8 +266,8 @@ void DataManager::setTableObjectBasedOnAlternativeDataSourceAndKey(
 		throw dptf_exception("TableObject schema not found.");
 	}
 
-	string nameSpace = DataVaultType::ToString(dvType);
-	string elementPath = key;
+	const string nameSpace = DataVaultType::ToString(dvType);
+	const string elementPath = key;
 
 	try
 	{
@@ -298,7 +298,7 @@ void DataManager::setTableObjectForNoPersist(DptfBuffer tableData, TableObjectTy
 	auto elementPath = "/nopersist/%nm%/" + TableObjectType::ToString(tableType);
 	elementPath = StringParser::replaceAll(elementPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
 
-	auto dvType = DataVaultType::Override;
+	constexpr auto dvType = DataVaultType::Override;
 
 	m_dptfManager->getEsifServices()->writeConfigurationBinary(
 		tableData.get(), tableData.size(), tableData.size(), DataVaultType::ToString(dvType), elementPath);
@@ -316,7 +316,7 @@ void DataManager::deleteTableObjectKeyForNoPersist(TableObjectType::Type tableTy
 	auto elementPath = "/nopersist/%nm%/" + TableObjectType::ToString(tableType);
 	elementPath = StringParser::replaceAll(elementPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
 
-	auto dvType = DataVaultType::Override;
+	constexpr auto dvType = DataVaultType::Override;
 
 	deleteConfigKey(dvType, elementPath);
 }
@@ -333,13 +333,13 @@ Bool DataManager::isParticipantTable(TableObjectType::Type tableType)
 		throw dptf_exception("TableObject schema not found.");
 	}
 
-	auto table = m_tableObjectMap.find(tableType)->second;
+	const auto table = m_tableObjectMap.find(tableType)->second;
 	return table.isParticipantTable();
 }
 
 Bool DataManager::tableObjectExists(TableObjectType::Type tableType)
 {
-	auto table = m_tableObjectMap.find(tableType);
+	const auto table = m_tableObjectMap.find(tableType);
 	if (table != m_tableObjectMap.end())
 	{
 		return true;
@@ -352,7 +352,7 @@ map<TableObjectType::Type, TableObject> DataManager::getTableObjectMap()
 	return m_tableObjectMap;
 }
 
-void DataManager::writeEmptyTable(string nameSpace, string elementPath)
+void DataManager::writeEmptyTable(const string& nameSpace, const string& elementPath) const
 {
 	u8 dummyBuffer = 0;
 
@@ -360,9 +360,9 @@ void DataManager::writeEmptyTable(string nameSpace, string elementPath)
 		&dummyBuffer, sizeof(dummyBuffer), 0, nameSpace, elementPath);
 }
 
-void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, string uuid, UIntN participantIndex)
+void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, const string& uuid, UIntN participantIndex)
 {
-	std::shared_ptr<WorkItem> wi =
+	const std::shared_ptr<WorkItem> wi =
 		std::make_shared<WIPolicyTableObjectChanged>(m_dptfManager, tableObjectType, uuid, participantIndex);
 	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
@@ -385,6 +385,7 @@ void DataManager::loadTableObjectMap()
 	loadPsh2TableObject();
 	loadPshaTableObject();
 	loadPsvtTableObject();
+	loadRfimTableObject();
 	loadSwOemVariablesTableObject();
 	loadTpgaTableObject();
 	loadTrtTableObject();
@@ -566,7 +567,7 @@ void DataManager::loadEpotTableObject()
 		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Epot);
 	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Epot);
 	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
-	set<UInt64> revisionsUsingEsifDataVariant = {1, 2};
+	set<UInt64> revisionsUsingEsifDataVariant = {1, 2, 3};
 	map<UInt64, vector<TableObjectField>> fieldsMap;
 
 	fieldsMap.insert(
@@ -578,6 +579,13 @@ void DataManager::loadEpotTableObject()
 
 	fieldsMap.insert(
 		{2,
+		 {{"fld1", "fld1", ESIF_DATA_STRING},
+		  {"fld2", "fld2", ESIF_DATA_STRING},
+		  {"fld3", "fld3", ESIF_DATA_UINT64},
+		  {"fld4", "fld4", ESIF_DATA_UINT64}}});
+
+	fieldsMap.insert(
+		{3,
 		 {{"fld1", "fld1", ESIF_DATA_STRING},
 		  {"fld2", "fld2", ESIF_DATA_STRING},
 		  {"fld3", "fld3", ESIF_DATA_UINT64},
@@ -990,6 +998,7 @@ void DataManager::loadTrtTableObject()
 		  revisionsUsingEsifDataVariant,
 		  0,
 		  GET_THERMAL_RELATIONSHIP_TABLE,
+		  false,
 		  false}});
 }
 
@@ -1010,6 +1019,7 @@ void DataManager::loadOdvpTableObject()
 		  revisionsUsingEsifDataVariant,
 		  0,
 		  GET_OEM_VARS,
+		  false,
 		  false}});
 }
 
@@ -1053,8 +1063,23 @@ void DataManager::loadArtTableObject()
 	dataVaultString = StringParser::replaceAll(dataVaultString, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
 	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Art);
 	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
-	set<UInt64> revisionsUsingEsifDataVariant = {1};
+	set<UInt64> revisionsUsingEsifDataVariant = {0, 1};
 	map<UInt64, vector<TableObjectField>> fieldsMap;
+	fieldsMap.insert(
+		{0,
+		 {{"fld1", "fld1", ESIF_DATA_STRING},
+		  {"fld2", "fld2", ESIF_DATA_STRING},
+		  {"fld3", "fld3", ESIF_DATA_UINT64},
+		  {"fld4", "fld4", ESIF_DATA_UINT64},
+		  {"fld5", "fld5", ESIF_DATA_UINT64},
+		  {"fld6", "fld6", ESIF_DATA_UINT64},
+		  {"fld7", "fld7", ESIF_DATA_UINT64},
+		  {"fld8", "fld8", ESIF_DATA_UINT64},
+		  {"fld9", "fld9", ESIF_DATA_UINT64},
+		  {"fld10", "fld10", ESIF_DATA_UINT64},
+		  {"fld11", "fld11", ESIF_DATA_UINT64},
+		  {"fld12", "fld12", ESIF_DATA_UINT64},
+		  {"fld13", "fld13", ESIF_DATA_UINT64}}});
 	fieldsMap.insert(
 		{1,
 		 {{"fld1", "fld1", ESIF_DATA_STRING},
@@ -1083,4 +1108,25 @@ void DataManager::loadArtTableObject()
 		  0,
 		  GET_ACTIVE_RELATIONSHIP_TABLE,
 		  false}});
+}
+
+void DataManager::loadRfimTableObject()
+{
+	auto dataVaultString =
+		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Rfim);
+	set<UInt64> revisionsUsingEsifDataVariant = {1};
+	map<UInt64, vector<TableObjectField>> fieldsMap;
+	fieldsMap.insert(
+		{1,
+		 {{"fld1", "fld1", ESIF_DATA_UINT64},
+		  {"fld2", "fld2", ESIF_DATA_UINT64},
+		  {"fld3", "fld3", ESIF_DATA_UINT64}}});
+
+	m_tableObjectMap.insert(
+		{TableObjectType::Rfim,
+		 {TableObjectType::Rfim,
+		  fieldsMap,
+		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}},
+		  revisionsUsingEsifDataVariant}});
 }

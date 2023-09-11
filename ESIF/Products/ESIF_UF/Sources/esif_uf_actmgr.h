@@ -52,6 +52,11 @@ typedef struct EsifActMgr_s {
 	EsifLinkListPtr actions;	/* EsifActMgrEntry items */
 
 	EsifLinkListPtr possibleActions;/* EsifActMgrEntry items for delayed load */
+
+	/* The following are used to create dependent participants based on CPU arrival */
+	Bool cpuArrived;
+	EsifLinkListPtr loadedActions;
+
 } EsifActMgr, *EsifActMgrPtr;
 
 #ifdef __cplusplus

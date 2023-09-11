@@ -174,6 +174,8 @@ namespace ConditionType
 			return "Extended Workload Prediction";
 		case ConditionType::FanOperatingMode:
 			return "Fan Operating Mode";
+		case ConditionType::SocPowerFloor:
+			return "SoC Power Floor";
 		case ConditionType::Max:
 		case ConditionType::DoNotCare:
 		case ConditionType::ParticipantConditionBaseId:

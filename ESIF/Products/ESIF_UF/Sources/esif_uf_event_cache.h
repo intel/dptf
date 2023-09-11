@@ -71,6 +71,9 @@ extern "C" {
 	/* Access functions */
 	esif_error_t EsifEventCache_GetValue(esif_event_type_t eventType, EsifData* dataPtr);
 
+	/* WARNING:  Caller is responsible for releasing returned buffer in dataPtr->buf_ptr */
+	esif_error_t EsifEventCache_GetValueClone(esif_event_type_t eventType, EsifData *dataPtr);
+
 #ifdef __cplusplus
 }
 #endif

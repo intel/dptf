@@ -47,7 +47,6 @@ public:
 	virtual const std::vector<std::vector<unsigned char>>& dataSegments() const = 0;
 	virtual std::string toString() const = 0;
 	virtual std::string toDatabaseString() const = 0;
-	virtual std::string toFilteredDatabaseString(const std::string& cpuId, const std::regex& regularExp) const = 0;
 	virtual std::vector<unsigned char> serialize() const = 0;
 };
 
@@ -69,7 +68,6 @@ public:
 	const std::vector<std::vector<unsigned char>>& dataSegments() const override;
 	std::string toString() const override;
 	std::string toDatabaseString() const override;
-	std::string toFilteredDatabaseString(const std::string& cpuId, const std::regex& regularExp) const override;
 	std::vector<unsigned char> serialize() const override;
 
 private:
@@ -85,5 +83,4 @@ private:
 	static size_t getSerializedStringLength(const std::vector<unsigned char>& content, size_t location);
 	static std::vector<std::vector<unsigned char>> extractDataSegments(const std::vector<unsigned char>& content, size_t location);
 	static void throwIfNotEnoughDataToRead(const std::vector<unsigned char>& content, size_t lastReadPosition);
-
 };

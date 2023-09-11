@@ -28,6 +28,7 @@ DomainEnergyControl_002::DomainEnergyControl_002(
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainEnergyControlBase(participantIndex, domainIndex, participantServicesInterface)
+	, m_raplEnergyUnit(0.0)
 {
 }
 
@@ -37,22 +38,39 @@ DomainEnergyControl_002::~DomainEnergyControl_002(void)
 
 UInt32 DomainEnergyControl_002::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
 {
-	throw not_implemented();
+	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RAPL_ENERGY, domainIndex, Constants::Esif::NoInstance);
 }
 
 EnergyCounterInfo DomainEnergyControl_002::getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex)
 {
-	throw not_implemented();
+	double raplEnergyUnit = getRaplEnergyUnit(participantIndex, domainIndex);
+	auto raplEnergyCounterInfoBuffer = getParticipantServices()->primitiveExecuteGet(
+		esif_primitive_type::GET_RAPL_ENERGY_COUNTER_INFO, esif_data_type::ESIF_DATA_BINARY, domainIndex);
+	auto raplEnergyCounterInfo = EnergyCounterInfo::fromDptfBuffer(raplEnergyCounterInfoBuffer);
+	auto energyCounter = raplEnergyCounterInfo.getEnergyCounterInJoules(raplEnergyUnit);
+	auto timestamp = raplEnergyCounterInfo.getTimestamp().asMicroseconds();
+
+	return EnergyCounterInfo(energyCounter, timestamp);
 }
 
 double DomainEnergyControl_002::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
 {
-	throw not_implemented();
+	if (m_raplEnergyUnit == 0.0)
+	{
+		auto raplEnergyUnit = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_RAPL_ENERGY_UNIT, domainIndex, Constants::Esif::NoInstance);
+
+		m_raplEnergyUnit = convertEnergyStatusUnitToJoules(raplEnergyUnit);
+	}
+
+	return m_raplEnergyUnit;
 }
 
 UInt32 DomainEnergyControl_002::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
 {
-	throw not_implemented();
+	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RAPL_ENERGY_COUNTER_WIDTH, domainIndex, Constants::Esif::NoInstance);
 }
 
 Power DomainEnergyControl_002::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)

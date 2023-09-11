@@ -54,8 +54,6 @@ public:
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 	virtual void capture(void) override;
 	virtual void restore(void) override;
-	virtual void setPerfPreferenceMax(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
-	virtual void setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) override;
 
 protected:
 	virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;

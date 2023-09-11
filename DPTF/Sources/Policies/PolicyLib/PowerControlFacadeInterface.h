@@ -34,6 +34,7 @@ public:
 	virtual void setPL2PowerLimitControlToMax() = 0;
 	virtual void refreshCapabilities() = 0;
 	virtual void setCapability(const PowerControlDynamicCaps& capabilities) = 0;
+	virtual void setPowerLimitMinPL1(const Power& powerLimit) = 0;
 	virtual void setPowerLimitPL1(const Power& powerLimit) = 0;
 	virtual void setPowerLimitPL2(const Power& powerLimit) = 0;
 	virtual void setPowerLimitPL3(const Power& powerLimit) = 0;
@@ -47,6 +48,8 @@ public:
 	virtual void unlockCapabilities() = 0;
 	virtual void removePowerLimitPolicyRequest(PowerControlType::Type controlType) = 0;
 	virtual void setPowerSharePolicyPower(const Power& powerSharePolicyPower) = 0;
+	virtual void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias) = 0;
+	virtual void clearPowerLimitMin() = 0;
 	virtual void clearPowerLimit() = 0;
 
 	// queries
@@ -76,5 +79,7 @@ public:
 	virtual Percentage getLivePowerLimitDutyCyclePL3() = 0;
 	virtual Bool isSocPowerFloorEnabled() = 0;
 	virtual Bool isSocPowerFloorSupported() = 0;
+	virtual UInt32 getSocPowerFloorState() = 0;
 	virtual void updatePowerLimitTimeWindowPL1(const TimeSpan& timeWindow) = 0;
+	virtual Power getThermalDesignPower() = 0;
 };

@@ -229,6 +229,18 @@ void ParticipantServices::primitiveExecuteSet(
 		primitive, esifDataType, bufferPtr, bufferLength, dataLength, m_participantIndex, domainIndex, instance);
 }
 
+UInt32 ParticipantServices::readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath)
+{
+	throwIfNotWorkItemThread();
+	return m_esifServices->readConfigurationUInt32(nameSpace, elementPath);
+}
+
+Power ParticipantServices::readConfigurationPower(const std::string& nameSpace, const std::string& elementPath)
+{
+	throwIfNotWorkItemThread();
+	return m_esifServices->readConfigurationPower(nameSpace, elementPath);
+}
+
 void ParticipantServices::writeMessageFatal(const DptfMessage& message)
 {
 	throwIfNotWorkItemThread();
@@ -402,7 +414,15 @@ Bool ParticipantServices::isUserPreferredDisplayCacheValid(UIntN participantInde
 DomainType::Type ParticipantServices::getDomainType(UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
+
 	return m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
+}
+
+std::string ParticipantServices::getParticipantName()
+{
+	throwIfNotWorkItemThread();
+
+	return m_participant->getParticipantName();
 }
 
 void ParticipantServices::registerRequestHandler(

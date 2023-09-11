@@ -20,7 +20,24 @@
 
 namespace SocWorkloadClassification
 {
-	std::string toString(SocWorkloadClassification::Type socWorkloadClassification)
+	Type toSocWorkloadClassificationHint(HardwareHintType hardwareHint)
+	{
+		switch (hardwareHint)
+		{
+		case HardwareHintIdle:
+			return Idle;
+		case HardwareHintBatteryLife:
+			return BatteryLife;
+		case HardwareHintSustained:
+			return Sustained;
+		case HardwareHintBursty:
+			return Bursty;
+		default:
+			return Invalid;
+		}
+	}
+
+	std::string toString(Type socWorkloadClassification)
 	{
 		switch (socWorkloadClassification)
 		{

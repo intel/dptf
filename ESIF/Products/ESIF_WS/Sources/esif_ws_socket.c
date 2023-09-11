@@ -528,6 +528,7 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 					// Ignore Specific Error Codes that create too much noise
 					esif_error_t ignore_errors[] = {
 						ESIF_E_NOT_FOUND,
+						ESIF_I_NO_LEGACY_SUPPORT,
 						0
 					};
 					for (size_t j = 0; ignore_errors[j]; j++) {
@@ -608,17 +609,16 @@ esif_error_t WebServer_WebsocketResponse(
 				}
 				esif_ccb_memcpy(total_message + prior_fragments_len, request->payload, request->payloadSize);
 				total_message[total_message_len] = 0;
+
+				// Execute Command against REST API
+				rc = WebServer_WebSocketExecRestCmd(
+					self,
+					client,
+					total_message,
+					total_message_len,
+					&response,
+					&response_len);
 			}
-
-			// Execute Command against REST API
-			rc = WebServer_WebSocketExecRestCmd(
-				self,
-				client,
-				total_message,
-				total_message_len,
-				&response,
-				&response_len);
-
 			// Send REST API Response
 			if (rc == ESIF_OK) {
 				size_t bytes_sent = 0;

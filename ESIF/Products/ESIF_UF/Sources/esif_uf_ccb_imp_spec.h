@@ -55,6 +55,11 @@ static ESIF_INLINE void esif_ccb_imp_spec_actions_exit()
 	EsifActSysfsExit();
 }
 
+static ESIF_INLINE enum esif_rc esif_ccb_participants_ready_init(void)
+{
+	return ESIF_OK;
+}
+
 #else
 
 enum esif_rc sync_lf_participants();
@@ -65,6 +70,17 @@ static ESIF_INLINE enum esif_rc esif_ccb_participants_initialize(void)
 	sync_lf_participants();
 	return ESIF_OK;
 }
+
+extern enum esif_rc esif_uf_create_device_nodes(void);
+
+static ESIF_INLINE enum esif_rc esif_ccb_participants_ready_init(void)
+{
+#ifdef ESIF_FEAT_OPT_RUN_AS_BUS_DRIVER
+	esif_uf_create_device_nodes();
+#endif /*run as bus driver*/
+	return ESIF_OK;
+}
+
 
 #define esif_ccb_imp_spec_actions_init()
 #define esif_ccb_imp_spec_actions_exit()

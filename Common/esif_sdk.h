@@ -71,6 +71,7 @@
 #define ESIF_ACPI_NAME_LEN	5	/* Maximum ACPI Device Name Length */
 #define ESIF_IPADDR_LEN		20	/* Maximum IP Address Length */
 #define ESIF_VERSION_LEN	20	/* Maximum Version String Length */
+#define ESIF_MAX_PATH		260 /* Maximum Filename Length */
 
 /* Opaque Types */
 typedef u32 esif_flags_t;                   /* FLAGS        */
@@ -92,9 +93,10 @@ typedef u8  esif_ver_t;                     /* Version      */
 #define ESIF_INSTANCE_INVALID	255
 
 /* Shared Parameters */
-#define ESIF_MAX_CLIENTS			16						/* Maximum IPF Clients */
+#define ESIF_MAX_CLIENTS			32						/* Maximum IPF Clients */
 #define ESIF_MAX_PLUGINS			4						/* Additional In-Process ESIF Apps (IPFSRV, DPTF, IPFTSC, Plus 1) */
 #define ESIF_MAX_APPS				(ESIF_MAX_CLIENTS + ESIF_MAX_PLUGINS)	/* Maximum ESIF Apps (IPF Clients + IPF_UF Plugins) */
+#define ESIF_MAX_IPC_SESSIONS		4						/* Maximum IPC Sessions per Client Process */
 
 /* Primitive Instance */
 #define ESIF_INSTANCE_NO_PERSIST	254

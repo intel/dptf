@@ -34,8 +34,8 @@ namespace MbtMode
 			return "Balanced";
 		case AcQuiet:
 			return "Quiet";
-		case AcCollaboration:
-			return "Collaboration";	
+		case Collaboration:
+			return "Collaboration";
 		default:
 			throw dptf_exception("MbtMode::Type is invalid");
 		}
@@ -63,9 +63,9 @@ namespace MbtMode
 		{
 			return MbtMode::AcQuiet;
 		}
-		else if (mbtMode == toString(MbtMode::AcCollaboration))
+		else if (mbtMode == toString(MbtMode::Collaboration))
 		{
-			return MbtMode::AcCollaboration;
+			return MbtMode::Collaboration;
 		}
 		return MbtMode::Invalid;
 	}
@@ -84,7 +84,7 @@ namespace MbtMode
 			return "Balanced";
 		case AcQuiet:
 			return "Quiet";
-		case AcCollaboration:
+		case Collaboration:
 			return "Collaboration";
 		default:
 			throw dptf_exception("MbtMode::Type is invalid");

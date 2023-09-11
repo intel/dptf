@@ -69,7 +69,7 @@ Percentage DomainPlatformPowerStatus_000::getAC10msPercentageOverload(UIntN part
 	throw not_implemented();
 }
 
-void DomainPlatformPowerStatus_000::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
+void DomainPlatformPowerStatus_000::notifyForProcHotDeAssertion(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }

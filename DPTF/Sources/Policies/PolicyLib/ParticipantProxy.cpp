@@ -44,7 +44,7 @@ ParticipantProxy::ParticipantProxy()
 ParticipantProxy::ParticipantProxy(
 	UIntN participantIndex,
 	const PolicyServicesInterfaceContainer& policyServices,
-	std::shared_ptr<TimeInterface> time)
+	const shared_ptr<TimeInterface>& time)
 	: m_policyServices(policyServices)
 	, m_time(time)
 	, m_index(participantIndex)
@@ -61,10 +61,6 @@ ParticipantProxy::ParticipantProxy(
 	, m_timeOfLastThresholdCrossed(TimeSpan::createInvalid())
 {
 	m_participantProperties.refresh();
-}
-
-ParticipantProxy::~ParticipantProxy()
-{
 }
 
 UIntN ParticipantProxy::getIndex() const
@@ -107,17 +103,18 @@ Bool ParticipantProxy::domainExists(UIntN domainIndex)
 	return (m_domains.find(domainIndex) != m_domains.end());
 }
 
-std::vector<UIntN> ParticipantProxy::getDomainIndexes()
+vector<UIntN> ParticipantProxy::getDomainIndexes()
 {
-	std::vector<UIntN> domainIndexes;
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+	vector<UIntN> domainIndexes;
+	domainIndexes.reserve(m_domains.size());
+	for (const auto& domain : m_domains)
 	{
-		domainIndexes.push_back(domain->first);
+		domainIndexes.push_back(domain.first);
 	}
 	return domainIndexes;
 }
 
-void ParticipantProxy::bindDomain(std::shared_ptr<DomainProxyInterface> domain)
+void ParticipantProxy::bindDomain(shared_ptr<DomainProxyInterface> domain)
 {
 	m_domains[domain->getDomainIndex()] = domain;
 }
@@ -134,9 +131,9 @@ const PolicyServicesInterfaceContainer& ParticipantProxy::getPolicyServices() co
 
 Bool ParticipantProxy::supportsTemperatureInterface()
 {
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+	for (const auto& domain : m_domains)
 	{
-		if (domain->second->getTemperatureControl()->supportsTemperatureControls())
+		if (domain.second->getTemperatureControl()->supportsTemperatureControls())
 		{
 			return true;
 		}
@@ -147,13 +144,13 @@ Bool ParticipantProxy::supportsTemperatureInterface()
 Temperature ParticipantProxy::getFirstDomainTemperature()
 {
 	auto participantTemperature = Temperature::createInvalid();
-	if (m_domains.size() > 0)
+	if (!m_domains.empty())
 	{
-		for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+		for (const auto& domain : m_domains)
 		{
-			if (domain->second->getTemperatureControl()->supportsTemperatureControls())
+			if (domain.second->getTemperatureControl()->supportsTemperatureControls())
 			{
-				participantTemperature = domain->second->getTemperatureControl()->getCurrentTemperature();
+				participantTemperature = domain.second->getTemperatureControl()->getCurrentTemperature();
 				break;
 			}
 		}
@@ -168,9 +165,9 @@ void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, c
 		if (m_domains[0]->getTemperatureControl()->supportsTemperatureThresholds())
 		{
 			POLICY_LOG_MESSAGE_DEBUG({
-				std::stringstream message;
+				stringstream message;
 				message << "Setting thresholds to " << lowerBound.toString() << ":" << upperBound.toString()
-						<< " for participant " << std::to_string(getIndex());
+						<< " for participant " << to_string(getIndex());
 				return message.str();
 			});
 			m_domains[0]->getTemperatureControl()->setTemperatureNotificationThresholds(lowerBound, upperBound);
@@ -183,25 +180,25 @@ void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, c
 
 TemperatureThresholds ParticipantProxy::getTemperatureThresholds()
 {
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+	for (const auto& domain : m_domains)
 	{
 		try
 		{
-			return domain->second->getTemperatureControl()->getTemperatureNotificationThresholds();
+			return domain.second->getTemperatureControl()->getTemperatureNotificationThresholds();
 		}
 		catch (...)
 		{
 			// swallow the error
 		}
 	}
-	throw dptf_exception("Failed to get temperature thresholds for participant " + std::to_string(getIndex()) + ".");
+	throw dptf_exception("Failed to get temperature thresholds for participant " + to_string(getIndex()) + ".");
 }
 
 void ParticipantProxy::refreshHysteresis()
 {
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+	for (const auto& domain : m_domains)
 	{
-		domain->second->getTemperatureControl()->refreshHysteresis();
+		domain.second->getTemperatureControl()->refreshHysteresis();
 	}
 }
 
@@ -219,7 +216,7 @@ void ParticipantProxy::notifyPlatformOfDeviceTemperature(const Temperature& curr
 	catch (dptf_exception& ex)
 	{
 		POLICY_LOG_MESSAGE_WARNING_EX({
-			std::stringstream message;
+			stringstream message;
 			message << "Set Device Temperature Indication failed with error \"" << ex.what() << "\".";
 			return message.str();
 		});
@@ -236,9 +233,9 @@ void ParticipantProxy::setThresholdCrossed(const Temperature& temperature, const
 	m_timeOfLastThresholdCrossed = timestamp;
 	// TODO: want to pass in participant index
 	POLICY_LOG_MESSAGE_DEBUG({
-		std::stringstream message;
+		stringstream message;
 		message << "Temperature threshold crossed for participant with temperature " << temperature.toString() << "."
-				<< " ParticipantIndex = " + std::to_string(getIndex());
+				<< " ParticipantIndex = " + to_string(getIndex());
 		return message.str();
 	});
 }
@@ -253,18 +250,18 @@ Temperature ParticipantProxy::getTemperatureOfLastThresholdCrossed() const
 	return m_lastThresholdCrossedTemperature;
 }
 
-std::shared_ptr<DomainProxyInterface> ParticipantProxy::getDomain(UIntN domainIndex)
+shared_ptr<DomainProxyInterface> ParticipantProxy::getDomain(UIntN domainIndex)
 {
 	auto domainProxyInterfacePtr = m_domains.at(domainIndex);
 	if (!domainProxyInterfacePtr)
 	{
-		throw dptf_exception(std::string("The domain at the given index is not valid: ") + std::to_string(domainIndex));
+		throw dptf_exception(string("The domain at the given index is not valid: ") + to_string(domainIndex));
 	}
 
 	return domainProxyInterfacePtr;
 }
 
-std::shared_ptr<XmlNode> ParticipantProxy::getXmlForCriticalTripPoints()
+shared_ptr<XmlNode> ParticipantProxy::getXmlForCriticalTripPoints()
 {
 	auto participant = XmlNode::createWrapperElement("participant");
 	participant->addChild(XmlNode::createDataElement("index", friendlyValue(m_index)));
@@ -283,7 +280,7 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForCriticalTripPoints()
 	return participant;
 }
 
-std::shared_ptr<XmlNode> ParticipantProxy::getXmlForActiveTripPoints()
+shared_ptr<XmlNode> ParticipantProxy::getXmlForActiveTripPoints()
 {
 	auto participant = XmlNode::createWrapperElement("participant");
 	participant->addChild(XmlNode::createDataElement("index", friendlyValue(m_index)));
@@ -303,7 +300,7 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForActiveTripPoints()
 	return participant;
 }
 
-std::shared_ptr<XmlNode> ParticipantProxy::getXmlForPassiveTripPoints()
+shared_ptr<XmlNode> ParticipantProxy::getXmlForPassiveTripPoints()
 {
 	auto participant = XmlNode::createWrapperElement("participant");
 	participant->addChild(XmlNode::createDataElement("index", friendlyValue(m_index)));
@@ -331,7 +328,7 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 		XmlNode::createDataElement("participant_name", m_participantProperties.getParticipantProperties().getName()));
 	if (m_domains.find(0) != m_domains.end())
 	{
-		Bool supportsTripPoints = getDomain(0)->getTemperatureControl()->supportsTemperatureControls();
+		const auto supportsTripPoints = getDomain(0)->getTemperatureControl()->supportsTemperatureControls();
 		stats->addChild(XmlNode::createDataElement("supports_trip_points", friendlyValue(supportsTripPoints)));
 	}
 	else
@@ -345,7 +342,7 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 	}
 	else
 	{
-		auto timeSinceLastTrip = m_time->getCurrentTime() - m_timeOfLastThresholdCrossed;
+		const auto timeSinceLastTrip = m_time->getCurrentTime() - m_timeOfLastThresholdCrossed;
 		stats->addChild(XmlNode::createDataElement("time_since_last_trip", timeSinceLastTrip.toStringSeconds()));
 	}
 
@@ -355,7 +352,7 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 	return stats;
 }
 
-Temperature ParticipantProxy::getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy)
+Temperature ParticipantProxy::getTemperatureForStatus(const shared_ptr<DomainProxyInterface>& domainProxy)
 {
 	try
 	{

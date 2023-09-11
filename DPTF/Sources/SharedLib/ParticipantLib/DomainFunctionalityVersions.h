@@ -53,6 +53,7 @@ struct DomainFunctionalityVersions final
 	UInt8 processorControlVersion;
 	UInt8 batteryStatusVersion;
 	UInt8 socWorkloadClassificationVersion;
+	UInt8 managerControlVersion;
 	UInt8 dynamicEppVersion;
 
 	Bool operator==(const DomainFunctionalityVersions& domainFunctionality);

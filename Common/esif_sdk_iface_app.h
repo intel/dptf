@@ -59,6 +59,7 @@
 #include "esif_sdk_iface.h"
 #include "esif_sdk_data.h"
 #include "esif_sdk_iface_esif.h"
+#include "esif_sdk_participant.h"
 
 #define APP_INTERFACE_VERSION_1 1 /* Initial Version */
 #define APP_INTERFACE_VERSION_2 2 /* New prototype for fAppCommandFuncPtr */
@@ -90,41 +91,6 @@ typedef struct _t_AppData {
 	eLogType   fLogLevel;	/* Current Logging/Trace Level */
 } AppData, *AppDataPtr, **AppDataPtrLocation;
 
-/* Participant METADATA */
-typedef struct _t_AppParticipantData {
-	/* Common */
-	UInt8		fVersion;	/* ESIF Participant version */
-	UInt8		fReserved[3];	/* Pad / Align */
-	EsifData	fDriverType;	/* Guid is obtained from Driver */
-	EsifData	fDeviceType;	/* Guid is obtained from DSP */
-	EsifData	fName;		/* Name May Come From Driver/DSP */
-	EsifData	fDesc;		/* Descriptoin From Driver/DSP */
-	EsifData	fDriverName;	/* Driver Name */
-	EsifData	fDeviceName;	/* Device Name */
-	EsifData	fDevicePath;	/* Device Path */
-	UInt8		fDomainCount;	/* Domain Count */
-	UInt8		fReserved2[3];	/* Pad/Align */
-	eParticipantBus fBusEnumerator;	/* Enumeration Type pci, acpi, platform, conjure etc.*/
-
-	/* ACPI */
-	EsifData    fAcpiDevice;	/* ACPI Device */
-	EsifData    fAcpiScope;		/* ACPI Scope/Object ID \_SB_.IETM */
-	EsifData    fAcpiUID;		/* ACPI Unique ID */
-	eDomainType fAcpiType;		/* ACPI Domain/Participant Type e.g. THermalSensor, Power, Etc. */
-
-	/* PCI */
-	UInt16  fPciVendor;		/* Vendor */
-	UInt16  fPciDevice;		/* Device */
-	UInt8   fPciBus;		/* Bus */
-	UInt8   fPciBusDevice;		/* Bus Device */
-	UInt8   fPciFunction;		/* Function */
-	UInt8   fPciRevision;		/* Revision */
-	UInt8   fPciClass;		/* Class */
-	UInt8   fPciSubClass;		/* Sub Class */
-	UInt8   fPciProgIf;		/* Programming Interface */
-	UInt8   fReserved3[1];		/* Pad/Align */
-} AppParticipantData, *AppParticipantDataPtr, **AppParticipantDataPtrLocation;
-
 /* Domain METADATA */
 typedef struct _t_AppDomainData {
 	UInt8      fVersion;		/* ESIF Domain version */
@@ -144,7 +110,7 @@ typedef struct _t_AppDomainData {
     These Enumerations are only used by the INTERFACE.
  */
 
-/* Applicaiton State */
+/* Application State */
 typedef enum _t_AppState {
 	eAppStateDisabled = 0,	/* Disable Application */
 	eAppStateEnabled		/* Enable Application */
@@ -154,14 +120,14 @@ typedef enum _t_AppState {
     ESIF_APP_INTERFACE Callback Functions
     These functions are only used by the INTERFACE as method to loosely
     couple ESIF with its hosted application.  There are used for ESIF to
-    request information and services from the applicaion.  There is a
+    request information and services from the application.  There is a
     corresponding set of interfaces defined below for allow the application
     to provide key services that ESIF provides as well.
  */
 
 /*
 
-    These maybe called to gather Applicaion information before the Allocate
+    These maybe called to gather Application information before the Allocate
     Handle and subsequent create functions are called.
  */
 
@@ -200,7 +166,7 @@ typedef eEsifError (ESIF_CALLCONV *AppResumeFunction)(const esif_handle_t appHan
 /* Banner */
 typedef eEsifError (ESIF_CALLCONV *AppGetIntroFunction)(
 	const esif_handle_t appHandle,	/* Allocated handle for application */
-	EsifDataPtr appIntro	/* Applicaiton banner / greeting / app information to display for CLI */
+	EsifDataPtr appIntro	/* Application banner / greeting / app information to display for CLI */
 	);
 
 /* CLI Command */
@@ -239,9 +205,9 @@ typedef enum _t_eParticipantState {
 
 typedef eEsifError (ESIF_CALLCONV *AppParticipantCreateFunction)(
 	const esif_handle_t appHandle,	/* Allocated handle for application */
-	const esif_handle_t participantHandle,		/* A particpant handle */
+	const esif_handle_t participantHandle,		/* A participant handle */
 	const AppParticipantDataPtr participantData,			/* Participant Metadata */
-	const eParticipantState participantInitialState	/* Participant inital State */
+	const eParticipantState participantInitialState	/* Participant initial State */
 	);
 
 /* Destroy */
@@ -325,8 +291,8 @@ struct _t_AppInterface {
 
 /*
 * During interface exchange, ESIF will first fill out the header for the
-* application.  The application must verify compatibilty and size constraints
-* before popultating its interface items.  If not complatible, the application
+* application.  The application must verify compatibility and size constraints
+* before populating its interface items.  If not compatible, the application
 * shall return an appropriate error code and not fill in its interface items.
 */
 struct _t_AppInterfaceSet {
@@ -345,12 +311,12 @@ extern "C" {
 
 /*
     Entry function this symbol must be available when the app.so/dll modules is
-    loaded.  For Unix/Linux nothing special is required for widnows you must
+    loaded.  For Unix/Linux nothing special is required for Windows you must
     export this symbol see the REFERENCE IMPLEMENATION for the optional methods
     for doing this.  Note this is the only function that is linked to. So when
     you declare all of your other functions make the static and well access them
-    via Function Pointers.  This will remove the linker cruft trom the static
-    funcions.  And provide a simple private type of encapsulation for the module.
+    via Function Pointers.  This will remove the linker cruft from the static
+    functions.  And provide a simple private type of encapsulation for the module.
  */
 ESIF_EXPORT eEsifError GetApplicationInterfaceV2(AppInterfaceSetPtr theIface);
 

@@ -35,7 +35,5 @@ public:
 	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, 
-		UInt32 powerShareEffectiveBias) override final;
 	virtual UInt32 getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex) override final; 
 };

@@ -25,16 +25,12 @@ ParticipantProperty::ParticipantProperty(UIntN participantIndex, const PolicySer
 {
 }
 
-ParticipantProperty::~ParticipantProperty(void)
-{
-}
-
-PolicyServicesInterfaceContainer ParticipantProperty::getPolicyServices(void)
+PolicyServicesInterfaceContainer ParticipantProperty::getPolicyServices() const
 {
 	return m_policyServices;
 }
 
-UIntN ParticipantProperty::getParticipantIndex()
+UIntN ParticipantProperty::getParticipantIndex() const
 {
 	return m_participantIndex;
 }

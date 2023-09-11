@@ -30,8 +30,5 @@ public:
 	void execute(const CommandArguments& arguments) override;
 
 protected:
-	std::string getFilteredContentByCpuId(
-		const std::shared_ptr<ConfigurationFileContentInterface>& cs,
-		const std::regex regularExp) const;
 	void throwIfBadArguments(const CommandArguments& arguments) const;
 };

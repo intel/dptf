@@ -700,8 +700,8 @@ static EsifArbEntryParams g_cpuArbTable[] = {
 	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 3, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_RAPL_POWER_LIMIT_DUTY_CYCLE, ESIF_PRIMITIVE_DOMAIN_D0, 2, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_RAPL_POWER_LIMIT_TIME_WINDOW, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_RAPL_POWER_LIMIT_TIME_WINDOW, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_TCC_OFFSET, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
@@ -712,8 +712,8 @@ static EsifArbEntryParams g_wifiArbTable[] = {
 	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 3, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{0} /* Mark end of table */
 };
 
@@ -770,20 +770,20 @@ esif_error_t EsifArbMgr_ExecutePrimitive(
 	}
 	domain = domain_str_to_short(domainStr);
 	
-	ESIF_TRACE_PRIMITIVE_DEBUG("\n\n"
+	ESIF_TRACE_PRIMITIVE_DEBUG("\n"
 		"Primitive Request:\n"
-		"  Application ID       : " ESIF_HANDLE_FMT "\n"
-		"  Participant ID       : " ESIF_HANDLE_FMT "\n"
 		"  Primitive            : %s(%u)\n"
 		"  Domain               : %s\n"
 		"  Instance             : %u\n"
+		"  Application ID       : " ESIF_HANDLE_FMT "\n"
+		"  Participant ID       : " ESIF_HANDLE_FMT "\n"
 		"  Request              : %p\n"
 		"  Response             : %p\n",
-		esif_ccb_handle2llu(appHandle),
-		esif_ccb_handle2llu(participantId),
 		esif_primitive_str((enum esif_primitive_type)primitiveId), primitiveId,
 		domainStr,
 		instance,
+		esif_ccb_handle2llu(appHandle),
+		esif_ccb_handle2llu(participantId),
 		requestPtr,
 		responsePtr);
 
@@ -1107,6 +1107,7 @@ void EsifArbMgr_RemoveApp(
 	esif_handle_t appHandle
 	)
 {
+	esif_error_t rc = ESIF_OK;
 	esif_error_t iterRc = ESIF_E_UNSPECIFIED;
 	UfPmIterator upIter = { 0 };
 	EsifUp *upPtr = NULL;
@@ -1115,8 +1116,10 @@ void EsifArbMgr_RemoveApp(
 	/*
 	 * Iterate through all participants and remove any entries for the specified app.
 	 */
-	EsifUpPm_InitIterator(&upIter);
-	iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc == ESIF_OK) {
+		iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
 	while (ESIF_OK == iterRc) {
 
 		arbCtxPtr = (EsifArbCtx *)EsifUp_GetArbitrationContext(upPtr);
@@ -1170,8 +1173,10 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 	ctxInfoListPtr = esif_link_list_create();
 	if (ctxInfoListPtr) {
 
-		EsifUpPm_InitIterator(&upIter);
-		iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+		rc = EsifUpPm_InitIterator(&upIter);
+		if (rc == ESIF_OK) {
+			iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+		}
 		while (ESIF_OK == iterRc) {
 
 			if ((participantId == ESIF_INVALID_HANDLE) || /* If all participants */
@@ -1330,7 +1335,8 @@ esif_error_t EsifArbMgr_SetArbitrationState(
 
 static void EsifArbMgr_PurgeRequests_Locked()
 {
-	esif_error_t iterRc = ESIF_OK;
+	esif_error_t rc = ESIF_OK;
+	esif_error_t iterRc = ESIF_E_UNSPECIFIED;
 	UfPmIterator upIter = { 0 };
 	EsifUp *upPtr = NULL;
 	EsifArbCtx *arbCtxPtr = NULL;
@@ -1338,8 +1344,10 @@ static void EsifArbMgr_PurgeRequests_Locked()
 	/*
 	 * Iterate through all participants and purge all requests
 	 */
-	EsifUpPm_InitIterator(&upIter);
-	iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc == ESIF_OK) {
+		iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
 	while (ESIF_OK == iterRc) {
 
 		arbCtxPtr = (EsifArbCtx *)EsifUp_GetArbitrationContext(upPtr);

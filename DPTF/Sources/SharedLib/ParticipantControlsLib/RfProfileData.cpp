@@ -30,7 +30,8 @@ RfProfileData::RfProfileData(
 	Frequency guardband,
 	UInt32 channelNumber,
 	UInt32 band,
-	RfProfileSupplementalData supplementalData)
+	RfProfileSupplementalData supplementalData,
+	UInt32 rssi)
 	: m_is5G(is5G)
 	, m_servingCellInfo(servingCellInfo)
 	, m_centerFrequency(centerFrequency)
@@ -40,6 +41,7 @@ RfProfileData::RfProfileData(
 	, m_channelNumber(channelNumber)
 	, m_band(band)
 	, m_supplementalData(supplementalData)
+	, m_rssi(rssi)
 {
 }
 
@@ -123,6 +125,11 @@ RfProfileSupplementalData RfProfileData::getSupplementalData(void) const
 	return m_supplementalData;
 }
 
+UInt32 RfProfileData::getRssi(void) const
+{
+	return m_rssi;
+}
+
 Bool RfProfileData::operator==(const RfProfileData& rhs) const
 {
 	return (
@@ -143,9 +150,11 @@ std::shared_ptr<XmlNode> RfProfileData::getXml(void) const
 	profileData->addChild(XmlNode::createDataElement("is_5G", StatusFormat::friendlyValue(m_is5G)));
 	profileData->addChild(
 		XmlNode::createDataElement("serving_cell_info", ServingCellInfo::toString(ServingCellInfo::Type(m_servingCellInfo))));
-	profileData->addChild(XmlNode::createDataElement("center_frequency", m_centerFrequency.toString()));
-	profileData->addChild(XmlNode::createDataElement("left_frequency_spread", getLeftFrequencySpread().toString()));
-	profileData->addChild(XmlNode::createDataElement("right_frequency_spread", getRightFrequencySpread().toString()));
+	profileData->addChild(XmlNode::createDataElement("center_frequency", m_centerFrequency.toStringAsMegahertz()));
+	profileData->addChild(
+		XmlNode::createDataElement("left_frequency_spread", getLeftFrequencySpread().toStringAsMegahertz()));
+	profileData->addChild(
+		XmlNode::createDataElement("right_frequency_spread", getRightFrequencySpread().toStringAsMegahertz()));
 	profileData->addChild(
 		XmlNode::createDataElement("channel_number", StatusFormat::friendlyValue(m_channelNumber)));
 	profileData->addChild(

@@ -22,22 +22,27 @@
 
 #define _PARTICIPANT_LOG_MESSAGE(logLevel, logFunction, content) \
 	do { \
-		if (getParticipantServices()->getLoggingLevel() >= logLevel) \
-		{ \
-			auto _message = [&]() {content}; \
-			getParticipantServices()->logFunction(ParticipantMessage(FLF, _message())); \
-		} \
+		try { \
+			if (getParticipantServices()->getLoggingLevel() >= (logLevel)) \
+			{ \
+				auto _message = [&]() {content}; \
+				getParticipantServices()->logFunction(ParticipantMessage(FLF, _message())); \
+			} \
+		} catch (...) {} \
 	} while (0)
 
 #define _PARTICIPANT_LOG_MESSAGE_EX(logLevel, logFunction, content) \
 	do { \
-		ex; \
-		if (getParticipantServices()->getLoggingLevel() >= logLevel) \
-		{ \
-			auto _message = [&]() {content}; \
-			getParticipantServices()->logFunction(ParticipantMessage(FLF, _message())); \
-		} \
+		try { \
+			ex; \
+			if (getParticipantServices()->getLoggingLevel() >= (logLevel)) \
+			{ \
+				auto _message = [&]() {content}; \
+				getParticipantServices()->logFunction(ParticipantMessage(FLF, _message())); \
+			} \
+		} catch (...) {} \
 	} while (0)
+
 
 #define PARTICIPANT_LOG_MESSAGE_FATAL(content) \
 	_PARTICIPANT_LOG_MESSAGE(eLogTypeFatal, writeMessageFatal, content)

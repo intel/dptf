@@ -45,6 +45,4 @@ public:
 	virtual PerformanceControlStatus getLiveStatus() const = 0;
 	virtual const PerformanceControlSet& getControls() = 0;
 	virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() = 0;
-	virtual void setPerfPreferenceMax(Percentage minMaxRatio) = 0;
-	virtual void setPerfPreferenceMin(Percentage minMaxRatio) = 0;
 };

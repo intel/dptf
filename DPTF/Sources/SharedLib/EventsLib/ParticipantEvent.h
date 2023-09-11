@@ -72,6 +72,9 @@ namespace ParticipantEvent
 		DomainEppSensitivityHintChanged,
 		DomainExtendedWorkloadPredictionChanged,
 		DomainFanOperatingModeChanged,
+		DomainHardwareSocWorkloadHintChanged,
+		DomainSocPowerFloorChanged,
+		DomainPcieThrottleRequested,
 		Max
 	};
 

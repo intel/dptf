@@ -52,6 +52,8 @@ CFLAGS  += -fno-delete-null-pointer-checks
 CFLAGS  += -fwrapv
 #Compile with -g by default and strip it at the end
 CFLAGS   += -g
+# Catch undefined symbol errors during compilation
+CFLAGS   += -Wl,--no-undefined
 
 # Linker Flags added for security purposes
 LDFLAGS += -z noexecstack 

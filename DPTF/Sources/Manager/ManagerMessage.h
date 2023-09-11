@@ -37,7 +37,7 @@ public:
 		const std::string& executingFunctionName,
 		const std::string& message);
 	ManagerMessage(const DptfManagerInterface* dptfManager, const DptfMessage& dptfMessage);
-	virtual ~ManagerMessage(void);
+	~ManagerMessage() override = default;
 
 	void setFrameworkEvent(FrameworkEvent::Type frameworkEvent);
 	void setParticipantIndex(UIntN participantIndex);
@@ -48,7 +48,7 @@ public:
 	void setEsifErrorCode(eEsifError esifErrorCode);
 
 	// Allows ManagerMessage to be used anywhere a std::string is required
-	operator std::string(void) const;
+	operator std::string() const;
 
 private:
 	const DptfManagerInterface* m_dptfManager;
@@ -56,16 +56,16 @@ private:
 	mutable Bool m_outputMessageStringCreated;
 	mutable std::string m_outputMessageString;
 
-	static const UIntN KeyLength = 22;
+	static constexpr UIntN KeyLength = 22;
 
-	std::string getFrameworkEventString(FrameworkEvent::Type frameworkEvent) const;
+	static std::string getFrameworkEventString(FrameworkEvent::Type frameworkEvent);
 	std::string getParticipantName(UIntN participantIndex) const;
 	std::string getDomainName(UIntN participantIndex, UIntN domainIndex) const;
 	std::string getPolicyName(UIntN policyIndex) const;
-	std::string getEsifPrimitiveName(esif_primitive_type primitive) const;
-	std::string getEsifErrorCodeString(eEsifError esifErrorCode) const;
+	static std::string getEsifPrimitiveName(esif_primitive_type primitive);
+	static std::string getEsifErrorCodeString(eEsifError esifErrorCode);
 
-	std::string createStandardizedKey(const std::string& key) const;
+	static std::string createStandardizedKey(const std::string& key);
 	std::string createStandardizedIndex(UIntN index) const;
 	std::string numToString(UInt64 number) const;
 };

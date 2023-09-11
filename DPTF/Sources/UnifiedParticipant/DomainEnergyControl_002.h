@@ -53,4 +53,6 @@ private:
 	// Don't allow this class to be copied
 	DomainEnergyControl_002(const DomainEnergyControl_002& rhs);
 	DomainEnergyControl_002& operator=(const DomainEnergyControl_002& rhs);
+
+	double m_raplEnergyUnit;
 };

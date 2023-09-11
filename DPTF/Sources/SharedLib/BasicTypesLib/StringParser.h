@@ -33,4 +33,9 @@ public:
 		const std::string& findString,
 		const std::string& replaceString);
 	static std::string removeAll(const std::string& input, char character);
+	static std::string removeTrailingZeros(const std::string& input);
+	static size_t countWords(const std::string& input, const std::string& word);
+	static std::string fromCharacters(const std::vector<unsigned char>& characters);
+	static std::string trimWhitespace(const std::string& input, const std::string& whitespace = " \t\n\r\f\v");
+	static std::string trimNulls(const std::string& input);
 };

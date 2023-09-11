@@ -24,22 +24,18 @@ CachedProperty::CachedProperty()
 {
 }
 
-CachedProperty::~CachedProperty(void)
-{
-}
-
-Bool CachedProperty::isCacheValid(void)
+Bool CachedProperty::isCacheValid() const
 {
 	return m_cacheIsValid;
 }
 
-void CachedProperty::refresh(void)
+void CachedProperty::refresh()
 {
 	refreshData();
 	m_cacheIsValid = true;
 }
 
-void CachedProperty::invalidate(void)
+void CachedProperty::invalidate()
 {
 	m_cacheIsValid = false;
 }

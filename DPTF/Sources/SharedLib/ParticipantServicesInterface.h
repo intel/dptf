@@ -28,16 +28,19 @@
 #include "UserPreferredCacheInterface.h"
 #include "RequestHandlerInterface.h"
 #include "DomainType.h"
+#include "EsifConfigurationInterface.h"
 
 class ParticipantServicesInterface : public MessageLoggingInterface,
 									 public EsifPrimitiveInterface,
 									 public ParticipantEventRegistrationInterface,
 									 public FrameworkEventCreationInterface,
 									 public DptfEventInterface,
-									 public UserPreferredCacheInterface
+									 public UserPreferredCacheInterface,
+									 public EsifConfigurationInterface
 {
 public:
 	virtual void registerRequestHandler(DptfRequestType::Enum requestType, RequestHandlerInterface* handler) = 0;
 	virtual void unregisterRequestHandler(DptfRequestType::Enum requestType, RequestHandlerInterface* handler) = 0;
 	virtual DomainType::Type getDomainType(UIntN domainIndex) = 0;
+	virtual std::string getParticipantName() = 0;
 };

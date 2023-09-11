@@ -84,6 +84,24 @@ Bool PolicyServicesDomainPowerControl::isSocPowerFloorSupported(UIntN participan
 	return getParticipantManager()->getParticipantPtr(participantIndex)->isSocPowerFloorSupported(domainIndex);
 }
 
+UInt32 PolicyServicesDomainPowerControl::getSocPowerFloorState(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSocPowerFloorState(domainIndex);
+}
+
+void PolicyServicesDomainPowerControl::setPowerLimitMin(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitMin(domainIndex, getPolicyIndex(), controlType, powerLimit);
+}
+
 void PolicyServicesDomainPowerControl::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -201,12 +219,20 @@ void PolicyServicesDomainPowerControl::setSocPowerFloorState(
 		->setSocPowerFloorState(domainIndex, getPolicyIndex(), socPowerFloorState);
 }
 
+void PolicyServicesDomainPowerControl::clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->clearPowerLimitMin(domainIndex);
+}
+
 void PolicyServicesDomainPowerControl::clearPowerLimit(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
-		->clearPowerLimit(domainIndex);
+		->clearPowerLimit(domainIndex, getPolicyIndex());
 }
 
 void PolicyServicesDomainPowerControl::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
@@ -269,6 +295,12 @@ Power PolicyServicesDomainPowerControl::getSlowPollPowerThreshold(UIntN particip
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getSlowPollPowerThreshold(domainIndex);
 }
 
+Power PolicyServicesDomainPowerControl::getThermalDesignPower(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getThermalDesignPower(domainIndex);
+}
+
 void PolicyServicesDomainPowerControl::removePowerLimitPolicyRequest(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -289,4 +321,12 @@ void PolicyServicesDomainPowerControl::setPowerSharePolicyPower(
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->setPowerSharePolicyPower(domainIndex, powerSharePolicyPower);
+}
+
+void PolicyServicesDomainPowerControl::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerShareEffectiveBias(domainIndex, powerShareEffectiveBias);
 }

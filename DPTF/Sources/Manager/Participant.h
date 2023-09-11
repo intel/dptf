@@ -33,16 +33,16 @@ class XmlNode;
 class dptf_export IParticipant
 {
 public:
-	virtual ~IParticipant(void){};
+	virtual ~IParticipant(){};
 	virtual std::string getDiagnosticsAsXml() const = 0;
-	virtual UIntN getDomainCount(void) const = 0;
-	virtual std::string getParticipantName(void) const = 0;
-	virtual UIntN getParticipantIndex(void) const = 0;
+	virtual UIntN getDomainCount() const = 0;
+	virtual std::string getParticipantName() const = 0;
+	virtual UIntN getParticipantIndex() const = 0;
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const = 0;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const = 0;
 	virtual std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const = 0;
-	virtual ParticipantProperties getParticipantProperties(void) const = 0;
-	virtual DomainPropertiesSet getDomainPropertiesSet(void) const = 0;
+	virtual ParticipantProperties getParticipantProperties() const = 0;
+	virtual DomainPropertiesSet getDomainPropertiesSet() const = 0;
 	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
 		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) const = 0;
 	virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN domainIndex) const = 0;
@@ -55,21 +55,21 @@ class dptf_export Participant : public IParticipant
 {
 public:
 	Participant(DptfManagerInterface* dptfManager);
-	virtual ~Participant(void);
+	virtual ~Participant();
 
 	void createParticipant(
 		UIntN participantIndex,
 		const AppParticipantDataPtr participantDataPtr,
 		Bool participantEnabled);
-	void destroyParticipant(void);
+	void destroyParticipant();
 
-	void enableParticipant(void);
-	void disableParticipant(void);
-	Bool isParticipantEnabled(void);
+	void enableParticipant() const;
+	void disableParticipant() const;
+	Bool isParticipantEnabled() const;
 
-	UIntN allocateNextDomainIndex(void);
+	UIntN allocateNextDomainIndex() const;
 	void createDomain(UIntN domainIndex, const AppDomainDataPtr domainDataPtr, Bool domainEnabled);
-	void destroyAllDomains(void);
+	void destroyAllDomains();
 	void destroyDomain(UIntN domainIndex);
 
 	Bool isDomainValid(UIntN domainIndex) const;
@@ -77,20 +77,20 @@ public:
 	void disableDomain(UIntN domainIndex);
 	Bool isDomainEnabled(UIntN domainIndex);
 
-	UIntN getDomainCount(void) const override;
+	UIntN getDomainCount() const override;
 
 	// This will clear the cached data stored within the participant and associated domains within the framework.
 	// It will not ask the actual participant to clear any of its data.
-	void clearParticipantCachedData(void);
+	void clearParticipantCachedData();
 
 	void clearArbitrationDataForPolicy(UIntN policyIndex);
 
 	void registerEvent(ParticipantEvent::Type participantEvent);
 	void unregisterEvent(ParticipantEvent::Type participantEvent);
-	Bool isEventRegistered(ParticipantEvent::Type participantEvent);
+	Bool isEventRegistered(ParticipantEvent::Type participantEvent) const;
 
-	std::string getParticipantName(void) const override;
-	UIntN getParticipantIndex(void) const override;
+	std::string getParticipantName() const override;
+	UIntN getParticipantIndex() const override;
 	std::string getDomainName(UIntN domainIndex);
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const override;
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const override;
@@ -101,48 +101,51 @@ public:
 	//
 	// Event handlers
 	//
-	void connectedStandbyEntry(void);
-	void connectedStandbyExit(void);
-	void suspend(void);
-	void resume(void);
-	void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityBitMask);
-	void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityBitMask);
-	void domainCoreControlCapabilityChanged(void);
-	void domainDisplayControlCapabilityChanged(void);
-	void domainDisplayStatusChanged(void);
-	void domainPerformanceControlCapabilityChanged(void);
-	void domainPerformanceControlsChanged(void);
-	void domainPowerControlCapabilityChanged(void);
-	void domainPriorityChanged(void);
-	void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus);
-	void domainRfProfileChanged(void);
-	void domainTemperatureThresholdCrossed(void);
-	void participantSpecificInfoChanged(void);
-	void domainVirtualSensorCalibrationTableChanged(void);
-	void domainVirtualSensorPollingTableChanged(void);
-	void domainVirtualSensorRecalcChanged(void);
-	void domainBatteryStatusChanged(void);
-	void domainBatteryInformationChanged(void);
-	void domainBatteryHighFrequencyImpedanceChanged(void);
-	void domainBatteryNoLoadVoltageChanged(void);
-	void domainMaxBatteryPeakCurrentChanged(void);
-	void domainPlatformPowerSourceChanged(void);
-	void domainAdapterPowerRatingChanged(void);
-	void domainChargerTypeChanged(void);
-	void domainPlatformRestOfPowerChanged(void);
-	void domainMaxBatteryPowerChanged(void);
-	void domainPlatformBatterySteadyStateChanged(void);
-	void domainACNominalVoltageChanged(void);
-	void domainACOperationalCurrentChanged(void);
-	void domainAC1msPercentageOverloadChanged(void);
-	void domainAC2msPercentageOverloadChanged(void);
-	void domainAC10msPercentageOverloadChanged(void);
-	void domainEnergyThresholdCrossed(void);
-	void domainFanCapabilityChanged(void);
-	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification);
-	void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint);
-	void domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction);
-	void domainFanOperatingModeChanged(void);
+	void connectedStandbyEntry() const;
+	void connectedStandbyExit() const;
+	void suspend() const;
+	void resume() const;
+	void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityBitMask) const;
+	void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityBitMask) const;
+	void domainCoreControlCapabilityChanged() const;
+	void domainDisplayControlCapabilityChanged() const;
+	void domainDisplayStatusChanged() const;
+	void domainPerformanceControlCapabilityChanged() const;
+	void domainPerformanceControlsChanged() const;
+	void domainPowerControlCapabilityChanged() const;
+	void domainPriorityChanged() const;
+	void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus) const;
+	void domainRfProfileChanged() const;
+	void domainTemperatureThresholdCrossed() const;
+	void participantSpecificInfoChanged() const;
+	void domainVirtualSensorCalibrationTableChanged() const;
+	void domainVirtualSensorPollingTableChanged() const;
+	void domainVirtualSensorRecalcChanged() const;
+	void domainBatteryStatusChanged() const;
+	void domainBatteryInformationChanged() const;
+	void domainBatteryHighFrequencyImpedanceChanged() const;
+	void domainBatteryNoLoadVoltageChanged() const;
+	void domainMaxBatteryPeakCurrentChanged() const;
+	void domainPlatformPowerSourceChanged() const;
+	void domainAdapterPowerRatingChanged() const;
+	void domainChargerTypeChanged() const;
+	void domainPlatformRestOfPowerChanged() const;
+	void domainMaxBatteryPowerChanged() const;
+	void domainPlatformBatterySteadyStateChanged() const;
+	void domainACNominalVoltageChanged() const;
+	void domainACOperationalCurrentChanged() const;
+	void domainAC1msPercentageOverloadChanged() const;
+	void domainAC2msPercentageOverloadChanged() const;
+	void domainAC10msPercentageOverloadChanged() const;
+	void domainEnergyThresholdCrossed() const;
+	void domainFanCapabilityChanged() const;
+	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) const;
+	void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint) const;
+	void domainExtendedWorkloadPredictionChanged(UInt32 extendedWorkloadPrediction) const;
+	void domainFanOperatingModeChanged() const;
+	void domainSocPowerFloorChanged(UInt32 socPowerFloorState) const;
+	void domainPcieThrottleRequested(UInt32 pcieThrottleRequest) const;
+
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
 	//
@@ -155,7 +158,6 @@ public:
 	UInt64 getTimestampCounter(UIntN domainIndex);
 	UInt32 getTimestampCounterWidth(UIntN domainIndex);
 	CoreActivityInfo getCoreActivityInfo(UIntN domainIndex);
-	void setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias);
 	UInt32 getSocDgpuPerformanceHintPoints(UIntN domainIndex);
 
 	// Core controls
@@ -207,17 +209,21 @@ public:
 		UIntN policyIndex,
 		PerformanceControlDynamicCaps newCapabilities);
 	void setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
-	void setPerfPreferenceMax(UIntN domainIndex, UIntN policyIndex, Percentage minMaxRatio);
-	void setPerfPreferenceMin(UIntN domainIndex, UIntN policyIndex, Percentage minMaxRatio);
 
 	// Power controls
 	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex) const override;
-	void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
+	void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, const PowerControlDynamicCapsSet& capsSet);
 	Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
 	Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
 	Bool isSocPowerFloorEnabled(UIntN domainIndex);
 	Bool isSocPowerFloorSupported(UIntN domainIndex);
+	UInt32 getSocPowerFloorState(UIntN domainIndex);
 	Power getPowerLimitWithoutCache(UIntN domainIndex, PowerControlType::Type controlType);
+	void setPowerLimitMin(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit);
 	void setPowerLimit(
 		UIntN domainIndex,
 		UIntN policyIndex,
@@ -256,7 +262,8 @@ public:
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle);
 	void setSocPowerFloorState(UIntN domainIndex, UIntN policyIndex, Bool socPowerFloorState);
-	void clearPowerLimit(UIntN domainIndex);
+	void clearPowerLimitMin(UIntN domainIndex);
+	void clearPowerLimit(UIntN domainIndex, UIntN policyIndex);
 	void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 	TimeSpan getPowerSharePowerLimitTimeWindow(UIntN domainIndex);
 	Bool isPowerShareControl(UIntN domainIndex);
@@ -267,8 +274,10 @@ public:
 	TimeSpan getSlowPollTime(UIntN domainIndex);
 	TimeSpan getWeightedSlowPollAvgConstant(UIntN domainIndex);
 	Power getSlowPollPowerThreshold(UIntN domainIndex);
+	Power getThermalDesignPower(UIntN domainIndex);
 	void removePowerLimitPolicyRequest(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType);
-	void setPowerSharePolicyPower(UIntN domainindex, const Power& powerSharePolicyPower);
+	void setPowerSharePolicyPower(UIntN domainIndex, const Power& powerSharePolicyPower);
+	void setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias);
 
 	// Power status
 	PowerStatus getPowerStatus(UIntN domainIndex);
@@ -306,7 +315,7 @@ public:
 	Percentage getAC1msPercentageOverload(UIntN domainIndex);
 	Percentage getAC2msPercentageOverload(UIntN domainIndex);
 	Percentage getAC10msPercentageOverload(UIntN domainIndex);
-	void notifyForProchotDeassertion(UIntN domainIndex);
+	void notifyForProcHotDeAssertion(UIntN domainIndex);
 
 	// Priority
 	DomainPriority getDomainPriority(UIntN domainIndex);
@@ -323,24 +332,29 @@ public:
 	UInt32 getWifiCapabilities(UIntN domainIndex);
 	UInt32 getRfiDisable(UIntN domainIndex);
 	UInt64 getDvfsPoints(UIntN domainIndex);
-	void setDdrRfiTable(UIntN domainIndex, DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
+	UInt32 getDlvrSsc(UIntN domainIndex);
+	Frequency getDlvrCenterFrequency(UIntN domainIndex);
+	void setDdrRfiTable(UIntN domainIndex, const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct);
+	void sendMasterControlStatus(UIntN domainIndex, UInt32 masterControlStatus);
 	void setProtectRequest(UIntN domainIndex, UInt64 frequencyRate);
 	void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData);
+	void setDlvrCenterFrequency(UIntN domainIndex, Frequency frequency);
 
 	// Utilization
 	UtilizationStatus getUtilizationStatus(UIntN domainIndex);
+	Percentage getMaxCoreUtilization(UIntN domainIndex);
 
 	// Get specific info
 	std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
 		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) const override;
 
 	// Participant properties
-	ParticipantProperties getParticipantProperties(void) const override;
-	DomainPropertiesSet getDomainPropertiesSet(void) const override;
+	ParticipantProperties getParticipantProperties() const override;
+	DomainPropertiesSet getDomainPropertiesSet() const override;
 
 	// Set specific info
-	void setParticipantDeviceTemperatureIndication(const Temperature& temperature);
-	void setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue);
+	void setParticipantDeviceTemperatureIndication(const Temperature& temperature) const;
+	void setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue) const;
 
 private:
 	// hide the copy constructor and assignment operator.

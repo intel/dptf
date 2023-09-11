@@ -28,4 +28,5 @@ public:
 	PolicyServicesDomainUtilization(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
 	virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual Percentage getMaxCoreUtilization(UIntN participantIndex, UIntN domainIndex) override final;
 };

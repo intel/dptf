@@ -24,11 +24,11 @@
 class WIPolicyThirdPartyGraphicsTPPLimitChanged : public WorkItem
 {
 public:
-	WIPolicyThirdPartyGraphicsTPPLimitChanged(DptfManagerInterface* dptfManager, OsPowerSource::Type tppPowerSource);
+	WIPolicyThirdPartyGraphicsTPPLimitChanged(DptfManagerInterface* dptfManager, OsPowerSource::Type powerSourceForTPP);
 	virtual ~WIPolicyThirdPartyGraphicsTPPLimitChanged(void);
 
 	virtual void onExecute(void) override final;
 
 private:
-	const OsPowerSource::Type m_tppPowerSource;
+	const OsPowerSource::Type m_powerSourceForTPP;
 };

@@ -1,5 +1,6 @@
 [Unit]
 Description=Intel(R) Dynamic Tuning Technology Daemon
+Wants=ipf.service
 
 [Service]
 NoNewPrivileges=true

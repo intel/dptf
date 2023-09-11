@@ -25,24 +25,29 @@
 class dptf_export RelationshipTableBase : public RelationshipTableInterface
 {
 public:
-	RelationshipTableBase();
+	RelationshipTableBase() = default;
 	RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
-	virtual ~RelationshipTableBase();
+	~RelationshipTableBase() override = default;
 
-	virtual void associateParticipant(std::string participantScope, UIntN participantIndex, std::string participantName)
+	RelationshipTableBase(const RelationshipTableBase& other) = default;
+	RelationshipTableBase& operator=(const RelationshipTableBase& other) = default;
+	RelationshipTableBase(RelationshipTableBase&& other) = default;
+	RelationshipTableBase& operator=(RelationshipTableBase&& other) = default;
+
+	void associateParticipant(std::string participantScope, UIntN participantIndex, std::string participantName)
 		override;
-	virtual void disassociateParticipant(UIntN participantIndex) override;
-	virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
-	virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;
-	virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Bool isParticipantSourceDevice(UIntN participantIndex) const override;
-	virtual Bool isParticipantTargetDevice(UIntN participantIndex) const override;
-	virtual UIntN getNumberOfEntries(void) const override;
-	virtual std::set<UIntN> getAllTargetIndexes() const override;
-	virtual std::set<UIntN> getAllSourceIndexes() const override;
+	void disassociateParticipant(UIntN participantIndex) override;
+	void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
+	void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;
+	void disassociateDomain(UIntN participantIndex, UIntN domainIndex) override;
+	Bool isParticipantSourceDevice(UIntN participantIndex) const override;
+	Bool isParticipantTargetDevice(UIntN participantIndex) const override;
+	UIntN getNumberOfEntries(void) const override;
+	std::set<UIntN> getAllTargetIndexes() const override;
+	std::set<UIntN> getAllSourceIndexes() const override;
 
 protected:
-	std::vector<UIntN> findTableRowsWithParticipantScope(std::string participantScope) const;
+	std::vector<UIntN> findTableRowsWithParticipantScope(const std::string& participantScope) const;
 	std::vector<UIntN> findTableRowsWithParticipantIndex(UIntN participantIndex) const;
 
 	std::vector<std::shared_ptr<RelationshipTableEntryBase>> m_entries;

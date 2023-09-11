@@ -27,7 +27,11 @@
 #include "ConfigurationFileManager.h"
 #include "FilePathDirectory.h"
 #include "EsifMessageLogger.h"
+#include "ParticipantRequestHandler.h"
+#include "EventNotifierInterface.h"
 
+class EnvironmentProfileGenerator;
+class EnvironmentProfileUpdater;
 class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
 class PolicyManagerInterface;
@@ -43,40 +47,42 @@ class DptfManager : public DptfManagerInterface
 {
 public:
 	// This is in place so we can create the handle for esif before it calls back to createDptfManager()
-	DptfManager(void);
+	DptfManager();
 
 	// This will shut down DPTF and clean up resources.
-	virtual ~DptfManager(void);
+	~DptfManager() override;
 
 	// This will create all of the DPTF subsystems.
-	virtual void createDptfManager(
+	void createDptfManager(
 		const esif_handle_t esifHandle,
 		EsifInterfacePtr esifInterfacePtr,
 		const std::string& dptfHomeDirectoryPath,
 		eLogType currentLogVerbosityLevel,
 		Bool dptfEnabled) override;
 
-	virtual Bool isDptfManagerCreated(void) const override;
-	virtual Bool isDptfShuttingDown(void) const override;
-	virtual Bool isWorkItemQueueManagerCreated(void) const override;
+	Bool isDptfManagerCreated() const override;
+	Bool isDptfShuttingDown() const override;
+	Bool isWorkItemQueueManagerCreated() const override;
 
-	virtual EsifServicesInterface* getEsifServices(void) const override;
-	virtual std::shared_ptr<EventCache> getEventCache(void) const override;
-	virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const override;
-	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const override;
-	virtual PolicyManagerInterface* getPolicyManager(void) const override;
-	virtual ParticipantManagerInterface* getParticipantManager(void) const override;
-	virtual ICommandDispatcher* getCommandDispatcher() const override;
-	virtual IndexContainerInterface* getIndexContainer(void) const override;
-	virtual DataManagerInterface* getDataManager(void) const override;
-	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
-	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const override;
-	virtual SystemModeManagerInterface* getSystemModeManager() const override;
-	virtual std::shared_ptr<ConfigurationFileManagerInterface> getConfigurationManager() const override;
-	virtual EnvironmentProfile getEnvironmentProfile() const override;
+	EsifServicesInterface* getEsifServices() const override;
+	std::shared_ptr<EventCache> getEventCache() const override;
+	std::shared_ptr<EventNotifierInterface> getEventNotifier() const override;
+	std::shared_ptr<UserPreferredCache> getUserPreferredCache() const override;
+	WorkItemQueueManagerInterface* getWorkItemQueueManager() const override;
+	PolicyManagerInterface* getPolicyManager() const override;
+	ParticipantManagerInterface* getParticipantManager() const override;
+	ICommandDispatcher* getCommandDispatcher() const override;
+	IndexContainerInterface* getIndexContainer() const override;
+	DataManagerInterface* getDataManager() const override;
+	std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
+	std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const override;
+	SystemModeManagerInterface* getSystemModeManager() const override;
+	std::shared_ptr<ConfigurationFileManagerInterface> getConfigurationManager() const override;
+	EnvironmentProfile getEnvironmentProfile() const override;
+	std::shared_ptr<EnvironmentProfileGenerator> getEnvironmentProfileGenerator() const override;
 
-	virtual std::string getDptfPolicyDirectoryPath(void) const override;
-	virtual std::string getDptfReportDirectoryPath(void) const override;
+	std::string getDptfPolicyDirectoryPath() const override;
+	std::string getDptfReportDirectoryPath() const override;
 
 	void bindDomainsToPolicies(UIntN participantIndex) const override;
 	void unbindDomainsFromPolicies(UIntN participantIndex) const override;
@@ -85,7 +91,6 @@ public:
 	void bindAllParticipantsToPolicy(UIntN policyIndex) const override;
 
 	void setCurrentLogVerbosityLevel(eLogType level) override;
-
 
 private:
 	// hide the copy constructor and assignment operator.
@@ -123,8 +128,12 @@ private:
 	std::shared_ptr<RequestHandlerInterface> m_platformRequestHandler;
 
 	std::shared_ptr<ConfigurationFileManagerInterface> m_configurationManager;
+	std::shared_ptr<RequestHandlerInterface> m_participantRequestHandlers;
 
 	std::shared_ptr<EventCache> m_eventCache;
+	std::shared_ptr<EnvironmentProfileUpdater> m_environmentProfileUpdater;
+	std::shared_ptr<EnvironmentProfileGenerator> m_environmentProfileGenerator;
+	std::shared_ptr<EventNotifierInterface> m_eventNotifier;
 	std::shared_ptr<UserPreferredCache> m_userPreferredCache;
 	IndexContainerInterface* m_indexContainer;
 
@@ -135,7 +144,6 @@ private:
 	std::shared_ptr<LogMessageFilter> m_messageLogFilter;
 	std::shared_ptr<MessageLogger> m_messageLogger;
 	std::shared_ptr<IFileIo> m_fileIo;
-	EnvironmentProfile m_environmentProfile;
 
 	// start up helpers
 	void createBasicObjects(
@@ -147,28 +155,27 @@ private:
 		EsifInterfacePtr esifInterfacePtr,
 		eLogType currentLogVerbosityLevel);
 	std::set<Guid> readDefaultEnabledPolicies() const;
-	void notifyAppsThatDttHasLoaded();
+	void notifyAppsThatDttHasLoaded() const;
 	void createPolicies();
-	void registerForEvents();
-	void registerCommands();
+	void registerForEvents() const;
+	void registerCommands() const;
 	void createCommands();
-	void registerDptfFrameworkEvents(void) const;
+	void registerDptfFrameworkEvents() const;
 
 	// shutdown helpers
-	void shutDown(void);
-	void disableAndEmptyAllQueues(void) const;
-	void destroyAllPolicies(void) const;
-	void destroyAllParticipants(void) const;
-	void deleteWorkItemQueueManager(void);
-	void deletePolicyManager(void);
-	void deleteParticipantManager(void);
-	void deleteSystemModeManager(void);
-	void deleteEsifAppServices(void);
-	void deleteEsifServices(void);
-	void deleteIndexContainer(void);
-	void destroyUniqueIdGenerator(void);
-	void destroyFrameworkEventInfo(void);
-	void unregisterDptfFrameworkEvents(void) const;
-	void unregisterCommands();
-
+	void shutDown();
+	void disableAndEmptyAllQueues() const;
+	void destroyAllPolicies() const;
+	void destroyAllParticipants() const;
+	void deleteWorkItemQueueManager();
+	void deletePolicyManager();
+	void deleteParticipantManager();
+	void deleteSystemModeManager();
+	void deleteEsifAppServices();
+	void deleteEsifServices();
+	void deleteIndexContainer();
+	static void destroyUniqueIdGenerator();
+	static void destroyFrameworkEventInfo();
+	void unregisterDptfFrameworkEvents() const;
+	void unregisterCommands() const;
 };

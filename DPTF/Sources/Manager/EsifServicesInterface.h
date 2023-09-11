@@ -42,12 +42,15 @@ public:
 
 	virtual eLogType getCurrentLogVerbosityLevel(void) const = 0;
 	virtual void setCurrentLogVerbosityLevel(eLogType currentLogVerbosityLevel) = 0;
+	virtual EsifAppServicesInterface* getEsifAppServices(void) const = 0;
 
 	// Read/write configuration data.
 
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) = 0;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) = 0;
+	virtual Power readConfigurationPower(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) = 0;
+	virtual void writeConfigurationString(const std::string& elementPath, const std::string& elementValue) = 0;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual void writeConfigurationBinary(

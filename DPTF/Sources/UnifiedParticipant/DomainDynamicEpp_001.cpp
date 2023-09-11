@@ -19,6 +19,7 @@
 #include "DomainDynamicEpp_001.h"
 #include "XmlNode.h"
 #include "MbtHint.h"
+#include "SocWorkloadClassification.h"
 
 DomainDynamicEpp_001::DomainDynamicEpp_001(
 	UIntN participantIndex,
@@ -57,17 +58,55 @@ void DomainDynamicEpp_001::checkDynamicEppSupport()
 UInt32 DomainDynamicEpp_001::getEppSensitivityHint()
 {
 	m_eppHint = Constants::Invalid;
+	SocWorkloadSource::Source workloadSource = SocWorkloadSource::Software;
+
+	workloadSource = getEppSensitivityHintSource();
+
+	if (workloadSource == SocWorkloadSource::Hardware)
+	{
+		try
+		{
+			m_eppHint = SocWorkloadClassification::toSocWorkloadClassificationHint(
+				(SocWorkloadClassification::HardwareHintType)getParticipantServices()->primitiveExecuteGetAsUInt32(
+					esif_primitive_type::GET_HW_SOC_WORKLOAD, getDomainIndex()));
+		}
+		catch (...)
+		{
+		}
+	}
+	else
+	{
+		try
+		{
+			m_eppHint = getParticipantServices()->primitiveExecuteGetAsUInt32(
+				esif_primitive_type::GET_EPP_SENSITIVITY_HINT_MODEL, getDomainIndex());
+		}
+		catch (...)
+		{
+		}
+	}
+
+	return m_eppHint;
+}
+
+SocWorkloadSource::Source DomainDynamicEpp_001::getEppSensitivityHintSource()
+{
+	SocWorkloadSource::Source eppSensitivitySource = SocWorkloadSource::Software;
 
 	try
 	{
-		m_eppHint = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			esif_primitive_type::GET_EPP_SENSITIVITY_HINT_MODEL, getDomainIndex());
+		UInt32 sourceIsHw = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_SOCWLC_SOURCE, getDomainIndex());
+		if (sourceIsHw)
+		{
+			eppSensitivitySource = SocWorkloadSource::Hardware;
+		}
 	}
 	catch (...)
 	{
 	}
 
-	return m_eppHint;
+	return eppSensitivitySource;
 }
 
 void DomainDynamicEpp_001::updateEppSensitivityHint(UInt32 eppSensitivityHint)
@@ -91,12 +130,12 @@ std::shared_ptr<XmlNode> DomainDynamicEpp_001::getXml(UIntN domainIndex)
 {
 	std::shared_ptr<XmlNode> root = XmlNode::createRoot();
 
+	std::shared_ptr<XmlNode> node = XmlNode::createWrapperElement("dynamic_epp");
+	node->addChild(XmlNode::createDataElement("control_name", getName()));
+	node->addChild(XmlNode::createDataElement("control_knob_version", "001"));
+
 	if (m_isDynamicEppSupported)
 	{
-		std::shared_ptr<XmlNode> node = XmlNode::createWrapperElement("dynamic_epp");
-		node->addChild(XmlNode::createDataElement("control_name", getName()));
-		node->addChild(XmlNode::createDataElement("control_knob_version", "001"));
-
 		try
 		{
 			node->addChild(XmlNode::createDataElement(
@@ -107,9 +146,9 @@ std::shared_ptr<XmlNode> DomainDynamicEpp_001::getXml(UIntN domainIndex)
 		{
 			node->addChild(XmlNode::createDataElement("value", Constants::InvalidString));
 		}
-
-		root->addChild(node);
 	}
+
+	root->addChild(node);
 
 	return root;
 }

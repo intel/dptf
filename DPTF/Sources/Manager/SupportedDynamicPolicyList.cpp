@@ -26,25 +26,21 @@
 
 using namespace std;
 
-static const UIntN UuidStringLength = 36;
+static constexpr UIntN UuidStringLength = 36;
 
 struct EsifDataBinarySupportedDynamicPolicyListPackage
 {
-	union esif_data_variant uuid;
-	union esif_data_variant templateGuid;
-	union esif_data_variant name;
+	esif_data_variant uuid;
+	esif_data_variant templateGuid;
+	esif_data_variant name;
 };
 
-DynamicIdspTableEntry::DynamicIdspTableEntry(const string& uuid, const string& templateGuid, const string& name)
+DynamicIdspTableEntry::DynamicIdspTableEntry(const string& uuid, const string& uuidTemplate, const string& name)
 {
 	m_uuid = Guid::fromUnmangledString(uuid);
-	m_templateGuid = Guid::fromUnmangledString(templateGuid);
+	m_templateGuid = Guid::fromUnmangledString(uuidTemplate);
 	m_name = name;
 	m_uuidString = StringConverter::toLower(uuid);
-}
-
-DynamicIdspTableEntry::~DynamicIdspTableEntry()
-{
 }
 
 Bool DynamicIdspTableEntry::isSameAs(const DynamicIdspTableEntry& tableEntry) const
@@ -77,10 +73,10 @@ string DynamicIdspTableEntry::getUuidString() const
 SupportedDynamicPolicyList::SupportedDynamicPolicyList(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
 {
-	update();
+	SupportedDynamicPolicyList::update();
 }
 
-UIntN SupportedDynamicPolicyList::getCount(void) const
+UIntN SupportedDynamicPolicyList::getCount() const
 {
 	return static_cast<UIntN>(m_dynamicPolicyList.size());
 }
@@ -90,13 +86,13 @@ DynamicIdspTableEntry SupportedDynamicPolicyList::get(UIntN index) const
 	return m_dynamicPolicyList.at(index);
 }
 
-void SupportedDynamicPolicyList::update(void)
+void SupportedDynamicPolicyList::update()
 {
 	try
 	{
-		DptfBuffer buffer = m_dptfManager->getDataManager()
-								->getTableObject(TableObjectType::Dynamic_Idsp, Constants::EmptyString)
-								.getData();
+		const DptfBuffer buffer = m_dptfManager->getDataManager()
+		                                       ->getTableObject(TableObjectType::Dynamic_Idsp, Constants::EmptyString)
+		                                       .getData();
 		m_dynamicPolicyList = parseBufferForDynamicPolicyUuids(buffer);
 	}
 	catch (const exception& ex)
@@ -120,14 +116,13 @@ vector<DynamicIdspTableEntry> SupportedDynamicPolicyList::parseBufferForDynamicP
 		throw dptf_exception("There is no data to process.");
 	}
 
-	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-	UIntN rowCount = countRows(buffer.size(), data);
+	auto data = buffer.get();
+	const UIntN rowCount = countRows(buffer.size(), data);
 
-	data = reinterpret_cast<UInt8*>(buffer.get());
+	data = buffer.get();
 	data += sizeof(esif_data_variant); // Ignore revision field
 
-	struct EsifDataBinarySupportedDynamicPolicyListPackage* currentRow =
-		reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+	auto currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 	vector<DynamicIdspTableEntry> entries;
 	for (UIntN i = 0; i < rowCount; i++)
@@ -137,31 +132,30 @@ vector<DynamicIdspTableEntry> SupportedDynamicPolicyList::parseBufferForDynamicP
 			currentRow->uuid.string.length);
 
 		data += currentRow->uuid.string.length;
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 		string uuidTemplate(
 			reinterpret_cast<const char*>(&(currentRow->templateGuid)) + sizeof(union esif_data_variant),
 			currentRow->templateGuid.string.length);
 
 		data += currentRow->templateGuid.string.length;
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
-		string name(
-			reinterpret_cast<const char*>(&(currentRow->name)) + sizeof(union esif_data_variant),
-			currentRow->name.string.length);
+		const char* nameAddress = reinterpret_cast<const char*>(&currentRow->name) + sizeof(union esif_data_variant);
+		string name(nameAddress, currentRow->name.string.length);
 
 		data += currentRow->name.string.length;
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
-		throwIfInvalidUuidLength(uuid.data());
-		throwIfInvalidUuidLength(uuidTemplate.data());
+		throwIfInvalidUuidLength(uuid);
+		throwIfInvalidUuidLength(uuidTemplate);
 
-		DynamicIdspTableEntry temp(uuid.data(), uuidTemplate.data(), name.data());
+		DynamicIdspTableEntry temp(uuid, uuidTemplate, name);
 
 		Bool isDuplicateEntry = false;
-		for (auto e = entries.begin(); e != entries.end(); e++)
+		for (const auto& entry : entries)
 		{
-			if (temp.isSameAs(*e))
+			if (temp.isSameAs(entry))
 			{
 				isDuplicateEntry = true;
 				break;
@@ -173,8 +167,8 @@ vector<DynamicIdspTableEntry> SupportedDynamicPolicyList::parseBufferForDynamicP
 			entries.push_back(temp);
 		}
 
-		data += sizeof(struct EsifDataBinarySupportedDynamicPolicyListPackage);
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		data += sizeof(EsifDataBinarySupportedDynamicPolicyListPackage);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 	}
 	return entries;
 }
@@ -185,8 +179,9 @@ UIntN SupportedDynamicPolicyList::countRows(UInt32 size, UInt8* data)
 	UIntN rows = 0;
 
 	// Remove revision field
-	esif_data_variant* revision = reinterpret_cast<esif_data_variant*>(data);
-	if ((revision->type == esif_data_type::ESIF_DATA_UINT32) || (revision->type == esif_data_type::ESIF_DATA_UINT64))
+	const esif_data_variant* revision = reinterpret_cast<esif_data_variant*>(data);
+	if ((revision->type == esif_data_type::ESIF_DATA_UINT32) || 
+		(revision->type == esif_data_type::ESIF_DATA_UINT64))
 	{
 		data += sizeof(esif_data_variant);
 		bytesRemaining -= sizeof(esif_data_variant);
@@ -197,7 +192,7 @@ UIntN SupportedDynamicPolicyList::countRows(UInt32 size, UInt8* data)
 	}
 	throwIfOutOfRange(bytesRemaining);
 
-	struct EsifDataBinarySupportedDynamicPolicyListPackage* currentRow =
+	const EsifDataBinarySupportedDynamicPolicyListPackage* currentRow =
 		reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 	while (bytesRemaining > 0)
@@ -208,7 +203,7 @@ UIntN SupportedDynamicPolicyList::countRows(UInt32 size, UInt8* data)
 		throwIfOutOfRange(bytesRemaining);
 
 		data += currentRow->uuid.string.length;
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 		throwIfOutOfRange(currentRow->templateGuid.string.length); // Verify string length not negative or will become
 																   // positive when subtracted from bytesRemaining
@@ -216,7 +211,7 @@ UIntN SupportedDynamicPolicyList::countRows(UInt32 size, UInt8* data)
 		throwIfOutOfRange(bytesRemaining);
 
 		data += currentRow->templateGuid.string.length;
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 		throwIfOutOfRange(currentRow->name.string.length); // Verify string length not negative or will become
 														   // positive when subtracted from bytesRemaining
@@ -224,15 +219,15 @@ UIntN SupportedDynamicPolicyList::countRows(UInt32 size, UInt8* data)
 		throwIfOutOfRange(bytesRemaining);
 
 		data += currentRow->name.string.length;
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 		rows++;
 
-		bytesRemaining -= sizeof(struct EsifDataBinarySupportedDynamicPolicyListPackage);
+		bytesRemaining -= sizeof(EsifDataBinarySupportedDynamicPolicyListPackage);
 		throwIfOutOfRange(bytesRemaining);
 
-		data += sizeof(struct EsifDataBinarySupportedDynamicPolicyListPackage);
-		currentRow = reinterpret_cast<struct EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
+		data += sizeof(EsifDataBinarySupportedDynamicPolicyListPackage);
+		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 	}
 
 	return rows;
@@ -246,7 +241,7 @@ void SupportedDynamicPolicyList::throwIfOutOfRange(IntN bytesRemaining)
 	}
 }
 
-void SupportedDynamicPolicyList::throwIfInvalidUuidLength(string uuid)
+void SupportedDynamicPolicyList::throwIfInvalidUuidLength(const string& uuid)
 {
 	if (uuid.length() != UuidStringLength)
 	{

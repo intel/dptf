@@ -24,17 +24,17 @@
 DomainPerformanceControl_003::DomainPerformanceControl_003(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface)
 	: DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_capabilitiesLocked(false)
 {
-	onClearCachedData();
-	capture();
+	DomainPerformanceControl_003::onClearCachedData();
+	DomainPerformanceControl_003::capture();
 }
 
-DomainPerformanceControl_003::~DomainPerformanceControl_003(void)
+DomainPerformanceControl_003::~DomainPerformanceControl_003()
 {
-	restore();
+	DomainPerformanceControl_003::restore();
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_003::getPerformanceControlStaticCaps(
@@ -115,7 +115,7 @@ void DomainPerformanceControl_003::setPerformanceControlDynamicCaps(
 		return;
 	}
 
-	auto size = getPerformanceControlSet(participantIndex, domainIndex).getCount();
+	const auto size = getPerformanceControlSet(participantIndex, domainIndex).getCount();
 	if (upperLimitIndex >= size)
 	{
 		upperLimitIndex = 0;
@@ -154,10 +154,10 @@ void DomainPerformanceControl_003::onClearCachedData(void)
 	m_performanceControlSet.invalidate();
 }
 
-PerformanceControlSet DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex)
+PerformanceControlSet DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex) const
 {
 	// Build GFX performance table
-	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+	const DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
 	auto controlSet = PerformanceControlSet(PerformanceControlSet::createFromProcessorGfxPstates(buffer));
 	if (controlSet.getCount() == 0)
@@ -175,7 +175,7 @@ PerformanceControlDynamicCaps DomainPerformanceControl_003::createPerformanceCon
 	// If table is empty, these are set as invalid.
 	UInt32 lowerLimitIndex;
 	UInt32 upperLimitIndex;
-	auto controlSetSize = getPerformanceControlSet(getParticipantIndex(), domainIndex).getCount();
+	const auto controlSetSize = getPerformanceControlSet(getParticipantIndex(), domainIndex).getCount();
 
 	if (controlSetSize == 0)
 	{
@@ -187,16 +187,16 @@ PerformanceControlDynamicCaps DomainPerformanceControl_003::createPerformanceCon
 		upperLimitIndex = 0;
 		lowerLimitIndex = controlSetSize - 1;
 	}
-	return PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex);
+	return {lowerLimitIndex, upperLimitIndex};
 }
 
 UIntN DomainPerformanceControl_003::snapIfPerformanceControlIndexIsOutOfBounds(
 	UIntN domainIndex,
 	UIntN performanceControlIndex)
 {
-	auto caps = getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex);
-	auto capsUpperLimitIndex = caps.getCurrentUpperLimitIndex();
-	auto capsLowerLimitIndex = caps.getCurrentLowerLimitIndex();
+	const auto caps = getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex);
+	const auto capsUpperLimitIndex = caps.getCurrentUpperLimitIndex();
+	const auto capsLowerLimitIndex = caps.getCurrentLowerLimitIndex();
 	if (performanceControlIndex < capsUpperLimitIndex)
 	{
 		PARTICIPANT_LOG_MESSAGE_WARNING(
@@ -212,9 +212,9 @@ UIntN DomainPerformanceControl_003::snapIfPerformanceControlIndexIsOutOfBounds(
 	return performanceControlIndex;
 }
 
-PerformanceControlStaticCaps DomainPerformanceControl_003::createPerformanceControlStaticCaps(void)
+PerformanceControlStaticCaps DomainPerformanceControl_003::createPerformanceControlStaticCaps()
 {
-	return PerformanceControlStaticCaps(false); // This is hard-coded to FALSE in 7.0
+	return {false}; // This is hard-coded to FALSE in 7.0
 }
 
 std::shared_ptr<XmlNode> DomainPerformanceControl_003::getXml(UIntN domainIndex)
@@ -229,7 +229,7 @@ std::shared_ptr<XmlNode> DomainPerformanceControl_003::getXml(UIntN domainIndex)
 	return root;
 }
 
-void DomainPerformanceControl_003::capture(void)
+void DomainPerformanceControl_003::capture()
 {
 	try
 	{
@@ -245,42 +245,26 @@ void DomainPerformanceControl_003::capture(void)
 	}
 }
 
-void DomainPerformanceControl_003::restore(void)
+void DomainPerformanceControl_003::restore()
 {
-	if (m_initialStatus.isValid())
+	try
 	{
-		try
+		if (m_initialStatus.isValid())
 		{
 			getParticipantServices()->primitiveExecuteSetAsUInt32(
 				esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
 				m_initialStatus.get().getCurrentUpperLimitIndex(),
 				getDomainIndex());
 		}
-		catch (...)
-		{
-			// best effort
-			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
-		}
+	}
+	catch (...)
+	{
+		// best effort
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
 	}
 }
 
-std::string DomainPerformanceControl_003::getName(void)
+std::string DomainPerformanceControl_003::getName()
 {
 	return "Graphics Performance Control";
-}
-
-void DomainPerformanceControl_003::setPerfPreferenceMax(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	throw not_implemented();
-}
-
-void DomainPerformanceControl_003::setPerfPreferenceMin(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	Percentage minMaxRatio)
-{
-	throw not_implemented();
 }

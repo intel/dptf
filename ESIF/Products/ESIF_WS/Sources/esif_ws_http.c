@@ -377,9 +377,9 @@ static time_t Http_LocalTimeFromGmt(char *str)
 
 		// Compute local GMT offset to convert GMT time to local time
 		time(&now);
-		esif_ccb_gmtime(&gmt, &now);
-		esif_ccb_localtime(&local, &now);
-		datetime = mktime(&timestamp) - (mktime(&gmt) - mktime(&local));
+		if (esif_ccb_gmtime(&gmt, &now) == 0 && esif_ccb_localtime(&local, &now) == 0) {
+			datetime = mktime(&timestamp) - (mktime(&gmt) - mktime(&local));
+		}
 	}
 	return datetime;
 }

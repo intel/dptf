@@ -18,18 +18,25 @@
 
 #pragma once
 #include "Dptf.h"
+#include <string>
 
 class TimeSpan
 {
 public:
 	TimeSpan();
-	~TimeSpan();
+	virtual ~TimeSpan() = default;
+
+	TimeSpan(const TimeSpan& other) = default;
+	TimeSpan& operator=(const TimeSpan& other) = default;
+	TimeSpan(TimeSpan&& other) = default;
+	TimeSpan& operator=(TimeSpan&& other) = default;
 
 	static TimeSpan createInvalid();
 	static TimeSpan createFromMicroseconds(Int64 microseconds);
 	static TimeSpan createFromMilliseconds(Int64 milliseconds);
 	static TimeSpan createFromTenthSeconds(Int64 tenthSeconds);
 	static TimeSpan createFromSeconds(Int64 seconds);
+	static TimeSpan createFromSeconds(const std::string& seconds);
 	static TimeSpan createFromMinutes(Int64 minutes);
 	static TimeSpan createFromHours(Int64 hours);
 

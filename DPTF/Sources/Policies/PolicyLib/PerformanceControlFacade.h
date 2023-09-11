@@ -52,9 +52,6 @@ public:
 	virtual const PerformanceControlSet& getControls() override;
 	virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() override;
 
-	virtual void setPerfPreferenceMax(Percentage minMaxRatio) override;
-	virtual void setPerfPreferenceMin(Percentage minMaxRatio) override;
-
 private:
 	// services
 	PolicyServicesInterfaceContainer m_policyServices;

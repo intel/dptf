@@ -169,6 +169,16 @@ struct ocmb_request {
 	/* Array of ocmb_affinity_data structure follow here. See ocmb_affinity_data */
 };
 
+/* Process Notification Event Data */
+#define PROCESS_NOTIFICATION_REVISION 1
+struct esif_data_process_notification
+{
+	u32 revision;
+	esif_handle_t process_id;
+	esif_handle_t parent_process_id;
+	char image_path[ESIF_MAX_PATH];
+};
+
 #pragma pack(pop)
 
 #define OFFSET_OF(type, member) ((u32)(size_t)&(((type*)0)->member))
@@ -263,4 +273,72 @@ struct esif_data_rfprofile
 };
 
 #define SOCWC_NUMBER_WORKLOAD_CLASSIFICATIONS	5
+#define RF_PROFILE_STRUCT_VERSION 1
+
+#pragma pack(push, 1)
+typedef struct RfProfile_s
+{
+	UInt32 version;
+	UInt32 is5G;  // Boolean - is5G, modem only   
+	UInt32 channelPriority;   // UInt32 - 0: primary, 1: secondary, ...   
+	UInt64 centerFrequency;  // UInt64 - centerFrequency in Hz   
+	UInt32 frequencySpread; // UInt32 - frequencySpread in Hz   
+	UInt32 connectStatus;  // UInt32 - 0: disconnected, 1: connected   
+	UInt32 channelNumber;  // UInt32 - channelNumber   
+	UInt32 band; // UInt32 - band  
+	UInt32 rssi; // UInt32 - rssi 
+}RfProfile, * RfProfilePtr;
+#pragma pack(pop)
+
+#define MAX_ACTIVE_RF_CHANNELS 5
+
+#pragma pack(push, 1)
+typedef struct ActiveRfChannels_s
+{
+	UInt8  numberOfChannels;
+	RfProfile rfChannels[MAX_ACTIVE_RF_CHANNELS];
+} ActiveRfChannels, * ActiveRfChannelsPtr;
+#pragma pack(pop)
+
+#define RAPL_ENERGY_INFO_REVISION 1
+
+#pragma pack(push,1)
+typedef struct RaplEnergyInfo_s
+{
+	UInt32 revision;
+	UInt64 timestamp;
+	UInt32 energyCounter;
+} RaplEnergyInfo;
+#pragma pack(pop)
+
+#define AFFINITY_CMD_VERSION 1
+
+typedef struct AffinityCommand_s {
+	UInt32 version; // must be AFFINITY_CMD_VERSION
+	UInt32 affinity_mask;
+	char process_name[MAX_PATH];
+} AffinityCommand;
+
+#define APPLICATION_OPTIMIZATION_APPCOMPAT_GUID {0x99, 0x5c, 0xc3, 0x75, 0xc3, 0x09, 0x4b, 0xaa, 0xa9, 0x9d, 0xe9, 0x70, 0xd0, 0x89, 0x3a, 0x9c}
+#define APP_COMPAT_CREATE_CMD_VERSION 1
+
+typedef struct AppCompatEntry_s
+{
+	UInt32 processor_count;
+	char process_name[MAX_PATH];
+} AppCompatEntry;
+
+typedef struct AppCompatCreateCommand_s {
+	UInt32 version; // must be APP_COMPAT_CREATE_CMD_VERSION
+	esif_guid_t app_compat_guid;
+	UInt32 num_process;
+	// num_process * AppCompatEntry structures follow here. 
+} AppCompatCreateCommand;
+
+#define APP_COMPAT_DELETE_CMD_VERSION 1
+
+typedef struct AppCompatDeleteCommand_s {
+	UInt32 version; // must be APP_COMPAT_DELETE_CMD_VERSION
+	esif_guid_t app_compat_guid;
+} AppCompatDeleteCommand;
 

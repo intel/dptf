@@ -97,6 +97,14 @@ typedef enum Motion_e {
 	MOTION_MAX
 } Motion, *MotionPtr;
 
+
+typedef enum InBagState_e {
+	IN_BAG_STATE_UNKNOWN = 0,
+	IN_BAG_STATE_IN_BAG = 1,
+	IN_BAG_STATE_NOT_IN_BAG = 2,
+} InBagState;
+
+
 typedef enum PlatformOrientation_e {
 	ORIENTATION_PLAT_FLAT_UP = 0,
 	ORIENTATION_PLAT_FLAT_DOWN = 180,

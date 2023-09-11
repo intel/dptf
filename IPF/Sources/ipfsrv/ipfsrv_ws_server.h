@@ -137,6 +137,7 @@ typedef struct WebServer_s {
 	signal_t			*fileDoorbell;					// FileWatcher Doorbell Signal
 	atomic_t			isActive;						// Web Server Active Flag
 	atomic_t			isPaused;						// Web Server Pause Flag
+	atomic_t			isDiagnostic;					// Web Server Diagnostic Mode Flag
 	atomic_t			activeThreads;					// Active Thread Count
 	atomic_t			listenerMask;					// Active Listeners BitMask
 
@@ -160,6 +161,7 @@ Bool WebServer_IsStarted(WebServerPtr self);
 void WebServer_Pause(WebServerPtr self);
 void WebServer_Resume(WebServerPtr self);
 Bool WebServer_IsPaused(WebServerPtr self);
+Bool WebServer_IsDiagnostic(WebServerPtr self);
 atomic_t WebServer_GetListenerMask(WebServerPtr self);
 atomic_t WebServer_GetPipeMask(WebServerPtr self);
 atomic_t WebServer_GetRpcQueueMax(WebServerPtr self);

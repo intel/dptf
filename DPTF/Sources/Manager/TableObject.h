@@ -29,13 +29,14 @@ class dptf_export TableObject
 public:
 	TableObject(
 		TableObjectType::Type type,
-		std::map<UInt64, std::vector<TableObjectField>> fieldsMap,
-		std::vector<std::pair<DataVaultType::Type, std::string>> dataVaultPathForGet,
-		std::vector<std::pair<DataVaultType::Type, std::string>> dataVaultPathForSet,
-		std::set<UInt64> revisionsUsingEsifDataVariant,
+		const std::map<UInt64, std::vector<TableObjectField>>& fieldsMap,
+		const std::vector<std::pair<DataVaultType::Type, std::string>>& dataVaultPathForGet,
+		const std::vector<std::pair<DataVaultType::Type, std::string>>& dataVaultPathForSet,
+		const std::set<UInt64>& revisionsUsingEsifDataVariant,
 		UInt32 supportedMode = 0,
 		esif_primitive_type_t readPrimitive = (esif_primitive_type_t)0,
-		Bool isParticipantTable = false);
+		Bool isParticipantTable = false,
+		Bool hasRevisionField = true);
 	~TableObject();
 
 	TableObjectType::Type getType() const;
@@ -48,12 +49,12 @@ public:
 	void setData(const DptfBuffer& data);
 
 	std::string getXmlString();
-	std::shared_ptr<XmlNode> getXml(); 
+	std::shared_ptr<XmlNode> getXml();
 
-	const Bool isParticipantTable() const;
-	const Bool hasRevisionField() const;
-	const Bool hasModeField() const;
-	const Bool isUsingEsifDataVariant(UInt64 revision) const;
+	Bool isParticipantTable() const;
+	Bool hasRevisionField() const;
+	Bool hasModeField() const;
+	Bool isUsingEsifDataVariant(UInt64 revision) const;
 
 private:
 
@@ -61,38 +62,37 @@ private:
 		UInt32& remain_bytes,
 		esif_data_variant*& obj,
 		std::vector<TableObjectField>& fields,
-		std::shared_ptr<XmlNode>& resultRoot,
-		UInt32 revision);
+		const std::shared_ptr<XmlNode>& resultRoot,
+		UInt32 revision) const;
 
 	void addModeFields(
 		UInt32& remain_bytes,
 		esif_data_variant*& obj,
-		std::vector<TableObjectField>& fields,
-		std::shared_ptr<XmlNode>& resultRoot);
+		const std::shared_ptr<XmlNode>& resultRoot) const;
 
 	Bool addValueFields(
 		UInt32& remain_bytes,
 		esif_data_variant*& obj,
-		std::vector<TableObjectField>& fields,
-		std::shared_ptr<XmlNode>& resultRoot,
-		UInt32 revision);
+		const std::vector<TableObjectField>& fields,
+		const std::shared_ptr<XmlNode>& resultRoot,
+		UInt32 revision) const;
 
 	Bool addValueFieldsWithEsifDataVariant(
 		UInt32& remain_bytes,
 		esif_data_variant*& obj,
-		std::vector<TableObjectField>& fields,
-		std::shared_ptr<XmlNode>& resultRoot);
+		const std::vector<TableObjectField>& fields,
+		const std::shared_ptr<XmlNode>& resultRoot) const;
 
 	Bool addValueFieldsWithOutEsifDataVariant(
 		UInt32& remain_bytes,
 		esif_data_variant*& obj,
-		std::vector<TableObjectField>& fields,
-		std::shared_ptr<XmlNode>& resultRoot);
+		const std::vector<TableObjectField>& fields,
+		const std::shared_ptr<XmlNode>& resultRoot) const;
 
-	void addMessage(
-		std::shared_ptr<XmlNode>& resultRoot, 
-		std::string xmlWrapperTag, 
-		std::string messages);
+	static void addMessage(
+		const std::shared_ptr<XmlNode>& resultRoot,
+		const std::string& xmlWrapperTag,
+		const std::string& messages);
 
 	TableObjectType::Type m_type;
 	std::map<UInt64, std::vector<TableObjectField>> m_fieldsMap;
@@ -103,4 +103,5 @@ private:
 	esif_primitive_type m_readPrimitive;
 	DptfBuffer m_data;
 	Bool m_isParticipantTable;
+	Bool m_hasRevisionField;
 };

@@ -19,6 +19,7 @@
 #include "PowerControlDynamicCapsSet.h"
 #include "XmlNode.h"
 #include "EsifDataBinaryPpccPackage.h"
+#include "MapOps.h"
 
 using namespace std;
 
@@ -26,9 +27,9 @@ PowerControlDynamicCapsSet::PowerControlDynamicCapsSet(
 	const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps)
 	: m_capabilities(std::map<PowerControlType::Type, PowerControlDynamicCaps>())
 {
-	for (auto capability = powerControlDynamicCaps.begin(); capability != powerControlDynamicCaps.end(); capability++)
+	for (const auto& capability : powerControlDynamicCaps)
 	{
-		m_capabilities[capability->getPowerControlType()] = *capability;
+		m_capabilities[capability.getPowerControlType()] = capability;
 	}
 }
 
@@ -37,28 +38,24 @@ PowerControlDynamicCapsSet::PowerControlDynamicCapsSet()
 {
 }
 
-PowerControlDynamicCapsSet::~PowerControlDynamicCapsSet()
-{
-}
-
 PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const DptfBuffer& buffer, Power pl4PowerLimit)
 {
 	std::vector<PowerControlDynamicCaps> controls;
-	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+	auto data = buffer.get();
 	data += sizeof(esif_data_variant); // Ignore revision field
-	struct EsifDataBinaryPpccPackage* currentRow = reinterpret_cast<struct EsifDataBinaryPpccPackage*>(data);
+	auto currentRow = reinterpret_cast<struct EsifDataBinaryPpccPackage*>(data);
 	PowerControlDynamicCaps temp;
 
 	if (buffer.size() == 0)
 	{
-		throw dptf_exception("Received empty PPCC buffer.");
+		throw dptf_exception("Received empty PPCC buffer."s);
 	}
 
 	UIntN rows = (buffer.size() - sizeof(esif_data_variant)) / sizeof(EsifDataBinaryPpccPackage);
 
 	if ((buffer.size() - sizeof(esif_data_variant)) % sizeof(EsifDataBinaryPpccPackage))
 	{
-		throw dptf_exception("Expected binary data size mismatch. (PPCC)");
+		throw dptf_exception("Expected binary data size mismatch. (PPCC)"s);
 	}
 
 	UIntN originalRowCount = rows;
@@ -103,21 +100,21 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 			controls.insert(controls.begin(), temp);
 		}
 
-		data += sizeof(struct EsifDataBinaryPpccPackage);
-		currentRow = reinterpret_cast<struct EsifDataBinaryPpccPackage*>(data);
+		data += sizeof(EsifDataBinaryPpccPackage);
+		currentRow = reinterpret_cast<EsifDataBinaryPpccPackage*>(data);
 	}
 
-	return PowerControlDynamicCapsSet(controls);
+	return {controls};
 }
 
 UIntN PowerControlDynamicCapsSet::getPpccDataRows(const DptfBuffer& buffer)
 {
-	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+	auto data = buffer.get();
 	data += sizeof(esif_data_variant); // Ignore revision field
 
 	if (buffer.size() == 0)
 	{
-		throw dptf_exception("Received empty PPCC buffer.");
+		throw dptf_exception("Received empty PPCC buffer."s);
 	}
 
 	return (buffer.size() - sizeof(esif_data_variant)) / sizeof(EsifDataBinaryPpccPackage);
@@ -125,37 +122,37 @@ UIntN PowerControlDynamicCapsSet::getPpccDataRows(const DptfBuffer& buffer)
 
 UInt64 PowerControlDynamicCapsSet::getPpccDataRevision(const DptfBuffer& buffer)
 {
-	union esif_data_variant* obj = (union esif_data_variant*)buffer.get();
+	const auto obj = reinterpret_cast<union esif_data_variant*>(buffer.get());
 
 	if (buffer.size() == 0)
 	{
-		throw dptf_exception("Received empty PPCC buffer.");
+		throw dptf_exception("Received empty PPCC buffer."s);
 	}
 
-	return (UInt64)obj->integer.value;
+	return obj->integer.value;
 }
 
 Bool PowerControlDynamicCapsSet::isEmpty() const
 {
-	return (m_capabilities.size() == 0);
+	return m_capabilities.empty();
 }
 
 Bool PowerControlDynamicCapsSet::hasCapability(PowerControlType::Type controlType) const
 {
-	auto capability = m_capabilities.find(controlType);
+	const auto capability = m_capabilities.find(controlType);
 	return (capability != m_capabilities.end());
 }
 
 const PowerControlDynamicCaps& PowerControlDynamicCapsSet::getCapability(PowerControlType::Type controlType) const
 {
-	auto capability = m_capabilities.find(controlType);
+	const auto capability = m_capabilities.find(controlType);
 	if (capability != m_capabilities.end())
 	{
 		return capability->second;
 	}
 	else
 	{
-		throw dptf_exception("No power control capabilities for " + PowerControlType::ToString(controlType));
+		throw dptf_exception("No power control capabilities for "s + PowerControlType::ToString(controlType));
 	}
 }
 
@@ -166,19 +163,14 @@ void PowerControlDynamicCapsSet::setCapability(const PowerControlDynamicCaps& ca
 
 std::set<PowerControlType::Type> PowerControlDynamicCapsSet::getControlTypes() const
 {
-	std::set<PowerControlType::Type> capabilityTypes;
-	for (auto capability = m_capabilities.begin(); capability != m_capabilities.end(); capability++)
-	{
-		capabilityTypes.insert(capability->first);
-	}
-	return capabilityTypes;
+	return MapOps<PowerControlType::Type, PowerControlDynamicCaps>::getKeys(m_capabilities);
 }
 
 Power PowerControlDynamicCapsSet::snapToCapability(PowerControlType::Type controlType, Power powerValue) const
 {
 	if (hasCapability(controlType))
 	{
-		auto capability = getCapability(controlType);
+		const auto capability = getCapability(controlType);
 		powerValue = std::min(powerValue, capability.getMaxPowerLimit());
 		powerValue = std::max(powerValue, capability.getMinPowerLimit());
 	}
@@ -189,7 +181,7 @@ TimeSpan PowerControlDynamicCapsSet::snapToCapability(PowerControlType::Type con
 {
 	if (hasCapability(controlType))
 	{
-		auto capability = getCapability(controlType);
+		const auto capability = getCapability(controlType);
 		timeValue = std::min(timeValue, capability.getMaxTimeWindow());
 		timeValue = std::max(timeValue, capability.getMinTimeWindow());
 	}
@@ -198,14 +190,14 @@ TimeSpan PowerControlDynamicCapsSet::snapToCapability(PowerControlType::Type con
 
 DptfBuffer PowerControlDynamicCapsSet::toPpccBinary() const
 {
-	esif_data_variant revision;
+	esif_data_variant revision{};
 	revision.integer.type = esif_data_type::ESIF_DATA_UINT64;
 	revision.integer.value = 2;
 
 	vector<EsifDataBinaryPpccPackage> packages;
 	for (auto cap = m_capabilities.begin(); cap != m_capabilities.end(); ++cap)
 	{
-		EsifDataBinaryPpccPackage package;
+		EsifDataBinaryPpccPackage package{};
 		package.powerLimitIndex.integer.type = esif_data_type::ESIF_DATA_UINT64;
 		package.powerLimitIndex.integer.value = cap->second.getPowerControlType();
 		package.powerLimitMaximum.integer.type = esif_data_type::ESIF_DATA_UINT64;
@@ -271,11 +263,11 @@ DptfBuffer PowerControlDynamicCapsSet::toPpccBinary() const
 		packages.push_back(package);
 	}
 
-	UInt32 sizeOfRevision = (UInt32)sizeof(revision);
-	UInt32 sizeOfPackages = (UInt32)packages.size() * sizeof(EsifDataBinaryPpccPackage);
+	UInt32 sizeOfRevision = sizeof revision;
+	UInt32 sizeOfPackages = static_cast<UInt32>(packages.size()) * sizeof(EsifDataBinaryPpccPackage);
 	DptfBuffer buffer(sizeOfRevision + sizeOfPackages);
-	buffer.put(0, (UInt8*)&revision, sizeOfRevision);
-	buffer.put(sizeOfRevision, (UInt8*)packages.data(), sizeOfPackages);
+	buffer.put(0, reinterpret_cast<UInt8*>(&revision), sizeOfRevision);
+	buffer.put(sizeOfRevision, reinterpret_cast<UInt8*>(packages.data()), sizeOfPackages);
 	return buffer;
 }
 
@@ -289,12 +281,12 @@ Bool PowerControlDynamicCapsSet::operator!=(const PowerControlDynamicCapsSet& rh
 	return !(*this == rhs);
 }
 
-std::shared_ptr<XmlNode> PowerControlDynamicCapsSet::getXml(void) const
+std::shared_ptr<XmlNode> PowerControlDynamicCapsSet::getXml() const
 {
-	auto root = XmlNode::createWrapperElement("power_control_dynamic_caps_set");
-	for (auto capability = m_capabilities.begin(); capability != m_capabilities.end(); capability++)
+	auto root = XmlNode::createWrapperElement("power_control_dynamic_caps_set"s);
+	for (const auto& [capType, cap] : m_capabilities)
 	{
-		root->addChild(capability->second.getXml());
+		root->addChild(cap.getXml());
 	}
 	return root;
 }

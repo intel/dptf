@@ -70,4 +70,5 @@
 #define ESIF_FLAG_DPTFZ 0x1	/* Participant Is Actually A DPTF Zone */
 #define ESIF_FLAG_EXTERN_DPTFZ 0x2	/* Participant Is Actually A DPTF Zone exposed by an external driver */
 #define ESIF_FLAG_ACCESS_ACPI_VIA_HAL 0x4	/* Participant is using the ACPI HAL target with absolute paths */
+#define ESIF_FLAG_AUTO_ENUMERATED 0x8	/* Participant is an "auto-enumerated" participant */
 

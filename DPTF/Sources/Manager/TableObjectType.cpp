@@ -55,6 +55,8 @@ std::string TableObjectType::ToString(TableObjectType::Type type)
 		return "psha";
 	case Psvt:
 		return "psvt";
+	case Rfim:
+		return "rfim";
 	case SwOemVariables:
 		return "sw-oem-variables";
 	case Tpga:
@@ -137,6 +139,10 @@ TableObjectType::Type TableObjectType::ToType(std::string value)
 	else if (value == "psvt")
 	{
 		return TableObjectType::Psvt;
+	}
+	else if (value == "rfim")
+	{
+		return TableObjectType::Rfim;
 	}
 	else if (value == "sw-oem-variables")
 	{

@@ -51,6 +51,15 @@ void DomainProcessorControlBase::bindRequestHandlers()
 	bindRequestHandler(
 		DptfRequestType::ProcessorControlGetMinTccOffsetTemperature,
 		[=](const PolicyRequest& policyRequest) { return this->handleGetMinTccOffsetTemperature(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlSetPerfPreferenceMax,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetPerfPreferenceMax(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlSetPerfPreferenceMin,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetPerfPreferenceMin(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlGetPcieThrottleRequestState,
+		[=](const PolicyRequest& policyRequest) { return this->handleGetPcieThrottleRequestState(policyRequest); });
 }
 
 DptfRequestResult DomainProcessorControlBase::handleClearCachedData(const PolicyRequest& policyRequest)
@@ -146,6 +155,73 @@ DptfRequestResult DomainProcessorControlBase::handleSetTccOffsetTemperature(cons
 	std::stringstream message;
 	message << "Set TCC offset temperature for policy.";
 	return DptfRequestResult(true, message.str(), request);
+}
+
+DptfRequestResult DomainProcessorControlBase::handleSetPerfPreferenceMax(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	try
+	{
+		Percentage cpuMaxRatio = Percentage::createFromDptfBuffer(request.getData());
+		setPerfPreferenceMax(cpuMaxRatio);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Set CPU MAX frequency for policy FAILED: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
+	
+	std::stringstream message;
+	message << "Set CPU MAX frequency for policy.";
+	return DptfRequestResult(true, message.str(), request);
+}
+
+DptfRequestResult DomainProcessorControlBase::handleSetPerfPreferenceMin(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	try
+	{
+		Percentage cpuMinRatio = Percentage::createFromDptfBuffer(request.getData());
+		setPerfPreferenceMin(cpuMinRatio);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Set CPU MIN frequency for policy FAILED: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
+
+	std::stringstream message;
+	message << "Set CPU MIN frequency for policy.";
+	return DptfRequestResult(true, message.str(), request);
+}
+
+DptfRequestResult DomainProcessorControlBase::handleGetPcieThrottleRequestState(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		if (requestResultIsCached(request))
+		{
+			return getCachedResult(request);
+		}
+		else
+		{
+			auto pcieThrottleRequestState = getPcieThrottleRequestState();
+			DptfRequestResult result(true, "Successfully retrieved PCIe Throttle Request State.", request);
+			result.setDataFromUInt32(pcieThrottleRequestState);
+			updateCachedResult(result);
+			return result;
+		}
+	}
+	catch (dptf_exception& ex)
+	{
+		DptfRequestResult failureResult(
+			false, "Failed to retrieve PCIe Throttle Request State: " + ex.getDescription(), request);
+		return failureResult;
+	}
 }
 
 DptfRequestResult DomainProcessorControlBase::removePolicySetTccOffsetTemperatureRequest(

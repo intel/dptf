@@ -32,4 +32,17 @@ namespace RadioConnectionStatus
 			throw dptf_exception("RadioConnectionStatus::Type is invalid.");
 		}
 	}
+
+	RadioConnectionStatus::Type ToType(UInt32 value)
+	{
+		switch (value)
+		{
+		case 0:
+			return RadioConnectionStatus::NotConnected;
+		case 1:
+			return RadioConnectionStatus::Connected;
+		default:
+			throw dptf_exception("Value is invalid.");
+		}
+	}
 }

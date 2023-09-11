@@ -34,23 +34,19 @@ SpecificInfo::SpecificInfo()
 {
 }
 
-SpecificInfo::SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, Temperature> specificInfo)
+SpecificInfo::SpecificInfo(const map<ParticipantSpecificInfoKey::Type, Temperature>& specificInfo)
 	: m_specificInfo(specificInfo)
 {
 	sortInfoByKey();
 	sortInfoByValue();
 }
 
-SpecificInfo::~SpecificInfo(void)
-{
-}
-
-std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByValue()
+vector<pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByValue()
 {
 	return m_sortedTripPointsByValue;
 }
 
-std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByKey()
+vector<pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByKey()
 {
 	return m_sortedTripPointsByKey;
 }
@@ -62,7 +58,7 @@ Bool SpecificInfo::hasKey(ParticipantSpecificInfoKey::Type key)
 
 Temperature SpecificInfo::getTemperature(ParticipantSpecificInfoKey::Type key)
 {
-	auto item = m_specificInfo.find(key);
+	const auto item = m_specificInfo.find(key);
 	if (item != m_specificInfo.end())
 	{
 		return item->second;
@@ -71,28 +67,29 @@ Temperature SpecificInfo::getTemperature(ParticipantSpecificInfoKey::Type key)
 	{
 		throw dptf_exception(
 			"Specific info key "
-			+ std::string(ParticipantSpecificInfoKey::ToString((ParticipantSpecificInfoKey::Type)(key)))
+			+ string(ParticipantSpecificInfoKey::ToString(key))
 			+ " not present.");
 	}
 }
 
-Bool SpecificInfo::operator==(SpecificInfo& rhs)
+Bool SpecificInfo::operator==(const SpecificInfo& rhs) const
 {
 	return rhs.m_specificInfo == this->m_specificInfo;
 }
 
-Bool SpecificInfo::operator!=(SpecificInfo& rhs)
+Bool SpecificInfo::operator!=(const SpecificInfo& rhs) const
 {
 	return !(*this == rhs);
 }
 
-std::shared_ptr<XmlNode> SpecificInfo::getXml() const
+shared_ptr<XmlNode> SpecificInfo::getXml() const
 {
 	auto wrapper = XmlNode::createWrapperElement("specific_info");
-	for (auto tp = m_specificInfo.begin(); tp != m_specificInfo.end(); tp++)
+	for (auto tp : m_specificInfo)
 	{
-		auto node = XmlNode::createDataElement(
-			ParticipantSpecificInfoKey::ToString((ParticipantSpecificInfoKey::Type)tp->first), tp->second.toString());
+		const auto node = XmlNode::createDataElement(
+			ParticipantSpecificInfoKey::ToString(tp.first),
+			tp.second.toString());
 		wrapper->addChild(node);
 	}
 	return wrapper;

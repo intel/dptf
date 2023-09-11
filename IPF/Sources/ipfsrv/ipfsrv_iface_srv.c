@@ -467,7 +467,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppCommand(
 	UNREFERENCED_PARAMETER(appHandle);
 
 	// Process IPF Server Commands. Pass all others to Client
-	if (argc > 0 && argv[0].buf_ptr && argv[0].type == ESIF_DATA_STRING && responsePtr && responsePtr->buf_ptr && responsePtr->buf_len) {
+	if (argc > 0 && argv && argv[0].buf_ptr && argv[0].type == ESIF_DATA_STRING && responsePtr && responsePtr->buf_ptr && responsePtr->buf_len) {
 		esif_string opcode = argv[0].buf_ptr;
 		esif_string optarg = (argc > 1 && argv[1].buf_ptr && argv[1].type == ESIF_DATA_STRING ? argv[1].buf_ptr : NULL);
 
@@ -562,7 +562,13 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppCommand(
 			esif_ccb_read_unlock(&g_sessionMgr.lock);
 
 			responsePtr->data_len = (u32)data_len + 1;
-			rc = ESIF_OK;
+
+			if (responsePtr->data_len > responsePtr->buf_len) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+			}
+			else {
+				rc = ESIF_OK;
+			}
 		}
 		// ipfsrv status [<appspec|--server>]
 		else if (esif_ccb_stricmp(opcode, "status") == 0 || esif_ccb_stricmp(opcode, "stats") == 0) {
@@ -727,7 +733,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppCommand(
 		else if (esif_ccb_stricmp(opcode, "queue") == 0) {
 			// ipfsrv queue <limit>
 			if (optarg) {
-				size_t maxQueue = (size_t)(optarg ? atoi(optarg) : 0);
+				size_t maxQueue = (size_t)atoi(optarg);
 				if (maxQueue) {
 					WebServer_SetRpcQueueMax(g_WebServer, maxQueue);
 				}
@@ -739,7 +745,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppCommand(
 		else if (esif_ccb_stricmp(opcode, "timeout") == 0) {
 			// ipfsrv timeout <seconds>
 			if (optarg) {
-				size_t timeout = (size_t)(optarg ? atoi(optarg) : 0);
+				size_t timeout = (size_t)atoi(optarg);
 				AppSessionMgr_SetTimeout(timeout);
 			}
 			responsePtr->data_len = (u32)esif_ccb_sprintf(responsePtr->buf_len, responsePtr->buf_ptr, "%zd\n", AppSessionMgr_GetTimeout()) + 1;
@@ -811,7 +817,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppEvent(
 esif_error_t ESIF_CALLCONV IpfSrv_AppSuspend(const esif_handle_t appHandle)
 {
 	esif_error_t rc = ESIF_E_INVALID_HANDLE;
-	if (appHandle == g_ipfsrv.appHandle) {
+	if (appHandle == g_ipfsrv.appHandle && !WebServer_IsDiagnostic(g_WebServer)) {
 		WebServer_Pause(g_WebServer);
 		rc = ESIF_OK;
 	}
@@ -822,7 +828,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppSuspend(const esif_handle_t appHandle)
 esif_error_t ESIF_CALLCONV IpfSrv_AppResume(const esif_handle_t appHandle)
 {
 	esif_error_t rc = ESIF_E_INVALID_HANDLE;
-	if (appHandle == g_ipfsrv.appHandle) {
+	if (appHandle == g_ipfsrv.appHandle && !WebServer_IsDiagnostic(g_WebServer)) {
 		WebServer_Resume(g_WebServer);
 		rc = ESIF_OK;
 	}

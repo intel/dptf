@@ -21,19 +21,15 @@
 using namespace std;
 
 ParticipantTracker::ParticipantTracker()
-	: m_trackedParticipants(std::map<UIntN, ParticipantProxy>())
+	: m_trackedParticipants(map<UIntN, ParticipantProxy>())
 {
 	m_time.reset(new DptfTime());
-}
-
-ParticipantTracker::~ParticipantTracker()
-{
 }
 
 void ParticipantTracker::remember(UIntN participantIndex)
 {
 	ParticipantProxy participant(participantIndex, m_policyServices, m_time);
-	m_trackedParticipants.insert(std::pair<UIntN, ParticipantProxy>(participantIndex, participant));
+	m_trackedParticipants.insert(pair<UIntN, ParticipantProxy>(participantIndex, participant));
 }
 
 Bool ParticipantTracker::remembers(UIntN participantIndex)
@@ -54,17 +50,18 @@ ParticipantProxyInterface* ParticipantTracker::getParticipant(UIntN participantI
 	if (remembers(participantIndex) == false)
 	{
 		throw dptf_exception(
-			std::string("The participant at the given index is not valid: ") + std::to_string(participantIndex));
+			string("The participant at the given index is not valid: ") + to_string(participantIndex));
 	}
-	return &m_trackedParticipants[participantIndex];
+	return &m_trackedParticipants.at(participantIndex);
 }
 
 vector<UIntN> ParticipantTracker::getAllTrackedIndexes() const
 {
 	vector<UIntN> allTrackedItems;
-	for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
+	allTrackedItems.reserve(m_trackedParticipants.size());
+	for (const auto& m_trackedParticipant : m_trackedParticipants)
 	{
-		allTrackedItems.push_back(item->first);
+		allTrackedItems.emplace_back(m_trackedParticipant.first);
 	}
 	return allTrackedItems;
 }
@@ -74,27 +71,26 @@ void ParticipantTracker::setPolicyServices(const PolicyServicesInterfaceContaine
 	m_policyServices = policyServices;
 }
 
-std::shared_ptr<XmlNode> ParticipantTracker::getXmlForTripPointStatistics()
+shared_ptr<XmlNode> ParticipantTracker::getXmlForTripPointStatistics()
 {
 	auto allStatus = XmlNode::createWrapperElement("trip_point_statistics");
-	for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
+	for (auto& m_trackedParticipant : m_trackedParticipants)
 	{
-		allStatus->addChild(item->second.getXmlForTripPointStatistics());
+		allStatus->addChild(m_trackedParticipant.second.getXmlForTripPointStatistics());
 	}
 	return allStatus;
 }
 
-std::shared_ptr<DomainProxyInterface> ParticipantTracker::findDomain(DomainType::Type domainType)
+shared_ptr<DomainProxyInterface> ParticipantTracker::findDomain(DomainType::Type domainType)
 {
-	auto participantIndexes = getAllTrackedIndexes();
-	for (auto participantIndex = participantIndexes.begin(); participantIndex != participantIndexes.end();
-		 participantIndex++)
+	const auto participantIndexes = getAllTrackedIndexes();
+	for (const unsigned int& participantIndex : participantIndexes)
 	{
-		auto participant = getParticipant(*participantIndex);
-		auto domainIndexes = participant->getDomainIndexes();
-		for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+		const auto participant = getParticipant(participantIndex);
+		const auto domainIndexes = participant->getDomainIndexes();
+		for (const unsigned int& domainIndex : domainIndexes)
 		{
-			auto domain = participant->getDomain(*domainIndex);
+			auto domain = participant->getDomain(domainIndex);
 			if ((domain->getDomainProperties().getDomainType() == DomainType::MultiFunction))
 			{
 				return domain;
@@ -105,7 +101,26 @@ std::shared_ptr<DomainProxyInterface> ParticipantTracker::findDomain(DomainType:
 	throw dptf_exception("Domain " + DomainType::toString(domainType) + " not found.");
 }
 
-void ParticipantTracker::setTimeServiceObject(std::shared_ptr<TimeInterface> time)
+vector<shared_ptr<DomainProxyInterface>> ParticipantTracker::getAllDomains()
+{
+	vector<shared_ptr<DomainProxyInterface>> result;
+
+	const auto participantIndexes = getAllTrackedIndexes();
+	for (const unsigned int& participantIndex : participantIndexes)
+	{
+		const auto participant = getParticipant(participantIndex);
+		auto domainIndexes = participant->getDomainIndexes();
+		for (const unsigned int& domainIndex : domainIndexes)
+		{
+			const auto domain = participant->getDomain(domainIndex);
+			result.emplace_back(domain);
+		}
+	}
+
+	return result;
+}
+
+void ParticipantTracker::setTimeServiceObject(shared_ptr<TimeInterface> time)
 {
 	m_time = time;
 }

@@ -477,8 +477,11 @@ eEsifError TableObject_LoadData(
 				goto exit;
 			}
 			self->binaryData = esif_ccb_malloc(responsePtr->buf_len);
-			esif_ccb_memcpy((u8 *) self->binaryData, responsePtr->buf_ptr, responsePtr->buf_len);
-			self->binaryDataSize = responsePtr->buf_len;
+
+			if (self->binaryData) {
+				esif_ccb_memcpy((u8 *) self->binaryData, responsePtr->buf_ptr, responsePtr->buf_len);
+				self->binaryDataSize = responsePtr->buf_len;
+			}
 		}
 		else {
 			size_t output_len = OUT_BUF_LEN;
@@ -496,8 +499,11 @@ eEsifError TableObject_LoadData(
 					goto exit;
 				}
 				self->binaryData = esif_ccb_malloc(responsePtr->data_len);
-				esif_ccb_memcpy((u8 *) self->binaryData, (u8 *) responsePtr->buf_ptr, responsePtr->data_len);
-				self->binaryDataSize = responsePtr->data_len;
+
+				if (self->binaryData) {
+					esif_ccb_memcpy((u8 *) self->binaryData, (u8 *) responsePtr->buf_ptr, responsePtr->data_len);
+					self->binaryDataSize = responsePtr->data_len;
+				}
 			}
 		}
 		
@@ -2480,7 +2486,10 @@ eEsifError TableObject_LoadSchema(
 				{ "iaClipReasons", "iaClipReasons", ESIF_DATA_UINT32, GET_IA_CLIP_REASONS, 0, ESIF_NO_INSTANCE,  ESIF_CAPABILITY_PROCESSOR_CONTROL },
 				{ "gtClipReasons", "gtClipReasons", ESIF_DATA_UINT32, GET_GT_CLIP_REASONS, 0, ESIF_NO_INSTANCE,  ESIF_CAPABILITY_PROCESSOR_CONTROL },
 				{ "powerSharePolicyPower", "powerSharePolicyPower", ESIF_DATA_POWER, GET_POWER_SHARE_POLICY_POWER, SET_POWER_SHARE_POLICY_POWER, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_CONTROL },
-				{ "powerShareEffectiveBias", "powerShareEffectiveBias", ESIF_DATA_UINT32, GET_POWER_SHARE_EFFECTIVE_BIAS, SET_POWER_SHARE_EFFECTIVE_BIAS, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ACTIVITY_STATUS },
+				{ "powerShareEffectiveBias", "powerShareEffectiveBias", ESIF_DATA_UINT32, GET_POWER_SHARE_EFFECTIVE_BIAS, SET_POWER_SHARE_EFFECTIVE_BIAS, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "residencyUtilization", "residencyUtilization", ESIF_DATA_PERCENT, GET_PARTICIPANT_RESIDENCY_UTILIZATION, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ACTIVITY_STATUS },
+				{ "participantUtilization", "participantUtilization", ESIF_DATA_PERCENT, GET_PARTICIPANT_UTILIZATION, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_UTIL_STATUS },
+				{ "dynamicBoostState", "dynamicBoostState", ESIF_DATA_UINT32, GET_DYNAMIC_BOOST_STATE, SET_DYNAMIC_BOOST_STATE, ESIF_NO_INSTANCE, ESIF_CAPABILITY_NO_RESTRICTION },
 				{ 0 }
 		};
 		fieldlist = status_fields;

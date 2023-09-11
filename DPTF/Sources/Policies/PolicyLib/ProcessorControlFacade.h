@@ -40,6 +40,9 @@ public:
 	virtual Temperature getMaxTccOffsetTemperature(void) override;
 	virtual Temperature getMinTccOffsetTemperature(void) override;
 	virtual Bool setUnderVoltageThreshold(const UInt32 voltageThreshold) override;
+	virtual Bool setPerfPreferenceMax(const Percentage& cpuMaxRatio) override;
+	virtual Bool setPerfPreferenceMin(const Percentage& cpuMinRatio) override;
+	virtual UInt32 getPcieThrottleRequestState() override;
 
 private:
 	// services

@@ -41,6 +41,4 @@ public:
 		UIntN domainIndex,
 		PerformanceControlDynamicCaps newCapabilities) = 0;
 	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) = 0;
-	virtual void setPerfPreferenceMax(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) = 0;
-	virtual void setPerfPreferenceMin(UIntN participantIndex, UIntN domainIndex, Percentage minMaxRatio) = 0;
 };

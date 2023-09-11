@@ -31,13 +31,17 @@ public:
 	virtual UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getDlvrSsc(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Frequency getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDdrRfiTable(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) = 0;
+		const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct) = 0;
+	virtual void sendMasterControlStatus(UIntN participantIndex, UIntN domainIndex, UInt32 masterControlStatus) = 0;
 	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) = 0;
 	virtual void setRfProfileOverride(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const DptfBuffer& rfProfileBufferData) = 0;
+	virtual void setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency) = 0;
 };

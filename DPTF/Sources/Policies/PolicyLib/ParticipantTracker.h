@@ -29,19 +29,18 @@ class dptf_export ParticipantTracker : public ParticipantTrackerInterface
 {
 public:
 	ParticipantTracker();
-	~ParticipantTracker();
+	~ParticipantTracker() override = default;
 
-	virtual void remember(UIntN participantIndex) override;
-	virtual Bool remembers(UIntN participantIndex) override;
-	virtual void forget(UIntN participantIndex) override;
-	virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) override;
-	virtual std::vector<UIntN> getAllTrackedIndexes() const override;
-	virtual void setPolicyServices(const PolicyServicesInterfaceContainer& policyServices) override;
-	virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
-
-	virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
-
-	virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType) override;
+	void remember(UIntN participantIndex) override;
+	Bool remembers(UIntN participantIndex) override;
+	void forget(UIntN participantIndex) override;
+	ParticipantProxyInterface* getParticipant(UIntN participantIndex) override;
+	std::vector<UIntN> getAllTrackedIndexes() const override;
+	void setPolicyServices(const PolicyServicesInterfaceContainer& policyServices) override;
+	void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
+	std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
+	std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType) override;
+	std::vector<std::shared_ptr<DomainProxyInterface>> getAllDomains() override;
 
 protected:
 	std::map<UIntN, ParticipantProxy> m_trackedParticipants;

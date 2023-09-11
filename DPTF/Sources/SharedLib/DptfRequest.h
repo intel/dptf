@@ -29,15 +29,21 @@ public:
 	DptfRequest(DptfRequestType::Enum requestType, UInt32 participantIndex);
 	DptfRequest(DptfRequestType::Enum requestType, UInt32 participantIndex, UInt32 domainIndex);
 	DptfRequest(DptfRequestType::Enum requestType, const DptfBuffer& data, UInt32 participantIndex, UInt32 domainIndex);
-	virtual ~DptfRequest();
+	virtual ~DptfRequest() = default;
+
+	DptfRequest(const DptfRequest& other) = default;
+	DptfRequest& operator=(const DptfRequest& other) = default;
+	DptfRequest(DptfRequest&& other) = default;
+	DptfRequest& operator=(DptfRequest&& other) = default;
 
 	DptfRequestType::Enum getRequestType() const;
 	UInt32 getParticipantIndex() const;
 	UInt32 getDomainIndex() const;
 	const DptfBuffer& getData() const;
-	const UInt32 getDataAsUInt32() const;
+	UInt32 getDataAsUInt32() const;
+	UInt32 getFirstUInt32Data() const;
 	void setData(const DptfBuffer& data);
-	void setDataFromUInt32(const UInt32 data);
+	void setDataFromUInt32(UInt32 data);
 	Bool operator==(const DptfRequest& rhs) const;
 
 private:

@@ -109,12 +109,11 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 
 	ESIF_TRACE_DEBUG(
 		"\n"
-		"===================================================\n"
-		"ESIF IPC EVENT HEADER: Timestamp: %llu\n"
-		"                         Latency: %u msec\n"
-		"===================================================\n"
+		"ESIF IPC EVENT:\n"
+		"Event Type:  %s(%d)\n"
+		"Timestamp:   %llu\n"
+		"Latency:     %u msec\n"
 		"Version:     %d\n"
-		"Type:        %s(%d)\n"
 		"ID:          %llu\n"
 		"Timestamp:   %llu\n"
 		"Priority:    %s(%d)\n"
@@ -123,10 +122,10 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 		"Dest Domain: %s(%04X)\n"
 		"Data Type:   %s\n"
 		"Data Size:   %u\n\n",
+		esif_event_type_str(eventHdrPtr->type),
 		(u64)now,
 		(int)(now - eventHdrPtr->timestamp),
 		eventHdrPtr->version,
-		esif_event_type_str(eventHdrPtr->type),
 		eventHdrPtr->type,
 		eventHdrPtr->id,
 		eventHdrPtr->timestamp,

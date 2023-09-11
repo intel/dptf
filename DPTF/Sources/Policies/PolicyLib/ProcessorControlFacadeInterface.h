@@ -30,4 +30,7 @@ public:
 	virtual Temperature getMaxTccOffsetTemperature(void) = 0;
 	virtual Temperature getMinTccOffsetTemperature(void) = 0;
 	virtual Bool setUnderVoltageThreshold(const UInt32 voltageThreshold) = 0;
+	virtual Bool setPerfPreferenceMax(const Percentage& cpuMaxRatio) = 0;
+	virtual Bool setPerfPreferenceMin(const Percentage& cpuMinRatio) = 0;
+	virtual UInt32 getPcieThrottleRequestState() = 0;
 };

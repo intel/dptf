@@ -24,43 +24,73 @@
 
 using namespace std;
 
+const auto ReloadAllPoliciesCommandName = "policies"s;
+const auto ReloadSinglePolicyCommandName = "policy"s;
+
 ReloadCommand::ReloadCommand(DptfManagerInterface* dptfManager)
 	: CommandHandler(dptfManager)
 {
 }
 
-ReloadCommand::~ReloadCommand()
-{
-}
-
 string ReloadCommand::getCommandName() const
 {
-	return "reload";
+	return "reload"s;
 }
 
 void ReloadCommand::execute(const CommandArguments& arguments)
 {
-
 	throwIfBadArguments(arguments);
-	if (arguments[1].getDataAsString() == "policies")
+	if (arguments[1].getDataAsString() == ReloadAllPoliciesCommandName)
 	{
-		auto policyManager = m_dptfManager->getPolicyManager();
-		auto participantIndexList = m_dptfManager->getParticipantManager()->getParticipantIndexes();
-		unbindAllParticipants(participantIndexList);
-		recreateAllPolicies(policyManager);
-		bindAllParticipants(participantIndexList);
-		setResultCode(ESIF_OK);
-		setResultMessage("DPTF Policies Reloaded");
+		reloadAllPolicies();
+	}
+	else if (arguments[1].getDataAsString() == ReloadSinglePolicyCommandName)
+	{
+		const auto policyName = arguments[2].getDataAsString();
+		reloadSinglePolicy(policyName);
+	}
+	else
+	{
+		setResultCode(ESIF_E_COMMAND_DATA_INVALID);
+		setResultMessage("Invalid command parameters"s);
 	}
 }
 
-void ReloadCommand::bindAllParticipants(const set<UIntN>& participantIndexList)
+void ReloadCommand::reloadAllPolicies()
 {
-	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
-		 ++participantIndex)
+	const auto policyManager = m_dptfManager->getPolicyManager();
+	const auto participantIndexList = m_dptfManager->getParticipantManager()->getParticipantIndexes();
+	unbindAllParticipants(participantIndexList);
+	recreateAllPolicies(policyManager);
+	bindAllParticipants(participantIndexList);
+	setResultCode(ESIF_OK);
+	setResultMessage("DPTF Policies Reloaded"s);
+}
+
+void ReloadCommand::reloadSinglePolicy(const std::string& policyName)
+{
+	const auto policyManager = m_dptfManager->getPolicyManager();
+	if (policyManager->policyExists(policyName))
 	{
-		m_dptfManager->bindParticipantToPolicies(*participantIndex);
-		m_dptfManager->bindDomainsToPolicies(*participantIndex);
+		policyManager->reloadPolicy(policyName);
+		const auto policy = policyManager->getPolicy(policyName);
+		m_dptfManager->bindAllParticipantsToPolicy(policy->getPolicyIndex());
+		setResultCode(ESIF_OK);
+		setResultMessage(policyName + " reloaded"s);
+	}
+	else
+	{
+		setResultCode(ESIF_E_NOT_FOUND);
+		setResultMessage(policyName + " could not be found."s);
+	}
+}
+
+void ReloadCommand::bindAllParticipants(const set<UIntN>& participantIndexList) const
+{
+	for (const auto participantIndex : participantIndexList)
+	{
+		m_dptfManager->bindParticipantToPolicies(participantIndex);
+		m_dptfManager->bindDomainsToPolicies(participantIndex);
 	}
 }
 
@@ -74,17 +104,16 @@ void ReloadCommand::recreateAllPolicies(PolicyManagerInterface* policyManager)
 	}
 	catch (const dptf_exception& ex)
 	{
-		setResultMessage(string("Failed to reload all policies. ") + ex.getDescription());
+		setResultMessage("Failed to reload all policies. "s + ex.getDescription());
 	}
 }
 
-void ReloadCommand::unbindAllParticipants(const set<UIntN>& participantIndexList)
+void ReloadCommand::unbindAllParticipants(const set<UIntN>& participantIndexList) const
 {
-	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
-		 ++participantIndex)
+	for (const unsigned int participantIndex : participantIndexList)
 	{
-		m_dptfManager->unbindDomainsFromPolicies(*participantIndex);
-		m_dptfManager->unbindParticipantFromPolicies(*participantIndex);
+		m_dptfManager->unbindDomainsFromPolicies(participantIndex);
+		m_dptfManager->unbindParticipantFromPolicies(participantIndex);
 	}
 }
 
@@ -92,21 +121,22 @@ void ReloadCommand::throwIfBadArguments(const CommandArguments& arguments)
 {
 	if (arguments.size() < 2)
 	{
-		string description = string("Invalid argument count given.");
+		const auto description = "Invalid argument count given."s;
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 
 	if (arguments[1].isDataTypeString() == false)
 	{
-		string description = string("Invalid argument type given.  Expected a string.");
+		const auto description = "Invalid argument type given.  Expected a string."s;
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
 
-	if (arguments[1].getDataAsString().compare("policies") != 0)
+	if (!(arguments[1].getDataAsString() == ReloadAllPoliciesCommandName 
+		|| arguments[1].getDataAsString() == ReloadSinglePolicyCommandName))
 	{
-		string description = string("Invalid argument given for reload target.");
+		const auto description = "Invalid argument given for reload target."s;
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}

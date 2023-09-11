@@ -38,8 +38,8 @@ public:
 	ParticipantProxy(
 		UIntN participantIndex,
 		const PolicyServicesInterfaceContainer& policyServices,
-		std::shared_ptr<TimeInterface> time);
-	~ParticipantProxy();
+		const std::shared_ptr<TimeInterface>& time);
+	~ParticipantProxy() override = default;
 
 	// domain access
 	virtual void bindDomain(std::shared_ptr<DomainProxyInterface> domain) override;
@@ -93,7 +93,7 @@ private:
 	std::map<UIntN, std::shared_ptr<DomainProxyInterface>> m_domains;
 
 	// Temperatures
-	Temperature getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy);
+	static Temperature getTemperatureForStatus(const std::shared_ptr<DomainProxyInterface>& domainProxy);
 	TemperatureThresholds getTemperatureThresholdsForStatus();
 
 	Temperature m_previousLowerBound;

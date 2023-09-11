@@ -37,17 +37,55 @@ DomainSocWorkloadClassification_001::~DomainSocWorkloadClassification_001()
 UInt32 DomainSocWorkloadClassification_001::getSocWorkloadClassification()
 {
 	m_socWorkload = Constants::Invalid;
+	SocWorkloadSource::Source workloadSource = SocWorkloadSource::Software;
+
+	workloadSource = getSocWorkloadClassificationSource();
+
+	if (workloadSource == SocWorkloadSource::Hardware)
+	{
+		try
+		{
+			m_socWorkload = SocWorkloadClassification::toSocWorkloadClassificationHint(
+				(SocWorkloadClassification::HardwareHintType)getParticipantServices()->primitiveExecuteGetAsUInt32(
+					esif_primitive_type::GET_HW_SOC_WORKLOAD, getDomainIndex()));
+		}
+		catch (...)
+		{
+		}
+	}
+	else
+	{
+		try
+		{
+			m_socWorkload = getParticipantServices()->primitiveExecuteGetAsUInt32(
+				esif_primitive_type::GET_SOC_WORKLOAD, getDomainIndex());
+		}
+		catch (...)
+		{
+		}
+	}
+
+	return m_socWorkload;
+}
+
+SocWorkloadSource::Source DomainSocWorkloadClassification_001::getSocWorkloadClassificationSource()
+{
+	SocWorkloadSource::Source workloadSource = SocWorkloadSource::Software;
 
 	try
 	{
-		m_socWorkload = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			esif_primitive_type::GET_SOC_WORKLOAD, getDomainIndex());
+		UInt32 sourceIsHw = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_SOCWLC_SOURCE, getDomainIndex());
+		if (sourceIsHw)
+		{
+			workloadSource = SocWorkloadSource::Hardware;
+		}
 	}
 	catch (...)
 	{
 	}
 
-	return m_socWorkload;
+	return workloadSource;
 }
 
 void DomainSocWorkloadClassification_001::updateSocWorkloadClassification(UInt32 socWorkloadClassification)
@@ -57,17 +95,6 @@ void DomainSocWorkloadClassification_001::updateSocWorkloadClassification(UInt32
 
 UInt32 DomainSocWorkloadClassification_001::getExtendedWorkloadPrediction()
 {
-	m_extendedWorkloadPrediction = Constants::Invalid;
-
-	try
-	{
-		m_extendedWorkloadPrediction = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			esif_primitive_type::GET_EXTENDED_WORKLOAD_PREDICTION, getDomainIndex());
-	}
-	catch (...)
-	{
-	}
-
 	return m_extendedWorkloadPrediction;
 }
 
@@ -97,6 +124,16 @@ std::shared_ptr<XmlNode> DomainSocWorkloadClassification_001::getXml(UIntN domai
 	catch (...)
 	{
 		node->addChild(XmlNode::createDataElement("value", Constants::InvalidString));
+	}
+
+	try
+	{
+		node->addChild(
+			XmlNode::createDataElement("source", SocWorkloadSource::ToString(getSocWorkloadClassificationSource())));
+	}
+	catch (...)
+	{
+		node->addChild(XmlNode::createDataElement("source", Constants::InvalidString));
 	}
 
 	root->addChild(node);

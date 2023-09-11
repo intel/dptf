@@ -31,12 +31,12 @@ typedef struct DttConfigurationHeader_s
 
 namespace DttConfigurationHeaderFlagMasks
 {
-	static unsigned short compression = 0x0001;
+	static const unsigned short compression = 0x0001;
 }
 
 namespace DttConfigurationHeaderSignature
 {
-	static unsigned short value = 0xD07F;
+	static const unsigned short value = 0xD07F;
 }
 
 class DataFormat

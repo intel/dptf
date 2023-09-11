@@ -40,13 +40,18 @@ public:
 	virtual UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getDlvrSsc(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Frequency getDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDdrRfiTable(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) override;
+		const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct) override;
+	virtual void sendMasterControlStatus(UIntN participantIndex, UIntN domainIndex, UInt32 masterControlStatus)
+		override;
 	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) override;
 	virtual void setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
 		override;
+	virtual void setDlvrCenterFrequency(UIntN participantIndex, UIntN domainIndex, Frequency frequency) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

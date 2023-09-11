@@ -31,7 +31,6 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_participantIndex(Constants::Invalid)
 	, m_domainIndex(Constants::Invalid)
 	, m_domainGuid(Guid())
-	, m_domainName("")
 	, m_domainType(DomainType::Invalid)
 	, m_domainFunctionalityVersions(DomainFunctionalityVersions())
 	, m_arbitrator(nullptr)
@@ -72,7 +71,7 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 {
 }
 
-Domain::~Domain(void)
+Domain::~Domain()
 {
 	destroyDomain();
 }
@@ -118,7 +117,7 @@ void Domain::createDomain(
 	}
 }
 
-void Domain::destroyDomain(void)
+void Domain::destroyDomain()
 {
 	if (m_theRealParticipant != nullptr)
 	{
@@ -135,35 +134,35 @@ void Domain::destroyDomain(void)
 
 	clearDomainCachedData();
 
-	DELETE_MEMORY_TC(m_arbitrator);
+	DELETE_MEMORY_TC(m_arbitrator)
 }
 
-void Domain::enableDomain(void)
+void Domain::enableDomain() const
 {
 	m_theRealParticipant->enableDomain(m_domainIndex);
 }
 
-void Domain::disableDomain(void)
+void Domain::disableDomain() const
 {
 	m_theRealParticipant->disableDomain(m_domainIndex);
 }
 
-Bool Domain::isDomainEnabled(void)
+Bool Domain::isDomainEnabled() const
 {
 	return m_theRealParticipant->isDomainEnabled(m_domainIndex);
 }
 
-Bool Domain::isCreated(void)
+Bool Domain::isCreated() const
 {
 	return m_domainCreated;
 }
 
-std::string Domain::getDomainName(void) const
+std::string Domain::getDomainName() const
 {
 	return m_domainName;
 }
 
-void Domain::clearDomainCachedData(void)
+void Domain::clearDomainCachedData()
 {
 	clearDomainCachedDataCoreControl();
 	clearDomainCachedDataDisplayControl();
@@ -179,18 +178,25 @@ void Domain::clearDomainCachedData(void)
 	clearDomainCachedRequestData();
 }
 
-void Domain::clearDomainCachedRequestData(void)
+void Domain::clearDomainCachedRequestData() const
 {
-	DptfRequest clearCachedDataRequest(DptfRequestType::ClearCachedData, m_participantIndex, m_domainIndex);
-	PolicyRequest policyRequest(Constants::Invalid, clearCachedDataRequest);
-	m_dptfManager->getRequestDispatcher()->dispatchForAllControls(policyRequest);
+	try
+	{
+		const DptfRequest clearCachedDataRequest(DptfRequestType::ClearCachedData, m_participantIndex, m_domainIndex);
+		const PolicyRequest policyRequest(Constants::Invalid, clearCachedDataRequest);
+		m_dptfManager->getRequestDispatcher()->dispatchForAllControls(policyRequest);
+	}
+	catch (...)
+	{
+		
+	}
 }
 
-void Domain::clearArbitrationDataForPolicy(UIntN policyIndex)
+void Domain::clearArbitrationDataForPolicy(UIntN policyIndex) const
 {
-	DptfRequest clearControlRequests(
+	const DptfRequest clearControlRequests(
 		DptfRequestType::ClearPolicyRequestsForAllControls, m_participantIndex, m_domainIndex);
-	PolicyRequest policyRequest(policyIndex, clearControlRequests);
+	const PolicyRequest policyRequest(policyIndex, clearControlRequests);
 	m_dptfManager->getRequestDispatcher()->dispatchForAllControls(policyRequest);
 
 	m_arbitrator->clearPolicyCachedData(policyIndex);
@@ -223,71 +229,66 @@ std::shared_ptr<XmlNode> Domain::getDiagnosticsAsXml() const
 // return *m_activeControlStaticCaps;
 
 #define FILL_CACHE_AND_RETURN(mv, ct, fn)                                                                              \
-	if (mv == nullptr)                                                                                                 \
+	if ((mv) == nullptr)                                                                                                 \
 	{                                                                                                                  \
 		ct var = m_theRealParticipant->fn(m_participantIndex, m_domainIndex);                                          \
-		mv = new ct(var);                                                                                              \
+		(mv) = new ct(var);                                                                                              \
 	}                                                                                                                  \
-	return *mv;
+	return *(mv);
 
-Percentage Domain::getUtilizationThreshold()
+Percentage Domain::getUtilizationThreshold() const
 {
 	return m_theRealParticipant->getUtilizationThreshold(m_participantIndex, m_domainIndex);
 }
 
-Percentage Domain::getResidencyUtilization()
+Percentage Domain::getResidencyUtilization() const
 {
 	return m_theRealParticipant->getResidencyUtilization(m_participantIndex, m_domainIndex);
 }
 
-UInt64 Domain::getCoreActivityCounter()
+UInt64 Domain::getCoreActivityCounter() const
 {
 	return m_theRealParticipant->getCoreActivityCounter(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getCoreActivityCounterWidth()
+UInt32 Domain::getCoreActivityCounterWidth() const
 {
 	return m_theRealParticipant->getCoreActivityCounterWidth(m_participantIndex, m_domainIndex);
 }
 
-UInt64 Domain::getTimestampCounter()
+UInt64 Domain::getTimestampCounter() const
 {
 	return m_theRealParticipant->getTimestampCounter(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getTimestampCounterWidth()
+UInt32 Domain::getTimestampCounterWidth() const
 {
 	return m_theRealParticipant->getTimestampCounterWidth(m_participantIndex, m_domainIndex);
 }
 
-CoreActivityInfo Domain::getCoreActivityInfo()
+CoreActivityInfo Domain::getCoreActivityInfo() const
 {
 	return m_theRealParticipant->getCoreActivityInfo(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias)
+CoreControlStaticCaps Domain::getCoreControlStaticCaps()
 {
-	m_theRealParticipant->setPowerShareEffectiveBias(m_participantIndex, m_domainIndex, powerShareEffectiveBias);
+	FILL_CACHE_AND_RETURN(m_coreControlStaticCaps, CoreControlStaticCaps, getCoreControlStaticCaps)
 }
 
-CoreControlStaticCaps Domain::getCoreControlStaticCaps(void)
+CoreControlDynamicCaps Domain::getCoreControlDynamicCaps()
 {
-	FILL_CACHE_AND_RETURN(m_coreControlStaticCaps, CoreControlStaticCaps, getCoreControlStaticCaps);
+	FILL_CACHE_AND_RETURN(m_coreControlDynamicCaps, CoreControlDynamicCaps, getCoreControlDynamicCaps)
 }
 
-CoreControlDynamicCaps Domain::getCoreControlDynamicCaps(void)
+CoreControlLpoPreference Domain::getCoreControlLpoPreference()
 {
-	FILL_CACHE_AND_RETURN(m_coreControlDynamicCaps, CoreControlDynamicCaps, getCoreControlDynamicCaps);
+	FILL_CACHE_AND_RETURN(m_coreControlLpoPreference, CoreControlLpoPreference, getCoreControlLpoPreference)
 }
 
-CoreControlLpoPreference Domain::getCoreControlLpoPreference(void)
+CoreControlStatus Domain::getCoreControlStatus()
 {
-	FILL_CACHE_AND_RETURN(m_coreControlLpoPreference, CoreControlLpoPreference, getCoreControlLpoPreference);
-}
-
-CoreControlStatus Domain::getCoreControlStatus(void)
-{
-	FILL_CACHE_AND_RETURN(m_coreControlStatus, CoreControlStatus, getCoreControlStatus);
+	FILL_CACHE_AND_RETURN(m_coreControlStatus, CoreControlStatus, getCoreControlStatus)
 }
 
 void Domain::setActiveCoreControl(UIntN policyIndex, const CoreControlStatus& coreControlStatus)
@@ -298,7 +299,7 @@ void Domain::setActiveCoreControl(UIntN policyIndex, const CoreControlStatus& co
 
 	if (coreControlArbitrator->hasArbitratedCoreCount())
 	{
-		auto currentControlStatus = coreControlArbitrator->getArbitratedCoreControlStatus();
+		const auto currentControlStatus = coreControlArbitrator->getArbitratedCoreControlStatus();
 		newControlStatus = coreControlArbitrator->arbitrate(policyIndex, coreControlStatus);
 		if (currentControlStatus != newControlStatus)
 		{
@@ -319,62 +320,62 @@ void Domain::setActiveCoreControl(UIntN policyIndex, const CoreControlStatus& co
 	coreControlArbitrator->commitPolicyRequest(policyIndex, coreControlStatus);
 }
 
-DisplayControlDynamicCaps Domain::getDisplayControlDynamicCaps(void)
+DisplayControlDynamicCaps Domain::getDisplayControlDynamicCaps()
 {
-	FILL_CACHE_AND_RETURN(m_displayControlDynamicCaps, DisplayControlDynamicCaps, getDisplayControlDynamicCaps);
+	FILL_CACHE_AND_RETURN(m_displayControlDynamicCaps, DisplayControlDynamicCaps, getDisplayControlDynamicCaps)
 }
 
-UIntN Domain::getUserPreferredDisplayIndex(void)
+UIntN Domain::getUserPreferredDisplayIndex() const
 {
 	return m_theRealParticipant->getUserPreferredDisplayIndex(m_participantIndex, m_domainIndex);
 }
 
-UIntN Domain::getUserPreferredSoftBrightnessIndex(void)
+UIntN Domain::getUserPreferredSoftBrightnessIndex() const
 {
 	return m_theRealParticipant->getUserPreferredSoftBrightnessIndex(m_participantIndex, m_domainIndex);
 }
 
-Bool Domain::isUserPreferredIndexModified()
+Bool Domain::isUserPreferredIndexModified() const
 {
 	return m_theRealParticipant->isUserPreferredIndexModified(m_participantIndex, m_domainIndex);
 }
 
-DisplayControlStatus Domain::getDisplayControlStatus(void)
+DisplayControlStatus Domain::getDisplayControlStatus()
 {
-	FILL_CACHE_AND_RETURN(m_displayControlStatus, DisplayControlStatus, getDisplayControlStatus);
+	FILL_CACHE_AND_RETURN(m_displayControlStatus, DisplayControlStatus, getDisplayControlStatus)
 }
 
-UIntN Domain::getSoftBrightnessIndex(void)
+UIntN Domain::getSoftBrightnessIndex() const
 {
 	return m_theRealParticipant->getSoftBrightnessIndex(m_participantIndex, m_domainIndex);
 }
 
-DisplayControlSet Domain::getDisplayControlSet(void)
+DisplayControlSet Domain::getDisplayControlSet()
 {
-	FILL_CACHE_AND_RETURN(m_displayControlSet, DisplayControlSet, getDisplayControlSet);
+	FILL_CACHE_AND_RETURN(m_displayControlSet, DisplayControlSet, getDisplayControlSet)
 }
 
 void Domain::setDisplayControl(UIntN policyIndex, UIntN displayControlIndex)
 {
 	DisplayControlArbitrator* displayControlArbitrator = m_arbitrator->getDisplayControlArbitrator();
-	UIntN arbitratedDisplayControlIndex = displayControlArbitrator->arbitrate(policyIndex, displayControlIndex);
+	const UIntN arbitratedDisplayControlIndex = displayControlArbitrator->arbitrate(policyIndex, displayControlIndex);
 	// always set even if arbitrated value has not changed
 	m_theRealParticipant->setDisplayControl(m_participantIndex, m_domainIndex, arbitratedDisplayControlIndex);
 	clearDomainCachedDataDisplayControl();
 	displayControlArbitrator->commitPolicyRequest(policyIndex, displayControlIndex);
 }
 
-void Domain::setSoftBrightness(UIntN policyIndex, UIntN displayControlIndex)
+void Domain::setSoftBrightness(UIntN policyIndex, UIntN displayControlIndex) const
 {
 	m_theRealParticipant->setSoftBrightness(m_participantIndex, m_domainIndex, displayControlIndex);
 }
 
-void Domain::updateUserPreferredSoftBrightnessIndex()
+void Domain::updateUserPreferredSoftBrightnessIndex() const
 {
 	m_theRealParticipant->updateUserPreferredSoftBrightnessIndex(m_participantIndex, m_domainIndex);
 }
 
-void Domain::restoreUserPreferredSoftBrightness()
+void Domain::restoreUserPreferredSoftBrightness() const
 {
 	m_theRealParticipant->restoreUserPreferredSoftBrightness(m_participantIndex, m_domainIndex);
 }
@@ -387,7 +388,7 @@ void Domain::setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynam
 
 	if (arbitrator->hasArbitratedDisplayCapabilities())
 	{
-		auto currentCaps = arbitrator->getArbitratedDisplayControlCapabilities();
+		const auto currentCaps = arbitrator->getArbitratedDisplayControlCapabilities();
 		newCaps = arbitrator->arbitrate(policyIndex, newCapabilities);
 		if (currentCaps != newCaps)
 		{
@@ -408,62 +409,62 @@ void Domain::setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynam
 	arbitrator->commitPolicyRequest(policyIndex, newCapabilities);
 }
 
-void Domain::setDisplayCapsLock(UIntN policyIndex, Bool lock)
+void Domain::setDisplayCapsLock(UIntN policyIndex, Bool lock) const
 {
 	DisplayControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getDisplayControlCapabilitiesArbitrator();
-	Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
+	const Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
 	if (updated == true)
 	{
 		m_theRealParticipant->setDisplayCapsLock(m_participantIndex, m_domainIndex, arbitrator->getArbitratedLock());
 	}
 }
 
-UInt32 Domain::getRaplEnergyCounter()
+UInt32 Domain::getRaplEnergyCounter() const
 {
 	return m_theRealParticipant->getRaplEnergyCounter(m_participantIndex, m_domainIndex);
 }
 
-EnergyCounterInfo Domain::getRaplEnergyCounterInfo()
+EnergyCounterInfo Domain::getRaplEnergyCounterInfo() const
 {
 	return m_theRealParticipant->getRaplEnergyCounterInfo(m_participantIndex, m_domainIndex);
 }
 
-double Domain::getRaplEnergyUnit()
+double Domain::getRaplEnergyUnit() const
 {
 	return m_theRealParticipant->getRaplEnergyUnit(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getRaplEnergyCounterWidth()
+UInt32 Domain::getRaplEnergyCounterWidth() const
 {
 	return m_theRealParticipant->getRaplEnergyCounterWidth(m_participantIndex, m_domainIndex);
 }
 
-Power Domain::getInstantaneousPower()
+Power Domain::getInstantaneousPower() const
 {
 	return m_theRealParticipant->getInstantaneousPower(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getEnergyThreshold()
+UInt32 Domain::getEnergyThreshold() const
 {
 	return m_theRealParticipant->getEnergyThreshold(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setEnergyThreshold(UInt32 energyThreshold)
+void Domain::setEnergyThreshold(UInt32 energyThreshold) const
 {
 	m_theRealParticipant->setEnergyThreshold(m_participantIndex, m_domainIndex, energyThreshold);
 }
 
-void Domain::setEnergyThresholdInterruptDisable()
+void Domain::setEnergyThresholdInterruptDisable() const
 {
 	m_theRealParticipant->setEnergyThresholdInterruptDisable(m_participantIndex, m_domainIndex);
 }
 
-Power Domain::getACPeakPower(void)
+Power Domain::getACPeakPower() const
 {
 	return m_theRealParticipant->getACPeakPower(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setACPeakPower(UIntN policyIndex, const Power& acPeakPower)
+void Domain::setACPeakPower(UIntN policyIndex, const Power& acPeakPower) const
 {
 	PeakPowerControlArbitrator* peakPowerControlArbitrator = m_arbitrator->getPeakPowerControlArbitrator();
 	Bool shouldSetPeakPower = false;
@@ -471,7 +472,7 @@ void Domain::setACPeakPower(UIntN policyIndex, const Power& acPeakPower)
 
 	if (peakPowerControlArbitrator->hasArbitratedPeakPower(PeakPowerType::PL4ACPower))
 	{
-		auto currentACPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::PL4ACPower);
+		const auto currentACPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::PL4ACPower);
 		newACPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::PL4ACPower, acPeakPower);
 		if (currentACPeakPower != newACPeakPower)
 		{
@@ -491,12 +492,12 @@ void Domain::setACPeakPower(UIntN policyIndex, const Power& acPeakPower)
 	peakPowerControlArbitrator->commitPolicyRequest(policyIndex, PeakPowerType::PL4ACPower, acPeakPower);
 }
 
-Power Domain::getDCPeakPower(void)
+Power Domain::getDCPeakPower() const
 {
 	return m_theRealParticipant->getDCPeakPower(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower)
+void Domain::setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower) const
 {
 	PeakPowerControlArbitrator* peakPowerControlArbitrator = m_arbitrator->getPeakPowerControlArbitrator();
 	Bool shouldSetPeakPower = false;
@@ -504,7 +505,7 @@ void Domain::setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower)
 
 	if (peakPowerControlArbitrator->hasArbitratedPeakPower(PeakPowerType::PL4DCPower))
 	{
-		auto currentDCPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::PL4DCPower);
+		const auto currentDCPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::PL4DCPower);
 		newDCPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::PL4DCPower, dcPeakPower);
 		if (currentDCPeakPower != newDCPeakPower)
 		{
@@ -524,26 +525,26 @@ void Domain::setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower)
 	peakPowerControlArbitrator->commitPolicyRequest(policyIndex, PeakPowerType::PL4DCPower, dcPeakPower);
 }
 
-PerformanceControlStaticCaps Domain::getPerformanceControlStaticCaps(void)
+PerformanceControlStaticCaps Domain::getPerformanceControlStaticCaps()
 {
 	FILL_CACHE_AND_RETURN(
-		m_performanceControlStaticCaps, PerformanceControlStaticCaps, getPerformanceControlStaticCaps);
+		m_performanceControlStaticCaps, PerformanceControlStaticCaps, getPerformanceControlStaticCaps)
 }
 
-PerformanceControlDynamicCaps Domain::getPerformanceControlDynamicCaps(void)
+PerformanceControlDynamicCaps Domain::getPerformanceControlDynamicCaps()
 {
 	FILL_CACHE_AND_RETURN(
-		m_performanceControlDynamicCaps, PerformanceControlDynamicCaps, getPerformanceControlDynamicCaps);
+		m_performanceControlDynamicCaps, PerformanceControlDynamicCaps, getPerformanceControlDynamicCaps)
 }
 
-PerformanceControlStatus Domain::getPerformanceControlStatus(void)
+PerformanceControlStatus Domain::getPerformanceControlStatus()
 {
-	FILL_CACHE_AND_RETURN(m_performanceControlStatus, PerformanceControlStatus, getPerformanceControlStatus);
+	FILL_CACHE_AND_RETURN(m_performanceControlStatus, PerformanceControlStatus, getPerformanceControlStatus)
 }
 
-PerformanceControlSet Domain::getPerformanceControlSet(void)
+PerformanceControlSet Domain::getPerformanceControlSet()
 {
-	FILL_CACHE_AND_RETURN(m_performanceControlSet, PerformanceControlSet, getPerformanceControlSet);
+	FILL_CACHE_AND_RETURN(m_performanceControlSet, PerformanceControlSet, getPerformanceControlSet)
 }
 
 void Domain::setPerformanceControl(UIntN policyIndex, UIntN performanceControlIndex)
@@ -554,7 +555,7 @@ void Domain::setPerformanceControl(UIntN policyIndex, UIntN performanceControlIn
 
 	if (performanceControlArbitrator->hasArbitratedPerformanceControlIndex())
 	{
-		auto currentIndex = performanceControlArbitrator->getArbitratedPerformanceControlIndex();
+		const auto currentIndex = performanceControlArbitrator->getArbitratedPerformanceControlIndex();
 		newIndex = performanceControlArbitrator->arbitrate(policyIndex, performanceControlIndex);
 		if (currentIndex != newIndex)
 		{
@@ -585,12 +586,12 @@ void Domain::setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceCont
 {
 	PerformanceControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPerformanceControlCapabilitiesArbitrator();
 	Bool shouldSetPerformanceCapabilities = false;
-	auto currentCaps = getPerformanceControlDynamicCaps();
+	const auto currentCaps = getPerformanceControlDynamicCaps();
 	PerformanceControlDynamicCaps newCaps(Constants::Invalid, Constants::Invalid);
 
 	if (arbitrator->hasArbitratedPerformanceControlCapabilities())
 	{
-		auto oldCaps = arbitrator->getArbitratedPerformanceControlCapabilities(currentCaps);
+		const auto oldCaps = arbitrator->getArbitratedPerformanceControlCapabilities(currentCaps);
 		newCaps = arbitrator->arbitrate(policyIndex, newCapabilities, currentCaps);
 		if (oldCaps != newCaps)
 		{
@@ -611,10 +612,10 @@ void Domain::setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceCont
 	arbitrator->commitPolicyRequest(policyIndex, newCapabilities);
 }
 
-void Domain::setPerformanceCapsLock(UIntN policyIndex, Bool lock)
+void Domain::setPerformanceCapsLock(UIntN policyIndex, Bool lock) const
 {
 	PerformanceControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPerformanceControlCapabilitiesArbitrator();
-	Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
+	const Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
 	if (updated == true)
 	{
 		m_theRealParticipant->setPerformanceCapsLock(
@@ -622,31 +623,21 @@ void Domain::setPerformanceCapsLock(UIntN policyIndex, Bool lock)
 	}
 }
 
-void Domain::setPerfPreferenceMax(UIntN policyIndex, Percentage minMaxRatio)
+PowerControlDynamicCapsSet Domain::getPowerControlDynamicCapsSet()
 {
-	m_theRealParticipant->setPerfPreferenceMax(m_participantIndex, m_domainIndex, minMaxRatio);
+	FILL_CACHE_AND_RETURN(m_powerControlDynamicCapsSet, PowerControlDynamicCapsSet, getPowerControlDynamicCapsSet)
 }
 
-void Domain::setPerfPreferenceMin(UIntN policyIndex, Percentage minMaxRatio)
-{
-	m_theRealParticipant->setPerfPreferenceMin(m_participantIndex, m_domainIndex, minMaxRatio);
-}
-
-PowerControlDynamicCapsSet Domain::getPowerControlDynamicCapsSet(void)
-{
-	FILL_CACHE_AND_RETURN(m_powerControlDynamicCapsSet, PowerControlDynamicCapsSet, getPowerControlDynamicCapsSet);
-}
-
-void Domain::setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynamicCapsSet capsSet)
+void Domain::setPowerControlDynamicCapsSet(UIntN policyIndex, const PowerControlDynamicCapsSet& capsSet)
 {
 	PowerControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPowerControlCapabilitiesArbitrator();
 	Bool shouldSetPowerControlCapabilities = false;
-	auto currentCaps = getPowerControlDynamicCapsSet();
+	const auto currentCaps = getPowerControlDynamicCapsSet();
 	PowerControlDynamicCapsSet newCaps;
 
 	if (arbitrator->hasArbitratedPowerControlCapabilities())
 	{
-		auto oldCaps = arbitrator->getArbitratedPowerControlCapabilities(currentCaps);
+		const auto oldCaps = arbitrator->getArbitratedPowerControlCapabilities(currentCaps);
 		newCaps = arbitrator->arbitrate(policyIndex, capsSet, currentCaps);
 		if (oldCaps != newCaps || currentCaps != newCaps)
 		{
@@ -669,7 +660,7 @@ void Domain::setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynami
 
 Bool Domain::isPowerLimitEnabled(PowerControlType::Type controlType)
 {
-	auto enabled = m_powerLimitEnabled.find(controlType);
+	const auto enabled = m_powerLimitEnabled.find(controlType);
 	if (enabled == m_powerLimitEnabled.end())
 	{
 		m_powerLimitEnabled[controlType] =
@@ -680,7 +671,7 @@ Bool Domain::isPowerLimitEnabled(PowerControlType::Type controlType)
 
 Power Domain::getPowerLimit(PowerControlType::Type controlType)
 {
-	auto limit = m_powerLimit.find(controlType);
+	const auto limit = m_powerLimit.find(controlType);
 	if (limit == m_powerLimit.end())
 	{
 		m_powerLimit[controlType] = m_theRealParticipant->getPowerLimit(m_participantIndex, m_domainIndex, controlType);
@@ -688,19 +679,29 @@ Power Domain::getPowerLimit(PowerControlType::Type controlType)
 	return m_powerLimit.at(controlType);
 }
 
-Power Domain::getPowerLimitWithoutCache(PowerControlType::Type controlType)
+Power Domain::getPowerLimitWithoutCache(PowerControlType::Type controlType) const
 {
 	return m_theRealParticipant->getPowerLimitWithoutCache(m_participantIndex, m_domainIndex, controlType);
 }
 
-Bool Domain::isSocPowerFloorEnabled()
+Bool Domain::isSocPowerFloorEnabled() const
 {
 	return m_theRealParticipant->isSocPowerFloorEnabled(m_participantIndex, m_domainIndex);
 }
 
-Bool Domain::isSocPowerFloorSupported()
+Bool Domain::isSocPowerFloorSupported() const
 {
 	return m_theRealParticipant->isSocPowerFloorSupported(m_participantIndex, m_domainIndex);
+}
+
+UInt32 Domain::getSocPowerFloorState() const
+{
+	return m_theRealParticipant->getSocPowerFloorState(m_participantIndex, m_domainIndex);
+}
+
+void Domain::setPowerLimitMin(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit) const
+{
+	m_theRealParticipant->setPowerLimitMin(m_participantIndex, m_domainIndex, controlType, powerLimit);
 }
 
 void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
@@ -711,7 +712,7 @@ void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType
 
 	if (powerControlArbitrator->hasArbitratedPowerLimit(controlType))
 	{
-		auto currentPowerLimit = powerControlArbitrator->getArbitratedPowerLimit(controlType);
+		const auto currentPowerLimit = powerControlArbitrator->getArbitratedPowerLimit(controlType);
 		newPowerLimit = powerControlArbitrator->arbitrate(policyIndex, controlType, powerLimit);
 		if (currentPowerLimit != newPowerLimit)
 		{
@@ -746,7 +747,7 @@ void Domain::setPowerLimitWithoutUpdatingEnabled(UIntN policyIndex, PowerControl
 
 	if (powerControlArbitrator->hasArbitratedPowerLimit(controlType))
 	{
-		auto currentPowerLimit = powerControlArbitrator->getArbitratedPowerLimit(controlType);
+		const auto currentPowerLimit = powerControlArbitrator->getArbitratedPowerLimit(controlType);
 		newPowerLimit = powerControlArbitrator->arbitrate(policyIndex, controlType, powerLimit);
 		if (currentPowerLimit != newPowerLimit)
 		{
@@ -768,14 +769,14 @@ void Domain::setPowerLimitWithoutUpdatingEnabled(UIntN policyIndex, PowerControl
 	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, powerLimit);
 }
 
-void Domain::setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
+void Domain::setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit) const
 {
 	m_theRealParticipant->setPowerLimitIgnoringCaps(m_participantIndex, m_domainIndex, controlType, powerLimit);
 }
 
 TimeSpan Domain::getPowerLimitTimeWindow(PowerControlType::Type controlType)
 {
-	auto limit = m_powerLimitTimeWindow.find(controlType);
+	const auto limit = m_powerLimitTimeWindow.find(controlType);
 	if (limit == m_powerLimitTimeWindow.end())
 	{
 		m_powerLimitTimeWindow[controlType] =
@@ -792,7 +793,7 @@ void Domain::setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type c
 
 	if (powerControlArbitrator->hasArbitratedTimeWindow(controlType))
 	{
-		auto currentTimeWindow = powerControlArbitrator->getArbitratedTimeWindow(controlType);
+		const auto currentTimeWindow = powerControlArbitrator->getArbitratedTimeWindow(controlType);
 		newTimeWindow = powerControlArbitrator->arbitrate(policyIndex, controlType, timeWindow);
 		if (currentTimeWindow != newTimeWindow)
 		{
@@ -824,7 +825,7 @@ void Domain::setPowerLimitTimeWindowWithoutUpdatingEnabled(
 
 	if (powerControlArbitrator->hasArbitratedTimeWindow(controlType))
 	{
-		auto currentTimeWindow = powerControlArbitrator->getArbitratedTimeWindow(controlType);
+		const auto currentTimeWindow = powerControlArbitrator->getArbitratedTimeWindow(controlType);
 		newTimeWindow = powerControlArbitrator->arbitrate(policyIndex, controlType, timeWindow);
 		if (currentTimeWindow != newTimeWindow)
 		{
@@ -848,7 +849,7 @@ void Domain::setPowerLimitTimeWindowWithoutUpdatingEnabled(
 void Domain::setPowerLimitTimeWindowIgnoringCaps(
 	UIntN policyIndex,
 	PowerControlType::Type controlType,
-	const TimeSpan& timeWindow)
+	const TimeSpan& timeWindow) const
 {
 	m_theRealParticipant->setPowerLimitTimeWindowIgnoringCaps(
 		m_participantIndex, m_domainIndex, controlType, timeWindow);
@@ -856,7 +857,7 @@ void Domain::setPowerLimitTimeWindowIgnoringCaps(
 
 Percentage Domain::getPowerLimitDutyCycle(PowerControlType::Type controlType)
 {
-	auto limit = m_powerLimitDutyCycle.find(controlType);
+	const auto limit = m_powerLimitDutyCycle.find(controlType);
 	if (limit == m_powerLimitDutyCycle.end())
 	{
 		m_powerLimitDutyCycle[controlType] =
@@ -873,7 +874,7 @@ void Domain::setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type co
 
 	if (powerControlArbitrator->hasArbitratedDutyCycle(controlType))
 	{
-		auto currentDutyCycle = powerControlArbitrator->getArbitratedDutyCycle(controlType);
+		const auto currentDutyCycle = powerControlArbitrator->getArbitratedDutyCycle(controlType);
 		newDutyCycle = powerControlArbitrator->arbitrate(policyIndex, controlType, dutyCycle);
 		if (currentDutyCycle != newDutyCycle)
 		{
@@ -894,86 +895,99 @@ void Domain::setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type co
 	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, dutyCycle);
 }
 
-void Domain::setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState)
+void Domain::setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState) const
 {
 	m_theRealParticipant->setSocPowerFloorState(m_participantIndex, m_domainIndex, socPowerFloorState);
 }
 
-void Domain::clearPowerLimit()
+void Domain::clearPowerLimitMin() const
 {
+	m_theRealParticipant->clearPowerLimitMin(m_participantIndex, m_domainIndex);
+}
+
+void Domain::clearPowerLimit(UIntN policyIndex)
+{
+	PowerControlArbitrator* powerControlArbitrator = m_arbitrator->getPowerControlArbitrator();
+	powerControlArbitrator->removePowerLimitRequestForPolicy(policyIndex, PowerControlType::PL1);
+	clearDomainCachedDataPowerControl();
 	m_theRealParticipant->clearPowerLimit(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock)
+void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock) const
 {
 	PowerControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPowerControlCapabilitiesArbitrator();
-	Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
+	const Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
 	if (updated == true)
 	{
 		m_theRealParticipant->setPowerCapsLock(m_participantIndex, m_domainIndex, arbitrator->getArbitratedLock());
 	}
 }
 
-TimeSpan Domain::getPowerSharePowerLimitTimeWindow()
+TimeSpan Domain::getPowerSharePowerLimitTimeWindow() const
 {
 	return m_theRealParticipant->getPowerSharePowerLimitTimeWindow(m_participantIndex, m_domainIndex);
 }
 
 Bool Domain::isPowerShareControl()
 {
-	FILL_CACHE_AND_RETURN(m_isPowerShareControl, Bool, isPowerShareControl);
+	FILL_CACHE_AND_RETURN(m_isPowerShareControl, Bool, isPowerShareControl)
 }
 
-double Domain::getPidKpTerm()
+double Domain::getPidKpTerm() const
 {
 	return m_theRealParticipant->getPidKpTerm(m_participantIndex, m_domainIndex);
 }
 
-double Domain::getPidKiTerm()
+double Domain::getPidKiTerm() const
 {
 	return m_theRealParticipant->getPidKiTerm(m_participantIndex, m_domainIndex);
 }
 
-TimeSpan Domain::getAlpha()
+TimeSpan Domain::getAlpha() const
 {
 	return m_theRealParticipant->getAlpha(m_participantIndex, m_domainIndex);
 }
 
-TimeSpan Domain::getFastPollTime()
+TimeSpan Domain::getFastPollTime() const
 {
 	return m_theRealParticipant->getFastPollTime(m_participantIndex, m_domainIndex);
 }
 
-TimeSpan Domain::getSlowPollTime()
+TimeSpan Domain::getSlowPollTime() const
 {
 	return m_theRealParticipant->getSlowPollTime(m_participantIndex, m_domainIndex);
 }
 
-TimeSpan Domain::getWeightedSlowPollAvgConstant()
+TimeSpan Domain::getWeightedSlowPollAvgConstant() const
 {
 	return m_theRealParticipant->getWeightedSlowPollAvgConstant(m_participantIndex, m_domainIndex);
 }
 
-Power Domain::getSlowPollPowerThreshold()
+Power Domain::getSlowPollPowerThreshold() const
 {
 	return m_theRealParticipant->getSlowPollPowerThreshold(m_participantIndex, m_domainIndex);
 }
 
-Power Domain::getArbitratedPowerLimit(PowerControlType::Type controlType)
+Power Domain::getThermalDesignPower() const
+{
+	return m_theRealParticipant->getThermalDesignPower(m_participantIndex, m_domainIndex);
+}
+
+Power Domain::getArbitratedPowerLimit(PowerControlType::Type controlType) const
 {
 	try
 	{
-		auto arbitrator = m_arbitrator->getPowerControlArbitrator();
+		const auto arbitrator = m_arbitrator->getPowerControlArbitrator();
 		return arbitrator->getArbitratedPowerLimit(controlType);
 	}
 	catch (const std::exception&)
 	{
 		// if there are no policy requests then the arbitrator will throw an exception.
 		// in this case we need to return the max limit
-		auto caps = m_theRealParticipant->getPowerControlDynamicCapsSet(m_participantIndex, m_domainIndex);
+		const auto caps = m_theRealParticipant->getPowerControlDynamicCapsSet(m_participantIndex, m_domainIndex);
 		if (caps.hasCapability(controlType))
 		{
-			auto cap = caps.getCapability(controlType);
+			const auto& cap = caps.getCapability(controlType);
 			return cap.getMaxPowerLimit();
 		}
 		else
@@ -985,40 +999,40 @@ Power Domain::getArbitratedPowerLimit(PowerControlType::Type controlType)
 
 void Domain::removePowerLimitPolicyRequest(UIntN policyIndex, PowerControlType::Type controlType)
 {
-	auto arbitrator = m_arbitrator->getPowerControlArbitrator();
-	auto currLimit = getArbitratedPowerLimit(controlType);
+	const auto arbitrator = m_arbitrator->getPowerControlArbitrator();
+	const auto currentLimit = getArbitratedPowerLimit(controlType);
 	arbitrator->removePowerLimitRequestForPolicy(policyIndex, controlType);
-	auto newLimit = getArbitratedPowerLimit(controlType);
-	if (currLimit != newLimit)
+	const auto newLimit = getArbitratedPowerLimit(controlType);
+	if (currentLimit != newLimit)
 	{
 		m_theRealParticipant->setPowerLimit(m_participantIndex, m_domainIndex, controlType, newLimit);
 		clearDomainCachedDataPowerControl();
 	}
 }
 
-PowerStatus Domain::getPowerStatus(void)
+PowerStatus Domain::getPowerStatus()
 {
-	FILL_CACHE_AND_RETURN(m_powerStatus, PowerStatus, getPowerStatus);
+	FILL_CACHE_AND_RETURN(m_powerStatus, PowerStatus, getPowerStatus)
 }
 
-Power Domain::getAveragePower(const PowerControlDynamicCaps& capabilities)
+Power Domain::getAveragePower(const PowerControlDynamicCaps& capabilities) const
 {
 	return m_theRealParticipant->getAveragePower(m_participantIndex, m_domainIndex, capabilities);
 }
 
-Power Domain::getPowerValue(void)
+Power Domain::getPowerValue() const
 {
 	return m_theRealParticipant->getPowerValue(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setCalculatedAveragePower(Power powerValue)
+void Domain::setCalculatedAveragePower(Power powerValue) const
 {
 	m_theRealParticipant->setCalculatedAveragePower(m_participantIndex, m_domainIndex, powerValue);
 }
 
 Bool Domain::isSystemPowerLimitEnabled(PsysPowerLimitType::Type limitType)
 {
-	auto enabled = m_systemPowerLimitEnabled.find(limitType);
+	const auto enabled = m_systemPowerLimitEnabled.find(limitType);
 	if (enabled == m_systemPowerLimitEnabled.end())
 	{
 		m_systemPowerLimitEnabled[limitType] =
@@ -1029,7 +1043,7 @@ Bool Domain::isSystemPowerLimitEnabled(PsysPowerLimitType::Type limitType)
 
 Power Domain::getSystemPowerLimit(PsysPowerLimitType::Type limitType)
 {
-	auto limit = m_systemPowerLimit.find(limitType);
+	const auto limit = m_systemPowerLimit.find(limitType);
 	if (limit == m_systemPowerLimit.end())
 	{
 		m_systemPowerLimit[limitType] =
@@ -1046,7 +1060,7 @@ void Domain::setSystemPowerLimit(UIntN policyIndex, PsysPowerLimitType::Type lim
 
 	if (systemPowerControlArbitrator->hasArbitratedSystemPowerLimit(limitType))
 	{
-		auto currentSystemPowerLimit = systemPowerControlArbitrator->getArbitratedSystemPowerLimit(limitType);
+		const auto currentSystemPowerLimit = systemPowerControlArbitrator->getArbitratedSystemPowerLimit(limitType);
 		newSystemPowerLimit = systemPowerControlArbitrator->arbitrate(policyIndex, limitType, powerLimit);
 		if (currentSystemPowerLimit != newSystemPowerLimit)
 		{
@@ -1069,7 +1083,7 @@ void Domain::setSystemPowerLimit(UIntN policyIndex, PsysPowerLimitType::Type lim
 
 TimeSpan Domain::getSystemPowerLimitTimeWindow(PsysPowerLimitType::Type limitType)
 {
-	auto timeWindow = m_systemPowerLimitTimeWindow.find(limitType);
+	const auto timeWindow = m_systemPowerLimitTimeWindow.find(limitType);
 	if (timeWindow == m_systemPowerLimitTimeWindow.end())
 	{
 		m_systemPowerLimitTimeWindow[limitType] =
@@ -1089,7 +1103,7 @@ void Domain::setSystemPowerLimitTimeWindow(
 
 	if (SystemPowerControlArbitrator->hasArbitratedTimeWindow(limitType))
 	{
-		auto currentTimeWindow = SystemPowerControlArbitrator->getArbitratedTimeWindow(limitType);
+		const auto currentTimeWindow = SystemPowerControlArbitrator->getArbitratedTimeWindow(limitType);
 		newTimeWindow = SystemPowerControlArbitrator->arbitrate(policyIndex, limitType, timeWindow);
 		if (currentTimeWindow != newTimeWindow)
 		{
@@ -1113,7 +1127,7 @@ void Domain::setSystemPowerLimitTimeWindow(
 
 Percentage Domain::getSystemPowerLimitDutyCycle(PsysPowerLimitType::Type limitType)
 {
-	auto dutyCycle = m_systemPowerLimitDutyCycle.find(limitType);
+	const auto dutyCycle = m_systemPowerLimitDutyCycle.find(limitType);
 	if (dutyCycle == m_systemPowerLimitDutyCycle.end())
 	{
 		m_systemPowerLimitDutyCycle[limitType] =
@@ -1133,7 +1147,7 @@ void Domain::setSystemPowerLimitDutyCycle(
 
 	if (systemPowerControlArbitrator->hasArbitratedDutyCycle(limitType))
 	{
-		auto currentDutyCycle = systemPowerControlArbitrator->getArbitratedDutyCycle(limitType);
+		const auto currentDutyCycle = systemPowerControlArbitrator->getArbitratedDutyCycle(limitType);
 		newDutyCycle = systemPowerControlArbitrator->arbitrate(policyIndex, limitType, dutyCycle);
 		if (currentDutyCycle != newDutyCycle)
 		{
@@ -1154,64 +1168,69 @@ void Domain::setSystemPowerLimitDutyCycle(
 	systemPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, dutyCycle);
 }
 
-void Domain::setPowerSharePolicyPower(const Power& powerSharePolicyPower)
+void Domain::setPowerSharePolicyPower(const Power& powerSharePolicyPower) const
 {
 	m_theRealParticipant->setPowerSharePolicyPower(m_participantIndex, m_domainIndex, powerSharePolicyPower);
 }
 
-Power Domain::getPlatformRestOfPower(void)
+void Domain::setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias) const
 {
-	FILL_CACHE_AND_RETURN(m_platformRestOfPower, Power, getPlatformRestOfPower);
+	m_theRealParticipant->setPowerShareEffectiveBias(m_participantIndex, m_domainIndex, powerShareEffectiveBias);
 }
 
-Power Domain::getAdapterPowerRating(void)
+Power Domain::getPlatformRestOfPower()
 {
-	FILL_CACHE_AND_RETURN(m_adapterRating, Power, getAdapterPowerRating);
+	FILL_CACHE_AND_RETURN(m_platformRestOfPower, Power, getPlatformRestOfPower)
 }
 
-PlatformPowerSource::Type Domain::getPlatformPowerSource(void)
+Power Domain::getAdapterPowerRating()
 {
-	FILL_CACHE_AND_RETURN(m_platformPowerSource, PlatformPowerSource::Type, getPlatformPowerSource);
+	FILL_CACHE_AND_RETURN(m_adapterRating, Power, getAdapterPowerRating)
 }
 
-UInt32 Domain::getACNominalVoltage(void)
+PlatformPowerSource::Type Domain::getPlatformPowerSource()
 {
-	FILL_CACHE_AND_RETURN(m_acNominalVoltage, UInt32, getACNominalVoltage);
+	FILL_CACHE_AND_RETURN(m_platformPowerSource, PlatformPowerSource::Type, getPlatformPowerSource)
 }
 
-UInt32 Domain::getACOperationalCurrent(void)
+UInt32 Domain::getACNominalVoltage()
 {
-	FILL_CACHE_AND_RETURN(m_acOperationalCurrent, UInt32, getACOperationalCurrent);
+	FILL_CACHE_AND_RETURN(m_acNominalVoltage, UInt32, getACNominalVoltage)
 }
 
-Percentage Domain::getAC1msPercentageOverload(void)
+UInt32 Domain::getACOperationalCurrent()
 {
-	FILL_CACHE_AND_RETURN(m_ac1msPercentageOverload, Percentage, getAC1msPercentageOverload);
+	FILL_CACHE_AND_RETURN(m_acOperationalCurrent, UInt32, getACOperationalCurrent)
 }
 
-Percentage Domain::getAC2msPercentageOverload(void)
+Percentage Domain::getAC1msPercentageOverload()
 {
-	FILL_CACHE_AND_RETURN(m_ac2msPercentageOverload, Percentage, getAC2msPercentageOverload);
+	FILL_CACHE_AND_RETURN(m_ac1msPercentageOverload, Percentage, getAC1msPercentageOverload)
 }
 
-Percentage Domain::getAC10msPercentageOverload(void)
+Percentage Domain::getAC2msPercentageOverload()
 {
-	FILL_CACHE_AND_RETURN(m_ac10msPercentageOverload, Percentage, getAC10msPercentageOverload);
+	FILL_CACHE_AND_RETURN(m_ac2msPercentageOverload, Percentage, getAC2msPercentageOverload)
 }
 
-void Domain::notifyForProchotDeassertion(void)
+Percentage Domain::getAC10msPercentageOverload()
 {
-	m_theRealParticipant->notifyForProchotDeassertion(m_participantIndex, m_domainIndex);
+	FILL_CACHE_AND_RETURN(m_ac10msPercentageOverload, Percentage, getAC10msPercentageOverload)
 }
 
-DomainPriority Domain::getDomainPriority(void)
+void Domain::notifyForProcHotDeAssertion() const
 {
-	FILL_CACHE_AND_RETURN(m_domainPriority, DomainPriority, getDomainPriority);
+	m_theRealParticipant->notifyForProcHotDeAssertion(m_participantIndex, m_domainIndex);
 }
 
-RfProfileCapabilities Domain::getRfProfileCapabilities(void)
+DomainPriority Domain::getDomainPriority()
 {
-	FILL_CACHE_AND_RETURN(m_rfProfileCapabilities, RfProfileCapabilities, getRfProfileCapabilities);
+	FILL_CACHE_AND_RETURN(m_domainPriority, DomainPriority, getDomainPriority)
+}
+
+RfProfileCapabilities Domain::getRfProfileCapabilities()
+{
+	FILL_CACHE_AND_RETURN(m_rfProfileCapabilities, RfProfileCapabilities, getRfProfileCapabilities)
 }
 
 void Domain::setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& centerFrequency)
@@ -1223,129 +1242,154 @@ void Domain::setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& cen
 	clearDomainCachedDataRfProfileStatus();
 }
 
-Percentage Domain::getSscBaselineSpreadValue()
+Percentage Domain::getSscBaselineSpreadValue() const
 {
 	return m_theRealParticipant->getSscBaselineSpreadValue(m_participantIndex, m_domainIndex);
 }
 
-Percentage Domain::getSscBaselineThreshold()
+Percentage Domain::getSscBaselineThreshold() const
 {
 	return m_theRealParticipant->getSscBaselineThreshold(m_participantIndex, m_domainIndex);
 }
 
-Percentage Domain::getSscBaselineGuardBand()
+Percentage Domain::getSscBaselineGuardBand() const
 {
 	return m_theRealParticipant->getSscBaselineGuardBand(m_participantIndex, m_domainIndex);
 }
 
-RfProfileDataSet Domain::getRfProfileDataSet(void)
+RfProfileDataSet Domain::getRfProfileDataSet()
 {
-	FILL_CACHE_AND_RETURN(m_rfProfileData, RfProfileDataSet, getRfProfileDataSet);
+	FILL_CACHE_AND_RETURN(m_rfProfileData, RfProfileDataSet, getRfProfileDataSet)
 }
 
-UInt32 Domain::getWifiCapabilities(void)
+UInt32 Domain::getWifiCapabilities() const
 {
 	return m_theRealParticipant->getWifiCapabilities(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getRfiDisable(void)
+UInt32 Domain::getRfiDisable() const
 {
 	return m_theRealParticipant->getRfiDisable(m_participantIndex, m_domainIndex);
 }
 
-UInt64 Domain::getDvfsPoints(void)
+UInt64 Domain::getDvfsPoints() const
 {
 	return m_theRealParticipant->getDvfsPoints(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+UInt32 Domain::getDlvrSsc() const
+{
+	return m_theRealParticipant->getDlvrSsc(m_participantIndex, m_domainIndex);
+}
+
+Frequency Domain::getDlvrCenterFrequency() const
+{
+	return m_theRealParticipant->getDlvrCenterFrequency(m_participantIndex, m_domainIndex);
+}
+
+void Domain::setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr& ddrRfiStruct) const
 {
 	m_theRealParticipant->setDdrRfiTable(m_participantIndex, m_domainIndex, ddrRfiStruct);
 }
 
-void Domain::setProtectRequest(const UInt64 frequencyRate)
+void Domain::sendMasterControlStatus(UInt32 masterControlStatus) const
+{
+	m_theRealParticipant->sendMasterControlStatus(m_participantIndex, m_domainIndex, masterControlStatus);
+}
+
+void Domain::setProtectRequest(const UInt64 frequencyRate) const
 {
 	m_theRealParticipant->setProtectRequest(m_participantIndex, m_domainIndex, frequencyRate);
 }
 
-void Domain::setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData)
+void Domain::setDlvrCenterFrequency(Frequency frequency) const
+{
+	m_theRealParticipant->setDlvrCenterFrequency(m_participantIndex, m_domainIndex, frequency);
+}
+
+void Domain::setRfProfileOverride(UIntN participantIndex, UIntN domainIndex, const DptfBuffer& rfProfileBufferData) const
 {
 	m_theRealParticipant->setRfProfileOverride(participantIndex, domainIndex, rfProfileBufferData);
 }
 
-UtilizationStatus Domain::getUtilizationStatus(void)
+UtilizationStatus Domain::getUtilizationStatus()
 {
-	FILL_CACHE_AND_RETURN(m_utilizationStatus, UtilizationStatus, getUtilizationStatus);
+	FILL_CACHE_AND_RETURN(m_utilizationStatus, UtilizationStatus, getUtilizationStatus)
+}
+
+Percentage Domain::getMaxCoreUtilization() const
+{
+	return m_theRealParticipant->getMaxCoreUtilization(m_participantIndex, m_domainIndex);
 }
 
 void Domain::clearDomainCachedDataCoreControl()
 {
-	DELETE_MEMORY_TC(m_coreControlStaticCaps);
-	DELETE_MEMORY_TC(m_coreControlDynamicCaps);
-	DELETE_MEMORY_TC(m_coreControlLpoPreference);
-	DELETE_MEMORY_TC(m_coreControlStatus);
+	DELETE_MEMORY_TC(m_coreControlStaticCaps)
+	DELETE_MEMORY_TC(m_coreControlDynamicCaps)
+	DELETE_MEMORY_TC(m_coreControlLpoPreference)
+	DELETE_MEMORY_TC(m_coreControlStatus)
 }
 
 void Domain::clearDomainCachedDataDisplayControl()
 {
-	DELETE_MEMORY_TC(m_displayControlDynamicCaps);
-	DELETE_MEMORY_TC(m_displayControlStatus);
-	DELETE_MEMORY_TC(m_displayControlSet);
+	DELETE_MEMORY_TC(m_displayControlDynamicCaps)
+	DELETE_MEMORY_TC(m_displayControlStatus)
+	DELETE_MEMORY_TC(m_displayControlSet)
 }
 
 void Domain::clearDomainCachedDataPerformanceControl()
 {
-	DELETE_MEMORY_TC(m_performanceControlStaticCaps);
-	DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
-	DELETE_MEMORY_TC(m_performanceControlStatus);
-	DELETE_MEMORY_TC(m_performanceControlSet);
+	DELETE_MEMORY_TC(m_performanceControlStaticCaps)
+	DELETE_MEMORY_TC(m_performanceControlDynamicCaps)
+	DELETE_MEMORY_TC(m_performanceControlStatus)
+	DELETE_MEMORY_TC(m_performanceControlSet)
 }
 
 void Domain::clearDomainCachedDataPowerControl()
 {
-	DELETE_MEMORY_TC(m_powerControlDynamicCapsSet);
+	DELETE_MEMORY_TC(m_powerControlDynamicCapsSet)
 	m_powerLimitEnabled.clear();
 	m_powerLimit.clear();
 	m_powerLimitTimeWindow.clear();
 	m_powerLimitDutyCycle.clear();
-	DELETE_MEMORY_TC(m_isPowerShareControl);
+	DELETE_MEMORY_TC(m_isPowerShareControl)
 }
 
 void Domain::clearDomainCachedDataPowerStatus()
 {
-	DELETE_MEMORY_TC(m_powerStatus);
+	DELETE_MEMORY_TC(m_powerStatus)
 }
 
 void Domain::clearDomainCachedDataPriority()
 {
-	DELETE_MEMORY_TC(m_domainPriority);
+	DELETE_MEMORY_TC(m_domainPriority)
 }
 
 void Domain::clearDomainCachedDataRfProfileControl()
 {
-	DELETE_MEMORY_TC(m_rfProfileCapabilities);
+	DELETE_MEMORY_TC(m_rfProfileCapabilities)
 }
 
 void Domain::clearDomainCachedDataRfProfileStatus()
 {
-	DELETE_MEMORY_TC(m_rfProfileData);
+	DELETE_MEMORY_TC(m_rfProfileData)
 }
 
 void Domain::clearDomainCachedDataUtilizationStatus()
 {
-	DELETE_MEMORY_TC(m_utilizationStatus);
+	DELETE_MEMORY_TC(m_utilizationStatus)
 }
 
 void Domain::clearDomainCachedDataPlatformPowerStatus()
 {
-	DELETE_MEMORY_TC(m_adapterRating);
-	DELETE_MEMORY_TC(m_platformRestOfPower);
-	DELETE_MEMORY_TC(m_platformPowerSource);
-	DELETE_MEMORY_TC(m_acNominalVoltage);
-	DELETE_MEMORY_TC(m_acOperationalCurrent);
-	DELETE_MEMORY_TC(m_ac1msPercentageOverload);
-	DELETE_MEMORY_TC(m_ac2msPercentageOverload);
-	DELETE_MEMORY_TC(m_ac10msPercentageOverload);
+	DELETE_MEMORY_TC(m_adapterRating)
+	DELETE_MEMORY_TC(m_platformRestOfPower)
+	DELETE_MEMORY_TC(m_platformPowerSource)
+	DELETE_MEMORY_TC(m_acNominalVoltage)
+	DELETE_MEMORY_TC(m_acOperationalCurrent)
+	DELETE_MEMORY_TC(m_ac1msPercentageOverload)
+	DELETE_MEMORY_TC(m_ac2msPercentageOverload)
+	DELETE_MEMORY_TC(m_ac10msPercentageOverload)
 }
 
 void Domain::clearDomainCachedDataSystemPowerControl()
@@ -1356,7 +1400,7 @@ void Domain::clearDomainCachedDataSystemPowerControl()
 	m_systemPowerLimitDutyCycle.clear();
 }
 
-UInt32 Domain::getSocDgpuPerformanceHintPoints(void)
+UInt32 Domain::getSocDgpuPerformanceHintPoints() const
 {
 	return m_theRealParticipant->getSocDgpuPerformanceHintPoints(m_participantIndex, m_domainIndex);
 }

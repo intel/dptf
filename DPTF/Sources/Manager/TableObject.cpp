@@ -22,13 +22,14 @@ using namespace std;
 
 TableObject::TableObject(
 	TableObjectType::Type type,
-	map<UInt64, vector<TableObjectField>> fieldsMap,
-	vector<pair<DataVaultType::Type, string>> dataVaultPathForGet,
-	vector<pair<DataVaultType::Type, string>> dataVaultPathForSet,
-	std::set<UInt64> revisionsUsingEsifDataVariant,
+	const map<UInt64, vector<TableObjectField>>& fieldsMap,
+	const vector<pair<DataVaultType::Type, string>>& dataVaultPathForGet,
+	const vector<pair<DataVaultType::Type, string>>& dataVaultPathForSet,
+	const set<UInt64>& revisionsUsingEsifDataVariant,
 	UInt32 supportedMode,
 	esif_primitive_type_t readPrimitive,
-	Bool isParticipantTable)
+	Bool isParticipantTable,
+	Bool hasRevisionField)
 	: m_type(type)
 	, m_fieldsMap(fieldsMap)
 	, m_dataVaultPathForGet(dataVaultPathForGet)
@@ -37,6 +38,7 @@ TableObject::TableObject(
 	, m_supportedMode(supportedMode)
 	, m_readPrimitive(readPrimitive)
 	, m_isParticipantTable(isParticipantTable)
+	, m_hasRevisionField(hasRevisionField)
 {
 }
 
@@ -89,9 +91,9 @@ std::shared_ptr<XmlNode> TableObject::getXml()
 	std::shared_ptr<XmlNode> resultRoot = XmlNode::createWrapperElement("result"); 	
 	if (m_data.size())
 	{
-		union esif_data_variant* obj = (union esif_data_variant*)m_data.get();
+		auto obj = reinterpret_cast<union esif_data_variant*>(m_data.get());
 		auto remain_bytes = m_data.size();
-		auto revision = (u32)obj->integer.value;
+		auto revision = static_cast<u32>(obj->integer.value);
 
 		if (m_fieldsMap.find(0) != m_fieldsMap.end())
 		{
@@ -103,7 +105,7 @@ std::shared_ptr<XmlNode> TableObject::getXml()
 		if (m_fieldsMap.find(revision) != m_fieldsMap.end())
 		{
 			addRevisionFields(remain_bytes, obj, fields, resultRoot, revision);
-			addModeFields(remain_bytes, obj, fields, resultRoot);
+			addModeFields(remain_bytes, obj, resultRoot);
 			if (addValueFields(remain_bytes, obj, fields, resultRoot, revision) == false)
 			{
 				addMessage(resultRoot, "row", "TableObject field datatype not supported.");
@@ -116,15 +118,15 @@ std::shared_ptr<XmlNode> TableObject::getXml()
 	}
 	else
 	{
-		addMessage(resultRoot, "", "TableObject is empty.");
+		addMessage(resultRoot, "message", "TableObject is empty.");
 	}
 	return resultRoot;
 }
 
 void TableObject::addMessage(
-	shared_ptr<XmlNode>& resultRoot, 
-	string xmlWrapperTag,
-	string messages)
+	const shared_ptr<XmlNode>& resultRoot,
+	const string& xmlWrapperTag,
+	const string& messages)
 {
 	resultRoot->addChild(XmlNode::createDataElement(xmlWrapperTag, messages));
 }
@@ -133,12 +135,12 @@ void TableObject::addRevisionFields(
 	UInt32& remain_bytes,
 	esif_data_variant*& obj,
 	vector<TableObjectField>& fields,
-	shared_ptr<XmlNode>& resultRoot,
-	UInt32 revision)
+	const shared_ptr<XmlNode>& resultRoot,
+	UInt32 revision) const
 {
-	if (m_fieldsMap.find(revision) != m_fieldsMap.end() && revision != 0)
+	if (hasRevisionField())
 	{
-		obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
+		obj = reinterpret_cast<union esif_data_variant*>(reinterpret_cast<u8*>(obj) + sizeof(*obj));
 		remain_bytes -= sizeof(*obj);
 		resultRoot->addChild(XmlNode::createDataElement("revision", StatusFormat::friendlyValue(revision)));
 		fields = m_fieldsMap.find(revision)->second;
@@ -160,13 +162,12 @@ void TableObject::addRevisionFields(
 void TableObject::addModeFields(
 	UInt32& remain_bytes,
 	esif_data_variant*& obj,
-	vector<TableObjectField>& fields,
-	shared_ptr<XmlNode>& resultRoot)
+	const shared_ptr<XmlNode>& resultRoot) const
 {
 	if (m_supportedMode)
 	{
-		auto mode = (u64)obj->integer.value;
-		obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
+		const auto mode = (u64)obj->integer.value;
+		obj = reinterpret_cast<union esif_data_variant*>(reinterpret_cast<u8*>(obj) + sizeof(*obj));
 		remain_bytes -= sizeof(*obj);
 		resultRoot->addChild(XmlNode::createDataElement("mode", StatusFormat::friendlyValue(mode)));
 	}
@@ -175,9 +176,9 @@ void TableObject::addModeFields(
 Bool TableObject::addValueFields(
 	UInt32& remain_bytes,
 	esif_data_variant*& obj,
-	vector<TableObjectField>& fields,
-	shared_ptr<XmlNode>& resultRoot,
-	UInt32 revision)
+	const vector<TableObjectField>& fields,
+	const shared_ptr<XmlNode>& resultRoot,
+	UInt32 revision) const
 {
 	if (isUsingEsifDataVariant(revision))
 	{
@@ -192,35 +193,35 @@ Bool TableObject::addValueFields(
 Bool TableObject::addValueFieldsWithEsifDataVariant(
 	UInt32& remain_bytes,
 	esif_data_variant*& obj,
-	vector<TableObjectField>& fields,
-	shared_ptr<XmlNode>& resultRoot)
+	const vector<TableObjectField>& fields,
+	const shared_ptr<XmlNode>& resultRoot) const
 {
 	while (remain_bytes >= sizeof(*obj))
 	{
-		auto rowRoot = XmlNode::createWrapperElement("row");
-		for (auto field = fields.begin(); field != fields.end(); field++)
+		const auto rowRoot = XmlNode::createWrapperElement("row");
+		for (auto& field : fields)
 		{
 			remain_bytes -= sizeof(*obj);
 			if (obj->type == ESIF_DATA_UINT64)
 			{
-				UInt64 int64FieldValue = (u64)obj->integer.value;
-				obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
+				const auto int64FieldValue = (u64)obj->integer.value;
+				obj = reinterpret_cast<union esif_data_variant*>(reinterpret_cast<u8*>(obj) + sizeof(*obj));
 				rowRoot->addChild(
-					XmlNode::createDataElement(field->m_fieldLabel, StatusFormat::friendlyValue(int64FieldValue)));
+					XmlNode::createDataElement(field.m_fieldLabel, StatusFormat::friendlyValue(int64FieldValue)));
 			}
 			else if (obj->type == ESIF_DATA_UINT32)
 			{
-				UInt32 int32FieldValue = (u32)obj->integer.value;
-				obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
+				const auto int32FieldValue = static_cast<u32>(obj->integer.value);
+				obj = reinterpret_cast<union esif_data_variant*>(reinterpret_cast<u8*>(obj) + sizeof(*obj));
 				rowRoot->addChild(
-					XmlNode::createDataElement(field->m_fieldLabel, StatusFormat::friendlyValue(int32FieldValue)));
+					XmlNode::createDataElement(field.m_fieldLabel, StatusFormat::friendlyValue(int32FieldValue)));
 			}
 			else if (obj->type == ESIF_DATA_STRING)
 			{
-				char* strFieldValue = (char*)((u8*)obj + sizeof(*obj));
+				const char* strFieldValue = reinterpret_cast<char*>(reinterpret_cast<u8*>(obj) + sizeof(*obj));
 				remain_bytes -= obj->string.length;
-				obj = (union esif_data_variant*)((u8*)obj + (sizeof(*obj) + obj->string.length));
-				rowRoot->addChild(XmlNode::createDataElement(field->m_fieldLabel, strFieldValue));
+				obj = reinterpret_cast<union esif_data_variant*>(reinterpret_cast<u8*>(obj) + (sizeof(*obj) + obj->string.length));
+				rowRoot->addChild(XmlNode::createDataElement(field.m_fieldLabel, strFieldValue));
 			}
 			else
 			{
@@ -236,38 +237,38 @@ Bool TableObject::addValueFieldsWithEsifDataVariant(
 Bool TableObject::addValueFieldsWithOutEsifDataVariant(
 	UInt32& remain_bytes,
 	esif_data_variant*& obj,
-	vector<TableObjectField>& fields,
-	shared_ptr<XmlNode>& resultRoot)
+	const vector<TableObjectField>& fields,
+	const shared_ptr<XmlNode>& resultRoot) const
 {
-	char* data = (char*)obj;
+	auto data = reinterpret_cast<char*>(obj);
 
 	while (remain_bytes > 0)
 	{
-		auto rowRoot = XmlNode::createWrapperElement("row");
-		for (auto field = fields.begin(); field != fields.end(); field++)
+		const auto rowRoot = XmlNode::createWrapperElement("row");
+		for (auto& field : fields)
 		{
-			if (field->m_fieldDataType == ESIF_DATA_UINT64)
+			if (field.m_fieldDataType == ESIF_DATA_UINT64)
 			{
-				UInt64* int64FieldValue = reinterpret_cast<UInt64*>(data);
+				const auto int64FieldValue = reinterpret_cast<UInt64*>(data);
 				remain_bytes -= sizeof(*int64FieldValue);
 				data = data + sizeof(*int64FieldValue);
 				rowRoot->addChild(
-					XmlNode::createDataElement(field->m_fieldLabel, StatusFormat::friendlyValue(*int64FieldValue)));
+					XmlNode::createDataElement(field.m_fieldLabel, StatusFormat::friendlyValue(*int64FieldValue)));
 			}
-			else if (field->m_fieldDataType == ESIF_DATA_UINT32)
+			else if (field.m_fieldDataType == ESIF_DATA_UINT32)
 			{
-				UInt32* int32FieldValue = reinterpret_cast<UInt32*>(data);
+				const auto int32FieldValue = reinterpret_cast<UInt32*>(data);
 				remain_bytes -= sizeof(*int32FieldValue);
 				data = data + sizeof(*int32FieldValue);
 				rowRoot->addChild(
-					XmlNode::createDataElement(field->m_fieldLabel, StatusFormat::friendlyValue(*int32FieldValue)));
+					XmlNode::createDataElement(field.m_fieldLabel, StatusFormat::friendlyValue(*int32FieldValue)));
 			}
-			else if (field->m_fieldDataType == ESIF_DATA_STRING)
+			else if (field.m_fieldDataType == ESIF_DATA_STRING)
 			{
-				char* strFieldValue = data;
-				remain_bytes -= field->m_fieldLength;
-				data = data + field->m_fieldLength;
-				rowRoot->addChild(XmlNode::createDataElement(field->m_fieldLabel, strFieldValue));
+				const auto strFieldValue = data;
+				remain_bytes -= field.m_fieldLength;
+				data = data + field.m_fieldLength;
+				rowRoot->addChild(XmlNode::createDataElement(field.m_fieldLabel, strFieldValue));
 			}
 			else
 			{
@@ -280,22 +281,22 @@ Bool TableObject::addValueFieldsWithOutEsifDataVariant(
 	return true;
 }
 
-const Bool TableObject::isParticipantTable() const
+Bool TableObject::isParticipantTable() const
 {
 	return m_isParticipantTable;
 }
 
-const Bool TableObject::hasRevisionField() const
+Bool TableObject::hasRevisionField() const
 {
-	return m_fieldsMap.find(0) == m_fieldsMap.end();
+	return m_hasRevisionField;
 }
 
-const Bool TableObject::hasModeField() const
+Bool TableObject::hasModeField() const
 {
 	return (m_supportedMode > 0);
 }
 
-const Bool TableObject::isUsingEsifDataVariant(UInt64 revision) const
+Bool TableObject::isUsingEsifDataVariant(UInt64 revision) const
 {
 	return m_revisionsUsingEsifDataVariant.find(revision) != m_revisionsUsingEsifDataVariant.end();
 }

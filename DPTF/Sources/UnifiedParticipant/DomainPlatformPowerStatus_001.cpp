@@ -105,7 +105,7 @@ Percentage DomainPlatformPowerStatus_001::getAC10msPercentageOverload(UIntN part
 	return m_ac10msPercentageOverload;
 }
 
-void DomainPlatformPowerStatus_001::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
+void DomainPlatformPowerStatus_001::notifyForProcHotDeAssertion(UIntN participantIndex, UIntN domainIndex)
 {
 	UInt32 prochotAssertionRequest = 0;
 	try

@@ -39,8 +39,6 @@ public:
 	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
-		override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

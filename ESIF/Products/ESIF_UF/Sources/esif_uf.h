@@ -209,6 +209,9 @@ void esif_uf_os_exit(void);
 eEsifError esif_uf_os_shell_enable(void);
 void esif_uf_os_shell_disable(void);
 
+/* Indicates if auto-enumeration is allowed for the input participant type */
+Bool esif_uf_is_auto_enum_allowed(esif_domain_type_t partType);
+
 #ifdef __cplusplus
 }
 #endif

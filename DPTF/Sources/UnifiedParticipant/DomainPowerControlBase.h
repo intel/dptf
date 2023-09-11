@@ -37,6 +37,9 @@ public:
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainPowerControlBase();
 
+	// DomainPowerControl
+	virtual void updateSocPowerFloorState(UInt32 socPowerFloorState) = 0;
+
 protected:
 	void updateEnabled(PowerControlType::Type controlType);
 	void setEnabled(PowerControlType::Type controlType, Bool enable);

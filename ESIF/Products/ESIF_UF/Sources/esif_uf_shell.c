@@ -114,38 +114,55 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define DYNAMIC_PARTICIPANT_PCIE_DESCRIPTION "PCIE Participant"
 #define DYNAMIC_PARTICIPANT_PCIE_HID "INTPCIE"
 #define DYNAMIC_PARTICIPANT_PCIE_PTYPE "45" // ESIF_DOMAIN_TYPE_PCIE
-#define DYNAMIC_PARTICIPANT_PCIE_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_PCIE_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_DISPLAY_NAME "DPLY"
 #define DYNAMIC_PARTICIPANT_DISPLAY_DESCRIPTION "Display Participant"
 #define DYNAMIC_PARTICIPANT_DISPLAY_HID "INT3406" // Use the ACPI ID previously exposed via BIOS
 #define DYNAMIC_PARTICIPANT_DISPLAY_PTYPE "10" // ESIF_DOMAIN_TYPE_DISPLAY
-#define DYNAMIC_PARTICIPANT_DISPLAY_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_DISPLAY_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_VPU_NAME "VPU"
 #define DYNAMIC_PARTICIPANT_VPU_DESCRIPTION "VPU Participant"
 #define DYNAMIC_PARTICIPANT_VPU_HID "INTVPU"
 #define DYNAMIC_PARTICIPANT_VPU_PTYPE "46" // ESIF_DOMAIN_TYPE_VPU
-#define DYNAMIC_PARTICIPANT_VPU_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_VPU_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_WIFI_NAME "WIFI"
 #define DYNAMIC_PARTICIPANT_WIFI_DESCRIPTION "WiFi Participant"
 #define DYNAMIC_PARTICIPANT_WIFI_HID "INTWIFI"
 #define DYNAMIC_PARTICIPANT_WIFI_PTYPE "7" // ESIF_DOMAIN_TYPE_WIRELESS
-#define DYNAMIC_PARTICIPANT_WIFI_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_WIFI_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_IDG2_NAME "IDG2"
 #define DYNAMIC_PARTICIPANT_IDG2_DESCRIPTION "IDG2 Participant"
 #define DYNAMIC_PARTICIPANT_IDG2_HID "INT340D"
 #define DYNAMIC_PARTICIPANT_IDG2_PTYPE "43" // ESIF_DOMAIN_TYPE_IDGFX2
-#define DYNAMIC_PARTICIPANT_IDG2_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_IDG2_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_MCP_NAME "MCP"
 #define DYNAMIC_PARTICIPANT_MCP_DESCRIPTION "MCP Participant"
 #define DYNAMIC_PARTICIPANT_MCP_HID "INT3530"
 #define DYNAMIC_PARTICIPANT_MCP_PTYPE "38" // ESIF_DOMAIN_TYPE_DGFXMCP
-#define DYNAMIC_PARTICIPANT_MCP_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_MCP_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
+#define DYNAMIC_PARTICIPANT_IVRM_NAME "IVRM"
+#define DYNAMIC_PARTICIPANT_IVRM_DESCRIPTION "IDG2 VRAM Participant"
+#define DYNAMIC_PARTICIPANT_IVRM_HID "INTDMEM"
+#define DYNAMIC_PARTICIPANT_IVRM_PTYPE "37" // ESIF_DOMAIN_TYPE_DGFXMEM
+#define DYNAMIC_PARTICIPANT_IVRM_FLAGS "0"
+
+#define DYNAMIC_PARTICIPANT_IPU_NAME "IPU"
+#define DYNAMIC_PARTICIPANT_IPU_DESCRIPTION "IPU Participant"
+#define DYNAMIC_PARTICIPANT_IPU_HID "INTIPU"
+#define DYNAMIC_PARTICIPANT_IPU_PTYPE "47" // ESIF_DOMAIN_TYPE_IPU
+#define DYNAMIC_PARTICIPANT_IPU_FLAGS "0"
+
+#define DYNAMIC_PARTICIPANT_AUDIO_NAME "IAUD"
+#define DYNAMIC_PARTICIPANT_AUDIO_DESCRIPTION "Audio Participant"
+#define DYNAMIC_PARTICIPANT_AUDIO_HID "INTAUDIO"
+#define DYNAMIC_PARTICIPANT_AUDIO_PTYPE "13" // ESIF_DOMAIN_TYPE_AUDIO
+#define DYNAMIC_PARTICIPANT_AUDIO_FLAGS "0"
 
 /* Friends */
 extern EsifAppMgr g_appMgr;
@@ -551,13 +568,10 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 			StringPtr name = JsonObj_GetValue(obj, "name");
 			StringPtr enumerator = JsonObj_GetValue(obj, "enum");
 			StringPtr description = JsonObj_GetValue(obj, "description");
+			StringPtr flags = JsonObj_GetValue(obj, "flags");
 
-			// Do not create if a participant already exists with the same name
-			if (EsifUpPm_DoesAvailableParticipantExistByName(name)) {
-				rc = ESIF_E_IO_ALREADY_EXISTS;
-			}
-			// Translate the Dynamic Participant JSON object to an addpart or addpartk shell command
-			else if (type && revision && (esif_ccb_stricmp(type, DYNAMIC_PARTICIPANTS_OBJTYPE) == 0)) {
+			/* Name collisions are handled in the Participant Manager */
+			if (type && revision && (esif_ccb_stricmp(type, DYNAMIC_PARTICIPANTS_OBJTYPE) == 0)) {
 				switch (esif_atoi(revision)) {
 				case 1: // Revision 1: implied enumerator=CONJURE only
 					enumerator = ltrim(esif_participant_enum_str(ESIF_PARTICIPANT_ENUM_CONJURE), PREFIX_PARTICIPANT_ENUM);
@@ -580,6 +594,11 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 				}
 				if (rc == ESIF_OK) {
 					esif_participant_enum_t enum_type = esif_participant_enum_str2enum(enumerator);
+
+					if ( enum_type == ESIF_PARTICIPANT_ENUM_ACPI) {
+						ESIF_TRACE_WARN("ACPI enum not support, Instead, attempt to create participant with conjure \n");
+						enum_type = ESIF_PARTICIPANT_ENUM_CONJURE;
+					}
 					switch (enum_type) {
 
 					// Dynamic Kernel APCI Participant
@@ -595,6 +614,9 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 								hid,
 								ptype
 							);
+							if (flags) {
+								IString_SprintfConcat(cmd, " %s", flags);
+							}
 						}
 						break;
 					}
@@ -612,6 +634,9 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 								vendorid,
 								deviceid
 							);
+							if (flags) {
+								IString_SprintfConcat(cmd, " %s", flags);
+							}
 						}
 						break;
 					}
@@ -621,7 +646,6 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 					{
 						StringPtr hid = JsonObj_GetValue(obj, "hid");
 						StringPtr ptype = JsonObj_GetValue(obj, "ptype");
-						StringPtr flags = JsonObj_GetValue(obj, "flags");
 						if (name && description && hid && ptype) {
 							IString_Sprintf(cmd,
 								"addpart %s \"%s\" \"%s\" %s",
@@ -696,10 +720,16 @@ IStringPtr CreateJsonFromParticipantData(
 		case ESIF_PARTICIPANT_ENUM_ACPI:
 			JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "hid", param1);
 			JsonObj_AddKeyPair(obj, ESIF_DATA_UINT32, "ptype", param2);
+			if (param3 && *param3) {
+				JsonObj_AddKeyPair(obj, ESIF_DATA_UINT32, "flags", param3);
+			}
 			break;
 		case ESIF_PARTICIPANT_ENUM_PCI:
 			JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "vendorid", param1);
 			JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "deviceid", param2);
+			if (param3 && *param3) {
+				JsonObj_AddKeyPair(obj, ESIF_DATA_UINT32, "flags", param3);
+			}
 			break;
 		case ESIF_PARTICIPANT_ENUM_CONJURE:
 			JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "hid", param1);
@@ -738,7 +768,7 @@ esif_error_t CreateDynamicParticipants()
 	// They are only destroyed at exit; unless, manually destroyed via the shell. 
 	//
 	CreateEnumeratedParticipants();
-	
+
 	// Find all matching JSON strings in Participants DataVault and create them
 	if (nameSpace && key && value && key->buf_ptr && (rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
 		do {
@@ -792,11 +822,18 @@ esif_error_t CreatePcieParticipant()
 #endif
 
 
-
 esif_error_t CreateDisplayParticipant()
 {
 	eEsifError rc = ESIF_OK;
 	IStringPtr jsonPart = NULL;
+
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_DISPLAY);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
 
 	jsonPart = CreateJsonFromParticipantData(
 		ESIF_PARTICIPANT_ENUM_ACPI,
@@ -809,7 +846,7 @@ esif_error_t CreateDisplayParticipant()
 	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
 
 	IString_Destroy(jsonPart);
-
+exit:
 	return rc;
 }
 
@@ -821,6 +858,13 @@ esif_error_t CreateVpuParticipant()
 {
 	eEsifError rc = ESIF_OK;
 	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_VPU);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
 
 	jsonPart = CreateJsonFromParticipantData(
 		ESIF_PARTICIPANT_ENUM_ACPI,
@@ -833,7 +877,7 @@ esif_error_t CreateVpuParticipant()
 	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
 
 	IString_Destroy(jsonPart);
-
+exit:
 	return rc;
 }
 
@@ -848,6 +892,13 @@ esif_error_t CreateWifiParticipant()
 {
 	eEsifError rc = ESIF_OK;
 	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_WIRELESS);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
 
 	jsonPart = CreateJsonFromParticipantData(
 		ESIF_PARTICIPANT_ENUM_ACPI,
@@ -860,7 +911,7 @@ esif_error_t CreateWifiParticipant()
 	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
 
 	IString_Destroy(jsonPart);
-
+exit:
 	return rc;
 }
 
@@ -868,6 +919,13 @@ esif_error_t CreateIdg2Participant()
 {
 	eEsifError rc = ESIF_OK;
 	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_IDGFX2);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
 
 	jsonPart = CreateJsonFromParticipantData(
 		ESIF_PARTICIPANT_ENUM_ACPI,
@@ -880,7 +938,7 @@ esif_error_t CreateIdg2Participant()
 	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
 
 	IString_Destroy(jsonPart);
-
+exit:
 	return rc;
 }
 
@@ -889,6 +947,13 @@ esif_error_t CreateMcpParticipant()
 {
 	eEsifError rc = ESIF_OK;
 	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_DGFXMCP);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
 
 	jsonPart = CreateJsonFromParticipantData(
 		ESIF_PARTICIPANT_ENUM_ACPI,
@@ -901,10 +966,91 @@ esif_error_t CreateMcpParticipant()
 	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
 
 	IString_Destroy(jsonPart);
-
+exit:
 	return rc;
 }
 
+esif_error_t CreateIvramParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_DGFXMEM);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_IVRM_NAME,
+		DYNAMIC_PARTICIPANT_IVRM_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_IVRM_HID,
+		DYNAMIC_PARTICIPANT_IVRM_PTYPE,
+		DYNAMIC_PARTICIPANT_IVRM_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+exit:
+	return rc;
+}
+
+
+esif_error_t CreateIpuParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_IPU);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_IPU_NAME,
+		DYNAMIC_PARTICIPANT_IPU_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_IPU_HID,
+		DYNAMIC_PARTICIPANT_IPU_PTYPE,
+		DYNAMIC_PARTICIPANT_IPU_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+exit:
+	return rc;
+}
+
+esif_error_t CreateAudioParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_AUDIO);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_AUDIO_NAME,
+		DYNAMIC_PARTICIPANT_AUDIO_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_AUDIO_HID,
+		DYNAMIC_PARTICIPANT_AUDIO_PTYPE,
+		DYNAMIC_PARTICIPANT_AUDIO_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+exit:
+	return rc;
+}
 
 // Destroy all Persisted Dynamic Participants (that have been created)
 esif_error_t DestroyDynamicParticipants()
@@ -2707,6 +2853,195 @@ static char *esif_shell_cmd_actionstop(EsifShellCmdPtr shell)
 	return output;
 }
 
+static char *esif_shell_cmd_appcompat(EsifShellCmdPtr shell)
+{
+	int argc = shell->argc;
+	char **argv = shell->argv;
+	char *output = shell->outbuf;
+
+	eEsifError rc = ESIF_E_NOT_SUPPORTED;
+	esif_guid_t appcompatGuid = APPLICATION_OPTIMIZATION_APPCOMPAT_GUID;
+	size_t reqBufSize = 0;
+	char *subcommand = 0;
+	int processCount = 0;
+	int processNameArgIndex = 0;
+	int processorCountArgIndex = 0;
+	EsifData request = { ESIF_DATA_BINARY };
+	AppCompatCreateCommand *appCompatCreateCmdPtr = NULL;
+	AppCompatDeleteCommand *appCompatDeleteCmdPtr = NULL;
+	AppCompatEntry *currentEntry = NULL;
+
+	if (argc < 2) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	subcommand = argv[1];
+
+	if (esif_ccb_stricmp(subcommand, "create") == 0)
+	{
+		if (argc < 3) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+			goto exit;
+		}
+
+		processCount = esif_atoi(argv[2]);
+
+		// For each process that the user wants to specify a value for, they must provide two additional arguments: <appName> and <procCount>
+		if (argc < (3 + (2 * processCount)))
+		{
+			rc = ESIF_E_PARAMETER_IS_NULL;
+				goto exit;
+		}
+
+		reqBufSize = sizeof(*appCompatCreateCmdPtr) + (processCount * sizeof(AppCompatEntry));
+		appCompatCreateCmdPtr = esif_ccb_malloc(reqBufSize);
+		if (NULL == appCompatCreateCmdPtr) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+
+		appCompatCreateCmdPtr->version = APP_COMPAT_CREATE_CMD_VERSION;
+		appCompatCreateCmdPtr->num_process = processCount;
+		esif_ccb_memcpy(&appCompatCreateCmdPtr->app_compat_guid, &appcompatGuid, sizeof(appCompatCreateCmdPtr->app_compat_guid));
+
+		currentEntry = (AppCompatEntry *)((u8 *)appCompatCreateCmdPtr + sizeof(*appCompatCreateCmdPtr));
+
+		for (int i = 0; i < processCount; i++)
+		{
+			// These are two starting indices in to the user supplied args. For each process we are looking for two arguments, a name and a count. 
+			processNameArgIndex = 3 + (i * 2);
+			processorCountArgIndex = processNameArgIndex + 1;
+
+			esif_ccb_strcpy(currentEntry->process_name, argv[processNameArgIndex], sizeof(currentEntry->process_name));
+			currentEntry->processor_count = esif_atoi(argv[processorCountArgIndex]);
+
+			currentEntry++;
+		}
+
+		request.buf_ptr = (u8 *)appCompatCreateCmdPtr;
+		request.buf_len = (UInt32)reqBufSize;
+		request.data_len = (UInt32)reqBufSize;
+
+		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT,
+			SET_APP_COMPAT,
+			"D0",
+			255,
+			&request,
+			NULL);
+	}
+	else if (esif_ccb_stricmp(subcommand, "delete") == 0)
+	{
+		reqBufSize = sizeof(*appCompatDeleteCmdPtr);
+		appCompatDeleteCmdPtr = esif_ccb_malloc(reqBufSize);
+		if (NULL == appCompatDeleteCmdPtr) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+
+		appCompatDeleteCmdPtr->version = APP_COMPAT_DELETE_CMD_VERSION;
+		esif_ccb_memcpy(&appCompatDeleteCmdPtr->app_compat_guid, &appcompatGuid, sizeof(appCompatDeleteCmdPtr->app_compat_guid));
+
+		request.buf_ptr = (u8 *)appCompatDeleteCmdPtr;
+		request.buf_len = (UInt32)reqBufSize;
+		request.data_len = (UInt32)reqBufSize;
+
+		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT,
+			SET_APP_COMPAT_DELETE,
+			"D0",
+			255,
+			&request,
+			NULL);
+	}
+
+exit:
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s %s\n", subcommand, esif_rc_str(rc));
+	esif_ccb_free(appCompatCreateCmdPtr);
+	esif_ccb_free(appCompatDeleteCmdPtr);
+	return output;
+}
+
+// Affinitize
+static char* esif_shell_cmd_affinitize(EsifShellCmdPtr shell)
+{
+	int argc = shell->argc;
+	char** argv = shell->argv;
+	char* output = shell->outbuf;
+
+	eEsifError rc = ESIF_OK;
+	size_t reqBufSize = 0;
+	UInt32 currentMask = 0;
+	char targetProcess[MAX_PATH];
+	char* mask = 0;
+	char* processName = 0;
+	EsifData request = { ESIF_DATA_STRUCTURE };
+	EsifData response = { ESIF_DATA_UINT32 };
+
+	AffinityCommand* affinityCmdPtr = NULL;
+
+	if (argc < 2) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	processName = argv[1];
+
+	if (argc > 2) {
+		mask = argv[2];
+	}
+
+	if (mask) {
+		reqBufSize = sizeof(*affinityCmdPtr);
+		affinityCmdPtr = esif_ccb_malloc(reqBufSize);
+		if (NULL == affinityCmdPtr) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+
+		request.buf_ptr = affinityCmdPtr;
+		request.buf_len = (UInt32)reqBufSize;
+		request.data_len = (UInt32)reqBufSize;
+
+		affinityCmdPtr->version = AFFINITY_CMD_VERSION;
+		affinityCmdPtr->affinity_mask = esif_atoi(mask);
+		esif_ccb_strcpy(affinityCmdPtr->process_name, processName, sizeof(affinityCmdPtr->process_name));
+
+		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT,
+			SET_PROCESS_AFFINITY_MASK,
+			"D0",
+			255,
+			&request,
+			NULL);
+
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	else {
+		reqBufSize = esif_ccb_strlen(processName, MAX_PATH) + 1;
+		esif_ccb_strcpy(targetProcess, processName, MAX_PATH);
+		request.buf_ptr = targetProcess;
+		request.buf_len = (UInt32)reqBufSize;
+		request.data_len = (UInt32)reqBufSize;
+		response.buf_ptr = &currentMask;
+		response.buf_len = sizeof(currentMask);
+		response.data_len = sizeof(currentMask);
+		
+		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT,
+			GET_PROCESS_AFFINITY_MASK,
+			"D0",
+			255,
+			&request,
+			&response);
+
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Current mask: %u, Response code: %s \n\n", currentMask, esif_rc_str(rc));
+	}
+
+exit:
+	
+	if (affinityCmdPtr != NULL) {
+		esif_ccb_free(affinityCmdPtr);
+	}
+	
+	return output;
+}
 
 // Execute Default Start Script, if any
 static char *esif_shell_cmd_autoexec(EsifShellCmdPtr shell)
@@ -3536,7 +3871,7 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			if (!disabled) {
 				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = %.1f %s\n",temp, desc);
 			} else {
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = DISABLED\n",temp);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = DISABLED\n");
 			}
 		} else {
 			if (!disabled) {
@@ -5123,6 +5458,7 @@ static char *esif_shell_cmd_addpartk(EsifShellCmdPtr shell)
 	u32 vid = 0;
 	u32 did = 0;
 	u32 ptype = 0;
+	esif_flags_t newParticipantFlags = DYNAMIC_PARTICIPANT_FLAGS;
 
 	// Input Validation
 	if ((argc < 6) ||
@@ -5133,23 +5469,30 @@ static char *esif_shell_cmd_addpartk(EsifShellCmdPtr shell)
 		(!shell_isnumber(argv[5]))) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
-			"Usage:\taddpartk PCI <name> <desc> <vid> <did>\n"
-			      "\taddpartk ACPI <name> <desc> <hid> <ptype>\n");
+			"Usage:\taddpartk PCI <name> <desc> <vid> <did> [flags]\n"
+			      "\taddpartk ACPI <name> <desc> <hid> <ptype> [flags]\n");
 		goto exit;
 	}
 
 	esif_ccb_strcpy(name, argv[2], sizeof(name));
 	esif_ccb_strcpy(desc, argv[3], sizeof(desc));
 
-	// addpartk PCI <name> <desc> <vid> <did>
+	// addpartk PCI <name> <desc> <vid> <did> [flags]
 	if (!esif_ccb_stricmp(argv[1], "PCI")) {
 		vid = esif_atoi(argv[4]);
 		did = esif_atoi(argv[5]);
+		if (argc > 6) {
+			newParticipantFlags = esif_atoi(argv[6]);
+		}
 	}
-	// addpartk ACPI <name> <desc> <hid> <ptype>
+	// addpartk ACPI <name> <desc> <hid> <ptype> [flags]
 	else if (!esif_ccb_stricmp(argv[1], "ACPI")) {
 		esif_ccb_strcpy(acpiDevice, argv[4], sizeof(acpiDevice));
 		ptype = esif_atoi(argv[5]);
+
+		if (argc > 6) {
+			newParticipantFlags = esif_atoi(argv[6]);
+		}
 	}
 	else {
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Unsupported command.\n");
@@ -5185,6 +5528,7 @@ static char *esif_shell_cmd_addpartk(EsifShellCmdPtr shell)
 
 	dataPtr->version = ESIF_PARTICIPANT_VERSION;
 	dataPtr->enumerator = ESIF_PARTICIPANT_ENUM_CONJURE;
+	dataPtr->flags = newParticipantFlags;
 	esif_ccb_memcpy(dataPtr->class_guid, &guid, sizeof(dataPtr->class_guid));
 
 	esif_ccb_strcpy(dataPtr->name, name, sizeof(dataPtr->name));
@@ -5572,9 +5916,9 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 			enumerator = ESIF_PARTICIPANT_ENUM_CONJURE;
 			rc = ESIF_OK;
 		}
-		// participant create ACPI <name> "desc" <HID> <ptype>
-		// participant create PCI  <name> "desc" <VID> <DID>
-		// participant create CONJURE <name> "desc" <HID> <ptype>
+		// participant create ACPI <name> "desc" <HID> <ptype> [flags]
+		// participant create PCI  <name> "desc" <VID> <DID>  [flags]
+		// participant create CONJURE <name> "desc" <HID> <ptype>  [flags]
 		else if ((esif_ccb_stricmp(argv[1], "create") == 0) && (argc >= 7)) {
 			enumerator = esif_participant_enum_str2enum(argv[arg]);
 			switch (enumerator) {
@@ -5615,13 +5959,13 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 				IStringPtr jsonPart = NULL;
 				switch (enumerator) {
 				case ESIF_PARTICIPANT_ENUM_ACPI:
-					jsonPart = CreateJsonFromParticipantData(enumerator, partname, argv[arg + 1], argv[arg + 2], argv[arg + 3], NULL);
+					jsonPart = CreateJsonFromParticipantData(enumerator, partname, argv[arg + 1], argv[arg + 2], argv[arg + 3], (argc > arg + 4 ? argv[arg + 4] : NULL));
 					break;
 				case ESIF_PARTICIPANT_ENUM_PCI:
-					jsonPart = CreateJsonFromParticipantData(enumerator, partname, argv[arg + 1], argv[arg + 2], argv[arg + 3], NULL);
+					jsonPart = CreateJsonFromParticipantData(enumerator, partname, argv[arg + 1], argv[arg + 2], argv[arg + 3], (argc > arg + 4 ? argv[arg + 4] : NULL));
 					break;
 				case ESIF_PARTICIPANT_ENUM_CONJURE:
-					jsonPart = CreateJsonFromParticipantData(enumerator, partname, argv[arg + 1], argv[arg + 2], argv[arg + 3], (arg == 2 && argc > arg + 4 ? argv[arg + 4] : NULL));
+					jsonPart = CreateJsonFromParticipantData(enumerator, partname, argv[arg + 1], argv[arg + 2], argv[arg + 3], (argc > arg + 4 ? argv[arg + 4] : NULL));
 					break;
 				default:
 					rc = ESIF_E_INVALID_REQUEST_TYPE;
@@ -5702,7 +6046,7 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 				//
 				// Destroy participant if conjured
 				//
-				if (ESIF_OK == rc) {
+				if ((ESIF_OK == rc) || (ESIF_E_NOT_FOUND == rc)) {
 					upPtr = EsifUpPm_GetAvailableParticipantByName(partname);
 					if (upPtr != NULL) {
 						enumerator = EsifUp_GetEnumerator(upPtr);
@@ -7262,11 +7606,6 @@ static char *esif_shell_cmd_tableobject(EsifShellCmdPtr shell)
 	}
 	// tableobject delete <tablename> <participant> <domain>
 	else if (esif_ccb_stricmp(action, "delete") == 0  && argc >= opt) {
-		if (argc < opt) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "Too few parameters \n");
-			goto exit;
-		}
-		
 		rc = TableObject_Delete(&tableObject);
 		
 		if (rc != ESIF_OK) {
@@ -8342,14 +8681,19 @@ esif_error_t ESIF_CALLCONV esif_shell_cmd_event_callback(
 	EsifDataPtr eventDataPtr
 	)
 {
+	UInt32 eventData = 0;
+
 	UNREFERENCED_PARAMETER(context);
-	UNREFERENCED_PARAMETER(eventDataPtr);
 
 	if (fpcEventPtr) {
-		ESIF_TRACE_INFO("\nReceived event %s(%d) in shell for Part. %u Dom. 0x%02X\n",
+		if (eventDataPtr && eventDataPtr->buf_ptr && (eventDataPtr->buf_len >= sizeof(eventData))) {
+			eventData = *((UInt32 *)eventDataPtr->buf_ptr);
+		}
+		ESIF_TRACE_INFO("\nReceived event %s(%d) in shell for Part. %u Dom. 0x%02X = %d\n",
 			esif_event_type_str(fpcEventPtr->esif_event), fpcEventPtr->esif_event,
 			participantId,
-			domainId);
+			domainId,
+			eventData);
 	}
 
 	return ESIF_OK;
@@ -8573,6 +8917,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"                                         parameter is on a separate line\n"
 		"memstats [reset]                         Show/Reset Memory Statistics\n"
 		"autoexec [command] [...]                 Execute Default Startup Script\n"
+		"affinitize <process name> [mask]         If mask is present, set mask for process by name, otherwise get current mask\n"
 		"\n"
 		"TEST SCRIPT COMMANDS:\n"
 		"load    <filename> [load parameters...]  Load and Execute Command File\n"
@@ -8591,6 +8936,9 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"timerstart                               Start Interval Timer\n"
 		"timerstop                                Stop Interval Timer\n"
 		"sleep <ms>                               Sleep for the specified number of ms\n"
+		"appcompat <options>                      Create or Delete an appcompat database. Options:\n"
+		"  create <numApps> <appName> <coreCount> Installs db with the given apps/coreCounts\n"
+		"  delete                                 Uninstalls db.\n"
 		"\n"
 		"UI COMMANDS:\n"
 		"ui getxslt   [appname]                   Return XSLT Formatting information\n"
@@ -8611,9 +8959,9 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"participantsk                            List Kernel Participants\n"
 		"                                         Alias: partsk\n"
 		"participant create <options>             Create Persisted Dynamic Participant. Options:\n"
-		"  CONJURE <name> \"desc\" <hid> <ptype>    Create Persisted Dynamic Upper Framework Participant\n"
-		"  ACPI <name> \"desc\" <hid> <ptype>       Create Persisted Dynamic Kernel ACPI Participant\n"
-		"  PCI  <name> \"desc\" <vid> <did>         Create Persisted Dynamic Kernel PCI Participant\n"
+		"  CONJURE <name> \"desc\" <hid> <ptype> [flags]  Create Persisted Dynamic UF Participant\n"
+		"  ACPI <name> \"desc\" <hid> <ptype> [flags]  Create Persisted Dynamic LF ACPI Participant\n"
+		"  PCI  <name> \"desc\" <vid> <did> [flags]  Create Persisted Dynamic Kernel PCI Participant\n"
 		"participant delete  NAME                 Delete and Destroy Persisted Dynamic Participant\n"
 		"participant destroy NAME                 Destroy Upper Framework Participant\n"
 		"participant  <id>                        Get Participant Information\n"
@@ -8623,8 +8971,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"addpart <options>                        Add a new Upper Framework Participant. Options:\n"
 		"  <name> \"desc\" <hid> <ptype> [flags]\n"
 		"addpartk <options>                       Add a new Kernel Participant. Options: \n"
-		"  PCI <name> \"desc\" <vid> <did>\n"
-		"  ACPI <name> \"desc\" <hid> <ptype>\n"
+		"  PCI <name> \"desc\" <vid> <did> [flags]\n"
+		"  ACPI <name> \"desc\" <hid> <ptype> [flags]\n"
 		"delpartk <name>                          Removes a Conjured Kernel Participant\n"
 		"dst <id>                                 Set Target Participant By ID\n"
 		"dstn <name>                              Set Target Participant By Name\n"
@@ -8737,10 +9085,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"appstart [appname=]<app> [--libfile]     Start an IPF Application [in-process]\n"
 		"                                         If 'libfile' is not specified, 'app'\n"
 		"                                         is used as the library name\n"
-		"appstop    <app>                         Stop an IPF App\n"
-		"appstatus  <app>                         App Status\n"
-		"appenable  <app>                         App Enable\n"
-		"appabout   <app>                         App About\n"
+		"appstop <app>                            Stop an IPF App\n"
 		"\n"
 		"ACTION MANAGEMENT:\n"
 		"actions                                  List all DSP Actions\n"
@@ -10276,9 +10621,9 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 						if (rc == ESIF_E_ITERATION_DONE || rc == ESIF_E_NOT_FOUND) {
 							rc = ESIF_OK;
 						}
-						EsifData_Destroy(data_nspace);
-						data_nspace = NULL;
 					}
+					EsifData_Destroy(data_nspace);
+					data_nspace = NULL;
 				}
 			}
 			if (rc == ESIF_OK) {
@@ -12892,6 +13237,7 @@ static char *esif_shell_cmd_capture(EsifShellCmdPtr shell)
 	FILE *configFp = NULL;
 	FILE *fp = NULL;
 	int arg = 1;
+	char datetime[MAX_FILENAME] = { 0 };
 
 	/*
 	Create filename to write to.
@@ -12912,7 +13258,6 @@ static char *esif_shell_cmd_capture(EsifShellCmdPtr shell)
 	}
 
 	if (!useGivenFileName) {
-		char datetime[MAX_FILENAME] = { 0 };
 		time_t now = time(NULL);
 		struct tm time = { 0 };
 		overwriteIfExists = ESIF_TRUE;
@@ -13395,7 +13740,9 @@ static EsifShellMap ShellCommands[] = {
 	{"actionsu",             fnArgv, (VoidFunc)esif_shell_cmd_actionsu            },
 	{"addpart",              fnArgv, (VoidFunc)esif_shell_cmd_addpart             },
 	{"addpartk",             fnArgv, (VoidFunc)esif_shell_cmd_addpartk            },
+	{"affinitize",           fnArgv, (VoidFunc)esif_shell_cmd_affinitize          },
 	{"app",                  fnArgv, (VoidFunc)esif_shell_cmd_app                 },
+	{"appcompat",            fnArgv, (VoidFunc)esif_shell_cmd_appcompat           },
 	{"apps",                 fnArgv, (VoidFunc)esif_shell_cmd_apps                },
 	{"appstart",             fnArgv, (VoidFunc)esif_shell_cmd_appstart            },
 	{"appstop",              fnArgv, (VoidFunc)esif_shell_cmd_appstop             },

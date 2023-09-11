@@ -24,8 +24,7 @@
 class dptf_export DynamicIdspTableEntry
 {
 public:
-	DynamicIdspTableEntry(const std::string& uuid, const std::string& uuidTempalate, const std::string& name);
-	virtual ~DynamicIdspTableEntry();
+	DynamicIdspTableEntry(const std::string& uuid, const std::string& uuidTemplate, const std::string& name);
 
 	Bool isSameAs(const DynamicIdspTableEntry& dynamicPolicyTableEntry) const;
 	Guid getUuid() const;
@@ -43,20 +42,19 @@ private:
 class dptf_export ISupportedDynamicPolicyList
 {
 public:
-	virtual ~ISupportedDynamicPolicyList(){};
-	virtual UIntN getCount(void) const = 0;
+	virtual ~ISupportedDynamicPolicyList() = default;
+	virtual UIntN getCount() const = 0;
 	virtual DynamicIdspTableEntry get(UIntN index) const = 0;
-	virtual void update(void) = 0;
+	virtual void update() = 0;
 };
 
 class dptf_export SupportedDynamicPolicyList : public ISupportedDynamicPolicyList
 {
 public:
 	SupportedDynamicPolicyList(DptfManagerInterface* dptfManager);
-	virtual ~SupportedDynamicPolicyList(){};
-	virtual UIntN getCount(void) const override;
-	virtual DynamicIdspTableEntry get(UIntN index) const override;
-	virtual void update(void) override;
+	UIntN getCount() const override;
+	DynamicIdspTableEntry get(UIntN index) const override;
+	void update() override;
 
 private:
 	DptfManagerInterface* m_dptfManager;
@@ -66,5 +64,5 @@ private:
 	static std::vector<DynamicIdspTableEntry> parseBufferForDynamicPolicyUuids(const DptfBuffer& buffer);
 	static UIntN countRows(UInt32 size, UInt8* data);
 	static void throwIfOutOfRange(IntN bytesRemaining);
-	static void throwIfInvalidUuidLength(std::string uuid);
+	static void throwIfInvalidUuidLength(const std::string& uuid);
 };

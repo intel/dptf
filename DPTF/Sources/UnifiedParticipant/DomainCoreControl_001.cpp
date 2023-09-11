@@ -22,16 +22,16 @@
 DomainCoreControl_001::DomainCoreControl_001(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	const std::shared_ptr<ParticipantServicesInterface>& participantServicesInterface)
 	: DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-	onClearCachedData();
-	capture();
+	DomainCoreControl_001::onClearCachedData();
+	ControlBase::capture();
 }
 
 DomainCoreControl_001::~DomainCoreControl_001(void)
 {
-	restore();
+	DomainCoreControl_001::restore();
 }
 
 CoreControlStaticCaps DomainCoreControl_001::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -56,8 +56,7 @@ CoreControlDynamicCaps DomainCoreControl_001::getCoreControlDynamicCaps(UIntN pa
 
 CoreControlLpoPreference DomainCoreControl_001::getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex)
 {
-	return CoreControlLpoPreference(
-		true, 0, Percentage(.50), CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core);
+	return {true, 0, Percentage(.50), CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core};
 }
 
 CoreControlStatus DomainCoreControl_001::getCoreControlStatus(UIntN participantIndex, UIntN domainIndex)
@@ -76,8 +75,8 @@ void DomainCoreControl_001::setActiveCoreControl(
 	const CoreControlStatus& coreControlStatus)
 {
 	verifyCoreControlStatus(domainIndex, coreControlStatus);
-	UIntN totalCores = getCoreControlStaticCaps(participantIndex, domainIndex).getTotalLogicalProcessors();
-	UIntN totalOfflineCoreRequest = totalCores - coreControlStatus.getNumActiveLogicalProcessors();
+	const UIntN totalCores = getCoreControlStaticCaps(participantIndex, domainIndex).getTotalLogicalProcessors();
+	const UIntN totalOfflineCoreRequest = totalCores - coreControlStatus.getNumActiveLogicalProcessors();
 
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_PROC_NUMBER_OFFLINE_CORES, totalOfflineCoreRequest, domainIndex);
@@ -130,7 +129,7 @@ void DomainCoreControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIn
 	}
 }
 
-void DomainCoreControl_001::onClearCachedData(void)
+void DomainCoreControl_001::onClearCachedData()
 {
 	// Do not delete m_coreControlStatus.  We can't read this from ESIF.  We store it whenever it is 'set' and return
 	// the value when requested.
@@ -152,7 +151,7 @@ std::shared_ptr<XmlNode> DomainCoreControl_001::getXml(UIntN domainIndex)
 	return root;
 }
 
-void DomainCoreControl_001::restore(void)
+void DomainCoreControl_001::restore()
 {
 	try
 	{
@@ -168,12 +167,12 @@ void DomainCoreControl_001::restore(void)
 	}
 }
 
-CoreControlStaticCaps DomainCoreControl_001::createCoreControlStaticCaps(UIntN domainIndex)
+CoreControlStaticCaps DomainCoreControl_001::createCoreControlStaticCaps(UIntN domainIndex) const
 {
 	UInt32 logicalCoreCount = getParticipantServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_PROC_LOGICAL_PROCESSOR_COUNT, domainIndex);
 
-	return CoreControlStaticCaps(logicalCoreCount);
+	return {logicalCoreCount};
 }
 
 CoreControlDynamicCaps DomainCoreControl_001::createCoreControlDynamicCaps(UIntN domainIndex)
@@ -181,12 +180,12 @@ CoreControlDynamicCaps DomainCoreControl_001::createCoreControlDynamicCaps(UIntN
 	UInt32 minActiveCoreLimit = 1;
 	UInt32 maxActiveCoreLimit =
 		getCoreControlStaticCaps(getParticipantIndex(), domainIndex).getTotalLogicalProcessors();
-	return CoreControlDynamicCaps(minActiveCoreLimit, maxActiveCoreLimit);
+	return {minActiveCoreLimit, maxActiveCoreLimit};
 }
 
 void DomainCoreControl_001::verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus)
 {
-	auto caps = getCoreControlDynamicCaps(getParticipantIndex(), domainIndex);
+	const auto caps = getCoreControlDynamicCaps(getParticipantIndex(), domainIndex);
 	if (coreControlStatus.getNumActiveLogicalProcessors() > caps.getMaxActiveCores()
 		|| coreControlStatus.getNumActiveLogicalProcessors() < caps.getMinActiveCores())
 	{
@@ -194,7 +193,7 @@ void DomainCoreControl_001::verifyCoreControlStatus(UIntN domainIndex, const Cor
 	}
 }
 
-std::string DomainCoreControl_001::getName(void)
+std::string DomainCoreControl_001::getName()
 {
 	return "Core Control";
 }

@@ -34,6 +34,19 @@ UInt32 StringConverter::toUInt32(const string& input)
 	return integer;
 }
 
+UInt32 StringConverter::toUInt32(const string& input, UInt32 defaultValue)
+{
+	try
+	{
+		return toUInt32(input);
+	}
+	catch (...)
+	{
+		return defaultValue;
+	}
+}
+
+
 UInt64 StringConverter::toUInt64(const string& input)
 {
 	UInt64 integer(0);
@@ -116,37 +129,68 @@ double StringConverter::toDouble(const string& input)
 	return value;
 }
 
-string StringConverter::toHexString(UInt8 value)
+float StringConverter::toFloat(const string& input)
+{
+	float value(0);
+	istringstream stream(input);
+	stream >> value;
+	if (stream.fail())
+	{
+		throw dptf_exception("Failed to convert string \"" + input + "\" to float value.");
+	}
+	return value;
+}
+
+string StringConverter::toHexString(const UInt8 value)
 {
 	stringstream stream;
 	stream << "0x" << uppercase << hex << (UInt32)value;
 	return stream.str();
 }
 
-string StringConverter::toHexString(UInt16 value)
+string StringConverter::toHexString(const UInt16 value)
 {
 	stringstream stream;
 	stream << "0x" << uppercase << hex << value;
 	return stream.str();
 }
 
-string StringConverter::toHexString(UInt32 value)
+string StringConverter::toHexString(const UInt32 value)
 {
 	stringstream stream;
 	stream << "0x" << uppercase << hex << value;
 	return stream.str();
 }
 
-string StringConverter::toHexString(UInt64 value)
+string StringConverter::toHexString(const UInt64 value)
 {
 	stringstream stream;
 	stream << "0x" << uppercase << hex << value;
 	return stream.str();
 }
 
-std::string StringConverter::clone(const std::string& input)
+string StringConverter::clone(const string& input)
 {
-	std::string clonedString{};
-	for_each(input.begin(), input.end(), [&clonedString](char c){clonedString.push_back(c);});
+	string clonedString{};
+	clonedString.reserve(input.size());
+	for_each(input.begin(), input.end(), [&clonedString](const char c){clonedString.push_back(c);});
 	return clonedString;
+}
+
+string StringConverter::toString(const wstring& input)
+{
+	string result{};
+	result.reserve(input.size());
+	for_each(input.begin(), input.end(), 
+		[&result](const wchar_t c) { result.push_back(static_cast<char>(c)); });
+	return result;
+}
+
+wstring StringConverter::toWideString(const string& input)
+{
+	wstring result{};
+	result.reserve(input.size());
+	for_each(input.begin(), input.end(), 
+		[&result](const char c) { result.push_back(static_cast<wchar_t>(c)); });
+	return result;
 }
