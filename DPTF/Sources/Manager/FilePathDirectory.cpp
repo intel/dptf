@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "FilePathDirectory.h"
+#include "ConfigurationUpdaterFactory.h"
 #include "EsifLibrary.h"
 #include "FileIo.h"
 #include <string>
@@ -29,7 +30,9 @@ FilePathDirectory::FilePathDirectory(const string& logPath)
 	m_paths[Path::InstallFolder] = getInstallPath();
 	m_paths[Path::ConfigurationInstallFolder] = getConfigurationInstallPath();
 	m_paths[Path::ConfigurationOverrideFolder] = getConfigurationOverridePath();
-	m_paths[Path::LogFolder] = IFileIo::generatePathWithTrailingSeparator(logPath);
+	m_paths[Path::ConfigurationUpdaterFolder] = getConfigurationUpdaterPath();
+	m_paths[Path::IpfLogFolder] = IFileIo::generatePathWithTrailingSeparator(logPath);
+	m_paths[Path::DttLogFolder] = getDttLogFolderPath();
 }
 
 string FilePathDirectory::getPath(Path resource) const
@@ -41,6 +44,7 @@ list<string> FilePathDirectory::getConfigurationFilePaths() const
 {
 	return {
 		m_paths.at(Path::ConfigurationInstallFolder),
+		m_paths.at(Path::ConfigurationUpdaterFolder),
 		m_paths.at(Path::ConfigurationOverrideFolder)
 	};
 }
@@ -67,4 +71,24 @@ string FilePathDirectory::getConfigurationInstallPath()
 string FilePathDirectory::getConfigurationOverridePath()
 {
 	return R"(/usr/share/dptf/configuration)";
+}
+
+string FilePathDirectory::getConfigurationUpdaterPath()
+{
+	try
+	{
+		auto configUpdater = ConfigurationUpdaterFactory::make();
+		std::string configurationUpdaterInstallPath =
+			IFileIo::generatePathWithTrailingSeparator(configUpdater->getConfigurationUpdaterPath());
+		return IFileIo::generatePathWithTrailingSeparator(configurationUpdaterInstallPath + "configuration"s);
+	}
+	catch (const exception&)
+	{
+		return "";
+	}
+}
+
+string FilePathDirectory::getDttLogFolderPath()
+{
+		return R"(/var/log/dtt/)";
 }

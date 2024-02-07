@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,9 +27,11 @@ public:
 	enum class Path
 	{
 		InstallFolder,
-		LogFolder,
+		IpfLogFolder,
 		ConfigurationInstallFolder,
-		ConfigurationOverrideFolder
+		ConfigurationOverrideFolder,
+		ConfigurationUpdaterFolder,
+		DttLogFolder
 	};
 
 	FilePathDirectory(const std::string& logPath);
@@ -42,4 +44,6 @@ private:
 	static std::string getInstallPath();
 	static std::string getConfigurationInstallPath();
 	static std::string getConfigurationOverridePath();
+	static std::string getConfigurationUpdaterPath();
+	static std::string getDttLogFolderPath();
 };

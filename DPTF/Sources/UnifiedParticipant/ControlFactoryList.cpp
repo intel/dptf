@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,7 @@
 #include "DomainBatteryStatusFactory.h"
 #include "DomainSocWorkloadClassificationFactory.h"
 #include "DomainDynamicEppFactory.h"
+#include "DomainBiasControlFactory.h"
 using namespace std;
 
 ControlFactoryList::ControlFactoryList(void)
@@ -126,6 +127,8 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
 		return make_shared<DomainSocWorkloadClassificationFactory>();
 	case ControlFactoryType::DynamicEpp:
 		return make_shared<DomainDynamicEppFactory>();
+	case ControlFactoryType::BiasControl:
+		return make_shared<DomainBiasControlFactory>();
 	default:
 		throw dptf_exception("Cannot make control factory for invalid control factory type.");
 	}

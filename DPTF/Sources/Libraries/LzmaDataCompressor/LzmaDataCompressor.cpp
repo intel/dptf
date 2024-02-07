@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,28 +19,26 @@
 #include <stdexcept>
 #include "sdl/sdl.h"
 #include "LzmaDataCompressor.h"
-#include <lzma/LzmaEnc.h>
-#include <lzma/Alloc.h>
+#include "lzma/LzmaEnc.h"
+#include "lzma/Alloc.h"
 #include "lzma/LzmaDec.h"
 using namespace std;
 
+// ReSharper disable once CommentTypo
 /*
  * Hardcoded LZMA Compression Property Values (and their LZMA_SDK v18.01 lzma.exe command line equivalents)
  * Items marked with "##" should never be changed since they affect the 5-byte LZMA Properties Header Signature
  * The following parameters correspond to to the ESIF_COMPRESS_SIGNATURE defined in esif_sdk_iface_compress.h,
  * which always maps to [5D 00 XX XX XX] for -lc3 -lp0 -pb2 and -d12 to -d27 lzma.exe options.
  */
-#define LZMA_PROPS_LEVEL 9 // Compression Level [-a1 = 9]
-#define LZMA_PROPS_DICTSIZE (1 << 24) // Dictionary Size [-d24] ##
-#define LZMA_PROPS_LITCTXBITS 3 // Literal Context Bits [-lc3] ##
-#define LZMA_PROPS_LITPOSBITS 0 // Literal Pos Bits [-lp0] ##
-#define LZMA_PROPS_NUMPOSBITS 2 // Number of Pos Bits [-pb2] ##
-#define LZMA_PROPS_FASTBYTES 128 // Number of Fast Bytes [-fb128]
-#define LZMA_PROPS_THREADS 1 // Number of Threads [-mt1]
+constexpr auto lzmaCompressionLevel = 9; // Compression Level [-a1 = 9]
+constexpr auto lzmaDictionarySize = (1 << 24); // Dictionary Size [-d24] ##
+constexpr auto lzmaLiteralContextBits = 3; // Literal Context Bits [-lc3] ##
+constexpr auto lzmaLiteralPositionBits = 0; // Literal Pos Bits [-lp0] ##
+constexpr auto lzmaNumberOfPositionBits = 2; // Number of Pos Bits [-pb2] ##
+constexpr auto lzmaNumberOfFastBytes = 128; // Number of Fast Bytes [-fb128]
+constexpr auto lzmaNumberOfThreads = 1; // Number of Threads [-mt1]
 
-
-// Standard LZMA File Header
-#define LZMA_PROPS_SIZE 5 // [XX YY YY YY YY] Where XX = Encoded -lc -lp -pb options, YY = Encoded -d option
 #pragma pack(push, 1)
 struct LzmaHeader
 {
@@ -97,7 +95,7 @@ void throwIfReturnCodeError(SRes returnCode)
 	}
 }
 
-void throwIfDataTruncated(size_t destinationLength, const struct LzmaHeader* header)
+void throwIfDataTruncated(size_t destinationLength, const LzmaHeader* header)
 {
 	// Validate Data not Truncated since LzmaDecode returns OK if destLen too small
 	if (destinationLength < header->original_size)
@@ -127,27 +125,27 @@ void throwIfBufferIsEmpty(const vector<unsigned char>& buffer)
 	}
 }
 
-#define LZMA_PADDING_MINSIZE 256 // Minimum Padding Bytes for Compression Buffer
-#define LZMA_PADDING_PERCENT 0.05 // Percent Padding Bytes for Compression Buffer (0.0-1.0)
-#define LZMA_MAX_COMPRESSED_SIZE (((size_t)(-1) >> 1) - 1)
+constexpr auto lzmaMinimumPadding = 256; // Minimum Padding Bytes for Compression Buffer
+constexpr auto lzmaCompressionPadding = 0.05; // Percent Padding Bytes for Compression Buffer (0.0-1.0)
+
 size_t estimateCompressedBufferSize(size_t uncompressedSize)
 {
-	const auto padding = (size_t)(uncompressedSize * LZMA_PADDING_PERCENT);
-	return uncompressedSize + sizeof(struct LzmaHeader)
-		   + (padding < LZMA_PADDING_MINSIZE ? LZMA_PADDING_MINSIZE : padding);
+	const auto padding = static_cast<size_t>(static_cast<double>(uncompressedSize) * lzmaCompressionPadding);
+	return uncompressedSize + sizeof(LzmaHeader)
+		   + (padding < lzmaMinimumPadding ? lzmaMinimumPadding : padding);
 }
 
 CLzmaEncProps createEncodingProperties()
 {
-	CLzmaEncProps props{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	CLzmaEncProps props{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	LzmaEncProps_Init(&props);
-	props.level = LZMA_PROPS_LEVEL;
-	props.dictSize = LZMA_PROPS_DICTSIZE;
-	props.lc = LZMA_PROPS_LITCTXBITS;
-	props.lp = LZMA_PROPS_LITPOSBITS;
-	props.pb = LZMA_PROPS_NUMPOSBITS;
-	props.fb = LZMA_PROPS_FASTBYTES;
-	props.numThreads = LZMA_PROPS_THREADS;
+	props.level = lzmaCompressionLevel;
+	props.dictSize = lzmaDictionarySize;
+	props.lc = lzmaLiteralContextBits;
+	props.lp = lzmaLiteralPositionBits;
+	props.pb = lzmaNumberOfPositionBits;
+	props.fb = lzmaNumberOfFastBytes;
+	props.numThreads = lzmaNumberOfThreads;
 	return props;
 }
 
@@ -158,9 +156,9 @@ vector<unsigned char> createDestinationBuffer(const vector<unsigned char>& sourc
 	return destination;
 }
 
-struct LzmaHeader createDestinationBufferHeader(const vector<unsigned char>& source)
+LzmaHeader createDestinationBufferHeader(const vector<unsigned char>& source)
 {
-	struct LzmaHeader header{0};
+	LzmaHeader header{{0}, 0};
 	header.original_size = source.size();
 	return header;
 }
@@ -184,7 +182,7 @@ vector<unsigned char> LzmaDataCompressor::encode(const vector<unsigned char>& so
 		header.properties,
 		&lzmaOutPropsSize,
 		0,
-		NULL,
+		nullptr,
 		&g_Alloc,
 		&g_Alloc);
 	throwIfReturnCodeError(returnCode);
@@ -199,9 +197,9 @@ vector<unsigned char> LzmaDataCompressor::encode(const vector<unsigned char>& so
 vector<unsigned char> LzmaDataCompressor::decode(const vector<unsigned char>& source) const
 {
 	throwIfBufferIsEmpty(source);
-	const auto header = (struct LzmaHeader*)source.data();
+	const auto header = reinterpret_cast<const struct LzmaHeader*>(source.data());
 	size_t lzmaSrcLen = source.size() - sizeof(*header);
-	size_t destinationLength = (size_t)header->original_size;
+	auto destinationLength = static_cast<size_t>(header->original_size);
 
 	ELzmaStatus statusCode;
 	vector<unsigned char> uncompressedData(destinationLength);

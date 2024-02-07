@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "FileIo.h"
 #include "esif_ccb_file.h"
 #include <fstream>
+#include <filesystem>
 #include <algorithm>
 #include <stdexcept>
 
@@ -51,18 +52,11 @@ bool IFileIo::hasEndingPathSeparator(const string& folderPath)
 
 string IFileIo::getCommonSeparator(const string& folderPath)
 {
-	if (folderPath.find_first_of(separatorForward, 0) != string::npos)
-	{
-		return separatorForward;
-	}
-	else if (folderPath.find_first_of(separatorBackward, 0) != string::npos)
+	if (folderPath.find_first_of(separatorBackward, 0) != string::npos)
 	{
 		return separatorBackward;
 	}
-	else
-	{
-		return separatorForward;
-	}
+	return separatorForward;
 }
 
 bool IFileIo::fileNameContainsIllegalCharacters(const string& fileName)
@@ -147,7 +141,7 @@ string IFileIo::getFileNameFromPath(const string& filePath)
 
 string IFileIo::getFileNameWithoutExtensionFromPath(const string& filePath)
 {
-	const auto fileName = getFileNameFromPath(filePath);
+	auto fileName = getFileNameFromPath(filePath);
 	const auto pos = fileName.find_last_of('.');
 	if (pos != string::npos)
 	{
@@ -171,14 +165,31 @@ void FileIo::write(const string& filePath, const vector<unsigned char>& data) co
 {
 	ofstream fileStream{filePath, ios::binary};
 	throwIfFileCannotBeOpened(fileStream);
-	fileStream.write((char*)data.data(), data.size());
+	fileStream.write(reinterpret_cast<const char*>(data.data()), static_cast<streamsize>(data.size()));
 }
 
 void FileIo::write(const string& filePath, const string& data) const
 {
 	ofstream fileStream{filePath, ios::binary};
 	throwIfFileCannotBeOpened(fileStream);
-	fileStream.write((const char*)data.data(), data.size());
+	fileStream.write(data.data(), static_cast<streamsize>(data.size()));
+}
+
+void FileIo::append(const string& filePath, const string& data) const
+{
+	ofstream fileStream{ filePath, ios::binary | ios::app};
+	throwIfFileCannotBeOpened(fileStream);
+	fileStream.write(data.c_str(), static_cast<streamsize>(data.size()));
+}
+
+bool FileIo::pathExists(const string& path) const
+{
+	return filesystem::exists(path);
+}
+
+void FileIo::createDirectoryPath(const string& filePath) const
+{
+	filesystem::create_directories(filePath);
 }
 
 list<string> FileIo::enumerateFiles(const string& filePath, const string& filter) const
@@ -190,7 +201,7 @@ list<string> FileIo::enumerateFiles(const string& filePath, const string& filter
 	esif_ccb_file file{};
 	esif_ccb_memset(file.filename, 0, sizeof(file.filename));
 	const esif_ccb_file_enum_t fileHandle = esif_ccb_file_enum_first(path, pattern, &file);
-	if (fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
+	if (fileHandle == nullptr)
 	{
 		return {};
 	}
@@ -213,15 +224,12 @@ unsigned int FileIo::getFileLength(ifstream& fileStream)
 {
 	if (fileStream)
 	{
-		fileStream.seekg(0, fileStream.end);
-		const auto length = fileStream.tellg();
-		fileStream.seekg(0, fileStream.beg);
-		return (unsigned int)length;
+		fileStream.seekg(0, ifstream::end);
+		const auto length = static_cast<unsigned int>(fileStream.tellg());
+		fileStream.seekg(0, ifstream::beg);
+		return length;
 	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 void FileIo::throwIfFileCannotBeOpened(const ios& fileStream)

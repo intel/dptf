@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 using namespace std;
 
 DataEncoder::DataEncoder(shared_ptr<DataCompressor> compressor)
-	: m_compressor(compressor)
+	: IDataEncoder(), m_compressor(move(compressor))
 {
 }
 
@@ -74,7 +74,7 @@ DttConfigurationHeaderV0 DataEncoder::createHeaderUncompressed(const vector<unsi
 vector<unsigned char> DataEncoder::createByteStreamFromHeader(const DttConfigurationHeaderV0& header)
 {
 	DttConfigurationHeaderV0 headerCopy = header;
-	const unsigned char* headerData = (unsigned char*)&headerCopy;
+	const unsigned char* headerData = reinterpret_cast<unsigned char*>(&headerCopy);
 	vector<unsigned char> headerBytes(sizeof(header));
 	for (size_t i = 0; i < sizeof(header); ++i)
 	{

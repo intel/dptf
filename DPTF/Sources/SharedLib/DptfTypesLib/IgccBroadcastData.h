@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,9 +41,31 @@ namespace EnduranceGamingStatus
 		EnduranceGamingFeatureEnabled = 6,
 		EnduranceGamingErrorInvalidPpm = 7
 	};
+
+	inline std::string toString(Type status)
+	{
+		switch (status)
+		{
+		case EnduranceGamingOff:
+			return "EnduranceGamingOff";
+		case EnduranceGamingOn:
+			return "EnduranceGamingOn";
+		case EnduranceGamingErrorFailSetPpm:
+			return "EnduranceGamingErrorFailSetPpm";
+		case EnduranceGamingErrorAC:
+			return "EnduranceGamingErrorAC";
+		case EnduranceGamingFeatureDisabled:
+			return "EnduranceGamingFeatureDisabled";
+		case EnduranceGamingErrorNoHeartBeat:
+			return "EnduranceGamingErrorNoHeartBeat";
+		case EnduranceGamingFeatureEnabled:
+			return "EnduranceGamingFeatureEnabled";
+		case EnduranceGamingErrorInvalidPpm:
+			return "EnduranceGamingErrorInvalidPpm";
+		}
+		return "Unknown";
+	}
 }
-
-
 
 namespace IgccBroadcastData
 {

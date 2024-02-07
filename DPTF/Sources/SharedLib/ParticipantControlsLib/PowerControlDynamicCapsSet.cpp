@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -109,8 +109,6 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 
 UIntN PowerControlDynamicCapsSet::getPpccDataRows(const DptfBuffer& buffer)
 {
-	auto data = buffer.get();
-	data += sizeof(esif_data_variant); // Ignore revision field
 
 	if (buffer.size() == 0)
 	{

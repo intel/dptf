@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -280,7 +280,7 @@ void Participant::clearArbitrationDataForPolicy(UIntN policyIndex)
 {
 	for (const auto& [id, domain] : m_domains)
 	{
-		if (domain != nullptr)
+		if (domain != nullptr && domain->isCreated())
 		{
 			domain->clearArbitrationDataForPolicy(policyIndex);
 		}
@@ -1200,6 +1200,12 @@ void Participant::clearPowerLimit(UIntN domainIndex, UIntN policyIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->clearPowerLimit(policyIndex);
+}
+
+void Participant::clearCachedPowerLimits(UIntN domainIndex, UIntN policyIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->clearCachedPowerLimits(policyIndex);
 }
 
 void Participant::setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock)

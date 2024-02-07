@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -664,7 +664,7 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 		ESIF_TRACE_INFO("\n"
 			"Received DOMAIN event\n"
 			"  Type:          %s(%d)\n"
-			"  Participant:   " ESIF_HANDLE_FMT "\n",
+			"  Participant:   " ESIF_HANDLE_FMT "\n"
 			"  Domain Handle: " ESIF_HANDLE_FMT "\n",
 			esif_event_type_str(eventType), eventType,
 			esif_ccb_handle2llu(localParticipantId),

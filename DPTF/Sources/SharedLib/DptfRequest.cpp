@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,6 +57,14 @@ DptfRequest::DptfRequest(
 	: m_requestType(requestType)
 	, m_participantIndex(participantIndex)
 	, m_domainIndex(domainIndex)
+	, m_data(data)
+{
+}
+
+DptfRequest::DptfRequest(DptfRequestType::Enum requestType, const DptfBuffer& data)
+	: m_requestType(requestType)
+	, m_participantIndex(Constants::Invalid)
+	, m_domainIndex(Constants::Invalid)
 	, m_data(data)
 {
 }

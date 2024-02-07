@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 #include <stdlib.h>
 
 // Current IPF SDK Version: Major.Minor.Revision where same Major.Minor compatible with other Revisions, but not newer Major.Minor
-#define IPF_SDK_VERSION		"1.0.11402"
+#define IPF_SDK_VERSION		"1.0.11599"
 
 typedef u64 ipfsdk_version_t;	// IPF SDK Encoded Version Number
 

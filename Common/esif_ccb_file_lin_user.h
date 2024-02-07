@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,7 +43,7 @@
 #define esif_ccb_unlink(fname)                      unlink(fname)
 #define esif_ccb_rename(oldname, newname)           rename(oldname, newname)
 #define esif_ccb_rmdir(dir)                         rmdir(dir)
-#define esif_ccb_mkdir(dir)                         mkdir(dir, 755)
+#define esif_ccb_mkdir(dir)                         mkdir(dir, 0755)
 
 // Is the file or folder a symbolic link?
 static ESIF_INLINE Bool esif_ccb_issymlink(const char* pathname)

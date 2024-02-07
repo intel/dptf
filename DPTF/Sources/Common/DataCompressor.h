@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,11 @@
 class DataCompressor
 {
 public:
+	DataCompressor() = default;
+	DataCompressor(const DataCompressor& other) = default;
+	DataCompressor(DataCompressor&& other) noexcept = default;
+	DataCompressor& operator=(const DataCompressor& other) = default;
+	DataCompressor& operator=(DataCompressor&& other) noexcept = default;
 	virtual ~DataCompressor() = default;
 	virtual std::vector<unsigned char> encode(const std::vector<unsigned char>& data) const = 0;
 	virtual std::vector<unsigned char> decode(const std::vector<unsigned char>& data) const = 0;

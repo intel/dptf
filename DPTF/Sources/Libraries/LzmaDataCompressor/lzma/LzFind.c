@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* LzFind.c -- Match finder for LZ algorithms
 2021-11-29 : Igor Pavlov : Public domain */
 

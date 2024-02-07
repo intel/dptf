@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -126,6 +126,10 @@ void DomainControlList::makeAllControls()
 		ControlFactoryType::DynamicEpp,
 		makeControl<DomainDynamicEppBase>(
 			ControlFactoryType::DynamicEpp, m_domainFunctionalityVersions.dynamicEppVersion)));
+	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
+		ControlFactoryType::BiasControl,
+		makeControl<DomainBiasControlBase>(
+			ControlFactoryType::BiasControl, m_domainFunctionalityVersions.biasControlVersion)));
 }
 
 template <typename T>
@@ -327,6 +331,11 @@ std::shared_ptr<DomainSocWorkloadClassificationBase> DomainControlList::getSocWo
 std::shared_ptr<DomainDynamicEppBase> DomainControlList::getDynamicEppControl()
 {
 	return dynamic_pointer_cast<DomainDynamicEppBase>(m_controlList.at(ControlFactoryType::DynamicEpp));
+}
+
+std::shared_ptr<DomainBiasControlBase> DomainControlList::getBiasControl()
+{
+	return dynamic_pointer_cast<DomainBiasControlBase>(m_controlList.at(ControlFactoryType::BiasControl));
 }
 
 std::shared_ptr<ParticipantServicesInterface> DomainControlList::getParticipantServices() const

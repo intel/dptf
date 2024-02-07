@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 
 #include "WIPolicyOperatingSystemPowerSourceChanged.h"
 #include "PolicyManagerInterface.h"
-#include "EsifServicesInterface.h"
 #include "SystemModeManager.h"
+#include "EventPayloadOperatingSystemPowerSourceType.h"
 
 WIPolicyOperatingSystemPowerSourceChanged::WIPolicyOperatingSystemPowerSourceChanged(
 	DptfManagerInterface* dptfManager,
@@ -29,24 +29,22 @@ WIPolicyOperatingSystemPowerSourceChanged::WIPolicyOperatingSystemPowerSourceCha
 {
 }
 
-WIPolicyOperatingSystemPowerSourceChanged::~WIPolicyOperatingSystemPowerSourceChanged(void)
-{
-}
-
-void WIPolicyOperatingSystemPowerSourceChanged::onExecute(void)
+void WIPolicyOperatingSystemPowerSourceChanged::onExecute()
 {
 	writeWorkItemStartingInfoMessage();
 
-	auto policyManager = getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
+	const auto policyManager = getPolicyManager();
+	const auto policyIndexes = policyManager->getPolicyIndexes();
 
 	getDptfManager()->getEventCache()->powerSource.set(m_powerSource);
+	getDptfManager()->getEventNotifier()->notify(
+		getFrameworkEventType(), EventPayloadOperatingSystemPowerSourceType(m_powerSource));
 
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+	for (const auto policyId : policyIndexes)
 	{
 		try
 		{
-			auto policy = policyManager->getPolicyPtr(*i);
+			const auto policy = policyManager->getPolicyPtr(policyId);
 			policy->executePolicyOperatingSystemPowerSourceChanged(m_powerSource);
 		}
 		catch (policy_index_invalid&)
@@ -55,13 +53,13 @@ void WIPolicyOperatingSystemPowerSourceChanged::onExecute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPowerSourceChanged", *i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPowerSourceChanged", policyId);
 		}
 	}
 
 	try
 	{
-		auto systemModeManager = getDptfManager()->getSystemModeManager();
+		const auto systemModeManager = getDptfManager()->getSystemModeManager();
 		if (systemModeManager != nullptr)
 		{
 			systemModeManager->executeOperatingSystemPowerSourceChanged(m_powerSource);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,40 +18,59 @@
 
 #include "OsPowerSource.h"
 
+using namespace std;
+
 namespace OsPowerSource
 {
-	std::string toString(OsPowerSource::Type osPowerSource)
+	std::string toString(Type osPowerSource)
 	{
 		switch (osPowerSource)
 		{
 		case AC:
-			return "AC";
+			return "AC"s;
 		case DC:
-			return "DC";
+			return "DC"s;
 		case ShortTermDC:
-			return "Short Term DC";
+			return "Short Term DC"s;
 		case Invalid:
-			return "Invalid";
+			return Constants::InvalidString;
 		default:
-			throw dptf_exception("OsPowerSource::Type is invalid");
+			throw dptf_exception("OsPowerSource::Type is invalid"s);
 		}
 	}
 
-	OsPowerSource::Type fromString(std::string osPowerSource)
+	Type fromString(const std::string& osPowerSource)
 	{
-		if (osPowerSource == toString(OsPowerSource::AC))
+		if (osPowerSource == toString(AC))
 		{
-			return OsPowerSource::AC;
-		}
-		else if (osPowerSource == toString(OsPowerSource::DC))
-		{
-			return OsPowerSource::DC;
-		}
-		else if (osPowerSource == toString(OsPowerSource::ShortTermDC))
-		{
-			return OsPowerSource::ShortTermDC;
+			return AC;
 		}
 
-		return OsPowerSource::Invalid;
+		if (osPowerSource == toString(DC))
+		{
+			return DC;
+		}
+
+		if (osPowerSource == toString(ShortTermDC))
+		{
+			return ShortTermDC;
+		}
+
+		return Invalid;
+	}
+
+	Type fromUInt32(const UInt32& value)
+	{
+		switch (value)
+		{
+		case AC:
+			return AC;
+		case DC:
+			return DC;
+		case ShortTermDC:
+			return ShortTermDC;
+		default:
+			return Invalid;
+		}
 	}
 }

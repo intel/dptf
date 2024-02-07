@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,7 @@ namespace OsPowerSource
 		Invalid
 	};
 
-	std::string toString(OsPowerSource::Type osPowerSource);
-	OsPowerSource::Type fromString(std::string osPowerSource);
+	std::string toString(Type osPowerSource);
+	Type fromString(const std::string& osPowerSource);
+	Type fromUInt32(const UInt32& value);
 }

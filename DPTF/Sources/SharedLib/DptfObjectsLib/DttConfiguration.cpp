@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -117,6 +117,20 @@ vector<DttConfigurationSegment> DttConfiguration::getSegmentsWithAllProperties(
 	return segments;
 }
 
+vector<DttConfigurationSegment> DttConfiguration::getSegmentsWithAllPropertiesIncludingEmpty(
+	const set<DttConfigurationProperty>& properties) const
+{
+	vector<DttConfigurationSegment> segments;
+	for (const auto& segment : m_segments)
+	{
+		if (segment.hasPropertiesIncludingEmptyValue(properties))
+		{
+			segments.emplace_back(segment);
+		}
+	}
+	return segments;
+}
+
 vector<DttConfigurationSegment> DttConfiguration::getSegmentsWithEnvironmentProfile(
 	const EnvironmentProfile& environmentProfile) const
 {
@@ -201,7 +215,7 @@ string DttConfiguration::toActiveConfigurationString(
 	if (!matchedDataSegments.empty())
 	{
 		const auto matchedDataSegment = matchedDataSegments.front();
-		auto formattedJsonText = matchedDataSegment.toString();
+		auto formattedJsonText = matchedDataSegment.toKeyValueString();
 		string regexMatchedEntry;
 
 		while (formattedJsonText.find(CONFIGDB_ENTRY_DELIMITER) != string::npos)
@@ -241,6 +255,7 @@ void DttConfiguration::combineWithDefaultSegments(
 		DttConfigurationSegment defaultSuperSet;
 		for (const auto& segment : defaultSegments)
 		{
+			existingSegments.erase(remove(existingSegments.begin(), existingSegments.end(), segment));
 			defaultSuperSet = defaultSuperSet + segment;
 		}
 
@@ -248,5 +263,7 @@ void DttConfiguration::combineWithDefaultSegments(
 		{
 			segment = defaultSuperSet + segment;
 		}
+
+		existingSegments.emplace_back(defaultSuperSet);
 	}
 }

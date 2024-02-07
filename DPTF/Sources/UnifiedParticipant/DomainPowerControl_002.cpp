@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -444,6 +444,15 @@ void DomainPowerControl_002::clearPowerLimit(UIntN participantIndex, UIntN domai
 	constexpr UInt32 unusedValue = 0;
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_CLEAR, unusedValue, domainIndex);
+}
+
+void DomainPowerControl_002::clearCachedPowerLimits(UIntN participantIndex, UIntN domainIndex)
+{
+	UNREFERENCED_PARAMETER(participantIndex);
+	UNREFERENCED_PARAMETER(domainIndex);
+	m_pl1Limit.invalidate();
+	m_pl2Limit.invalidate();
+	m_pl4Limit.invalidate();
 }
 
 void DomainPowerControl_002::setAndUpdateEnabled(PowerControlType::Type controlType)

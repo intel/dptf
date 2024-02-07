@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -403,7 +403,8 @@ eEsifError EsifUpPm_RegisterParticipant(
 			/*
 			* If participant is being replaced, we need to destroy any conjured LF part
 			*/
-			if ((eParticipantOriginLF == EsifUp_GetOrigin(tempUpPtr)) &&
+			if (!DoesPartNameMatchMetadata(tempUpPtr, origin, metadataPtr) &&
+				(eParticipantOriginLF == EsifUp_GetOrigin(tempUpPtr)) &&
 				(ESIF_PARTICIPANT_ENUM_CONJURE == EsifUp_GetEnumerator(tempUpPtr)))
 			{
 				/* Set name to destroy */
@@ -521,6 +522,7 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	EsifLpData *lpCreationDataPtr = NULL;
 	EsifParticipantIface *upCreationDataPtr = NULL;
 	esif_handle_t newInstance = ESIF_INVALID_HANDLE;
+	EsifUpPtr upPtr = NULL;
 
 	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(domainId);
@@ -558,6 +560,14 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 				goto exit;
 			}
 
+			/*
+			* IPTF-6737: If the IETM is re-created due to removal and then restoration in Device Manager,
+			* resume dynamic participants which may have been suspended during removal
+			*/
+			if (ESIF_HANDLE_PRIMARY_PARTICIPANT == newInstance) {
+				EsifUpPm_ResumeDynamicUfParticipants();
+			}
+
 			ESIF_TRACE_INFO("\nCreated new LF participant: %s, instance = %d\n", lpCreationDataPtr->name, newInstance);
 			break;
 
@@ -581,7 +591,6 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 				ESIF_TRACE_INFO("\nRequest sent for LF participant: %s, instance = %d\n", upCreationDataPtr->name, newInstance);
 			}
 			break;
-
 		default:
 			rc = ESIF_E_NOT_SUPPORTED;
 			break;
@@ -628,8 +637,20 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	case ESIF_EVENT_DISPLAY_OFF:
 			EsifUpPm_StartAllParticipantsSlowPoll();
 		break;
+
 	case ESIF_EVENT_DISPLAY_ON:
 			EsifUpPm_StopAllParticipantsSlowPoll();
+		break;
+
+	case ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE:
+		if (!g_uppMgr.fCpuArrived) {
+			upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+			if (upPtr) {
+				g_uppMgr.fCpuArrived = ESIF_TRUE;
+				esif_ccb_cpu_arrival_init();
+			}
+			EsifUp_PutRef(upPtr);
+		}
 		break;
 
 	default:
@@ -973,6 +994,7 @@ static void EsifUpPm_SuspendDynamicUfParticipants()
 	ESIF_TRACE_INFO("Suspending all dynamic participants\n");
 
 	for (i = ESIF_PARTICIPANT0_INDEX + 1; i < MAX_PARTICIPANT_ENTRY; i++) {
+		participantId = ESIF_INVALID_HANDLE;
 
 		esif_ccb_read_lock(&g_uppMgr.fLock);
 		upPtr = g_uppMgr.fEntries[i].fUpPtr;
@@ -1002,6 +1024,7 @@ static void EsifUpPm_ResumeDynamicUfParticipants()
 	ESIF_TRACE_INFO("Resuming all dynamic participants\n");
 
 	for (i = ESIF_PARTICIPANT0_INDEX + 1; i < MAX_PARTICIPANT_ENTRY; i++) {
+		participantId = ESIF_INVALID_HANDLE;
 
 		esif_ccb_read_lock(&g_uppMgr.fLock);
 		upPtr = g_uppMgr.fEntries[i].fUpPtr;
@@ -1767,6 +1790,7 @@ eEsifError EsifUpPm_Init(void)
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_ON, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -1788,6 +1812,7 @@ void EsifUpPm_Exit(void)
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_ON, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 
 	/* Clean up resources */
 	EsifUpPm_DestroyParticipants();
@@ -1814,8 +1839,13 @@ eEsifError EsifUpPm_DestroyParticipant(char *participantName)
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
 		entryPtr = &g_uppMgr.fEntries[i];
 
-		// Destroy Participant if Name=NULL or the name matches
-		if ((participantName == NULL) || (entryPtr->fUpPtr && esif_ccb_stricmp(participantName, entryPtr->fUpPtr->fMetadata.fName) == 0)) {
+		//
+		// Destroy participant if destroying all participants (name==NULL)
+		// or the name matches participants other than IETM
+		//
+		if ((participantName == NULL) || 
+			((entryPtr->fUpPtr && esif_ccb_stricmp(participantName, entryPtr->fUpPtr->fMetadata.fName) == 0) &&
+			 (!EsifUp_IsPrimaryParticipant(entryPtr->fUpPtr)))) {
 			rc = ESIF_OK;
 			
 			if (NULL != entryPtr->fUpPtr) {

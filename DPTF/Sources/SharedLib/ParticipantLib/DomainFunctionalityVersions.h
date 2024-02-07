@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,6 +55,7 @@ struct DomainFunctionalityVersions final
 	UInt8 socWorkloadClassificationVersion;
 	UInt8 managerControlVersion;
 	UInt8 dynamicEppVersion;
+	UInt8 biasControlVersion;
 
 	Bool operator==(const DomainFunctionalityVersions& domainFunctionality);
 	Bool operator!=(const DomainFunctionalityVersions& domainFunctionality);

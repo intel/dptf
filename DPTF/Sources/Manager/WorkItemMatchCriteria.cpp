@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -116,4 +116,14 @@ Bool WorkItemMatchCriteria::testAgainstMatchList(
 	}
 
 	return true;
+}
+
+Bool WorkItemMatchCriteria::operator==(const WorkItemMatchCriteria& rhs) const
+{
+	return (m_participantIndex == rhs.m_participantIndex
+		&& m_domainIndex == rhs.m_domainIndex
+		&& m_frameworkEventType == rhs.m_frameworkEventType
+		&& m_policyIndex == rhs.m_policyIndex
+		&& m_uniqueId == rhs.m_uniqueId
+	);
 }

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -190,7 +190,7 @@ typedef struct IpAlignmentSettings_s {
 	u32 setTriggerSource;	// 1 - Indicates KPE should accept trigger source role,
 							// false 0 - By default
 	u32 eventCadence;		// Unit: microseconds, e.g. 10000 for 10ms
-	u64 eventStartTime;		// Absolute timestamp in micro-seconds (Based on KeQueryPerformanceCounter/QueryPerformanceCounter)
+	u64 eventLastSyncTime;	// Absolute timestamp in ticks (Based on KeQueryPerformanceCounter)
 } IpAlignmentSettings, *IpAlignmentSettingsPtr;
 
 
@@ -256,7 +256,7 @@ typedef struct IpAlignmentEventArg_s {
 	u32 version;					// Must be set to IP_ALIGNMENT_EVENT_STRUCTURE
 	u32 ipAlignmentState;			// IP_ALIGNMENT_STOPPED/STARTED
 	u32 ipAlignmentCadence;			// Unit: microseconds
-	u64 ipAlignmentLastSyncTime;	// Timestamp in micro-seconds (based on KeQueryPerformanceCounter)
+	u64 ipAlignmentLastSyncTime;	// Timestamp in ticks (based on KeQueryPerformanceCounter)
 } IpAlignmentEventArg;
 
 

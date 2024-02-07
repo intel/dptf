@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -377,7 +377,9 @@ void DataManager::loadTableObjectMap()
 	loadDynamicIdspTableObject();
 	loadEpotTableObject();
 	loadItmtTableObject();
+	loadItmt3TableObject();
 	loadOdvpTableObject();
+	loadOpbtTableObject();
 	loadPbatTableObject();
 	loadPbctTableObject();
 	loadPbmtTableObject();
@@ -387,6 +389,7 @@ void DataManager::loadTableObjectMap()
 	loadPsvtTableObject();
 	loadRfimTableObject();
 	loadSwOemVariablesTableObject();
+	loadScftTableObject();
 	loadTpgaTableObject();
 	loadTrtTableObject();
 	loadVsctTableObject();
@@ -561,13 +564,45 @@ void DataManager::loadItmtTableObject()
 		  revisionsUsingEsifDataVariant}});
 }
 
+void DataManager::loadItmt3TableObject()
+{
+	auto dataVaultString =
+		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Itmt3);
+	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Itmt3);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+	set<UInt64> revisionsUsingEsifDataVariant = { 0 };
+	map<UInt64, vector<TableObjectField>> fieldsMap;
+	
+	fieldsMap.insert(
+		{ 1,
+		 {{"fld1", "fld1", ESIF_DATA_STRING},
+		  {"fld2", "fld2", ESIF_DATA_UINT64, false, 8},
+		  {"fld3", "fld3", ESIF_DATA_UINT64, false, 8},
+		  {"fld4", "fld4", ESIF_DATA_STRING},
+		  {"fld5", "fld5", ESIF_DATA_STRING},
+		  {"fld6", "fld6", ESIF_DATA_STRING},
+		  {"fld7", "fld7", ESIF_DATA_UINT64, false, 8},
+		  {"fld8", "fld8", ESIF_DATA_UINT64, false, 8},
+		  {"fld9", "fld9", ESIF_DATA_UINT64, false, 8}} });
+
+	m_tableObjectMap.insert(
+		{ TableObjectType::Itmt3,
+		 {TableObjectType::Itmt3,
+		  fieldsMap,
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}},
+		  revisionsUsingEsifDataVariant} });
+}
+
 void DataManager::loadEpotTableObject()
 {
 	auto dataVaultString =
 		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Epot);
 	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Epot);
 	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
-	set<UInt64> revisionsUsingEsifDataVariant = {1, 2, 3};
+	set<UInt64> revisionsUsingEsifDataVariant = {1, 2, 3, 4};
 	map<UInt64, vector<TableObjectField>> fieldsMap;
 
 	fieldsMap.insert(
@@ -586,6 +621,13 @@ void DataManager::loadEpotTableObject()
 
 	fieldsMap.insert(
 		{3,
+		 {{"fld1", "fld1", ESIF_DATA_STRING},
+		  {"fld2", "fld2", ESIF_DATA_STRING},
+		  {"fld3", "fld3", ESIF_DATA_UINT64},
+		  {"fld4", "fld4", ESIF_DATA_UINT64}}});
+
+	fieldsMap.insert(
+		{4,
 		 {{"fld1", "fld1", ESIF_DATA_STRING},
 		  {"fld2", "fld2", ESIF_DATA_STRING},
 		  {"fld3", "fld3", ESIF_DATA_UINT64},
@@ -1023,6 +1065,32 @@ void DataManager::loadOdvpTableObject()
 		  false}});
 }
 
+void DataManager::loadOpbtTableObject()
+{
+	auto dataVaultString =
+		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Opbt);
+	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Opbt);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+	set<UInt64> revisionsUsingEsifDataVariant = { 0 };
+	map<UInt64, vector<TableObjectField>> fieldsMap;
+	fieldsMap.insert(
+		{ 1,
+			{{"fld1", "fld1", ESIF_DATA_STRING},
+			{"fld2", "fld2", ESIF_DATA_STRING},
+			{"fld3", "fld3", ESIF_DATA_UINT64, false, 8}}
+		});
+
+	m_tableObjectMap.insert(
+		{ TableObjectType::Opbt,
+		 {TableObjectType::Opbt,
+		  fieldsMap,
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}},
+		  revisionsUsingEsifDataVariant} });
+}
+
 void DataManager::loadPidaTableObject()
 {
 	auto dataVaultString =
@@ -1129,4 +1197,76 @@ void DataManager::loadRfimTableObject()
 		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
 		  {{DataVaultType::Override, dataVaultString}},
 		  revisionsUsingEsifDataVariant}});
+}
+
+void DataManager::loadScftTableObject()
+{
+	auto dataVaultString =
+		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Scft);
+	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Scft);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+	set<UInt64> revisionsUsingEsifDataVariant = { 0 };
+	map<UInt64, vector<TableObjectField>> fieldsMap;
+	fieldsMap.insert(
+		{2,
+		 {{"fld1", "fld1", ESIF_DATA_STRING},
+		  {"fld2", "fld2", ESIF_DATA_UINT64, false, 8}, 
+		  {"fld3", "fld3", ESIF_DATA_STRING}, 
+		  {"fld4", "fld4", ESIF_DATA_UINT64, false, 8}, 
+		  {"fld5", "fld5", ESIF_DATA_STRING}, 
+		  {"fld6", "fld6", ESIF_DATA_UINT64, false, 8}}});
+
+	fieldsMap.insert(
+		{ 3,
+		 {{"fld1", "fld1", ESIF_DATA_STRING},
+		  {"fld2", "fld2", ESIF_DATA_UINT64, false, 8},
+		  {"fld3", "fld3", ESIF_DATA_STRING},
+		  {"fld4", "fld4", ESIF_DATA_UINT64, false, 8},
+		  {"fld3", "fld3", ESIF_DATA_STRING},
+		  {"fld4", "fld4", ESIF_DATA_UINT64, false, 8},
+		  {"fld5", "fld5", ESIF_DATA_STRING},
+		  {"fld6", "fld6", ESIF_DATA_UINT64, false, 8}} });
+
+	m_tableObjectMap.insert(
+		{ TableObjectType::Scft,
+		 {TableObjectType::Scft,
+		  fieldsMap,
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}},
+		  revisionsUsingEsifDataVariant} });
+}
+
+string DataManager::getActiveTableName(TableObjectType::Type tableObjectType)
+{
+	string tableName = "Default";
+	const string tableNameSearch =
+		DataVaultPathBasePaths::TablesRoot + "/" + TableObjectType::ToString(tableObjectType) + "/*";
+	
+	try
+	{
+		const auto tablesFromDv = m_dptfManager->getEsifServices()->readConfigurationString(
+			DataVaultType::ToString(DataVaultType::Dptf), tableNameSearch);
+		const vector<string> tableKeys = StringParser::split(tablesFromDv, '|');
+
+		const auto tableInUse = getTableObject(tableObjectType, Constants::EmptyString, Constants::Invalid).getData();
+
+		for (const auto& keyPath : tableKeys)
+		{
+			const auto tableSaved =
+				getTableObjectBasedOnAlternativeDataSourceAndKey(tableObjectType, DataVaultType::Dptf, keyPath)
+					.getData();
+
+			if (tableSaved == tableInUse)
+			{
+				return StringParser::split(keyPath, '/').back();
+			}
+		}
+	}
+	catch (...)
+	{
+	}
+
+	return tableName;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,12 +31,12 @@ typedef struct DttConfigurationHeader_s
 
 namespace DttConfigurationHeaderFlagMasks
 {
-	static const unsigned short compression = 0x0001;
+	static constexpr unsigned short compression = 0x0001;
 }
 
 namespace DttConfigurationHeaderSignature
 {
-	static const unsigned short value = 0xD07F;
+	static constexpr unsigned short value = 0xD07F;
 }
 
 class DataFormat

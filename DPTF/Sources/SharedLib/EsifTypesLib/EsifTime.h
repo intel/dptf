@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,15 +24,15 @@ class EsifTime final
 {
 public:
 	// Creates a new instance of EsifTime initialized to the current time.
-	EsifTime(void);
+	EsifTime();
 
 	// sets the internal structure to the current time.
-	void refresh(void);
+	void refresh();
 
 	// returns the internal time stamp
-	const TimeSpan& getTimeStamp(void) const;
+	const TimeSpan& getTimeStamp() const;
 
-	tm getLocalTime(void);
+	tm getLocalTime() const;
 
 	Bool operator==(const EsifTime& rhs) const;
 	Bool operator!=(const EsifTime& rhs) const;
@@ -44,7 +44,7 @@ public:
 
 private:
 	TimeSpan m_timeStamp; // stores time stamp for fixed point in time
-	tm m_localTime;
+	tm m_localTime{};
 
-	TimeSpan getCurrentTime(void);
+	TimeSpan getCurrentTime() const;
 };

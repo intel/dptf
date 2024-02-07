@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 **
 ******************************************************************************/
 
+#include <memory>
+#include <string>
 #include "DptfManager.h"
 #include "EsifServices.h"
 #include "WorkItemQueueManager.h"
@@ -26,13 +28,13 @@
 #include "esif_sdk_iface_app.h"
 #include "EsifDataString.h"
 #include "EsifAppServices.h"
-#include <memory>
-#include <string>
+#include "ApplicationTimerSettings.h"
 #include "HelpCommand.h"
 #include "DiagCommand.h"
 #include "ReloadCommand.h"
 #include "TableObjectCommand.h"
 #include "ConfigCommand.h"
+#include "LogCommand.h"
 #include "ManagerLogger.h"
 #include "PlatformRequestHandler.h"
 #include "DataManager.h"
@@ -40,18 +42,23 @@
 #include "UiCommand.h"
 #include "CaptureCommand.h"
 #include "DttConfiguration.h"
+#include "ManagerMessage.h"
 #include "PlatformCpuIdCommand.h"
 #include "RealEnvironmentProfileGenerator.h"
 #include "PoliciesCommand.h"
 #include "RealEnvironmentProfileUpdater.h"
 #include "RealEventNotifier.h"
+#include "RealTimeStampGenerator.h"
+#include "ExportCommand.h"
+#include "ScenarioModePublisher.h"
+#include "ScenarioModePublisherFactory.h"
 
 using namespace std;
 
 const string DttConfigurationName{"dtt"s};
-const DttConfigurationQuery DttConfigurationDefaultPoliciesQuery{"/DefaultPolicies/.*"s};
+const DttConfigurationQuery DttConfigurationDefaultPoliciesQuery{"/Configuration/DefaultPolicies/.*"s};
 
-DptfManager::DptfManager(void)
+DptfManager::DptfManager()
 	: m_dptfManagerCreateStarted(false)
 	, m_dptfManagerCreateFinished(false)
 	, m_dptfShuttingDown(false)
@@ -63,11 +70,12 @@ DptfManager::DptfManager(void)
 	, m_policyManager(nullptr)
 	, m_participantManager(nullptr)
 	, m_commandDispatcher(nullptr)
-	, m_commands()
 	, m_indexContainer(nullptr)
 	, m_dataManager(nullptr)
 	, m_systemModeManager(nullptr)
+	, m_scenarioModePublisher(nullptr)
 	, m_fileIo(nullptr)
+	, m_timeStampGenerator(nullptr)
 {
 }
 
@@ -87,7 +95,7 @@ void DptfManager::createDptfManager(
 	try
 	{
 		createBasicObjects(dptfHomeDirectoryPath, currentLogVerbosityLevel, dptfEnabled);
-		createBasicServices(esifHandle, esifInterfacePtr, currentLogVerbosityLevel);
+		createServices(esifHandle, esifInterfacePtr, currentLogVerbosityLevel);
 		createCommands();
 		createPolicies();
 		registerForEvents();
@@ -122,6 +130,7 @@ void DptfManager::createBasicObjects(
 	m_dptfEnabled = dptfEnabled;
 	m_filePathDirectory = make_shared<FilePathDirectory>(dptfHomeDirectoryPath);
 	m_fileIo = make_shared<FileIo>();
+	m_timeStampGenerator = make_shared<RealTimeStampGenerator>();
 	m_commandDispatcher = new CommandDispatcher();
 	m_indexContainer = new IndexContainer();
 	m_eventCache = make_shared<EventCache>();
@@ -132,7 +141,7 @@ void DptfManager::createBasicObjects(
 	m_requestDispatcher = make_shared<RequestDispatcher>();
 }
 
-void DptfManager::createBasicServices(
+void DptfManager::createServices(
 	const esif_handle_t esifHandle,
 	EsifInterfacePtr esifInterfacePtr,
 	eLogType currentLogVerbosityLevel)
@@ -141,10 +150,13 @@ void DptfManager::createBasicServices(
 	m_esifServices = new EsifServices(this, esifHandle, m_esifAppServices, currentLogVerbosityLevel);
 	m_messageLogger = make_shared<EsifMessageLogger>(m_messageLogFilter, m_esifServices);
 	m_configurationManager = ConfigurationFileManager::makeDefault(
-		m_messageLogger, m_fileIo, m_filePathDirectory->getConfigurationFilePaths());
+		m_messageLogger,
+		m_fileIo,
+		m_filePathDirectory->getConfigurationFilePaths());
 	m_configurationManager->loadFiles();
 	m_requestDispatcher->registerHandler(
-		DptfRequestType::DataGetConfigurationFileContent, m_configurationManager.get());
+		DptfRequestType::DataGetConfigurationFileContent,
+		m_configurationManager.get());
 	m_participantManager = new ParticipantManager(this); // required by work item queue manager
 	m_workItemQueueManager = new WorkItemQueueManager(this);
 	m_workItemQueueManagerCreated = true;
@@ -152,9 +164,36 @@ void DptfManager::createBasicServices(
 	m_dataManager = new DataManager(this);
 	m_systemModeManager = new SystemModeManager(this);
 	m_environmentProfileGenerator = make_shared<RealEnvironmentProfileGenerator>(m_messageLogger, m_esifServices);
-	m_environmentProfileUpdater = make_shared<RealEnvironmentProfileUpdater>(this);
-	m_eventNotifier->registerObserver(m_environmentProfileUpdater, {FrameworkEvent::DomainCreate});
 	m_participantRequestHandlers = make_shared<ParticipantRequestHandler>(this);
+	m_applicationTimerSettings = make_shared<ApplicationTimerSettings>(m_messageLogger);
+	createEnvironmentProfileUpdaterService();
+	m_appConfiguration = readAppConfiguration();
+	m_scenarioModePublisher = ScenarioModePublisherFactory::make(this, m_eventNotifier, m_appConfiguration);
+	createPolicyLoggerService();
+}
+
+DttConfigurationSegment DptfManager::readAppConfiguration() const
+{
+	try
+	{
+		const auto configFileContent = m_configurationManager->getContent(DttConfigurationName);
+		const DttConfiguration config(configFileContent);
+		const auto environmentProfile = m_environmentProfileUpdater->getLastUpdatedProfile();
+		const auto segments = config.getSegmentsWithEnvironmentProfile(environmentProfile);
+		if (segments.empty())
+		{
+			throw dptf_exception("Configuration is empty"s);
+		}
+		return segments.front();
+	}
+	catch (const std::exception& ex)
+	{
+		MANAGER_LOG_MESSAGE_WARNING_EX({
+			return ManagerMessage(
+				this, _file, _line, _function, "Failed to load DTT configuration: "s + string(ex.what()));
+		});
+		return {};
+	}
 }
 
 void DptfManager::createPolicies()
@@ -166,31 +205,15 @@ void DptfManager::createPolicies()
 
 set<Guid> DptfManager::readDefaultEnabledPolicies() const
 {
-	try
+	set<Guid> result;
+	const auto keys = m_appConfiguration.getKeysThatMatch(DttConfigurationDefaultPoliciesQuery);
+	for (const auto& key : keys)
 	{
-		const auto configFileContent = m_configurationManager->getContent(DttConfigurationName);
-		const DttConfiguration config(configFileContent);
-		const auto environmentProfile = m_environmentProfileUpdater->getLastUpdatedProfile();
-		const auto segments = config.getSegmentsWithValue(environmentProfile.cpuIdWithoutStepping);
-		set<Guid> result;
-		if (!segments.empty())
-		{
-			const auto keys = segments.front().getKeysThatMatch(DttConfigurationDefaultPoliciesQuery);
-			for (const auto& key : keys)
-			{
-				const auto policyGuidString = segments.front().getValueAsString(key);
-				const auto policyGuid = Guid::fromFormattedString(policyGuidString);
-				result.emplace(policyGuid);
-			}
-		}
-		return result;
+		const auto policyGuidString = m_appConfiguration.getValueAsString(key);
+		const auto policyGuid = Guid::fromFormattedString(policyGuidString);
+		result.emplace(policyGuid);
 	}
-	catch (const exception& ex)
-	{
-		MANAGER_LOG_MESSAGE_WARNING_EX({return ManagerMessage(this,_file,_line,_function,
-			"Failed to load DTT configuration: "s + string(ex.what()));});
-		return {};
-	}
+	return result;
 }
 
 void DptfManager::registerForEvents() const
@@ -288,7 +311,12 @@ string DptfManager::getDptfPolicyDirectoryPath() const
 
 string DptfManager::getDptfReportDirectoryPath() const
 {
-	return m_filePathDirectory->getPath(FilePathDirectory::Path::LogFolder);
+	return m_filePathDirectory->getPath(FilePathDirectory::Path::IpfLogFolder);
+}
+
+string DptfManager::getDttLogDirectoryPath() const
+{
+	return m_filePathDirectory->getPath(FilePathDirectory::Path::DttLogFolder);
 }
 
 void DptfManager::shutDown()
@@ -316,11 +344,11 @@ void DptfManager::shutDown()
 	DELETE_MEMORY_TC(m_dataManager)
 }
 
-void DptfManager::disableAndEmptyAllQueues(void) const
+void DptfManager::disableAndEmptyAllQueues() const
 {
 	try
 	{
-		// Disable enqueueing of new work items and destroy the items already in the queue.  Once this executes
+		// Disable enqueuing of new work items and destroy the items already in the queue.  Once this executes
 		// the only work items that can get added to the queue are WIPolicyDestroy and WIParticipantDestroy.  These
 		// are coming up next.
 		if (m_workItemQueueManager != nullptr)
@@ -524,6 +552,36 @@ void DptfManager::registerDptfFrameworkEvents() const
 	catch (...)
 	{
 	}
+
+	// needed for ScenarioModePublisher
+	// TODO: move all event registration and arbitration to central object
+	try
+	{
+		m_esifServices->registerEvent(FrameworkEvent::PolicyCollaborationChanged);
+	}
+	catch (...)
+	{
+	}
+
+	// needed for ScenarioModePublisher
+	// TODO: move all event registration and arbitration to central object
+	try
+	{
+		m_esifServices->registerEvent(FrameworkEvent::DptfAppBroadcastUnprivileged);
+	}
+	catch (...)
+	{
+	}
+
+	// needed for ScenarioModePublisher
+	// TODO: move all event registration and arbitration to central object
+	try
+	{
+		m_esifServices->registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged);
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfManager::unregisterDptfFrameworkEvents() const
@@ -623,6 +681,36 @@ void DptfManager::unregisterDptfFrameworkEvents() const
 	catch (...)
 	{
 	}
+
+	// needed for ScenarioModePublisher
+	// TODO: move all event registration and arbitration to central object
+	try
+	{
+		m_esifServices->unregisterEvent(FrameworkEvent::PolicyCollaborationChanged);
+	}
+	catch (...)
+	{
+	}
+
+	// needed for ScenarioModePublisher
+	// TODO: move all event registration and arbitration to central object
+	try
+	{
+		m_esifServices->unregisterEvent(FrameworkEvent::DptfAppBroadcastUnprivileged);
+	}
+	catch (...)
+	{
+	}
+
+	// needed for ScenarioModePublisher
+	// TODO: move all event registration and arbitration to central object
+	try
+	{
+		m_esifServices->unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged);
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfManager::registerCommands() const
@@ -631,6 +719,18 @@ void DptfManager::registerCommands() const
 	{
 		m_commandDispatcher->registerHandler(command->getCommandName(), command);
 	}
+}
+
+void DptfManager::createEnvironmentProfileUpdaterService()
+{
+	m_environmentProfileUpdater = make_shared<RealEnvironmentProfileUpdater>(this);
+	m_eventNotifier->registerObserver(m_environmentProfileUpdater, {FrameworkEvent::DomainCreate});
+}
+
+void DptfManager::createPolicyLoggerService()
+{
+	m_policyStateLogger = make_shared<PolicyStateLogger>(this, m_fileIo, m_timeStampGenerator, m_applicationTimerSettings);
+	m_eventNotifier->registerObserver(m_policyStateLogger, {FrameworkEvent::DptfPolicyStateLogger});
 }
 
 void DptfManager::unregisterCommands() const
@@ -644,14 +744,16 @@ void DptfManager::unregisterCommands() const
 void DptfManager::createCommands()
 {
 	m_commands.push_back(make_shared<HelpCommand>(this));
-	m_commands.push_back(make_shared<DiagCommand>(this, m_fileIo));
+	m_commands.push_back(make_shared<DiagCommand>(this, m_fileIo, m_timeStampGenerator));
 	m_commands.push_back(make_shared<ReloadCommand>(this));
 	m_commands.push_back(make_shared<TableObjectCommand>(this));
 	m_commands.push_back(make_shared<ConfigCommand>(this));
 	m_commands.push_back(make_shared<UiCommand>(this));
-	m_commands.push_back(make_shared<CaptureCommand>(this, m_fileIo));
+	m_commands.push_back(make_shared<CaptureCommand>(this, m_fileIo, m_timeStampGenerator));
 	m_commands.push_back(make_shared<PlatformCpuIdCommand>(this));
 	m_commands.push_back(make_shared<PoliciesCommand>(this));
+	m_commands.push_back(make_shared<LogCommand>(this, m_fileIo));
+	m_commands.push_back(make_shared<ExportCommand>(this, m_fileIo));
 	registerCommands();
 }
 
@@ -663,6 +765,11 @@ shared_ptr<EventCache> DptfManager::getEventCache() const
 std::shared_ptr<EventNotifierInterface> DptfManager::getEventNotifier() const
 {
 	return m_eventNotifier;
+}
+
+shared_ptr<IPolicyStateLogger> DptfManager::getPolicyStateLogger() const
+{
+	return m_policyStateLogger;
 }
 
 shared_ptr<UserPreferredCache> DptfManager::getUserPreferredCache() const

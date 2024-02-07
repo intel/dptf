@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,7 @@
 #include "ipf_sdk_version.h"
 #include "ipf_sdk_version_check.h"
 #include "EsifAppBroadcastProcessing.h"
+#include "ManagerMessage.h"
 #include "StringParser.h"
 
 // Minimum Required IPF SDK Version for this App to load (i.e., NULL, "1.0.0", IPF_SDK_VERSION, Specific Version, etc.)
@@ -137,10 +138,27 @@ extern "C"
 			}
 		}
 		
-		// 2. Check that App is running Out-of-Process.
+		// 2. Check whether App is disabled in DCFG. Change to just verify Out-of-Process if In-Process support ever removed.
 		if (rc == ESIF_OK && ifaceSetPtr && esifHandle != ESIF_INVALID_HANDLE && !DptfIsIpfClient)
 		{
-			rc = ESIF_E_DISABLED;
+			DCfgOptions dcfg = {{ 0 }};
+			EsifData request = { ESIF_DATA_VOID };
+			EsifData response = { ESIF_DATA_UINT32 };
+			response.buf_ptr = &dcfg.asU32;
+			response.buf_len = static_cast<u32>(sizeof(dcfg));
+			const esif_error_t dcfgrc = ifaceSetPtr->esifIface.fPrimitiveFuncPtr(
+				esifHandle,
+				ESIF_HANDLE_PRIMARY_PARTICIPANT,
+				ESIF_INVALID_HANDLE,
+				&request,
+				&response,
+				GET_CONFIG_ACCESS_CONTROL_SUR,
+				ESIF_INSTANCE_INVALID
+			);
+			if (dcfgrc == ESIF_OK && dcfg.opt.DttAccessControl)
+			{
+				rc = ESIF_E_DISABLED;
+			}
 		}
 		return rc;
 	}
@@ -846,8 +864,22 @@ extern "C"
 					dptfManager, OsPowerSlider::toType(uint32param));
 				break;
 			case FrameworkEvent::PolicyProcessLoadNotification:
-				wi = std::make_shared<WIPolicyProcessLoaded>(
-					dptfManager, (esif_data_process_notification*)esifEventDataPtr->buf_ptr);	
+				if (esifEventDataPtr->buf_ptr) {
+					esif_data_process_notification* eventData =
+						(esif_data_process_notification*)esifEventDataPtr->buf_ptr;
+
+					// Process Load Notification
+					if (eventData->parent_process_id != ESIF_INVALID_HANDLE && eventData->image_path[0])
+					{
+						wi = std::make_shared<WIPolicyProcessLoaded>(
+							dptfManager, (esif_data_process_notification*)esifEventDataPtr->buf_ptr);
+					}
+					else // Process UnLoad Notification
+					{
+						wi = std::make_shared<WIPolicyProcessUnLoaded>(
+							dptfManager, (esif_data_process_notification*)esifEventDataPtr->buf_ptr);
+					}
+				}
 				break;
 			case FrameworkEvent::PolicySensorOrientationChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -943,6 +975,18 @@ extern "C"
 			case FrameworkEvent::PolicyThirdPartyGraphicsTPPLimitChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyThirdPartyGraphicsTPPLimitChanged>(dptfManager, static_cast<OsPowerSource::Type>(uint32param));
+				break;
+			case FrameworkEvent::PolicySystemInBagChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicySystemInBagChanged>(dptfManager, SystemInBag::toType(uint32param));
+				break;
+			case FrameworkEvent::PolicyThirdPartyGraphicsReservedTgpChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyThirdPartyGraphicsReservedTgpChanged>(dptfManager, Power::createFromMilliwatts(uint32param));
+				break;
+			case FrameworkEvent::PolicyThirdPartyGraphicsOppBoostModeChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyThirdPartyGraphicsOppBoostModeChanged>(dptfManager, OpportunisticBoostMode::fromUInt32(uint32param));
 				break;
 			default:
 			{

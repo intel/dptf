@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,7 @@ public:
 	static TimeSpan createInvalid();
 	static TimeSpan createFromMicroseconds(Int64 microseconds);
 	static TimeSpan createFromMilliseconds(Int64 milliseconds);
+	static TimeSpan createFromMilliseconds(const std::string& milliseconds);
 	static TimeSpan createFromTenthSeconds(Int64 tenthSeconds);
 	static TimeSpan createFromSeconds(Int64 seconds);
 	static TimeSpan createFromSeconds(const std::string& seconds);
@@ -71,9 +72,9 @@ public:
 	std::string toStringMilliseconds() const;
 	std::string toStringSeconds(UInt32 precision = 1) const;
 
+	void throwIfInvalid() const;
+
 private:
 	Bool m_valid;
 	Int64 m_microseconds;
-
-	void throwIfInvalid() const;
 };

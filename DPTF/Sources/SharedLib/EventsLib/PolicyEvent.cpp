@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,6 +43,8 @@ namespace PolicyEvent
 			CASE(DptfLowPowerModeExit)
 			CASE(DptfSuspend)
 			CASE(DptfResume)
+			CASE(DptfPolicyStateLogger)
+			CASE(DptfExtendedWorkloadPredictionEventRegistrationChanged)
 			CASE(ParticipantSpecificInfoChanged)
 			CASE(DomainCoreControlCapabilityChanged)
 			CASE(DomainDisplayControlCapabilityChanged)
@@ -123,6 +125,13 @@ namespace PolicyEvent
 			CASE(DptfAppBroadcastPrivileged)
 			CASE(DptfAppBroadcastUnprivileged)
 			CASE(PolicySwOemVariablesChanged)
+			CASE(PolicySystemConfigurationFeatureTableChanged)
+			CASE(PolicySystemInBagChanged)
+			CASE(PolicyThirdPartyGraphicsReservedTgpChanged)
+			CASE(PolicyThirdPartyGraphicsOppBoostModeChanged)
+			CASE(PolicyScenarioModeChanged)
+			CASE(PolicyDttGamingModeChanged)
+			CASE(PolicyApplicationOptimizationChanged)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -162,7 +171,10 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyOemVariablesChanged)
 			|| (policyEventType == PolicyThirdPartyGraphicsTPPLimitChanged)
 			|| (policyEventType == DptfAppBroadcastPrivileged)
-			|| (policyEventType == DptfAppBroadcastUnprivileged));
+			|| (policyEventType == DptfAppBroadcastUnprivileged)
+			|| (policyEventType == PolicySystemInBagChanged)
+			|| (policyEventType == PolicyThirdPartyGraphicsReservedTgpChanged)
+			|| (policyEventType == PolicyThirdPartyGraphicsOppBoostModeChanged));
 	}
 
 	std::string toString(PolicyEvent::Type type)
@@ -187,6 +199,8 @@ namespace PolicyEvent
 			return "DptfSuspend";
 		case DptfResume:
 			return "DptfResume";
+		case DptfPolicyStateLogger:
+			return "DptfPolicyStateLogger";
 		case ParticipantSpecificInfoChanged:
 			return "ParticipantSpecificInfoChanged";
 		case DomainCoreControlCapabilityChanged:
@@ -319,6 +333,8 @@ namespace PolicyEvent
 			return "PolicyOperatingSystemPowerSliderChanged";
 		case PolicyOemVariablesChanged:
 			return "PolicyOemVariablesChanged";
+		case PolicyOpbtTableChanged:
+			return "PolicyOpbtTableChanged";
 		case PolicyProcessLoadNotification:
 			return "PolicyProcessLoadNotification";
 		case PolicyPowerBossConditionsTableChanged:
@@ -343,6 +359,8 @@ namespace PolicyEvent
 			return "PolicyPidAlgorithmTableChanged";
 		case PolicyIntelligentThermalManagementTableChanged:
 			return "PolicyIntelligentThermalManagementTableChanged";
+		case PolicyIntelligentThermalManagementTable3Changed:
+			return "PolicyIntelligentThermalManagementTable3Changed";
 		case PolicyActiveControlPointRelationshipTableChanged:
 			return "PolicyActiveControlPointRelationshipTableChanged";
 		case PolicyPowerShareAlgorithmTableChanged:
@@ -379,6 +397,22 @@ namespace PolicyEvent
 			return "PolicySwOemVariablesChanged";
 		case PolicyThirdPartyGraphicsTPPLimitChanged:
 			return "PolicyThirdPartyGraphicsTPPLimitChanged";
+		case PolicySystemConfigurationFeatureTableChanged:
+			return "PolicySystemConfigurationFeatureTableChanged";
+		case PolicySystemInBagChanged:
+			return "PolicySystemInBagChanged";
+		case DptfExtendedWorkloadPredictionEventRegistrationChanged:
+			return "DptfExtendedWorkloadPredictionEventRegistrationChanged";
+		case PolicyThirdPartyGraphicsReservedTgpChanged:
+			return "PolicyThirdPartyGraphicsReservedTgpChanged";
+		case PolicyThirdPartyGraphicsOppBoostModeChanged:
+			return "PolicyThirdPartyGraphicsOppBoostModeChanged";
+		case PolicyScenarioModeChanged:
+			return "PolicyScenarioModeChanged";
+		case PolicyDttGamingModeChanged:
+			return "PolicyGamingModeChanged";
+		case PolicyApplicationOptimizationChanged:
+			return "PolicyApplicationOptimizationChanged";
 		case Invalid:
 		case Max:
 		default:

@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* LzHash.h -- HASH functions for LZ algorithms
 2019-10-30 : Igor Pavlov : Public domain */
 

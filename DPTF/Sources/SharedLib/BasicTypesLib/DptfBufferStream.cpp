@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -96,6 +96,15 @@ Power DptfBufferStream::readNextPower()
 	return value;
 }
 
+Energy DptfBufferStream::readNextEnergy()
+{
+	throwIfReadIsPastEndOfBuffer(sizeof(Energy));
+	UInt8* ptr = m_buffer.get() + m_currentLocation;
+	const Energy value = *reinterpret_cast<Energy*>(ptr);
+	m_currentLocation += sizeof(Energy);
+	return value;
+}
+
 Temperature DptfBufferStream::readNextTemperature()
 {
 	const UInt32 temperatureDataSize = Temperature().toDptfBuffer().size();
@@ -110,6 +119,12 @@ Temperature DptfBufferStream::readNextTemperature()
 void DptfBufferStream::resetReadPosition()
 {
 	m_currentLocation = 0;
+}
+
+void DptfBufferStream::movePositionBy(size_t bytes)
+{
+	throwIfReadIsPastEndOfBuffer(bytes);
+	m_currentLocation += static_cast<UInt32>(bytes);
 }
 
 Bool DptfBufferStream::canReadNext(size_t bytes) const

@@ -26,6 +26,7 @@ Restart=always
 User=daemon
 Group=daemon
 ExecStart=/usr/bin/ipfhostd --load:Dptf.so --srv:ipfsrv.dptf
+LogsDirectory=dtt
 
 [Install]
 WantedBy=sysinit.target

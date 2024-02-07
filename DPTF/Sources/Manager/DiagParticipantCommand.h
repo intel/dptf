@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,21 +18,25 @@
 #pragma once
 #include "CommandHandler.h"
 #include "FileIo.h"
+#include "TimeStampGenerator.h"
 
 class dptf_export DiagParticipantCommand : public CommandHandler
 {
 public:
-	DiagParticipantCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIo> fileIo);
-	virtual ~DiagParticipantCommand();
-	virtual std::string getCommandName() const override;
-	virtual void execute(const CommandArguments& arguments) override;
+	DiagParticipantCommand(
+		DptfManagerInterface* dptfManager,
+		const std::shared_ptr<IFileIo>& fileIo,
+		const std::shared_ptr<TimeStampGenerator>& timeStampGenerator);
+	std::string getCommandName() const override;
+	void execute(const CommandArguments& arguments) override;
 
 private:
 	void throwIfBadArguments(const CommandArguments& arguments);
 	void throwIfParticipantNotExist(const CommandArguments& arguments);
 	void throwIfReportNameIsInvalid(const CommandArguments& arguments);
-	std::string getParticipantDiagnosticReport(const CommandArguments& arguments);
-	std::string generateReportPath(const CommandArguments& arguments);
-	Bool reportNameProvided(const CommandArguments& arguments) const;
+	std::string getParticipantDiagnosticReport(const CommandArguments& arguments) const;
+	std::string generateReportPath(const CommandArguments& arguments) const;
+	static Bool reportNameProvided(const CommandArguments& arguments);
 	std::shared_ptr<IFileIo> m_fileIo;
+	std::shared_ptr<TimeStampGenerator> m_timeStampGenerator;
 };

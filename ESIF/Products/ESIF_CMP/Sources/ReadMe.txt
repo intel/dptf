@@ -1,6 +1,6 @@
 ========================================================================
 esif_cmp - ESIF Compression Library
-Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 Portions Public Domain Igor Pavlov
 ========================================================================
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
+#pragma once
 #include "Dptf.h"
 #include "WIDomainAllocate.h"
 #include "WIDomainCoreControlCapabilityChanged.h"
@@ -57,6 +57,7 @@
 #include "WIDptfIgccBroadcastReceived.h"
 #include "WIDptfNptWwanBandBroadcastReceived.h"
 #include "WIDptfSwOemVariablesBroadcastReceived.h"
+#include "WIDptfApplicationOptimizerBroadcastReceived.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
 #include "WIDptfLowPowerModeEntry.h"
@@ -88,6 +89,7 @@
 #include "WIPolicyOperatingSystemBatteryCountChanged.h"
 #include "WIPolicyOperatingSystemPowerSliderChanged.h"
 #include "WIPolicyProcessLoaded.h"
+#include "WIPolicyProcessUnLoaded.h"
 #include "WIPolicySensorOrientationChanged.h"
 #include "WIPolicySensorMotionChanged.h"
 #include "WIPolicySensorSpatialOrientationChanged.h"
@@ -110,3 +112,10 @@
 #include "WIDomainFanOperatingModeChanged.h"
 #include "WIPolicyOemVariablesChanged.h"
 #include "WIPolicyThirdPartyGraphicsTPPLimitChanged.h"
+#include "WIPolicySystemInBagChanged.h"
+#include "WIDptfPolicyStateLogger.h"
+#include "WIPolicyThirdPartyGraphicsReservedTgpChanged.h"
+#include "WIPolicyThirdPartyGraphicsOppBoostModeChanged.h"
+#include "WIPolicyScenarioModeChanged.h"
+#include "WIPolicyDttGamingModeChanged.h"
+#include "WIPolicyApplicationOptimizationChanged.h"

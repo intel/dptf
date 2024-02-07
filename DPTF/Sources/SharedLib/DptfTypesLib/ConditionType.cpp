@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -176,6 +176,10 @@ namespace ConditionType
 			return "Fan Operating Mode";
 		case ConditionType::SocPowerFloor:
 			return "SoC Power Floor";
+		case ConditionType::SocBasePower:
+			return "SoC Base Power";
+		case ConditionType::SystemInBag:
+			return "System In Bag";
 		case ConditionType::Max:
 		case ConditionType::DoNotCare:
 		case ConditionType::ParticipantConditionBaseId:

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,31 +17,35 @@
 ******************************************************************************/
 
 #include "OnOffToggle.h"
+using namespace std;
 
 namespace OnOffToggle
 {
-	std::string toString(OnOffToggle::Type onOffType)
+	std::string toString(Type onOffType)
 	{
 		switch (onOffType)
 		{
 		case Off:
-			return "Off";
+			return "Off"s;
 		case On:
-			return "On";
+			return "On"s;
 		default:
-			throw dptf_exception("OnOffToggle::Type is invalid");
+			throw dptf_exception("OnOffToggle::Type is invalid"s);
 		}
 	}
 
-	OnOffToggle::Type toType(UIntN value)
+	Type toType(UIntN value)
 	{
-		if (value == 0) 
+		if (value == Off)
 		{
-			return OnOffToggle::Off;
+			return Off;
 		}
-		else
+
+		if (value == On)
 		{
-			return OnOffToggle::On;
+			return On;
 		}
+
+		return Invalid;
 	}
 }

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -186,7 +186,7 @@ extern const char *EsifTraceModule_ToString(enum esif_tracemodule val);
 #define ESIF_TRACEMASK_CURRENT	ESIF_TRACEMASK(ESIF_TRACE_ID)
 
 /* Returns a 0 module value if verbosity not enabled */
-#define ESIF_TRACEVERBOSEMODULE(module, level) ((g_traceinfo[level].modules & (ESIF_TRACEMASK(ESIF_TRACEMODULE_VERBOSE))) ? module : 0)
+#define ESIF_TRACEVERBOSEMODULEMASK(module, level) ((g_traceinfo[level].modules & (ESIF_TRACEMASK(ESIF_TRACEMODULE_VERBOSE))) ? ESIF_TRACEMASK(module) : 0)
 
 /* Test whether Tracing is currently active for the given module and level based on the currrent trace level*/
 #define ESIF_TRACEACTIVE(module, level) ((g_traceLevel >= (level)) && !!(g_traceinfo[level].modules & (module)))
@@ -361,7 +361,7 @@ extern "C" {
 
 #define ESIF_TRACE_VERBOSE(msg, ...) \
 		ESIF_DOTRACE_IFACTIVE( \
-			ESIF_TRACEMASK(ESIF_TRACEVERBOSEMODULE(ESIF_TRACE_ID, ESIF_TRACELEVEL_DEBUG)), \
+			ESIF_TRACEVERBOSEMODULEMASK(ESIF_TRACE_ID, ESIF_TRACELEVEL_DEBUG), \
 			ESIF_TRACELEVEL_DEBUG, \
 			msg, \
 			##__VA_ARGS__ \

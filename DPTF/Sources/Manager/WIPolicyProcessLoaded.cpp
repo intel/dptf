@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,7 @@ WIPolicyProcessLoaded::WIPolicyProcessLoaded(
 	std::string processName = keyComponents[keyComponents.size() - 1];
 
 	m_processName = processName;
+	m_processId = processNotification->process_id;
 }
 
 WIPolicyProcessLoaded::~WIPolicyProcessLoaded(void)
@@ -42,15 +43,15 @@ void WIPolicyProcessLoaded::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
-	auto policyManager = getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
+	const auto policyManager = getPolicyManager();
+	const auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+	for (const auto& policyIndex : policyIndexes)
 	{
 		try
 		{
-			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyProcessLoaded(m_processName);
+			const auto policy = policyManager->getPolicyPtr(policyIndex);
+			policy->executePolicyProcessLoaded(m_processName, m_processId);
 		}
 		catch (policy_index_invalid&)
 		{
@@ -58,7 +59,7 @@ void WIPolicyProcessLoaded::onExecute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyProcessLoaded", *i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyProcessLoaded", policyIndex);
 		}
 	}
 }

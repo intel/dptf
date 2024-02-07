@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,6 +42,13 @@ typedef enum EsifDomainPollType_e {
 	ESIF_POLL_DOMAIN,
 	ESIF_POLL_ECONO
 } EsifDomainPollTypeId;
+
+typedef enum EsifMemoryType_e {
+	ESIF_MEMORY_TYPE_DDR4 = 0,
+	ESIF_MEMORY_TYPE_DDR5 = 1,
+	ESIF_MEMORY_TYPE_LPDDR5 = 2,
+	ESIF_MEMORY_TYPE_LPDDR4 = 3,
+} EsifMemoryType;
 
 
 struct _t_EsifUp;
@@ -90,6 +97,14 @@ typedef struct EsifUpDomain_s {
 										* Indicates a value of 0xFF was received and we should adjust polling to
 										* a longer interval
 										*/
+
+	UInt8 memoryTempDataInitialized;	/*
+										* Indicates if memory variables are initialized.
+										*/
+	EsifMemoryType memoryType;
+	UInt32 memoryTempMultMask;
+
+
 	UInt64 lastPower;					/* rapl energy (prior to conversion) */
 	esif_ccb_time_t lastPowerTime;		/* time of last power sample in microseconds */
 	EsifDomainPollTypeId powerPollType;	/* Single threaded, multi threaded, or none */

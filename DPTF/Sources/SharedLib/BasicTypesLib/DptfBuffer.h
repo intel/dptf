@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,6 +41,7 @@ public:
 	void allocate(size_t sizeInBytes);
 	[[nodiscard]] UInt8* get() const;
 	[[nodiscard]] UInt8 get(UInt32 byteNumber) const;
+	[[nodiscard]] DptfBuffer get(UInt32 offset, UInt32 numberOfBytes) const;
 	void set(UInt32 byteNumber, UInt8 byteValue);
 	[[nodiscard]] UInt32 size() const;
 	void trim(UInt32 sizeInBytes);
@@ -58,6 +59,7 @@ public:
 
 private:
 	std::vector<UInt8> m_buffer;
+	void throwIfOutsideBuffer(UInt32 byteNumber) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const DptfBuffer& buffer);

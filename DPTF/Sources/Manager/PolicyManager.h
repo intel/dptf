@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -74,8 +74,10 @@ private:
 	void throwIfPolicyAlreadyExists(const std::string& policyFileName);
 	void throwIfDynamicPolicyAlreadyExists(const std::string& policyFileName, const std::string& policyName);
 	[[nodiscard]] Bool isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent) const;
+	[[nodiscard]] UInt32 getPolicyRegistrationCount(PolicyEvent::Type policyEvent) const;
 	[[nodiscard]] UIntN getPolicyCount(void) const;
 	std::shared_ptr<XmlNode> getEventsXmlForPolicy(UIntN policyIndex);
 	static std::shared_ptr<XmlNode> getEventsInXml();
 	[[nodiscard]] EsifServicesInterface* getEsifServices() const;
+	void emitRegistrationChangedEventIfNeeded(PolicyEvent::Type policyEvent);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,10 @@
 #include "Temperature.h"
 #include <cmath>
 #include "StatusFormat.h"
+#include "StringConverter.h"
 #include "DptfBufferStream.h"
+
+using namespace std;
 using namespace StatusFormat;
 
 Temperature::Temperature(void)
@@ -213,6 +216,22 @@ Temperature Temperature::fromCelsius(double temperatureInCelsius)
 {
 	UInt32 temperatureInTenthKelvin = UInt32(round(temperatureInCelsius * 10.0 + CELSIUS_TO_TENTH_KELVIN));
 	return Temperature(temperatureInTenthKelvin);
+}
+
+Temperature Temperature::fromCelsius(const string& temperatureInCelsius)
+{
+	const string cleanedValue = StringConverter::toUpper(StringConverter::trimWhitespace(temperatureInCelsius));
+	if (cleanedValue == "MAX"s)
+	{
+		return {maxValidTemperature};
+	}
+
+	if (cleanedValue == "MIN"s)
+	{
+		return {minValidTemperature};
+	}
+
+	return fromCelsius(StringConverter::toUInt32(cleanedValue));
 }
 
 double Temperature::getTemperatureInCelsius() const

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,6 +38,8 @@
 #include "BatteryStatusFacade.h"
 #include "SocWorkloadClassificationFacade.h"
 #include "DynamicEppFacade.h"
+#include "BiasControlFacade.h"
+#include "EnergyControlFacade.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -70,22 +72,24 @@ public:
 	void clearTemperatureThresholds() override;
 
 	// control facades
-	virtual void initializeControls() override;
-	virtual void setControlsToMax() override;
-	virtual std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() override;
-	virtual std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() override;
-	virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
-	virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
-	virtual std::shared_ptr<SystemPowerControlFacadeInterface> getSystemPowerControl() override;
-	virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
-	virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
-	virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
-	virtual std::shared_ptr<PeakPowerControlFacadeInterface> getPeakPowerControl() override;
-	virtual std::shared_ptr<ProcessorControlFacadeInterface> getProcessorControl() override;
-	virtual std::shared_ptr<PlatformPowerStatusFacadeInterface> getPlatformPowerStatus() override;
-	virtual std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() override;
-	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() override;
-	virtual std::shared_ptr<DynamicEppFacadeInterface> getDynamicEpp() override;
+	void initializeControls() override;
+	void setControlsToMax() override;
+	std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() override;
+	std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() override;
+	std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
+	std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
+	std::shared_ptr<SystemPowerControlFacadeInterface> getSystemPowerControl() override;
+	std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
+	std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
+	RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
+	std::shared_ptr<PeakPowerControlFacadeInterface> getPeakPowerControl() override;
+	std::shared_ptr<ProcessorControlFacadeInterface> getProcessorControl() override;
+	std::shared_ptr<PlatformPowerStatusFacadeInterface> getPlatformPowerStatus() override;
+	std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() override;
+	std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() override;
+	std::shared_ptr<DynamicEppFacadeInterface> getDynamicEpp() override;
+	std::shared_ptr<BiasControlFacadeInterface> getBiasControl() override;
+	std::shared_ptr<EnergyControlFacadeInterface> getEnergyControl() override;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXml() const override;
@@ -114,6 +118,8 @@ protected:
 	std::shared_ptr<BatteryStatusFacade> m_batteryStatus;
 	std::shared_ptr<SocWorkloadClassificationFacade> m_socWorkloadClassification;
 	std::shared_ptr<DynamicEppFacade> m_dynamicEpp;
+	std::shared_ptr<BiasControlFacade> m_biasControl;
+	std::shared_ptr<EnergyControlFacade> m_energyControl;
 
 	// services
 	PolicyServicesInterfaceContainer m_policyServices;

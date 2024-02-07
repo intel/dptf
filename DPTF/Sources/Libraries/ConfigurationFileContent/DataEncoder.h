@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,11 @@
 class IDataEncoder
 {
 public:
+	IDataEncoder() = default;
+	IDataEncoder(const IDataEncoder& other) = default;
+	IDataEncoder(IDataEncoder&& other) noexcept = default;
+	IDataEncoder& operator=(const IDataEncoder& other) = default;
+	IDataEncoder& operator=(IDataEncoder&& other) noexcept = default;
 	virtual ~IDataEncoder() = default;
 	virtual std::vector<unsigned char> encodeCompressed(const std::vector<unsigned char>& data) const = 0;
 	virtual std::vector<unsigned char> encodeUncompressed(const std::vector<unsigned char>& data) const = 0;

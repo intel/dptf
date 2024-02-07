@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -445,8 +445,6 @@ esif_error_t WebServer_ProcessRequest(WebServerPtr self, WebClientPtr client)
 			}
 		}
 		if (rc == ESIF_OK) {
-			WS_TRACE_DEBUG("Socket[%d] Received %d bytes\n", client->socket, (int)messageLength);
-
 			// Combine this partial frame with the current connection's RECV Buffer, if any
 			if (client->recvBuf != NULL && client->recvBufLen > 0) {
 				size_t total_buffer_len = client->recvBufLen + messageLength;
@@ -604,7 +602,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 					WS_TRACE_DEBUG("Doorbell Closed; Exiting");
 					break;
 				}
-				WS_TRACE_DEBUG("Doorbell Received: 0x%02X", ((int)opcode & 0xFF));
 				if (opcode == WS_OPCODE_QUIT) {
 					break;
 				}

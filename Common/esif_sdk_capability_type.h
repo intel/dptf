@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -84,10 +84,11 @@ typedef enum esif_capability_type {
 	ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION = 20,
 	ESIF_CAPABILITY_TYPE_MANAGER = 21,
 	ESIF_CAPABILITY_TYPE_DYNAMIC_EPP = 22,
+	ESIF_CAPABILITY_TYPE_BIAS_CONTROL = 23,
 } esif_capability_type_t, eEsifCapabilityType;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_CAPABILITY_TYPE_ENUM_VALUE  ESIF_CAPABILITY_TYPE_DYNAMIC_EPP
+#define MAX_ESIF_CAPABILITY_TYPE_ENUM_VALUE  ESIF_CAPABILITY_TYPE_BIAS_CONTROL
 
 static ESIF_INLINE esif_string esif_capability_type_str(
 	esif_capability_type_t type
@@ -117,6 +118,7 @@ static ESIF_INLINE esif_string esif_capability_type_str(
 	ESIF_CASE_ENUM(ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION);
 	ESIF_CASE_ENUM(ESIF_CAPABILITY_TYPE_MANAGER);
 	ESIF_CASE_ENUM(ESIF_CAPABILITY_TYPE_DYNAMIC_EPP);
+	ESIF_CASE_ENUM(ESIF_CAPABILITY_TYPE_BIAS_CONTROL);
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -144,3 +146,4 @@ static ESIF_INLINE esif_string esif_capability_type_str(
 #define ESIF_CAPABILITY_WORKLOAD_CLASSIFICATION 0x100000
 #define ESIF_CAPABILITY_MANAGER 0x200000
 #define ESIF_CAPABILITY_DYNAMIC_EPP 0x400000
+#define ESIF_CAPABILITY_BIAS_CONTROL 0x800000

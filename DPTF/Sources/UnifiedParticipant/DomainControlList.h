@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -61,6 +61,7 @@
 #include "DomainBatteryStatusBase.h"
 #include "DomainSocWorkloadClassificationBase.h"
 #include "DomainDynamicEppBase.h"
+#include "DomainBiasControlBase.h"
 #include "ControlFactoryList.h"
 #include "XmlNode.h"
 #include <memory>
@@ -96,6 +97,7 @@ public:
 	std::shared_ptr<DomainBatteryStatusBase> getBatteryStatusControl(void);
 	std::shared_ptr<DomainSocWorkloadClassificationBase> getSocWorkloadClassificationControl(void);
 	std::shared_ptr<DomainDynamicEppBase> getDynamicEppControl();
+	std::shared_ptr<DomainBiasControlBase> getBiasControl();
 
 	void clearAllCachedData(void);
 	void clearAllCachedResults(void);

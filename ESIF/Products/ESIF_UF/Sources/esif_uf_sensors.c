@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -218,14 +218,18 @@ eEsifError ESIF_CALLCONV EsifAccelerometer_ReadSensorAngleValueFromDV(EsifDataPt
 		if (intVal < MIN_PITCH_DEGREES || intVal > MAX_PITCH_DEGREES)
 		{
 			ESIF_TRACE_WARN("Sensor config found in DV but out of range: namespace= %s, key = %s, value = %d\n",
-				nameSpace->buf_ptr, key->buf_ptr, intVal);
+				(char *)nameSpace->buf_ptr, (char*) key->buf_ptr, intVal);
 		}
 		else
 		{
 			*dvValue = (float)intVal;
 			ESIF_TRACE_DEBUG("Sensor config found in DV: namespace= %s, key = %s, value = %f\n",
-				nameSpace->buf_ptr, key->buf_ptr, &dvValue);
+				(char *)nameSpace->buf_ptr, (char *) key->buf_ptr, *dvValue);
 		}
+	}
+	else {
+		ESIF_TRACE_WARN("Error in get config for namespace= %s, key = %s, rc = %x\n",
+				(char *)nameSpace->buf_ptr, (char*) key->buf_ptr, rc);
 	}
 
 	return rc;

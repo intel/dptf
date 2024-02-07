@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -77,6 +77,14 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "PlatformNotificationAppBroadcastSend";
 	case PlatformNotificationFanOperatingModeChanged:
 		return "PlatformNotificationFanOperatingModeChanged";
+	case PlatformNotificationEnableIpAlignment:
+		return "PlatformNotificationEnableIpAlignment";
+	case PlatformNotificationDisableIpAlignment:
+		return "PlatformNotificationDisableIpAlignment";
+	case PlatformNotificationStartIpAlignment:
+		return "PlatformNotificationStartIpAlignment";
+	case PlatformNotificationStopIpAlignment:
+		return "PlatformNotificationStopIpAlignment";
 	case SocWorkloadClassificationGetSocWorkload:
 		return "SocWorkloadClassificationGetSocWorkload";
 	case ProcessorControlSetUnderVoltageThreshold:
@@ -93,6 +101,14 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "ProcessorControlGetMinTccOffsetTemperature";
 	case ProcessorControlGetPcieThrottleRequestState:
 		return "ProcessorControlGetPcieThrottleRequestState";
+	case ProcessorControlGetSocGear:
+		return "ProcessorControlGetSocGear";
+	case ProcessorControlSetSocGear:
+		return "ProcessorControlSetSocGear";
+	case ProcessorControlGetSystemUsageMode:
+		return "ProcessorControlGetSystemUsageMode";
+	case ProcessorControlSetSystemUsageMode:
+		return "ProcessorControlSetSystemUsageMode";
 	case TemperatureControlGetTemperatureStatus:
 		return "TemperatureControlGetTemperatureStatus";
 	case TemperatureControlGetTemperatureThresholds:
@@ -125,6 +141,36 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "CreateParticipant";
 	case DeleteParticipant:
 		return "DeleteParticipant";
+	case BiasControlSetCpuOpboostEnableAC:
+		return "BiasControlSetCpuOpboostEnableAC";
+	case BiasControlSetCpuOpboostEnableDC:
+		return "BiasControlSetCpuOpboostEnableDC";
+	case BiasControlSetGpuOpboostEnableAC:
+		return "BiasControlSetGpuOpboostEnableAC";
+	case BiasControlSetGpuOpboostEnableDC:
+		return "BiasControlSetGpuOpboostEnableDC";
+	case BiasControlSetSplitRatio:
+		return "BiasControlSetSplitRatio";
+	case BiasControlSetSplitRatioMax:
+		return "BiasControlSetSplitRatioMax";
+	case BiasControlGetCpuOpboostEnableAC:
+		return "BiasControlGetCpuOpboostEnableAC";
+	case BiasControlGetCpuOpboostEnableDC:
+		return "BiasControlGetCpuOpboostEnableDC";
+	case BiasControlGetGpuOpboostEnableAC:
+		return "BiasControlGetGpuOpboostEnableAC";
+	case BiasControlGetGpuOpboostEnableDC:
+		return "BiasControlGetGpuOpboostEnableDC";
+	case BiasControlGetSplitRatio:
+		return "BiasControlGetSplitRatio";
+	case BiasControlGetSplitRatioActive:
+		return "BiasControlGetSplitRatioActive";
+	case BiasControlGetSplitRatioMax:
+		return "BiasControlGetSplitRatioMax";
+	case BiasControlGetReservedTgp:
+		return "BiasControlGetReservedTgp";
+	case BiasControlGetOppBoostMode:
+		return "BiasControlGetOppBoostMode";
 	default:
 		throw dptf_exception("Invalid request type given to ToString");
 	}

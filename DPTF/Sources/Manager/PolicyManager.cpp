@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,20 +27,20 @@
 #include "MapOps.h"
 #include "Utility.h"
 #include "ManagerLogger.h"
+#include "ManagerMessage.h"
+#include "WIDptfExtendedWorkloadPredictionEventRegistrationChanged.h"
 
 using namespace StatusFormat;
 using namespace std;
 
 PolicyManager::PolicyManager(DptfManagerInterface* dptfManager, const set<Guid>& defaultPolicies)
 	: m_dptfManager(dptfManager)
-	, m_policies()
 	, m_supportedPolicyList(make_shared<SupportedPolicyList>(dptfManager, defaultPolicies))
 	, m_supportedDynamicPolicyList(make_shared<SupportedDynamicPolicyList>(dptfManager))
-	, m_registeredEvents()
 {
 }
 
-PolicyManager::~PolicyManager(void)
+PolicyManager::~PolicyManager()
 {
 	try
 	{
@@ -300,6 +300,8 @@ void PolicyManager::registerEvent(UIntN policyIndex, PolicyEvent::Type policyEve
 
 	m_registeredEvents.set(policyEvent);
 	dynamic_cast<Policy*>(getPolicyPtr(policyIndex))->registerEvent(policyEvent);
+
+	emitRegistrationChangedEventIfNeeded(policyEvent);
 }
 
 void PolicyManager::unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent)
@@ -315,7 +317,23 @@ void PolicyManager::unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyE
 			const FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
 			m_dptfManager->getEsifServices()->unregisterEvent(frameworkEvent);
 		}
+
+		emitRegistrationChangedEventIfNeeded(policyEvent);
 	}
+}
+
+UInt32 PolicyManager::getPolicyRegistrationCount(PolicyEvent::Type policyEvent) const
+{
+	UInt32 count{0};
+	for (const auto& policy : m_policies)
+	{
+		const auto policyLink = dynamic_cast<Policy*>(policy.second.get());
+		if (policyLink && policyLink->isEventRegistered(policyEvent))
+		{
+			++count;
+		}
+	}
+	return count;
 }
 
 shared_ptr<XmlNode> PolicyManager::getStatusAsXml()
@@ -502,4 +520,16 @@ shared_ptr<XmlNode> PolicyManager::getEventsInXml()
 EsifServicesInterface* PolicyManager::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
+}
+
+void PolicyManager::emitRegistrationChangedEventIfNeeded(PolicyEvent::Type policyEvent)
+{
+	if (policyEvent == PolicyEvent::DomainExtendedWorkloadPredictionChanged
+		|| policyEvent == PolicyEvent::DptfExtendedWorkloadPredictionEventRegistrationChanged)
+	{
+		const auto count = getPolicyRegistrationCount(PolicyEvent::DomainExtendedWorkloadPredictionChanged);
+		const auto workItem = make_shared<WIDptfExtendedWorkloadPredictionEventRegistrationChanged>(m_dptfManager, count);
+		const auto workItemQueue = m_dptfManager->getWorkItemQueueManager();
+		workItemQueue->enqueueImmediateWorkItemAndReturn(workItem);
+	}
 }

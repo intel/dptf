@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* Compiler.h
 2021-01-05 : Igor Pavlov : Public domain */
 

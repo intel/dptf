@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "EsifAppBroadcastProcessing.h"
 #include "NptWwanBandBroadcastData.h"
+#include "ApplicationOptimizerData.h"
 #include "esif_sdk.h"
 
 using namespace std;
@@ -37,6 +38,15 @@ std::shared_ptr<WorkItem> EsifAppBroadcastProcessing::createWorkItem(
 	{
 		const auto igccNotificationData = static_cast<IgccBroadcastData::IgccToDttNotificationPackage*>(esifEventDataPtr->buf_ptr);
 		return make_shared<WIDptfIgccBroadcastReceived>(dptfManager, *igccNotificationData);
+	}
+
+	if (IAO_BROADCAST_GUID == broadcastGuid)
+	{
+		const auto payloadData = reinterpret_cast<UInt8*>(broadcastHeader);
+		const auto eventDataLength = broadcastHeader->dataLen;
+		DptfBuffer iaoPayloadData =
+			DptfBuffer::fromExistingByteArray(payloadData, eventDataLength + sizeof(EsifAppBroadcastHeader));
+		return make_shared<WIDptfApplicationOptimizerBroadcastReceived>(dptfManager, iaoPayloadData);
 	}
 
 	if (SW_OEM_VAR_GUID == broadcastGuid)

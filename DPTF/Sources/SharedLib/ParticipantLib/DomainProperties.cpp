@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -176,6 +176,11 @@ Bool DomainProperties::implementsSocWorkloadClassificationInterface() const
 Bool DomainProperties::implementsDynamicEppInterface() const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.dynamicEppVersion);
+}
+
+Bool DomainProperties::implementsBiasControlInterface() const
+{
+	return isInterfaceImplemented(m_domainFunctionalityVersions.biasControlVersion);
 }
 
 std::shared_ptr<XmlNode> DomainProperties::getXml() const

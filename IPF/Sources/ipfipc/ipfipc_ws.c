@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -626,6 +626,8 @@ IpcSession_t IpcSession_Create(const IpcSessionInfo *info)
 		self->sockaddr = sockaddr;
 		self->socket = INVALID_SOCKET;
 		self->doorbell[0] = self->doorbell[1] = INVALID_SOCKET;
+		atomic_set(&self->appState, APPSTATE_STOPPED);
+		signal_init(&self->appSignal);
 		signal_init(&self->rpcSignal);
 		atomic_set(&self->numThreads, 0);
 		esif_ccb_wthread_init(&self->ioThread);
@@ -798,6 +800,17 @@ void IpcSession_Disconnect(IpcSession_t handle)
 {
 	IpcSession *self = IpcSessionMgr_GetSessionByHandle(handle);
 	if (self && self->objtype == ObjType_IpcSession) {
+		// Attempt a Clean AppStop by calling AppDestroy exactly once if AppCreate succeeded and still connected
+		// A second Disconnect call will result in canceling the active AppDestroy and closing the connection
+		atomic_t appState = atomic_set(&self->appState, APPSTATE_STOPPING);
+		if (appState == APPSTATE_STARTED) {
+			if (self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr && self->appSession.appHandle != ESIF_INVALID_HANDLE) {
+				self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(self->appSession.appHandle);
+			}
+			signal_post(&self->appSignal); // Signal Waiting RPC AppDestroy Response to exit, if any
+		}
+		atomic_set(&self->appState, APPSTATE_STOPPED);
+
 		// Stop I/O Worker Thread
 		if (atomic_read(&self->numThreads) && self->doorbell[DOORBELL_BUTTON] != INVALID_SOCKET) {
 			u8 opcode = WS_OPCODE_QUIT;
@@ -811,17 +824,21 @@ void IpcSession_Disconnect(IpcSession_t handle)
 			atomic_dec(&self->numThreads);
 		}
 
-		if (self->socket != INVALID_SOCKET) {
-			esif_ccb_socket_close(self->socket);
+		// Close Client and Doorbell Sockets
+		esif_ccb_socket_t socket = self->socket;
+		if (socket != INVALID_SOCKET) {
 			self->socket = INVALID_SOCKET;
+			esif_ccb_socket_close(socket);
 		}
-		if (self->doorbell[0] != INVALID_SOCKET) {
-			esif_ccb_socket_close(self->doorbell[0]);
+		socket = self->doorbell[0];
+		if (socket != INVALID_SOCKET) {
 			self->doorbell[0] = INVALID_SOCKET;
+			esif_ccb_socket_close(socket);
 		}
-		if (self->doorbell[1] != INVALID_SOCKET) {
-			esif_ccb_socket_close(self->doorbell[1]);
+		socket = self->doorbell[1];
+		if (socket != INVALID_SOCKET) {
 			self->doorbell[1] = INVALID_SOCKET;
+			esif_ccb_socket_close(socket);
 		}
 		MessageQueue_Deactivate(self->recvQueue);
 		MessageQueue_Deactivate(self->sendQueue);
@@ -853,6 +870,7 @@ void IpcSession_Disconnect(IpcSession_t handle)
 		IpfTrxMgr_Uninit(&self->trxMgr);
 
 		// Destroy Threads and Signals
+		signal_uninit(&self->appSignal);
 		signal_uninit(&self->rpcSignal);
 		esif_ccb_wthread_uninit(&self->ioThread);
 		esif_ccb_wthread_uninit(&self->rpcThread);
@@ -1127,6 +1145,8 @@ void * ESIF_CALLCONV IpcSession_IoWorkerThread(void *ctx)
 			esif_ccb_socket_close(self->socket);
 			self->socket = INVALID_SOCKET;
 		}
+		IpfTrxMgr_ExpireAll(&self->trxMgr);
+
 
 		// Signal RPC Thread to Exit
 		signal_post(&self->rpcSignal);

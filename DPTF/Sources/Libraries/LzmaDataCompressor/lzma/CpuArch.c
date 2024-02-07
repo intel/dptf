@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* CpuArch.c -- CPU specific code
 2021-07-13 : Igor Pavlov : Public domain */
 

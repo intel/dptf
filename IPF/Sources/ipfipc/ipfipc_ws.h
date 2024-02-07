@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -155,6 +155,11 @@ void MessageQueue_Deactivate(MessageQueuePtr self);
 #define PERRORMSG(msg)			(void)(0)
 #endif
 
+// AppState Values
+#define APPSTATE_STOPPED	0	// AppCreate not called yet, currently in flight, or AppDestroy completed
+#define APPSTATE_STOPPING	1	// AppDestroy currently in flight
+#define APPSTATE_STARTED	2	// AppCreate completed successfully
+
 typedef struct IpcSession_s {
 	UInt32				objtype;		// ObjType_IpcSession
 	char				serverAddr[MAX_PATH];
@@ -166,7 +171,9 @@ typedef struct IpcSession_s {
 	size_t				maxRecvBuf;
 	size_t				bytesReceived;
 
-	AppSession			appSession;		// Global IPF AppSession
+	AppSession			appSession;		// IPC Client/Server AppSession
+	atomic_t			appState;		// IPC Client State
+	signal_t			appSignal;		// IPC Client Semaphore to signal waiting RPC AppDestroy
 
 	MessageQueuePtr		recvQueue;		// RPC Request Queue  (Received from Remote Server)
 	MessageQueuePtr		sendQueue;		// RPC Response Queue (Send to Remote Server)

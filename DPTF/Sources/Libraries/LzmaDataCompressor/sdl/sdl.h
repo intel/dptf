@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,18 +15,16 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
+// ReSharper disable All
 /* This file is intended to be included by every .c module in this project.
 * Its purpose is to enforce banning of SDL-deprecated functions and supply
-* OS-agnostic implementations of SDL-decprecated functions such as memcpy.
+* OS-agnostic implementations of SDL-deprecated functions such as memcpy.
 *
 * THIS FILE *MUST* BE THE LAST HEADER INCLUDED IN EVERY SOURCE FILE
 * OTHERWISE IT WILL FLAG FUNCTIONS DECLARED IN OS SYSTEM HEADERS.
 */
 
 #pragma once
-//#ifndef __ESIF_SDL_H
-//#define __ESIF_SDL_H
 
 
 /* OS Abstraction Layer and Replacements for SDL-deprecated functions */

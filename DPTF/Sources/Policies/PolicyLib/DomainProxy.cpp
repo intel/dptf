@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,32 +43,37 @@ DomainProxy::DomainProxy(
 
 	// create control facades
 	m_temperatureControl =
-		std::make_shared<TemperatureControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+		make_shared<TemperatureControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_performanceControl =
-		std::make_shared<PerformanceControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+		make_shared<PerformanceControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_powerControl =
-		std::make_shared<PowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+		make_shared<PowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_systemPowerControl =
-		std::make_shared<SystemPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+		make_shared<SystemPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_displayControl =
-		std::make_shared<DisplayControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+		make_shared<DisplayControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_coreControl =
-		std::make_shared<CoreControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_radioFrequencyControl = std::make_shared<RadioFrequencyControlFacade>(
+		make_shared<CoreControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_radioFrequencyControl = make_shared<RadioFrequencyControlFacade>(
 		m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_activeCoolingControl = std::make_shared<ActiveCoolingControl>(
+	m_activeCoolingControl = make_shared<ActiveCoolingControl>(
 		m_participantIndex, domainIndex, m_domainProperties, m_participantProperties, policyServices);
 	m_peakPowerControl =
-		std::make_shared<PeakPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+		make_shared<PeakPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_processorControl =
-		std::make_shared<ProcessorControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_platformPowerStatus = std::make_shared<PlatformPowerStatusFacade>(
+		make_shared<ProcessorControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_platformPowerStatus = make_shared<PlatformPowerStatusFacade>(
 		m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_batteryStatus =
-		std::make_shared<BatteryStatusFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_socWorkloadClassification = std::make_shared<SocWorkloadClassificationFacade>(
+		make_shared<BatteryStatusFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_socWorkloadClassification = make_shared<SocWorkloadClassificationFacade>(
 		m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_dynamicEpp = std::make_shared<DynamicEppFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_dynamicEpp = make_shared<DynamicEppFacade>(
+		m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_biasControl = make_shared<BiasControlFacade>(
+		m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_energyControl = make_shared<EnergyControlFacade>(
+		m_participantIndex, domainIndex, m_domainProperties, policyServices);
 }
 
 DomainProxy::DomainProxy()
@@ -109,7 +114,7 @@ const ParticipantProperties& DomainProxy::getParticipantProperties() const
 	return m_participantProperties;
 }
 
-std::shared_ptr<TemperatureControlFacadeInterface> DomainProxy::getTemperatureControl()
+shared_ptr<TemperatureControlFacadeInterface> DomainProxy::getTemperatureControl()
 {
 	return m_temperatureControl;
 }
@@ -119,27 +124,27 @@ DomainPriorityCachedProperty& DomainProxy::getDomainPriorityProperty()
 	return m_domainPriorityProperty;
 }
 
-std::shared_ptr<PerformanceControlFacadeInterface> DomainProxy::getPerformanceControl()
+shared_ptr<PerformanceControlFacadeInterface> DomainProxy::getPerformanceControl()
 {
 	return m_performanceControl;
 }
 
-std::shared_ptr<PowerControlFacadeInterface> DomainProxy::getPowerControl()
+shared_ptr<PowerControlFacadeInterface> DomainProxy::getPowerControl()
 {
 	return m_powerControl;
 }
 
-std::shared_ptr<SystemPowerControlFacadeInterface> DomainProxy::getSystemPowerControl()
+shared_ptr<SystemPowerControlFacadeInterface> DomainProxy::getSystemPowerControl()
 {
 	return m_systemPowerControl;
 }
 
-std::shared_ptr<DisplayControlFacadeInterface> DomainProxy::getDisplayControl()
+shared_ptr<DisplayControlFacadeInterface> DomainProxy::getDisplayControl()
 {
 	return m_displayControl;
 }
 
-std::shared_ptr<CoreControlFacadeInterface> DomainProxy::getCoreControl()
+shared_ptr<CoreControlFacadeInterface> DomainProxy::getCoreControl()
 {
 	return m_coreControl;
 }
@@ -154,34 +159,44 @@ shared_ptr<ActiveCoolingControlFacadeInterface> DomainProxy::getActiveCoolingCon
 	return m_activeCoolingControl;
 }
 
-std::shared_ptr<PeakPowerControlFacadeInterface> DomainProxy::getPeakPowerControl()
+shared_ptr<PeakPowerControlFacadeInterface> DomainProxy::getPeakPowerControl()
 {
 	return m_peakPowerControl;
 }
 
-std::shared_ptr<ProcessorControlFacadeInterface> DomainProxy::getProcessorControl()
+shared_ptr<ProcessorControlFacadeInterface> DomainProxy::getProcessorControl()
 {
 	return m_processorControl;
 }
 
-std::shared_ptr<PlatformPowerStatusFacadeInterface> DomainProxy::getPlatformPowerStatus()
+shared_ptr<PlatformPowerStatusFacadeInterface> DomainProxy::getPlatformPowerStatus()
 {
 	return m_platformPowerStatus;
 }
 
-std::shared_ptr<BatteryStatusFacadeInterface> DomainProxy::getBatteryStatus()
+shared_ptr<BatteryStatusFacadeInterface> DomainProxy::getBatteryStatus()
 {
 	return m_batteryStatus;
 }
 
-std::shared_ptr<SocWorkloadClassificationFacadeInterface> DomainProxy::getSocWorkloadClassification()
+shared_ptr<SocWorkloadClassificationFacadeInterface> DomainProxy::getSocWorkloadClassification()
 {
 	return m_socWorkloadClassification;
 }
 
-std::shared_ptr<DynamicEppFacadeInterface> DomainProxy::getDynamicEpp()
+shared_ptr<DynamicEppFacadeInterface> DomainProxy::getDynamicEpp()
 {
 	return m_dynamicEpp;
+}
+
+shared_ptr<BiasControlFacadeInterface> DomainProxy::getBiasControl()
+{
+	return m_biasControl;
+}
+
+shared_ptr<EnergyControlFacadeInterface> DomainProxy::getEnergyControl()
+{
+	return m_energyControl;
 }
 
 UtilizationStatus DomainProxy::getUtilizationStatus()
@@ -266,7 +281,7 @@ void DomainProxy::setControlsToMax()
 	}
 }
 
-std::shared_ptr<XmlNode> DomainProxy::getXml() const
+shared_ptr<XmlNode> DomainProxy::getXml() const
 {
 	auto wrapper = XmlNode::createWrapperElement("domain");
 	wrapper->addChild(XmlNode::createDataElement("participant_index", StatusFormat::friendlyValue(m_participantIndex)));

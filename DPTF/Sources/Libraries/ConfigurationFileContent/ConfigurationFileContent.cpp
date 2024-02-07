@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,8 +21,6 @@
 #include "nlohmann_json/json.hpp"
 using namespace std;
 using json = nlohmann::json;
-
-#define CONFIGDB_ENTRY_DELIMITER ","
 
 constexpr auto INDENT_WIDTH = 4;
 constexpr auto CURRENT_SERIALIZED_VERSION = 1;
@@ -83,8 +81,8 @@ size_t ConfigurationFileContent::extractNumberAs4bytes(const vector<unsigned cha
 	unsigned result = 0;
 	result += content[location + 0] << 0;
 	result += content[location + 1] << 8;
-	result += content[location + 2] << 8;
-	result += content[location + 3] << 8;
+	result += content[location + 2] << 16;
+	result += content[location + 3] << 24;
 	return result;
 }
 
@@ -92,8 +90,8 @@ string ConfigurationFileContent::extractString(const vector<unsigned char>& cont
 {
 	const auto stringLength = extractNumberAs4bytes(content, location);
 	throwIfNotEnoughDataToRead(content, 4 + location + stringLength);
-	const auto locationBegin = content.begin() + location + 4;
-	const auto locationEnd = locationBegin + stringLength;
+	const auto locationBegin = content.begin() + static_cast<long long>(location + 4);
+	const auto locationEnd = locationBegin + static_cast<long long>(stringLength);
 	return string{locationBegin, locationEnd};
 }
 
@@ -114,8 +112,8 @@ vector<vector<unsigned char>> ConfigurationFileContent::extractDataSegments(cons
 	{
 		const auto segmentLength = extractNumberAs4bytes(content, location + offset);
 		offset += 4;
-		const auto locationBegin = content.begin() + location + offset;
-		const auto locationEnd = locationBegin + segmentLength;
+		const auto locationBegin = content.begin() + static_cast<long long>(location + offset);
+		const auto locationEnd = locationBegin + static_cast<long long>(segmentLength);
 		const vector<unsigned char> segment{locationBegin, locationEnd};
 		offset += segmentLength;
 		result.push_back(segment);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,6 +60,7 @@ Bool EsifActIface_IsSupported(EsifActIfacePtr self);
 static eEsifError EsifActMgr_CreateEntry(EsifActMgrEntryPtr* entryPtr);
 static void EsifActMgr_DestroyEntry(EsifActMgrEntryPtr entryPtr);
 static eEsifError EsifActMgr_AddEntry(EsifActMgrEntryPtr entryPtr);
+static eEsifError EsifActMgr_AddEntry_Locked(EsifActMgrEntryPtr entryPtr);
 
 static eEsifError EsifActMgr_InitActions();
 static void EsifActMgr_UninitActions();
@@ -115,7 +116,6 @@ EsifActPtr EsifActMgr_GetAction(
 	eEsifError rc = ESIF_OK;
 	EsifActPtr actPtr = NULL;
 	EsifActMgrEntryPtr entryPtr = NULL;
-	struct esif_link_list_node *nodePtr = NULL;
 
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
 
@@ -133,14 +133,12 @@ EsifActPtr EsifActMgr_GetAction(
 		}
 		esif_ccb_write_unlock(&g_actMgr.mgrLock);
 	} else {
-		nodePtr = EsifActMgr_GetNodeFromEntry_Locked(entryPtr);
-		esif_link_list_node_remove(g_actMgr.actions, nodePtr);
-		g_actMgr.numActions--;
 		esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
-		EsifActMgr_DestroyEntry(entryPtr);
-		EsifActMgr_LoadDelayLoadAction(type);
-		actPtr = EsifActMgr_GetAction(type);
+		rc = EsifActMgr_LoadDelayLoadAction(type);
+		if ((ESIF_OK == rc) || (ESIF_E_ACTION_ALREADY_STARTED == rc)) {
+			actPtr = EsifActMgr_GetAction(type);
+		}
 	}
 exit:
 	return actPtr;
@@ -443,6 +441,7 @@ static eEsifError EsifActMgr_LoadDelayLoadAction(
 			goto exit;
 		}
 	}
+	rc = ESIF_E_NOT_FOUND;
 lockExit:
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 exit:
@@ -560,11 +559,14 @@ eEsifError EsifActMgr_StartUpe(
 {
 	eEsifError rc = ESIF_OK;
 	EsifActMgrEntryPtr existingEntryPtr = NULL;
+	struct esif_link_list_node *nodePtr = NULL;
 	struct esif_link_list_node *existingNodePtr = NULL;
 	EsifActMgrEntryPtr entryPtr = NULL;
 	GetIfaceFuncPtr getIfacePtr = NULL;
 	EsifActIface iface = {0};
 	enum esif_action_type actType = 0;
+	Bool entryAdded = ESIF_FALSE;
+	Bool shouldDelete = ESIF_FALSE;
 	EsifData eventData = { ESIF_DATA_UINT32, &actType, sizeof(actType), sizeof(actType) };
 
 	if (NULL == upeName) {
@@ -575,20 +577,62 @@ eEsifError EsifActMgr_StartUpe(
 	/* Check to see if the action is already running only one instance per action allowed */
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
 	existingEntryPtr = EsifActMgr_GetActEntryByLibname_Locked(upeName);
-	esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
 	if (existingEntryPtr != NULL) {
+		existingEntryPtr->numWaiters++; /* Mark with lock held so entry cannot be deleted while in use */
+		esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+		ESIF_TRACE_DEBUG("Waiting for UPE action %s creation; waiters = %d\n", upeName, existingEntryPtr->numWaiters);
+
+		esif_ccb_event_wait(&existingEntryPtr->creationCompleteEvent);
+
+		esif_ccb_write_lock(&g_actMgr.mgrLock);
+		existingEntryPtr->numWaiters--;
+
+		ESIF_TRACE_DEBUG("Done waiting for UPE action %s creation; waiters = %d\n", upeName, existingEntryPtr->numWaiters);
+
+		/* Last waiter will check if creation failed and delete entry if so */
+		if (0 == existingEntryPtr->numWaiters) {
+			shouldDelete = existingEntryPtr->shouldDelete;
+		}
+		esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+		/*
+		* No need to remove node, only destroy entry, as the node will have
+		* already been removed by the thread failing creation
+		*/
 		rc = ESIF_E_ACTION_ALREADY_STARTED;
+		if (shouldDelete) {
+			rc = ESIF_E_UNSPECIFIED;
+			ESIF_TRACE_DEBUG("Deleting UPE entry %s as marked for deletion\n", upeName);
+			EsifActMgr_DestroyEntry(existingEntryPtr);
+		}
 		goto exit;
 	}
 
 	ESIF_TRACE_DEBUG("Adding new UPE action %s\n", upeName);
 
+	/*
+	* Add an entry containing only the name so that simultaneous attempts to
+	* create a given action with same name can be detected.
+	* Note:  Lock is held while adding entry to prevent race conditions
+	*/
 	rc = EsifActMgr_CreateEntry(&entryPtr);
 	if (rc != ESIF_OK) {
+		esif_ccb_write_unlock(&g_actMgr.mgrLock);
 		goto exit;
 	}
 
 	entryPtr->libName = (esif_string)esif_ccb_strdup(upeName);
+
+	rc = EsifActMgr_AddEntry_Locked(entryPtr);
+	if (rc != ESIF_OK) {
+		esif_ccb_write_unlock(&g_actMgr.mgrLock);
+		goto exit;
+	}
+
+	entryAdded = ESIF_TRUE;
+	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
 	rc = EsifActMgr_LoadAction(entryPtr, &getIfacePtr);
 	if (ESIF_OK != rc) {
@@ -619,17 +663,11 @@ eEsifError EsifActMgr_StartUpe(
 		goto exit;
 	}
 
+	/* Get any existing node so that we can remove it if creation of new action is successful */
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
 	existingEntryPtr = EsifActMgr_GetActionEntry_Locked(actType);
-
-	if (existingEntryPtr != NULL) {
-		existingNodePtr = EsifActMgr_GetNodeFromEntry_Locked(existingEntryPtr);
-		esif_link_list_node_remove(g_actMgr.actions, existingNodePtr);
-		g_actMgr.numActions--;
-	}
-
+	existingNodePtr = EsifActMgr_GetNodeFromEntry_Locked(existingEntryPtr);
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
-	EsifActMgr_DestroyEntry(existingEntryPtr);
 
 	rc = EsifActMgr_CreateAction(entryPtr, &iface);
 	if (ESIF_OK != rc) {
@@ -638,18 +676,54 @@ eEsifError EsifActMgr_StartUpe(
 
 	EsifAct_MarkAsPlugin(entryPtr->actPtr);
 
-	rc = EsifActMgr_AddEntry(entryPtr);
-	if (rc != ESIF_OK) {
-		goto exit;
+	/* After successful creation of new action, remove the existing item */
+	if (existingNodePtr) {
+		esif_link_list_node_remove(g_actMgr.actions, existingNodePtr);
+		g_actMgr.numActions--;
+		ESIF_TRACE_DEBUG("Destroying existing action entry for %s\n", upeName);
+		EsifActMgr_DestroyEntry(existingEntryPtr);
 	}
+
+	/*
+	* Only allow waiters to continue after the old action is removed so that
+	* when they loop back to get the action they don't find the old action
+	*/
+	esif_ccb_event_set(&entryPtr->creationCompleteEvent);
 
 	EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_LOADED, &eventData);
 
 	ESIF_TRACE_DEBUG("Added action %s\n", upeName);
 exit:
-	if (rc != ESIF_OK) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_ACTION_ALREADY_STARTED)) {
 		ESIF_TRACE_WARN("Failure adding action %s\n", esif_rc_str(rc));
-		EsifActMgr_DestroyEntry(entryPtr);
+
+		esif_ccb_write_lock(&g_actMgr.mgrLock);
+		if (entryPtr) {
+			/* Mark for last waiter to delete; if no waiters, indicate to delete now */
+			entryPtr->shouldDelete = ESIF_TRUE;
+
+			if (0 == entryPtr->numWaiters) {
+				shouldDelete = entryPtr->shouldDelete;
+			}
+
+			/*
+			* Remove the node while lock is held so that no other threads find
+			* it if must wait for destruction by waiters
+			*/
+			nodePtr = EsifActMgr_GetNodeFromEntry_Locked(entryPtr);
+			esif_link_list_node_remove(g_actMgr.actions, nodePtr);
+			if (entryAdded) {
+				g_actMgr.numActions--;
+			}
+
+			/* Allow waiters to continue */
+			esif_ccb_event_set(&entryPtr->creationCompleteEvent);
+		}
+		esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+		if (shouldDelete) {
+			EsifActMgr_DestroyEntry(entryPtr);
+		}
 	}
 	return rc;
 }
@@ -832,6 +906,8 @@ static eEsifError EsifActMgr_CreateEntry(
 		goto exit;
 	}
 
+	esif_ccb_event_init(&newEntryPtr->creationCompleteEvent);
+
 	*entryPtr = newEntryPtr;
 exit:
 	return rc;
@@ -850,6 +926,8 @@ static void EsifActMgr_DestroyEntry(
 
 	EsifActMgr_UnloadAction(entryPtr);
 
+	esif_ccb_event_set(&entryPtr->creationCompleteEvent);
+	esif_ccb_event_uninit(&entryPtr->creationCompleteEvent);
 	esif_ccb_free(entryPtr->libName);
 	esif_ccb_free(entryPtr);
 exit:
@@ -866,6 +944,19 @@ static eEsifError EsifActMgr_AddEntry(
 	ESIF_ASSERT(entryPtr != NULL);
 
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
+	rc = EsifActMgr_AddEntry_Locked(entryPtr);
+	esif_ccb_write_unlock(&g_actMgr.mgrLock);
+	return rc;
+}
+
+
+static eEsifError EsifActMgr_AddEntry_Locked(
+	EsifActMgrEntryPtr entryPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(entryPtr != NULL);
 
 	//
 	// We add at front so that UPE's to minimize the O^2 loop in EsifActMgr_StopUnusedUpes
@@ -876,7 +967,6 @@ static eEsifError EsifActMgr_AddEntry(
 	}
 	g_actMgr.numActions++;
 exit:
-	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 	return rc;
 }
 
@@ -897,9 +987,9 @@ static eEsifError EsifActMgr_CreateAction(
 		goto exit;
 	}
 
-	entryPtr->type = actPtr->type;
 	entryPtr->actCtx = actPtr->actCtx;
 	entryPtr->actPtr = actPtr;
+	entryPtr->type = actPtr->type; /* Set type last so it isn't found until completely initialized */
 exit:
 	return rc;
 }
@@ -1161,7 +1251,7 @@ static void EsifActMgr_CreateDependentParticipants()
 	if (!g_actMgr.cpuArrived &&
 		g_actMgr.loadedActions) {
 
-		upPtr = EsifUpPm_GetAvailableParticipantByName("TCPU");
+		upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
 		if (upPtr) {
 			ESIF_TRACE_DEBUG("TCPU now available for auto-enumeration\n");
 
@@ -1254,7 +1344,6 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_IOC);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_BATTERY);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SOCWC);
-	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_HWPF);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_NVAPI);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_CAPI);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_IPA);

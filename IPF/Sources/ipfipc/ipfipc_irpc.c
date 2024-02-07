@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -736,6 +736,7 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
 	if (client && ipcbuf && trx) {
+		atomic_set(&client->appState, APPSTATE_STOPPED);
 		trx->ipfHandle = client->appSession.ipfHandle;
 
 		EsifMsgHdr responseHdr = {
@@ -848,6 +849,7 @@ IBinary *Irpc_Response_AppCreate(IpcSession *client, Encoded_IrpcMsg *msg)
 				}
 
 				if (result && trx->result == ESIF_OK) {
+					atomic_set(&client->appState, APPSTATE_STARTED);
 					DEBUGMSG("App Started (%s)\n", esif_rc_str(trx->result));
 				}
 			}
@@ -886,11 +888,20 @@ IBinary *Irpc_Response_AppHandle(IpcSession *client, eIrpcFunction funcId, Encod
 			}
 			else {
 				switch (funcId) {
-				case IrpcFunc_AppDestroy:
-					if (client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr) {
-						trx->result = client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(client->appSession.appHandle);
+				case IrpcFunc_AppDestroy: {
+					// Attempt a Clean AppStop by calling AppDestroy exactly once if AppCreate succeeded and still connected
+					atomic_t appState = atomic_set(&client->appState, APPSTATE_STOPPING);
+					if (appState == APPSTATE_STARTED) {
+						if (client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr) {
+							trx->result = client->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(client->appSession.appHandle);
+						}
 					}
+					else if (appState == APPSTATE_STOPPING) {
+						signal_wait(&client->appSignal); // Wait for pending IPC AppDestroy to complete
+					}
+					atomic_set(&client->appState, APPSTATE_STOPPED);
 					break;
+				}
 				case IrpcFunc_AppSuspend:
 					if (client->appSession.ifaceSet.appIface.fAppSuspendFuncPtr) {
 						trx->result = client->appSession.ifaceSet.appIface.fAppSuspendFuncPtr(client->appSession.appHandle);
@@ -1375,7 +1386,13 @@ esif_error_t Irpc_ProcessRequest(
 	if (msg == NULL) {
 		if (self->appSession.appHandle && self->appSession.appHandle != ESIF_INVALID_HANDLE) {
 			if (self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr) {
-				rc = self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(self->appSession.appHandle);
+				atomic_t appState = atomic_set(&self->appState, APPSTATE_STOPPED);
+				if (appState == APPSTATE_STARTED) {
+					rc = self->appSession.ifaceSet.appIface.fAppDestroyFuncPtr(self->appSession.appHandle);
+				}
+				else {
+					rc = ESIF_E_NOT_INITIALIZED;
+				}
 			}
 		}
 	}

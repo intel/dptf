@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,18 +19,16 @@
 #include "DptfManagerInterface.h"
 #include "PolicyManagerInterface.h"
 #include "FileIo.h"
-#include "TimeOps.h"
-#include "StringParser.h"
 #include "EsifDataString.h"
 using namespace std;
 
-DiagPolicyCommand::DiagPolicyCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
+DiagPolicyCommand::DiagPolicyCommand(
+	DptfManagerInterface* dptfManager,
+	const shared_ptr<IFileIo>& fileIo,
+	const shared_ptr<TimeStampGenerator>& timeStampGenerator)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
-{
-}
-
-DiagPolicyCommand::~DiagPolicyCommand()
+	, m_timeStampGenerator(timeStampGenerator)
 {
 }
 
@@ -45,24 +43,24 @@ void DiagPolicyCommand::execute(const CommandArguments& arguments)
 	throwIfPolicyNotExist(arguments);
 	throwIfReportNameIsInvalid(arguments);
 
-	auto diagnostics = getPolicyDiagnosticReport(arguments);
-	auto fullReportPath = generateReportPath(arguments);
-	string message = string("Wrote policy diagnostics to ") + fullReportPath;
+	const auto diagnostics = getPolicyDiagnosticReport(arguments);
+	const auto fullReportPath = generateReportPath(arguments);
+	const string message = string("Wrote policy diagnostics to "s) + fullReportPath;
 	m_fileIo->write(fullReportPath, diagnostics);
 	setResultCode(ESIF_OK);
 	setResultMessage(message);
 }
 
-string DiagPolicyCommand::getPolicyDiagnosticReport(const CommandArguments& arguments)
+string DiagPolicyCommand::getPolicyDiagnosticReport(const CommandArguments& arguments) const
 {
-	auto policyName = arguments[1].getDataAsString();
-	auto policy = m_dptfManager->getPolicyManager()->getPolicy(policyName);
+	const auto policyName = arguments[1].getDataAsString();
+	const auto policy = m_dptfManager->getPolicyManager()->getPolicy(policyName);
 	return policy->getDiagnosticsAsXml();
 }
 
-string DiagPolicyCommand::generateReportPath(const CommandArguments& arguments)
+string DiagPolicyCommand::generateReportPath(const CommandArguments& arguments) const
 {
-	auto reportPath = m_dptfManager->getDptfReportDirectoryPath();
+	const auto reportPath = m_dptfManager->getDttLogDirectoryPath();
 	string reportName;
 	if (reportNameProvided(arguments))
 	{
@@ -70,7 +68,7 @@ string DiagPolicyCommand::generateReportPath(const CommandArguments& arguments)
 	}
 	else
 	{
-		reportName = TimeOps::generateTimestampNowAsString() + ".xml";
+		reportName = m_timeStampGenerator->generateAsString() + ".xml"s;
 	}
 
 	return FileIo::generatePathWithTrailingSeparator(reportPath) + reportName;
@@ -85,18 +83,18 @@ void DiagPolicyCommand::throwIfBadArguments(const CommandArguments& arguments)
 {
 	if (arguments.size() < 2)
 	{
-		string description = string(
-			"Invalid argument count given to 'diag policy' command.  "
-			"Run 'dptf help' command for more information.");
+		const string description = {
+			"Invalid argument count given to 'diag policy' command.  "s +
+			"Run 'dptf help' command for more information."s};
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 
 	if ((arguments[0].isDataTypeString() == false) || (arguments[1].isDataTypeString() == false))
 	{
-		string description = string(
-			"Invalid argument type given to 'diag policy' command.  "
-			"Run 'dptf help' command for more information.");
+		const string description = {
+			"Invalid argument type given to 'diag policy' command.  "s +
+			"Run 'dptf help' command for more information."s};
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -104,10 +102,10 @@ void DiagPolicyCommand::throwIfBadArguments(const CommandArguments& arguments)
 
 void DiagPolicyCommand::throwIfPolicyNotExist(const CommandArguments& arguments)
 {
-	auto policyExists = m_dptfManager->getPolicyManager()->policyExists(arguments[1].getDataAsString());
+	const auto policyExists = m_dptfManager->getPolicyManager()->policyExists(arguments[1].getDataAsString());
 	if (policyExists == false)
 	{
-		string description = string("The policy specified was not found.");
+		const auto description = string("The policy specified was not found."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}
@@ -119,15 +117,15 @@ void DiagPolicyCommand::throwIfReportNameIsInvalid(const CommandArguments& argum
 	{
 		if (arguments[2].isDataTypeString() == false)
 		{
-			string description = string("Invalid argument type given for report name.");
+			const auto description = string("Invalid argument type given for report name."s);
 			setResultMessage(description);
 			throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 		}
 
-		auto reportName = arguments[2].getDataAsString();
+		const auto reportName = arguments[2].getDataAsString();
 		if (IFileIo::fileNameContainsIllegalCharacters(reportName))
 		{
-			string description = string("Invalid characters used in report name given to 'diag policy' command.");
+			const auto description = string("Invalid characters used in report name given to 'diag policy' command."s);
 			setResultMessage(description);
 			throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 		}

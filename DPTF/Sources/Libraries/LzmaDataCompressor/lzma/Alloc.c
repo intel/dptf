@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* Alloc.c -- Memory allocation functions
 2021-07-13 : Igor Pavlov : Public domain */
 

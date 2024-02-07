@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,6 +44,7 @@
 #include "PolicyServicesDomainSystemPowerControl.h"
 #include "PolicyServicesDomainPlatformPowerStatus.h"
 #include "PolicyServicesPlatformState.h"
+#include "PolicyServicesOperatingSystemConfiguration.h"
 #include "esif_ccb_string.h"
 #include "DptfVer.h"
 #include "AppVersion.h"
@@ -51,10 +52,13 @@
 #include "ManagerLogger.h"
 #include "ManagerMessage.h"
 #include "StringConverter.h"
+#include "esif_ccb_string.h"
+#include "esif_sdk_logging_data.h"
 using namespace std;
 
 Policy::Policy(DptfManagerInterface* dptfManager)
-	: m_dptfManager(dptfManager)
+	: IPolicy()
+	, m_dptfManager(dptfManager)
 	, m_theRealPolicy(nullptr)
 	, m_theRealPolicyCreated(false)
 	, m_policyIndex(Constants::Invalid)
@@ -70,13 +74,9 @@ Policy::Policy(DptfManagerInterface* dptfManager)
 {
 }
 
-EsifServicesInterface* Policy::getEsifServices()
+EsifServicesInterface* Policy::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
-}
-
-Policy::~Policy(void)
-{
 }
 
 void Policy::createPolicy(
@@ -98,7 +98,7 @@ void Policy::createPolicy(
 	m_esifLibrary = new EsifLibrary(m_policyFileName);
 	m_esifLibrary->load();
 
-	// Make sure all of the required 'C' functions are exposed.  If there is a problem getting the function pointer
+	// Make sure all the required 'C' functions are exposed.  If there is a problem getting the function pointer
 	// an exception is thrown by the EsifLibrary class.
 	m_getAppVersion = (GetAppVersionFuncPtr)m_esifLibrary->getFunctionPtr("GetAppVersion");
 	m_createPolicyInstanceFuncPtr = (CreatePolicyInstanceFuncPtr)m_esifLibrary->getFunctionPtr("CreatePolicyInstance");
@@ -172,7 +172,7 @@ void Policy::createPolicy(
 		throw policy_not_in_idsp_list();
 	}
 
-	// create all of the classes necessary to fill in the policy services interface container
+	// create all classes necessary to fill in the policy services interface container
 	createPolicyServices();
 
 	m_theRealPolicyCreated = true;
@@ -208,10 +208,10 @@ void Policy::destroyPolicy()
 		m_esifLibrary->unload();
 	}
 
-	DELETE_MEMORY_TC(m_esifLibrary);
+	DELETE_MEMORY_TC(m_esifLibrary)
 }
 
-Guid Policy::getGuid(void)
+Guid Policy::getGuid()
 {
 	return m_guid;
 }
@@ -236,22 +236,22 @@ void Policy::unbindDomain(UIntN participantIndex, UIntN domainIndex)
 	m_theRealPolicy->unbindDomain(participantIndex, domainIndex);
 }
 
-void Policy::enable(void)
+void Policy::enable()
 {
 	m_theRealPolicy->enable();
 }
 
-void Policy::disable(void)
+void Policy::disable()
 {
 	m_theRealPolicy->disable();
 }
 
-string Policy::getName(void) const
+string Policy::getName() const
 {
 	return m_policyName;
 }
 
-string Policy::getPolicyFileName(void) const
+string Policy::getPolicyFileName() const
 {
 	return m_policyFileName;
 }
@@ -261,27 +261,37 @@ UIntN Policy::getPolicyIndex() const
 	return m_policyIndex;
 }
 
-string Policy::getStatusAsXml(void) const
+string Policy::getStatusAsXml() const
 {
 	return m_theRealPolicy->getStatusAsXml();
 }
 
-string Policy::getDiagnosticsAsXml(void) const
+string Policy::getDiagnosticsAsXml() const
 {
 	return m_theRealPolicy->getDiagnosticsAsXml();
 }
 
-Bool Policy::isDynamicPolicy(void)
+std::map<std::string, std::string> Policy::getPolicyStateLogData() const
+{
+	return m_theRealPolicy->getPolicyStateLogData();
+}
+
+string Policy::getConfigurationForExport() const
+{
+	return m_theRealPolicy->getConfigurationForExport();
+}
+
+Bool Policy::isDynamicPolicy()
 {
 	return m_isDynamicPolicy;
 }
 
-string Policy::getDynamicPolicyUuidString(void) const
+string Policy::getDynamicPolicyUuidString() const
 {
 	return m_dynamicPolicyUuidString;
 }
 
-void Policy::executeIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
+void Policy::executePolicyIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
 {
 	if (isEventRegistered(PolicyEvent::DptfAppBroadcastUnprivileged))
 	{
@@ -289,7 +299,16 @@ void Policy::executeIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificati
 	}
 }
 
-void Policy::executeConnectedStandbyEntry(void)
+void Policy::executeIaoBroadcastReceived(
+	const DptfBuffer& broadcastNotificationData)
+{
+	if (isEventRegistered(PolicyEvent::DptfAppBroadcastUnprivileged))
+	{
+		m_theRealPolicy->iaoBroadcastReceived(broadcastNotificationData);
+	}
+}
+
+void Policy::executeConnectedStandbyEntry()
 {
 	if (isEventRegistered(PolicyEvent::DptfConnectedStandbyEntry))
 	{
@@ -297,7 +316,7 @@ void Policy::executeConnectedStandbyEntry(void)
 	}
 }
 
-void Policy::executeConnectedStandbyExit(void)
+void Policy::executeConnectedStandbyExit()
 {
 	if (isEventRegistered(PolicyEvent::DptfConnectedStandbyExit))
 	{
@@ -305,7 +324,7 @@ void Policy::executeConnectedStandbyExit(void)
 	}
 }
 
-void Policy::executeLowPowerModeEntry(void)
+void Policy::executeLowPowerModeEntry()
 {
 	if (isEventRegistered(PolicyEvent::DptfLowPowerModeEntry))
 	{
@@ -313,7 +332,7 @@ void Policy::executeLowPowerModeEntry(void)
 	}
 }
 
-void Policy::executeLowPowerModeExit(void)
+void Policy::executeLowPowerModeExit()
 {
 	if (isEventRegistered(PolicyEvent::DptfLowPowerModeExit))
 	{
@@ -321,7 +340,7 @@ void Policy::executeLowPowerModeExit(void)
 	}
 }
 
-void Policy::executeSuspend(void)
+void Policy::executeSuspend()
 {
 	if (isEventRegistered(PolicyEvent::DptfSuspend))
 	{
@@ -329,7 +348,7 @@ void Policy::executeSuspend(void)
 	}
 }
 
-void Policy::executeResume(void)
+void Policy::executeResume()
 {
 	if (isEventRegistered(PolicyEvent::DptfResume))
 	{
@@ -534,7 +553,7 @@ void Policy::executeParticipantSpecificInfoChanged(UIntN participantIndex)
 	}
 }
 
-void Policy::executePolicyActiveRelationshipTableChanged(void)
+void Policy::executePolicyActiveRelationshipTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyActiveRelationshipTableChanged))
 	{
@@ -653,15 +672,23 @@ void Policy::executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type sc
 	}
 }
 
-void Policy::executePolicyProcessLoaded(const string& processName)
+void Policy::executePolicyProcessLoaded(const string& processName, UInt64 processId)
 {
 	if (isEventRegistered(PolicyEvent::PolicyProcessLoadNotification))
 	{
-		m_theRealPolicy->processLoaded(processName);
+		m_theRealPolicy->processLoaded(processName, processId);
 	}
 }
 
-void Policy::executePolicyPassiveTableChanged(void)
+void Policy::executePolicyProcessUnLoaded(UInt64 processId)
+{
+	if (isEventRegistered(PolicyEvent::PolicyProcessLoadNotification))
+	{
+		m_theRealPolicy->processUnLoaded(processId);
+	}
+}
+
+void Policy::executePolicyPassiveTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPassiveTableChanged))
 	{
@@ -693,7 +720,7 @@ void Policy::executePolicySensorSpatialOrientationChanged(SensorSpatialOrientati
 	}
 }
 
-void Policy::executePolicyThermalRelationshipTableChanged(void)
+void Policy::executePolicyThermalRelationshipTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyThermalRelationshipTableChanged))
 	{
@@ -701,7 +728,7 @@ void Policy::executePolicyThermalRelationshipTableChanged(void)
 	}
 }
 
-void Policy::executePolicyAdaptivePerformanceConditionsTableChanged(void)
+void Policy::executePolicyAdaptivePerformanceConditionsTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged))
 	{
@@ -709,7 +736,7 @@ void Policy::executePolicyAdaptivePerformanceConditionsTableChanged(void)
 	}
 }
 
-void Policy::executePolicyDdrfTableChanged(void)
+void Policy::executePolicyDdrfTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyDdrfTableChanged))
 	{
@@ -717,7 +744,7 @@ void Policy::executePolicyDdrfTableChanged(void)
 	}
 }
 
-void Policy::executePolicyRfimTableChanged(void)
+void Policy::executePolicyRfimTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyRfimTableChanged))
 	{
@@ -725,7 +752,7 @@ void Policy::executePolicyRfimTableChanged(void)
 	}
 }
 
-void Policy::executePolicyTpgaTableChanged(void)
+void Policy::executePolicyTpgaTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyTpgaTableChanged))
 	{
@@ -733,7 +760,15 @@ void Policy::executePolicyTpgaTableChanged(void)
 	}
 }
 
-void Policy::executePolicyAdaptivePerformanceActionsTableChanged(void)
+void Policy::executePolicyOpbtTableChanged()
+{
+	if (isEventRegistered(PolicyEvent::PolicyOpbtTableChanged))
+	{
+		m_theRealPolicy->opbtTableChanged();
+	}
+}
+
+void Policy::executePolicyAdaptivePerformanceActionsTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged))
 	{
@@ -741,7 +776,7 @@ void Policy::executePolicyAdaptivePerformanceActionsTableChanged(void)
 	}
 }
 
-void Policy::executePolicyOemVariablesChanged(void)
+void Policy::executePolicyOemVariablesChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyOemVariablesChanged))
 	{
@@ -765,7 +800,7 @@ void Policy::executeEnvironmentProfileChanged(const EnvironmentProfile& environm
 	}
 }
 
-void Policy::executePolicyPowerBossConditionsTableChanged(void)
+void Policy::executePolicyPowerBossConditionsTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPowerBossConditionsTableChanged))
 	{
@@ -773,7 +808,7 @@ void Policy::executePolicyPowerBossConditionsTableChanged(void)
 	}
 }
 
-void Policy::executePolicyPowerBossActionsTableChanged(void)
+void Policy::executePolicyPowerBossActionsTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPowerBossActionsTableChanged))
 	{
@@ -781,7 +816,7 @@ void Policy::executePolicyPowerBossActionsTableChanged(void)
 	}
 }
 
-void Policy::executePolicyPowerBossMathTableChanged(void)
+void Policy::executePolicyPowerBossMathTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPowerBossMathTableChanged))
 	{
@@ -789,7 +824,7 @@ void Policy::executePolicyPowerBossMathTableChanged(void)
 	}
 }
 
-void Policy::executePolicyVoltageThresholdMathTableChanged(void)
+void Policy::executePolicyVoltageThresholdMathTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyVoltageThresholdMathTableChanged))
 	{
@@ -830,18 +865,18 @@ void Policy::executePolicySystemModeChanged(SystemMode::Type systemMode)
 	}
 }
 
-void Policy::executePolicyActivityLoggingEnabled(void)
+void Policy::executePolicyActivityLoggingEnabled()
 {
 	enablePolicyLogging();
 	sendPolicyLogDataIfLoggingEnabled(true);
 }
 
-void Policy::executePolicyActivityLoggingDisabled(void)
+void Policy::executePolicyActivityLoggingDisabled()
 {
 	disablePolicyLogging();
 }
 
-void Policy::executePolicyEmergencyCallModeTableChanged(void)
+void Policy::executePolicyEmergencyCallModeTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyEmergencyCallModeTableChanged))
 	{
@@ -849,7 +884,7 @@ void Policy::executePolicyEmergencyCallModeTableChanged(void)
 	}
 }
 
-void Policy::executePolicyPidAlgorithmTableChanged(void)
+void Policy::executePolicyPidAlgorithmTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPidAlgorithmTableChanged))
 	{
@@ -857,7 +892,7 @@ void Policy::executePolicyPidAlgorithmTableChanged(void)
 	}
 }
 
-void Policy::executePolicyActiveControlPointRelationshipTableChanged(void)
+void Policy::executePolicyActiveControlPointRelationshipTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyActiveControlPointRelationshipTableChanged))
 	{
@@ -865,7 +900,7 @@ void Policy::executePolicyActiveControlPointRelationshipTableChanged(void)
 	}
 }
 
-void Policy::executePolicyPowerShareAlgorithmTableChanged(void)
+void Policy::executePolicyPowerShareAlgorithmTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPowerShareAlgorithmTableChanged))
 	{
@@ -873,7 +908,7 @@ void Policy::executePolicyPowerShareAlgorithmTableChanged(void)
 	}
 }
 
-void Policy::executePolicyIntelligentThermalManagementTableChanged(void)
+void Policy::executePolicyIntelligentThermalManagementTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyIntelligentThermalManagementTableChanged))
 	{
@@ -881,7 +916,15 @@ void Policy::executePolicyIntelligentThermalManagementTableChanged(void)
 	}
 }
 
-void Policy::executePolicyPowerShareAlgorithmTable2Changed(void)
+void Policy::executePolicyIntelligentThermalManagementTable3Changed()
+{
+	if (isEventRegistered(PolicyEvent::PolicyIntelligentThermalManagementTable3Changed))
+	{
+		m_theRealPolicy->intelligentThermalManagementTable3Changed();
+	}
+}
+
+void Policy::executePolicyPowerShareAlgorithmTable2Changed()
 {
 	if (isEventRegistered(PolicyEvent::PolicyPowerShareAlgorithmTable2Changed))
 	{
@@ -889,7 +932,7 @@ void Policy::executePolicyPowerShareAlgorithmTable2Changed(void)
 	}
 }
 
-void Policy::executePolicyEnergyPerformanceOptimizerTableChanged(void)
+void Policy::executePolicyEnergyPerformanceOptimizerTableChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged))
 	{
@@ -897,7 +940,7 @@ void Policy::executePolicyEnergyPerformanceOptimizerTableChanged(void)
 	}
 }
 
-void Policy::executePowerLimitChanged(void)
+void Policy::executePowerLimitChanged()
 {
 	if (isEventRegistered(PolicyEvent::PowerLimitChanged))
 	{
@@ -905,7 +948,7 @@ void Policy::executePowerLimitChanged(void)
 	}
 }
 
-void Policy::executePowerLimitTimeWindowChanged(void)
+void Policy::executePowerLimitTimeWindowChanged()
 {
 	if (isEventRegistered(PolicyEvent::PowerLimitTimeWindowChanged))
 	{
@@ -921,7 +964,7 @@ void Policy::executePerformanceCapabilitiesChanged(UIntN participantIndex)
 	}
 }
 
-void Policy::executePolicyWorkloadHintConfigurationChanged(void)
+void Policy::executePolicyWorkloadHintConfigurationChanged()
 {
 	if (isEventRegistered(PolicyEvent::PolicyWorkloadHintConfigurationChanged))
 	{
@@ -929,7 +972,31 @@ void Policy::executePolicyWorkloadHintConfigurationChanged(void)
 	}
 }
 
-void Policy::sendPolicyLogDataIfLoggingEnabled(Bool loaded)
+void Policy::executePolicyScenarioModeChanged(ScenarioMode::Type scenarioMode)
+{
+	if (isEventRegistered(PolicyEvent::PolicyScenarioModeChanged))
+	{
+		m_theRealPolicy->scenarioModeChanged(scenarioMode);
+	}
+}
+
+void Policy::executePolicyDttGamingModeChanged(DttGamingMode::Type dttGamingMode)
+{
+	if (isEventRegistered(PolicyEvent::PolicyDttGamingModeChanged))
+	{
+		m_theRealPolicy->dttGamingModeChanged(dttGamingMode);
+	}
+}
+
+void Policy::executePolicyApplicationOptimizationChanged(Bool isActive)
+{
+	if (isEventRegistered(PolicyEvent::PolicyApplicationOptimizationChanged))
+	{
+		m_theRealPolicy->applicationOptimizationChanged(isActive);
+	}
+}
+
+void Policy::sendPolicyLogDataIfLoggingEnabled(Bool loaded) const
 {
 	try
 	{
@@ -942,7 +1009,7 @@ void Policy::sendPolicyLogDataIfLoggingEnabled(Bool loaded)
 			esif_ccb_strncpy(policyData.policyName, m_policyName.c_str(), sizeof(policyData.policyName));
 			esif_ccb_strncpy(policyData.policyFileName, m_policyFileName.c_str(), sizeof(policyData.policyFileName));
 
-			esif_data esifEventData = {
+			const esif_data esifEventData = {
 				esif_data_type::ESIF_DATA_STRUCTURE, &policyData, sizeof(policyData), sizeof(policyData)};
 
 			m_dptfManager->getEsifServices()->sendDptfEvent(
@@ -967,12 +1034,12 @@ void Policy::unregisterEvent(PolicyEvent::Type policyEvent)
 	m_registeredEvents.reset(policyEvent);
 }
 
-Bool Policy::isEventRegistered(PolicyEvent::Type policyEvent)
+Bool Policy::isEventRegistered(PolicyEvent::Type policyEvent) const
 {
 	return m_registeredEvents.test(policyEvent);
 }
 
-void Policy::createPolicyServices(void)
+void Policy::createPolicyServices()
 {
 	m_policyServices.domainActivityStatus = new PolicyServicesDomainActivityStatus(m_dptfManager, m_policyIndex);
 	m_policyServices.domainCoreControl = new PolicyServicesDomainCoreControl(m_dptfManager, m_policyIndex);
@@ -1006,35 +1073,36 @@ void Policy::createPolicyServices(void)
 		new PolicyWorkloadHintConfiguration(m_policyServices.platformConfigurationData);
 	m_policyServices.platformState = new PolicyServicesPlatformState(m_dptfManager, m_policyIndex);
 	m_policyServices.serviceRequest = new PolicyServicesDptfServiceRequest(m_dptfManager, m_policyIndex);
+	m_policyServices.operatingSystemConfiguration = new PolicyServicesOperatingSystemConfiguration();
 }
 
-void Policy::destroyPolicyServices(void)
+void Policy::destroyPolicyServices()
 {
-	DELETE_MEMORY_TC(m_policyServices.domainActivityStatus);
-	DELETE_MEMORY_TC(m_policyServices.domainCoreControl);
-	DELETE_MEMORY_TC(m_policyServices.domainDisplayControl);
-	DELETE_MEMORY_TC(m_policyServices.domainEnergyControl);
-	DELETE_MEMORY_TC(m_policyServices.domainPeakPowerControl);
-	DELETE_MEMORY_TC(m_policyServices.domainPerformanceControl);
-	DELETE_MEMORY_TC(m_policyServices.domainPowerControl);
-	DELETE_MEMORY_TC(m_policyServices.domainPowerStatus);
-	DELETE_MEMORY_TC(m_policyServices.domainSystemPowerControl);
-	DELETE_MEMORY_TC(m_policyServices.domainPlatformPowerStatus);
-	DELETE_MEMORY_TC(m_policyServices.domainPriority);
-	DELETE_MEMORY_TC(m_policyServices.domainRfProfileControl);
-	DELETE_MEMORY_TC(m_policyServices.domainRfProfileStatus);
-	DELETE_MEMORY_TC(m_policyServices.domainUtilization);
-	DELETE_MEMORY_TC(m_policyServices.participantGetSpecificInfo);
-	DELETE_MEMORY_TC(m_policyServices.participantProperties);
-	DELETE_MEMORY_TC(m_policyServices.participantSetSpecificInfo);
-	DELETE_MEMORY_TC(m_policyServices.platformConfigurationData);
-	DELETE_MEMORY_TC(m_policyServices.platformPowerState);
-	DELETE_MEMORY_TC(m_policyServices.policyEventRegistration);
-	DELETE_MEMORY_TC(m_policyServices.policyInitiatedCallback);
-	DELETE_MEMORY_TC(m_policyServices.messageLogging);
-	DELETE_MEMORY_TC(m_policyServices.workloadHintConfiguration);
-	DELETE_MEMORY_TC(m_policyServices.platformState);
-	DELETE_MEMORY_TC(m_policyServices.serviceRequest);
+	DELETE_MEMORY_TC(m_policyServices.domainActivityStatus)
+	DELETE_MEMORY_TC(m_policyServices.domainCoreControl)
+	DELETE_MEMORY_TC(m_policyServices.domainDisplayControl)
+	DELETE_MEMORY_TC(m_policyServices.domainEnergyControl)
+	DELETE_MEMORY_TC(m_policyServices.domainPeakPowerControl)
+	DELETE_MEMORY_TC(m_policyServices.domainPerformanceControl)
+	DELETE_MEMORY_TC(m_policyServices.domainPowerControl)
+	DELETE_MEMORY_TC(m_policyServices.domainPowerStatus)
+	DELETE_MEMORY_TC(m_policyServices.domainSystemPowerControl)
+	DELETE_MEMORY_TC(m_policyServices.domainPlatformPowerStatus)
+	DELETE_MEMORY_TC(m_policyServices.domainPriority)
+	DELETE_MEMORY_TC(m_policyServices.domainRfProfileControl)
+	DELETE_MEMORY_TC(m_policyServices.domainRfProfileStatus)
+	DELETE_MEMORY_TC(m_policyServices.domainUtilization)
+	DELETE_MEMORY_TC(m_policyServices.participantGetSpecificInfo)
+	DELETE_MEMORY_TC(m_policyServices.participantProperties)
+	DELETE_MEMORY_TC(m_policyServices.participantSetSpecificInfo)
+	DELETE_MEMORY_TC(m_policyServices.platformConfigurationData)
+	DELETE_MEMORY_TC(m_policyServices.platformPowerState)
+	DELETE_MEMORY_TC(m_policyServices.policyEventRegistration)
+	DELETE_MEMORY_TC(m_policyServices.policyInitiatedCallback)
+	DELETE_MEMORY_TC(m_policyServices.messageLogging)
+	DELETE_MEMORY_TC(m_policyServices.workloadHintConfiguration)
+	DELETE_MEMORY_TC(m_policyServices.platformState)
+	DELETE_MEMORY_TC(m_policyServices.serviceRequest)
 }
 
 void Policy::executeDomainBatteryStatusChanged(UIntN participantIndex)
@@ -1181,17 +1249,17 @@ void Policy::executePolicyExternalMonitorStateChanged(Bool externalMonitorState)
 	}
 }
 
-Bool Policy::isPolicyLoggingEnabled()
+Bool Policy::isPolicyLoggingEnabled() const
 {
 	return m_isPolicyLoggingEnabled;
 }
 
-void Policy::enablePolicyLogging(void)
+void Policy::enablePolicyLogging()
 {
 	m_isPolicyLoggingEnabled = true;
 }
 
-void Policy::disablePolicyLogging(void)
+void Policy::disablePolicyLogging()
 {
 	m_isPolicyLoggingEnabled = false;
 }
@@ -1241,5 +1309,45 @@ void Policy::executePolicyThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type 
 	if (isEventRegistered(PolicyEvent::PolicyThirdPartyGraphicsTPPLimitChanged))
 	{
 		m_theRealPolicy->thirdPartyGraphicsTPPLimitChanged(powerSourceForTPP);
+	}
+}
+
+void Policy::executePolicySystemConfigurationFeatureTableChanged()
+{
+	if (isEventRegistered(PolicyEvent::PolicySystemConfigurationFeatureTableChanged))
+	{
+		m_theRealPolicy->systemConfigurationFeatureTableChanged();
+	}
+}
+
+void Policy::executePolicySystemInBagChanged(SystemInBag::Type systemInBag)
+{
+	if (isEventRegistered(PolicyEvent::PolicySystemInBagChanged))
+	{
+		m_theRealPolicy->systemInBagChanged(systemInBag);
+	}
+}
+
+void Policy::executeDptfExtendedWorkloadPredictionEventRegistrationChanged(UInt32 consumerCount)
+{
+	if (isEventRegistered(PolicyEvent::DptfExtendedWorkloadPredictionEventRegistrationChanged))
+	{
+		m_theRealPolicy->extendedWorkloadPredictionEventRegistrationChanged(consumerCount);
+	}
+}
+
+void Policy::executePolicyThirdPartyGraphicsReservedTgpChanged(Power reservedTgp)
+{
+	if (isEventRegistered(PolicyEvent::PolicyThirdPartyGraphicsReservedTgpChanged))
+	{
+		m_theRealPolicy->thirdPartyGraphicsReservedTgpChanged(reservedTgp);
+	}
+}
+
+void Policy::executePolicyThirdPartyGraphicsOppBoostModeChanged(OpportunisticBoostMode::Type oppBoostMode)
+{
+	if (isEventRegistered(PolicyEvent::PolicyThirdPartyGraphicsOppBoostModeChanged))
+	{
+		m_theRealPolicy->thirdPartyGraphicsOppBoostModeChanged(oppBoostMode);
 	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,13 +27,13 @@ namespace MbtMode
 		DcBetterBattery = 0,
 		DcBetterPerformance = 1,
 		AcQuiet = 2,
-		AcBalanced = 3,
+		Balanced = 3,
 		DcEnduranceGaming = 4,
 		Collaboration = 5,
+		IpAlignment = 6,
 		Invalid
 	};
 
 	std::string toString(MbtMode::Type mbtMode);
 	MbtMode::Type fromString(std::string mbtMode);
-	std::string toPpmKeyString(MbtMode::Type mbtMode);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,7 +43,7 @@ void WIPolicyOperatingSystemGameModeChanged::onExecute(void)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->gameMode.set(m_gameMode);
+			getDptfManager()->getEventCache()->osGameMode.set(m_gameMode);
 			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemGameModeChanged(m_gameMode);
 		}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,7 @@ public:
 		const std::string& replaceString);
 	static std::string removeAll(const std::string& input, char character);
 	static std::string removeTrailingZeros(const std::string& input);
+	static std::string removeLastCharacter(const std::string& input);
 	static size_t countWords(const std::string& input, const std::string& word);
 	static std::string fromCharacters(const std::vector<unsigned char>& characters);
 	static std::string trimWhitespace(const std::string& input, const std::string& whitespace = " \t\n\r\f\v");

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -72,7 +72,8 @@ tableobject delete <tablename> <participant name> <all>       Deletes participan
 config delete <datavault> <key>                               Deletes DataVault key
 config filterdb <configuration name> <regex>                  Displays config content filtered by regex as key-values
 config list                                                   Shows all loaded configurations
-config print <configuration name>                             Displays contents of a configuration as JSON
+config print <configuration name>                             Displays best matched segment of a configuration as JSON
+config print-all <configuration name>                         Displays all segments of a configuration as JSON
 config printdb <configuration name>                           Displays contents of a configuration as key-values
 config reload                                                 Rescans directories for configurations
 ui getgroups                                                  Returns groups for top level UI menu
@@ -80,5 +81,9 @@ ui getmodulesingroup <group ID>                               Returns module IDs
 ui getmoduledata <group ID> <module ID>                       Returns XML data for group ID and module ID
 capture [file name]                                           Export settings to file
 getCpuId                                                      Returns platform CPU ID without stepping
+log policies start [file name] <sample period> <policy name>  Returns file with policy logs. Use '' around policy names
+log policies stop                                             Stops policy logging
+log policies status                                           Returns logging status
+export config <policy name> [file name]                       Returns config file. Use '' around policy name
 )";
 }

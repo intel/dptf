@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -434,9 +434,29 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 
 			rc = WebPlugin_Init();
 
-			// Check that App is running Out-of-Process
+			/* Check DCFG to verify that UI is enabled. Do not fail AppCreate on error, but fail if App blocked by DCFG.
+			** This only needs to be checked when running in-process, otherwise the primitive will fail due to it not
+			** being in the Application's Security Role, which causes the Server to log an Error in the Event Log.
+			** If in-process support is ever removed, this can simply verify that the app is running out-of-process.
+			*/
 			if (rc == ESIF_OK && self->ifaceSet.esifIface.fPrimitiveFuncPtr && !self->config.isClient) {
-				rc = ESIF_E_DISABLED;
+				DCfgOptions dcfg = { 0 };
+				EsifData request = { ESIF_DATA_VOID };
+				EsifData response = { ESIF_DATA_UINT32 };
+				response.buf_ptr = &dcfg.asU32;
+				response.buf_len = (u32)sizeof(dcfg);
+				esif_error_t dcfgrc = self->ifaceSet.esifIface.fPrimitiveFuncPtr(
+					self->esifHandle,
+					ESIF_HANDLE_PRIMARY_PARTICIPANT,
+					ESIF_INVALID_HANDLE,
+					&request,
+					&response,
+					GET_CONFIG_ACCESS_CONTROL_SUR,
+					ESIF_INSTANCE_INVALID
+				);
+				if (dcfgrc == ESIF_OK && dcfg.opt.GenericUIAccessControl) {
+					rc = ESIF_E_DISABLED;
+				}
 			}
 
 			// Convert DPTF Path to UI Document Root Path, except for IPF Clients
@@ -612,7 +632,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 		if (esif_ccb_stricmp(command, "help") == 0 || esif_ccb_stricmp(command, "about") == 0) {
 			bytes = IString_Sprintf(reply,
 				"%s - " WS_APP_BANNER "\n"
-				"Copyright (c) 2013-2023 Intel Corporation All Rights Reserved\n"
+				"Copyright (c) 2013-2024 Intel Corporation All Rights Reserved\n"
 				"Available Commands:\n"
 				"  help\n"
 				"  start [<options>] [<ip>] [<port>]\n"

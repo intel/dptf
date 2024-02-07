@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -227,7 +227,7 @@ static EsifFpcActionPtr get_action(
 	EsifFpcActionPtr fpcActionPtr = NULL;
 	int i;
 
-	if (NULL == dspPtr || NULL == primitivePtr) {
+	if (NULL == dspPtr || NULL == primitivePtr || (index >= primitivePtr->num_actions)) {
 		return NULL;
 	}
 

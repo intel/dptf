@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,12 +30,14 @@ namespace MbtMode
 			return "Better Battery";
 		case DcBetterPerformance:
 			return "Better Performance";
-		case AcBalanced:
+		case Balanced:
 			return "Balanced";
 		case AcQuiet:
 			return "Quiet";
 		case Collaboration:
 			return "Collaboration";
+		case IpAlignment:
+			return "VC IP Alignment";
 		default:
 			throw dptf_exception("MbtMode::Type is invalid");
 		}
@@ -51,13 +53,9 @@ namespace MbtMode
 		{
 			return MbtMode::DcBetterBattery;
 		}
-		else if (mbtMode == toString(MbtMode::DcBetterPerformance))
+		else if (mbtMode == toString(MbtMode::Balanced) || mbtMode == toString(MbtMode::DcBetterPerformance))
 		{
-			return MbtMode::DcBetterPerformance;
-		}
-		else if (mbtMode == toString(MbtMode::AcBalanced))
-		{
-			return MbtMode::AcBalanced;
+			return MbtMode::Balanced;
 		}
 		else if (mbtMode == toString(MbtMode::AcQuiet))
 		{
@@ -67,27 +65,10 @@ namespace MbtMode
 		{
 			return MbtMode::Collaboration;
 		}
-		return MbtMode::Invalid;
-	}
-
-	std::string toPpmKeyString(MbtMode::Type mbtMode)
-	{
-		switch (mbtMode)
+		else if (mbtMode == toString(MbtMode::IpAlignment))
 		{
-		case DcEnduranceGaming:
-			return "EnduranceGaming";
-		case DcBetterBattery:
-			return "BetterBatt";
-		case DcBetterPerformance:
-			return "BetterPerf";
-		case AcBalanced:
-			return "Balanced";
-		case AcQuiet:
-			return "Quiet";
-		case Collaboration:
-			return "Collaboration";
-		default:
-			throw dptf_exception("MbtMode::Type is invalid");
+			return MbtMode::IpAlignment;
 		}
+		return MbtMode::Invalid;
 	}
 }

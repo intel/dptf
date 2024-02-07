@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "TimeSpan.h"
 #include "StatusFormat.h"
+#include "StringConverter.h"
 using namespace StatusFormat;
 using namespace std;
 
@@ -54,6 +55,14 @@ TimeSpan TimeSpan::createFromMilliseconds(Int64 milliseconds)
 	return span;
 }
 
+TimeSpan TimeSpan::createFromMilliseconds(const string& milliseconds)
+{
+	TimeSpan span;
+	span.m_microseconds = StringConverter::toUInt64(milliseconds) * MicrosecondsPerMillisecond;
+	span.m_valid = true;
+	return span;
+}
+
 TimeSpan TimeSpan::createFromTenthSeconds(Int64 tenthSeconds)
 {
 	TimeSpan span;
@@ -73,7 +82,7 @@ TimeSpan TimeSpan::createFromSeconds(Int64 seconds)
 TimeSpan TimeSpan::createFromSeconds(const string& seconds)
 {
 	TimeSpan span;
-	span.m_microseconds = stoi(seconds) * MicrosecondsPerSecond;
+	span.m_microseconds = StringConverter::toUInt64(seconds) * MicrosecondsPerSecond;
 	span.m_valid = true;
 	return span;
 }

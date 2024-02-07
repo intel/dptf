@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,8 @@
 #include "EnvironmentProfile.h"
 #include "DataVaultPath.h"
 
+using namespace std;
+
 PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData(
 	DptfManagerInterface* dptfManager,
 	UIntN policyIndex)
@@ -47,16 +49,36 @@ UInt32 PolicyServicesPlatformConfigurationData::readConfigurationUInt32(
 	return getEsifServices()->readConfigurationUInt32(nameSpace, key);
 }
 
+void PolicyServicesPlatformConfigurationData::writeConfigurationString(
+	const std::string& key,
+	const std::string& data)
+{
+	throwIfNotWorkItemThread();
+	getEsifServices()->writeConfigurationString(key, data);
+}
+
+void PolicyServicesPlatformConfigurationData::writeConfigurationString(
+	const std::string& nameSpace,
+	const std::string& key,
+	const std::string& data)
+{
+	throwIfNotWorkItemThread();
+	getEsifServices()->writeConfigurationString(nameSpace, key, data);
+}
+
 void PolicyServicesPlatformConfigurationData::writeConfigurationUInt32(const std::string& key, UInt32 data)
 {
 	throwIfNotWorkItemThread();
 	getEsifServices()->writeConfigurationUInt32(key, data);
 }
 
-void PolicyServicesPlatformConfigurationData::writeConfigurationString(const std::string& key, const std::string& data)
+void PolicyServicesPlatformConfigurationData::writeConfigurationUInt32(
+	const std::string& nameSpace,
+	const std::string& key,
+	UInt32 data)
 {
 	throwIfNotWorkItemThread();
-	getEsifServices()->writeConfigurationString(key, data);
+	getEsifServices()->writeConfigurationUInt32(nameSpace, key, data);
 }
 
 std::string PolicyServicesPlatformConfigurationData::readConfigurationString(
@@ -119,7 +141,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getActiveRelationshipTable()
 	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_ACTIVE_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
 }
 
-void PolicyServicesPlatformConfigurationData::setActiveRelationshipTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setActiveRelationshipTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Art);
@@ -132,7 +154,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getThermalRelationshipTable(
 		esif_primitive_type::GET_THERMAL_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
 }
 
-void PolicyServicesPlatformConfigurationData::setThermalRelationshipTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setThermalRelationshipTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Trt);
@@ -146,19 +168,19 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPassiveTable()
 		esif_primitive_type::GET_PASSIVE_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
 }
 
-void PolicyServicesPlatformConfigurationData::setPassiveTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setPassiveTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Psvt);
 }
 
-DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceConditionsTable(std::string uuid)
+DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceConditionsTable(const std::string& uuid)
 {
 	throwIfNotWorkItemThread();
 	return getDptfManager()->getDataManager()->getTableObject(TableObjectType::Type::Apct, uuid).getData();
 }
 
-DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceActionsTable(std::string uuid)
+DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceActionsTable(const std::string& uuid)
 {
 	throwIfNotWorkItemThread();
 	return getDptfManager()->getDataManager()->getTableObject(TableObjectType::Type::Apat, uuid).getData();
@@ -179,18 +201,11 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getSwOemVariables()
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setSwOemVariables(const DptfBuffer& swOemVariablesData)
+void PolicyServicesPlatformConfigurationData::setSwOemVariables(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(
-		swOemVariablesData, TableObjectType::SwOemVariables);
-}
-
-UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getEsifServices()->primitiveExecuteGetAsUInt64(
-			esif_primitive_type::GET_HWPF_STATE, participantIndex, domainIndex);
+		data, TableObjectType::SwOemVariables);
 }
 
 // TODO: Move it to ConfigTDP domain control
@@ -295,7 +310,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPidAlgorithmTable()
 	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_PID_ALGORITHM_TABLE, ESIF_DATA_BINARY);
 }
 
-void PolicyServicesPlatformConfigurationData::setPidAlgorithmTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setPidAlgorithmTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Pida);
@@ -328,7 +343,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getActiveControlPointRelatio
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setActiveControlPointRelationshipTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setActiveControlPointRelationshipTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Acpr);
@@ -343,10 +358,25 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getIntelligentThermalManagem
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setIntelligentThermalManagementTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setIntelligentThermalManagementTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Itmt);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getIntelligentThermalManagementTable3()
+{
+	throwIfNotWorkItemThread();
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Type::Itmt3, Constants::EmptyString)
+		.getData();
+}
+
+void PolicyServicesPlatformConfigurationData::setIntelligentThermalManagementTable3(const DptfBuffer& data)
+{
+	throwIfNotWorkItemThread();
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Itmt3);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getEnergyPerformanceOptimizerTable()
@@ -358,7 +388,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getEnergyPerformanceOptimize
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setEnergyPerformanceOptimizerTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setEnergyPerformanceOptimizerTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Epot);
@@ -373,7 +403,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPowerShareAlgorithmTable(
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Psha);
@@ -388,7 +418,7 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPowerShareAlgorithmTable2
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable2(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable2(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Psh2);
@@ -548,6 +578,18 @@ void PolicyServicesPlatformConfigurationData::resetIntelligentThermalManagementT
 	}
 }
 
+void PolicyServicesPlatformConfigurationData::resetIntelligentThermalManagementTable3() const
+{
+	try
+	{
+		getDptfManager()->getDataManager()->deleteTableObjectKeyForNoPersist(TableObjectType::Itmt3);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
 void PolicyServicesPlatformConfigurationData::resetEnergyPerformanceOptimizerTable() const
 {
 	try
@@ -572,6 +614,18 @@ void PolicyServicesPlatformConfigurationData::resetThirdPartyGraphicsTable() con
 	}
 }
 
+void PolicyServicesPlatformConfigurationData::resetThirdPartyGraphicsTable2() const
+{
+	try
+	{
+		getDptfManager()->getDataManager()->deleteTableObjectKeyForNoPersist(TableObjectType::Opbt);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
 void PolicyServicesPlatformConfigurationData::resetAllTables() const
 {
 	resetActiveRelationshipTable();
@@ -582,7 +636,10 @@ void PolicyServicesPlatformConfigurationData::resetAllTables() const
 	resetPowerShareAlgorithmTable();
 	resetPowerShareAlgorithmTable2();
 	resetIntelligentThermalManagementTable();
+	resetIntelligentThermalManagementTable3();
 	resetEnergyPerformanceOptimizerTable();
+	resetThirdPartyGraphicsTable();
+	resetThirdPartyGraphicsTable2();
 }
 
 Bool PolicyServicesPlatformConfigurationData::getDisplayRequired()
@@ -596,10 +653,10 @@ Bool PolicyServicesPlatformConfigurationData::getDisplayRequired()
 	return (displayRequired == 1);
 }
 
-void PolicyServicesPlatformConfigurationData::setPpmPackage(DptfBuffer package)
+void PolicyServicesPlatformConfigurationData::setPpmPackage(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
-	const auto pkgHeader = reinterpret_cast<EsifPpmParamValuesHeader*>(package.get());
+	const auto pkgHeader = reinterpret_cast<EsifPpmParamValuesHeader*>(data.get());
 	const auto numParams = pkgHeader->numberElement;
 	if (numParams > 0)
 	{
@@ -612,10 +669,10 @@ void PolicyServicesPlatformConfigurationData::setPpmPackage(DptfBuffer package)
 	}
 }
 
-void PolicyServicesPlatformConfigurationData::setPpmPackageForNonBalancedSchemePersonality(DptfBuffer package)
+void PolicyServicesPlatformConfigurationData::setPpmPackageForNonBalancedSchemePersonality(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
-	const auto pkgHeader = reinterpret_cast<EsifPpmParamValuesHeader*>(package.get());
+	const auto pkgHeader = reinterpret_cast<EsifPpmParamValuesHeader*>(data.get());
 	const auto numParams = pkgHeader->numberElement;
 	if (numParams > 0)
 	{
@@ -628,13 +685,13 @@ void PolicyServicesPlatformConfigurationData::setPpmPackageForNonBalancedSchemeP
 	}
 }
 
-DptfBuffer PolicyServicesPlatformConfigurationData::getPpmPackage(DptfBuffer requestPackage)
+DptfBuffer PolicyServicesPlatformConfigurationData::getPpmPackage(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 
 	DptfBuffer buffer = getEsifServices()->primitiveExecuteGetWithArgument(
 		esif_primitive_type::GET_PPM_PARAM_VALUES,
-		requestPackage,
+		data,
 		Constants::Esif::NoParticipant,
 		Constants::Esif::NoDomain,
 		Constants::Esif::NoInstance);
@@ -735,16 +792,16 @@ void PolicyServicesPlatformConfigurationData::setProcessAffinityMask(const std::
 		Constants::Esif::NoInstance);
 }
 
-void PolicyServicesPlatformConfigurationData::setApplicationCompatibility(const DptfBuffer& processData)
+void PolicyServicesPlatformConfigurationData::setApplicationCompatibility(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
 
 	getEsifServices()->primitiveExecuteSet(
 		esif_primitive_type::SET_APP_COMPAT,
 		ESIF_DATA_STRUCTURE,
-		processData.get(),
-		processData.size(),
-		processData.size(),
+		data.get(),
+		data.size(),
+		data.size(),
 		Constants::Esif::NoParticipant,
 		Constants::Esif::NoDomain,
 		Constants::Esif::NoInstance);
@@ -802,14 +859,29 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getTpgaTable()
 	throwIfNotWorkItemThread();
 	return getDptfManager()
 		->getDataManager()
-		->getTableObject(TableObjectType::Type::Tpga, Constants::EmptyString)
+		->getTableObject(TableObjectType::Tpga, Constants::EmptyString)
 		.getData();
 }
 
-void PolicyServicesPlatformConfigurationData::setTpgaTable(DptfBuffer data)
+void PolicyServicesPlatformConfigurationData::setTpgaTable(const DptfBuffer& data)
 {
 	throwIfNotWorkItemThread();
-	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Type::Tpga);
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Tpga);
+}
+
+void PolicyServicesPlatformConfigurationData::setOpbtTable(const DptfBuffer& data)
+{
+	throwIfNotWorkItemThread();
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Opbt);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getOpbtTable()
+{
+	throwIfNotWorkItemThread();
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Opbt, Constants::EmptyString)
+		.getData();
 }
 
 UInt32 PolicyServicesPlatformConfigurationData::getDynamicBoostState(UIntN participantIndex, UIntN domainIndex)
@@ -855,4 +927,20 @@ UInt32 PolicyServicesPlatformConfigurationData::getPhysicalCoreCount(UIntN parti
 	throwIfNotWorkItemThread();
 	return getEsifServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_PROC_PHYSICAL_CORE_COUNT, participantIndex, domainIndex);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getSystemConfigurationFeatureTable()
+{
+	throwIfNotWorkItemThread();
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Type::Scft, Constants::EmptyString)
+		.getData();
+}
+
+string PolicyServicesPlatformConfigurationData::getActiveTableName(TableObjectType::Type tableObjectType)
+{
+	throwIfNotWorkItemThread();
+
+	return getDptfManager()->getDataManager()->getActiveTableName(tableObjectType);
 }

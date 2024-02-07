@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,19 +19,21 @@
 #include "EsifTime.h"
 #include "esif_ccb_time.h"
 
-EsifTime::EsifTime(void)
+using namespace std;
+
+EsifTime::EsifTime()
 {
 	refresh();
 }
 
-void EsifTime::refresh(void)
+void EsifTime::refresh()
 {
 	m_timeStamp = getCurrentTime();
-	time_t now = time(NULL);
+	const time_t now = time(nullptr);
 	esif_ccb_localtime(&m_localTime, &now);
 }
 
-const TimeSpan& EsifTime::getTimeStamp(void) const
+const TimeSpan& EsifTime::getTimeStamp() const
 {
 	return m_timeStamp;
 }
@@ -70,20 +72,20 @@ TimeSpan EsifTime::operator-(const EsifTime& rhs) const
 {
 	if (rhs.getTimeStamp() > m_timeStamp)
 	{
-		throw dptf_exception("rhs numMilliSeconds > internal time stamp");
+		throw dptf_exception("rhs numMilliseconds > internal time stamp"s);
 	}
 
 	return m_timeStamp - rhs.getTimeStamp();
 }
 
-tm EsifTime::getLocalTime(void)
+tm EsifTime::getLocalTime() const
 {
 	return m_localTime;
 }
 
-TimeSpan EsifTime::getCurrentTime(void)
+TimeSpan EsifTime::getCurrentTime() const
 {
-	esif_ccb_time_t currentTimeInMilliSeconds;
-	esif_ccb_system_time(&currentTimeInMilliSeconds);
-	return TimeSpan::createFromMilliseconds(currentTimeInMilliSeconds);
+	esif_ccb_time_t currentTimeInMilliseconds;
+	esif_ccb_system_time(&currentTimeInMilliseconds);
+	return TimeSpan::createFromMilliseconds(currentTimeInMilliseconds);
 }

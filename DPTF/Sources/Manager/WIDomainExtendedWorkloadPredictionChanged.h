@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 ******************************************************************************/
 
 #pragma once
-
-#include "Dptf.h"
 #include "DomainWorkItem.h"
 #include "ExtendedWorkloadPrediction.h"
 
@@ -30,10 +28,9 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction);
-	virtual ~WIDomainExtendedWorkloadPredictionChanged(void);
 
-	virtual void onExecute(void) override final;
+	void onExecute() final;
 
 private:
-	const ExtendedWorkloadPrediction::Type m_extendedWorkloadPrediction;
+	ExtendedWorkloadPrediction::Type m_extendedWorkloadPrediction;
 };

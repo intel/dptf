@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,14 +49,28 @@ DttConfigurationSegment::DttConfigurationSegment(const map<string, string>& keyV
 
 DttConfigurationSegment DttConfigurationSegment::createFromBson(const vector<unsigned char>& bson)
 {
-	const auto jsonObject = nlohmann::json::from_bson(bson);
-	return generateKeysAndValues(jsonObject);
+	try
+	{
+		const auto jsonObject = nlohmann::json::from_bson(bson);
+		return generateKeysAndValues(jsonObject);
+	}
+	catch (json::parse_error& e)
+	{
+		throw dptf_exception("json parsing error: "s + e.what());
+	}
 }
 
 DttConfigurationSegment DttConfigurationSegment::createFromJsonString(const std::string& jsonString)
 {
-	const auto jsonObject = nlohmann::json::parse(jsonString);
-	return generateKeysAndValues(jsonObject);
+	try
+	{
+		const auto jsonObject = nlohmann::json::parse(jsonString);
+		return generateKeysAndValues(jsonObject);
+	}
+	catch (json::parse_error& e)
+	{
+		throw dptf_exception("json parsing error: "s + e.what());
+	}
 }
 
 DttConfigurationSegment DttConfigurationSegment::operator+(const DttConfigurationSegment& higherPriority) const
@@ -144,7 +158,8 @@ bool DttConfigurationSegment::hasPropertiesIncludingEmptyValue(
 	for (const auto& property : properties)
 	{
 		const auto keys = getKeysThatMatch(property.key);
-		if (!keys.empty() && none_of(
+		if (!keys.empty()
+			&& none_of(
 				keys.begin(),
 				keys.end(),
 				[property, this](const string& key)
@@ -269,7 +284,7 @@ void DttConfigurationSegment::keepOnlyKeysThatMatch(const std::set<DttConfigurat
 	m_keyValues = result;
 }
 
-std::string DttConfigurationSegment::toString() const
+string DttConfigurationSegment::toKeyValueString() const
 {
 	json jsonObj;
 
@@ -278,6 +293,19 @@ std::string DttConfigurationSegment::toString() const
 		jsonObj[pair.first] = pair.second;
 	}
 
+	return jsonObj.dump(INDENT_WIDTH);
+}
+
+string DttConfigurationSegment::toJsonString() const
+{
+	json jsonObj;
+
+	for (const auto& pair : m_keyValues)
+	{
+		jsonObj[pair.first] = pair.second;
+	}
+
+	jsonObj = jsonObj.unflatten();
 	return jsonObj.dump(INDENT_WIDTH);
 }
 

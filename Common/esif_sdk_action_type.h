@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -75,7 +75,6 @@ typedef enum esif_action_type {
 	ESIF_ACTION_DGFX = 70,
 	ESIF_ACTION_DPPEBRT = 32,
 	ESIF_ACTION_DPTFWWAN = 50,
-	ESIF_ACTION_HWPF = 80,
 	ESIF_ACTION_IDGFX = 78,
 	ESIF_ACTION_IOC = 74,
 	ESIF_ACTION_IOSF = 34,
@@ -84,6 +83,7 @@ typedef enum esif_action_type {
 	ESIF_ACTION_JAVA = 62,
 	ESIF_ACTION_KACACHE = 85,
 	ESIF_ACTION_KDELEGATE = 52,
+	ESIF_ACTION_KDELEGATEXFORMNONE = 89,
 	ESIF_ACTION_KHID = 73,
 	ESIF_ACTION_KIOCTL = 64,
 	ESIF_ACTION_KODE = 29,
@@ -114,7 +114,7 @@ typedef enum esif_action_type {
 } esif_action_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_IPA
+#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_KDELEGATEXFORMNONE
 
 static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 {
@@ -134,7 +134,6 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_DGFX);
 	ESIF_CASE_ENUM(ESIF_ACTION_DPPEBRT);
 	ESIF_CASE_ENUM(ESIF_ACTION_DPTFWWAN);
-	ESIF_CASE_ENUM(ESIF_ACTION_HWPF);
 	ESIF_CASE_ENUM(ESIF_ACTION_IDGFX);
 	ESIF_CASE_ENUM(ESIF_ACTION_IOC);
 	ESIF_CASE_ENUM(ESIF_ACTION_IOSF);
@@ -143,6 +142,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_JAVA);
 	ESIF_CASE_ENUM(ESIF_ACTION_KACACHE);
 	ESIF_CASE_ENUM(ESIF_ACTION_KDELEGATE);
+	ESIF_CASE_ENUM(ESIF_ACTION_KDELEGATEXFORMNONE);
 	ESIF_CASE_ENUM(ESIF_ACTION_KHID);
 	ESIF_CASE_ENUM(ESIF_ACTION_KIOCTL);
 	ESIF_CASE_ENUM(ESIF_ACTION_KODE);
@@ -198,7 +198,6 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_DGFX),
 		ESIF_MAP_ENUM(ESIF_ACTION_DPPEBRT),
 		ESIF_MAP_ENUM(ESIF_ACTION_DPTFWWAN),
-		ESIF_MAP_ENUM(ESIF_ACTION_HWPF),
 		ESIF_MAP_ENUM(ESIF_ACTION_IDGFX),
 		ESIF_MAP_ENUM(ESIF_ACTION_IOC),
 		ESIF_MAP_ENUM(ESIF_ACTION_IOSF),
@@ -207,6 +206,7 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_JAVA),
 		ESIF_MAP_ENUM(ESIF_ACTION_KACACHE),
 		ESIF_MAP_ENUM(ESIF_ACTION_KDELEGATE),
+		ESIF_MAP_ENUM(ESIF_ACTION_KDELEGATEXFORMNONE),
 		ESIF_MAP_ENUM(ESIF_ACTION_KHID),
 		ESIF_MAP_ENUM(ESIF_ACTION_KIOCTL),
 		ESIF_MAP_ENUM(ESIF_ACTION_KODE),

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -119,7 +119,7 @@ std::string StringParser::replaceAll(
 	while (index != (size_t)std::string::npos)
 	{
 		inputCopy.replace(index, findString.size(), replaceString);
-		index = inputCopy.find(findString, index + 1);
+		index = inputCopy.find(findString, index + replaceString.size());
 	}
 	return inputCopy;
 }
@@ -144,6 +144,16 @@ std::string StringParser::removeTrailingZeros(const std::string& input)
 		pos--;
 	}
 	return input.substr(0, pos + 1);
+}
+
+std::string StringParser::removeLastCharacter(const std::string& input)
+{
+	auto inputCopy = input;
+	if (!inputCopy.empty())
+	{
+		inputCopy.pop_back();
+	}
+	return inputCopy;
 }
 
 size_t StringParser::countWords(const std::string& input, const std::string& word)

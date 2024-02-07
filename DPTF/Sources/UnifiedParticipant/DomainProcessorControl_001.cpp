@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -75,6 +75,60 @@ void DomainProcessorControl_001::setPerfPreferenceMin(const Percentage& cpuMinRa
 		{
 			std::stringstream message;
 			message << "Successfully set min CPU frequency to " << std::to_string(cpuMinRatio);
+			return message.str();
+		});
+}
+
+SocGear::Type DomainProcessorControl_001::getSocGear() const
+{
+	try
+	{
+		return static_cast<SocGear::Type>(getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_OPTIMIZATION_SLIDER, getDomainIndex()));
+	}
+
+	catch(...)
+	{
+		return SocGear::Type::Invalid;
+	}
+}
+
+void DomainProcessorControl_001::setSocGear(SocGear::Type socGear)
+{
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_OPTIMIZATION_SLIDER, socGear, getDomainIndex());
+	
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{
+			std::stringstream message;
+			message << "Successfully set Soc gear to " << std::to_string(socGear);
+			return message.str();
+		});
+}
+
+SystemUsageMode::Type DomainProcessorControl_001::getSocSystemUsageMode()
+{
+	try
+	{
+		return static_cast<SystemUsageMode::Type>(getParticipantServices()->primitiveExecuteGetAsUInt64(
+			esif_primitive_type::GET_SOC_SYSTEM_USAGE_MODE, getDomainIndex()));
+	}
+
+	catch (...)
+	{
+		return SystemUsageMode::Type::Invalid;
+	}
+}
+
+void DomainProcessorControl_001::setSocSystemUsageMode(SystemUsageMode::Type mode)
+{
+	getParticipantServices()->primitiveExecuteSetAsUInt64(
+		esif_primitive_type::SET_SOC_SYSTEM_USAGE_MODE, static_cast<UInt64>(mode), getDomainIndex());
+
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{
+			std::stringstream message;
+			message << "Successfully set Soc System Usage to " << std::to_string(mode);
 			return message.str();
 		});
 }

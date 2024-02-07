@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,7 +47,7 @@
 #ifdef ESIF_FEAT_OPT_DYNAMIC_CAPABILITY 
 #include <sys/capability.h>
 
-eEsifError disable_all_capabilities()
+static eEsifError disable_all_capabilities()
 {
 	eEsifError rc = ESIF_OK;
 	cap_t caps = NULL;
@@ -77,13 +77,100 @@ exit:
 	}
 	return rc;
 }
+
+
+eEsifError enable_capability(UInt32 capabilityId)
+{
+	eEsifError rc = ESIF_OK;
+	cap_t caps = NULL;
+	cap_value_t capToEnable = capabilityId;
+
+	if (!CAP_IS_SUPPORTED(capToEnable)) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	// Get the current Capability set
+	caps = cap_get_proc();
+	if (caps == NULL) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	// Set that specific capability from effective capability set
+	if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &capToEnable, CAP_SET) == -1) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	// Set the new cleared effective capability set
+	if (cap_set_proc(caps) == -1) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+exit:
+	if ( caps != NULL) {
+		cap_free(caps);
+	}
+	return rc;
+}
+
+eEsifError disable_capability(UInt32 capabilityId)
+{
+	eEsifError rc = ESIF_OK;
+	cap_t caps = NULL;
+	cap_value_t capToDisable = capabilityId;
+	if (!CAP_IS_SUPPORTED(capToDisable)) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	// Get the current Capability set
+	caps = cap_get_proc();
+	if (caps == NULL) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	// Clear that specific capability from effective capability set
+	if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &capToDisable, CAP_CLEAR) == -1) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	// Set the new cleared effective capability set
+	if (cap_set_proc(caps) == -1) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+exit:
+	if ( caps != NULL) {
+		cap_free(caps);
+	}
+	return rc;
+}
+
 #else // IF Feature flag is not set
-eEsifError disable_all_capabilities()
+
+static eEsifError disable_all_capabilities()
 {
 	return ESIF_OK;
 }
+
+eEsifError enable_capability(UInt32 capabilityId)
+{
+	return ESIF_OK;
+}
+
+eEsifError disable_capability(UInt32 capabilityId)
+{
+	return ESIF_OK;
+}
+
 #endif // end of ESIF_FEAT_OPT_DYNAMIC_CAPABILITY
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2023 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2024 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"arbitrator disable && appstart ipfsrv"
@@ -1176,6 +1263,11 @@ esif_error_t CreateEnumeratedParticipants()
 	return ESIF_OK;
 }
 
+enum esif_rc esif_ccb_cpu_arrival_init()
+{
+	return CreateEnumeratedParticipants();
+}
+
 esif_error_t CreateActionAssociatedParticipants(esif_action_type_t actionType)
 {
 	// currently not used for linux
@@ -1730,7 +1822,8 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 
 	/* Process Input ? */
 	if (ESIF_TRUE == start_with_pipe) {
-
+		enable_capability(CAP_FOWNER);
+		enable_capability(CAP_DAC_READ_SEARCH);
 		/* Open Input Pipe using FIFO PIPE? */
 		if (!g_shell_enabled) {
 			start_with_pipe = ESIF_FALSE;
@@ -1765,6 +1858,8 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 			esif_shell_execute(line);
 			esif_ccb_fclose(fp);
 		}
+		disable_capability(CAP_DAC_READ_SEARCH);
+		disable_capability(CAP_FOWNER);
 		if (start_with_pipe) {
 			signal_quit();
 		}

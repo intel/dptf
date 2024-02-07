@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,23 +19,22 @@
 #include "FileIo.h"
 #include "DptfManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "TimeOps.h"
 
 using namespace std;
 
-DiagParticipantCommand::DiagParticipantCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
+DiagParticipantCommand::DiagParticipantCommand(
+	DptfManagerInterface* dptfManager,
+	const shared_ptr<IFileIo>& fileIo,
+	const shared_ptr<TimeStampGenerator>& timeStampGenerator)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
-{
-}
-
-DiagParticipantCommand::~DiagParticipantCommand()
+	, m_timeStampGenerator(timeStampGenerator)
 {
 }
 
 string DiagParticipantCommand::getCommandName() const
 {
-	return "part";
+	return "part"s;
 }
 
 void DiagParticipantCommand::execute(const CommandArguments& arguments)
@@ -44,21 +43,21 @@ void DiagParticipantCommand::execute(const CommandArguments& arguments)
 	throwIfParticipantNotExist(arguments);
 	throwIfReportNameIsInvalid(arguments);
 
-	auto diagnostics = getParticipantDiagnosticReport(arguments);
-	auto fullReportPath = generateReportPath(arguments);
+	const auto diagnostics = getParticipantDiagnosticReport(arguments);
+	const auto fullReportPath = generateReportPath(arguments);
 	m_fileIo->write(fullReportPath, diagnostics);
 }
 
-string DiagParticipantCommand::getParticipantDiagnosticReport(const CommandArguments& arguments)
+string DiagParticipantCommand::getParticipantDiagnosticReport(const CommandArguments& arguments) const
 {
-	auto participantName = arguments[1].getDataAsString();
-	auto participant = m_dptfManager->getParticipantManager()->getParticipant(participantName);
+	const auto participantName = arguments[1].getDataAsString();
+	const auto participant = m_dptfManager->getParticipantManager()->getParticipant(participantName);
 	return participant->getDiagnosticsAsXml();
 }
 
-string DiagParticipantCommand::generateReportPath(const CommandArguments& arguments)
+string DiagParticipantCommand::generateReportPath(const CommandArguments& arguments) const
 {
-	auto reportPath = m_dptfManager->getDptfReportDirectoryPath();
+	const auto reportPath = m_dptfManager->getDttLogDirectoryPath();
 	string reportName;
 	if (reportNameProvided(arguments))
 	{
@@ -66,13 +65,13 @@ string DiagParticipantCommand::generateReportPath(const CommandArguments& argume
 	}
 	else
 	{
-		reportName = TimeOps::generateTimestampNowAsString() + ".xml";
+		reportName = m_timeStampGenerator->generateAsString() + ".xml"s;
 	}
 
 	return FileIo::generatePathWithTrailingSeparator(reportPath) + reportName;
 }
 
-Bool DiagParticipantCommand::reportNameProvided(const CommandArguments& arguments) const
+Bool DiagParticipantCommand::reportNameProvided(const CommandArguments& arguments)
 {
 	return (arguments.size() > 2) && (arguments[2].isDataTypeString());
 }
@@ -81,14 +80,14 @@ void DiagParticipantCommand::throwIfBadArguments(const CommandArguments& argumen
 {
 	if (arguments.size() < 2)
 	{
-		string description = string("Invalid argument count given to 'diag participant' command.");
+		const auto description = string("Invalid argument count given to 'diag participant' command."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 
 	if ((arguments[0].isDataTypeString() == false) || (arguments[1].isDataTypeString() == false))
 	{
-		string description = string("Invalid argument type given.  Expected a string.");
+		const auto description = string("Invalid argument type given.  Expected a string."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -96,10 +95,10 @@ void DiagParticipantCommand::throwIfBadArguments(const CommandArguments& argumen
 
 void DiagParticipantCommand::throwIfParticipantNotExist(const CommandArguments& arguments)
 {
-	auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[1].getDataAsString());
+	const auto participantExists = m_dptfManager->getParticipantManager()->participantExists(arguments[1].getDataAsString());
 	if (participantExists == false)
 	{
-		string description = string("The participant specified was not found.");
+		const auto description = string("The participant specified was not found."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}
@@ -111,15 +110,15 @@ void DiagParticipantCommand::throwIfReportNameIsInvalid(const CommandArguments& 
 	{
 		if (arguments[2].isDataTypeString() == false)
 		{
-			string description = string("Invalid argument type given for report name.  Expected a string.");
+			const auto description = string("Invalid argument type given for report name.  Expected a string."s);
 			setResultMessage(description);
 			throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 		}
 
-		auto reportName = arguments[2].getDataAsString();
+		const auto reportName = arguments[2].getDataAsString();
 		if (IFileIo::fileNameContainsIllegalCharacters(reportName))
 		{
-			string description = string("Invalid characters used in report name given.");
+			const auto description = string("Invalid characters used in report name given."s);
 			setResultMessage(description);
 			throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 		}

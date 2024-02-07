@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,24 +15,24 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#include "TimeOps.h"
-#include "EsifTime.h"
-#include <string>
-#include <sstream>
+#include "NeuralNetPidExecutionMode.h"
 
 using namespace std;
 
-std::string TimeOps::generateTimestampNowAsString()
+namespace NeuralNetPidExecutionMode
 {
-	EsifTime timeGenerator;
-	auto localTime = timeGenerator.getLocalTime();
-	stringstream timestamp;
-	timestamp << setfill('0') << setw(4) << (1900 + localTime.tm_year);
-	timestamp << setfill('0') << setw(2) << (1 + localTime.tm_mon);
-	timestamp << setfill('0') << setw(2) << (0 + localTime.tm_mday);
-	timestamp << setfill('0') << setw(2) << (0 + localTime.tm_hour);
-	timestamp << setfill('0') << setw(2) << (0 + localTime.tm_min);
-	timestamp << setfill('0') << setw(2) << (0 + localTime.tm_sec);
-	return timestamp.str();
+	std::string toString(Mode mode)
+	{
+		switch (mode)
+		{
+		case NeuralNetPidExecutionMode::InferenceAndLearn:
+			return "InferenceAndLearn"; 
+		case NeuralNetPidExecutionMode::InferenceOnly:
+			return "InferenceOnly";
+		case NeuralNetPidExecutionMode::NoOp:
+			return "NoOp";
+		default:
+			return "Invalid";
+		}
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -213,14 +213,6 @@ static esif_error_t Websocket_GetFrame(
 			}
 			rc = ESIF_OK;
 		}
-		IPF_TRACE_DEBUG(
-			"Received WebSocket Frame: Type=%hd Fin=%hd Mask=%hd MaskKey=0x%x Size=%zd\n",
-			frame->header.hdr.frameType,
-			frame->header.hdr.fin,
-			frame->header.hdr.maskFlag,
-			mask_key,
-			frame->payloadSize
-		);
 	}
 	return rc;
 }
@@ -652,6 +644,9 @@ esif_error_t WebServer_WebsocketDeliver(
 	size_t buf_len)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	u8 *newNetBuf = NULL;
+	size_t newNetBufLen = 0;
+
 	if (self && client && buffer && buf_len > 0) {
 		WsFrame outFrame = { 0 };
 
@@ -661,6 +656,26 @@ esif_error_t WebServer_WebsocketDeliver(
 			buffer, buf_len,
 			FRAME_BINARY,
 			FIN_FINAL);
+
+		//
+		// If the current net buffer isn't large enough, rellocate to required
+		// size and retry building frame one time only
+		//
+		if (ESIF_E_NEED_LARGER_BUFFER == rc) {
+			newNetBufLen = buf_len + sizeof(WsFrameHeader);
+			newNetBuf = esif_ccb_realloc(self->netBuf, newNetBufLen);
+			if (newNetBuf) {
+				self->netBufLen = newNetBufLen;
+				self->netBuf = newNetBuf;
+
+				rc = WebSocket_BuildFrame(
+					&outFrame,
+					self->netBuf, self->netBufLen,
+					buffer, buf_len,
+					FRAME_BINARY,
+					FIN_FINAL);
+			}
+		}
 
 		if (rc == ESIF_OK) {
 			rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);

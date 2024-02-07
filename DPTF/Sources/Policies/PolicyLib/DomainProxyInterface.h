@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,8 @@
 #include "BatteryStatusFacadeInterface.h"
 #include "SocWorkloadClassificationFacadeInterface.h"
 #include "DynamicEppFacadeInterface.h"
+#include "BiasControlFacadeInterface.h"
+#include "EnergyControlFacadeInterface.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -82,6 +84,8 @@ public:
 	virtual std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() = 0;
 	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() = 0;
 	virtual std::shared_ptr<DynamicEppFacadeInterface> getDynamicEpp() = 0;
+	virtual std::shared_ptr<BiasControlFacadeInterface> getBiasControl() = 0;
+	virtual std::shared_ptr<EnergyControlFacadeInterface> getEnergyControl() = 0;
 
 	virtual std::shared_ptr<XmlNode> getXml() const = 0;
 };

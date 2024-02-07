@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -79,6 +79,13 @@ eEsifError SysfsGetIntDirect(int fd, int *pInt);
 eEsifError SysfsGetFloat(const char *path, const char *filename, float *pFloat);
 eEsifError SysfsGetFileSize(const char *path, const char *fileName, size_t *fileSize);
 eEsifError SysfsGetBinaryData(const char *path, const char *fileName, UInt8 *buffer, size_t bufferLength);
+
+#ifndef CAP_PERFMON
+#define CAP_PERFMON          (38)
+#endif
+
+eEsifError enable_capability(UInt32 capabilityId);
+eEsifError disable_capability(UInt32 capabilityId);
 
 #ifdef __cplusplus
 }

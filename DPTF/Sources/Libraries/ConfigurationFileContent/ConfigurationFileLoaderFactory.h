@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,12 @@
 class ConfigurationFileLoaderFactoryInterface
 {
 public:
+	ConfigurationFileLoaderFactoryInterface() = default;
+	ConfigurationFileLoaderFactoryInterface(const ConfigurationFileLoaderFactoryInterface& other) = default;
+	ConfigurationFileLoaderFactoryInterface(ConfigurationFileLoaderFactoryInterface&& other) noexcept = default;
+	ConfigurationFileLoaderFactoryInterface& operator=(const ConfigurationFileLoaderFactoryInterface& other) = default;
+	ConfigurationFileLoaderFactoryInterface& operator=(ConfigurationFileLoaderFactoryInterface&& other) noexcept = default;
+	virtual ~ConfigurationFileLoaderFactoryInterface() = default;
 	virtual std::shared_ptr<ConfigurationFileLoaderInterface> make() const = 0;
 };
 
@@ -34,7 +40,6 @@ class ConfigurationFileLoaderFactory : public ConfigurationFileLoaderFactoryInte
 {
 public:
 	ConfigurationFileLoaderFactory(std::shared_ptr<IFileIo> fileIo, std::shared_ptr<IDataDecoder> dataDecoder);	
-	virtual ~ConfigurationFileLoaderFactory() = default;
 
 	std::shared_ptr<ConfigurationFileLoaderInterface> make() const override;
 

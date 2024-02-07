@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 ******************************************************************************/
 #include "DiagCommand.h"
 #include "PolicyManagerInterface.h"
-#include "TimeOps.h"
 #include "DiagAllCommand.h"
 #include "DiagPolicyCommand.h"
 #include "DiagParticipantCommand.h"
@@ -25,9 +24,13 @@
 
 using namespace std;
 
-DiagCommand::DiagCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
+DiagCommand::DiagCommand(
+	DptfManagerInterface* dptfManager,
+	const shared_ptr<IFileIo>& fileIo,
+	const shared_ptr<TimeStampGenerator>& timeStampGenerator)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
+	, m_timeStampGenerator(timeStampGenerator)
 {
 	m_diagCommandDispatcher = make_shared<CommandDispatcher>();
 	createSubCommands();
@@ -42,21 +45,21 @@ DiagCommand::~DiagCommand()
 void DiagCommand::createSubCommands()
 {
 	m_subCommands.push_back(make_shared<DiagAllCommand>(m_dptfManager, m_fileIo));
-	m_subCommands.push_back(make_shared<DiagPolicyCommand>(m_dptfManager, m_fileIo));
-	m_subCommands.push_back(make_shared<DiagParticipantCommand>(m_dptfManager, m_fileIo));
+	m_subCommands.push_back(make_shared<DiagPolicyCommand>(m_dptfManager, m_fileIo, m_timeStampGenerator));
+	m_subCommands.push_back(make_shared<DiagParticipantCommand>(m_dptfManager, m_fileIo, m_timeStampGenerator));
 }
 
-void DiagCommand::registerSubCommands()
+void DiagCommand::registerSubCommands() const
 {
-	for (auto c = m_subCommands.begin(); c != m_subCommands.end(); ++c)
+	for (const auto& subCommand : m_subCommands)
 	{
-		m_diagCommandDispatcher->registerHandler((*c)->getCommandName(), *c);
+		m_diagCommandDispatcher->registerHandler(subCommand->getCommandName(), subCommand);
 	}
 }
 
 string DiagCommand::getCommandName() const
 {
-	return "diag";
+	return "diag"s;
 }
 
 void DiagCommand::execute(const CommandArguments& arguments)
@@ -72,11 +75,11 @@ void DiagCommand::execute(const CommandArguments& arguments)
 
 void DiagCommand::throwIfInvalidCommand(const CommandArguments& arguments)
 {
-	auto subCommandText = arguments[1].getDataAsString();
+	const auto subCommandText = arguments[1].getDataAsString();
 	Bool commandExists = false;
-	for (auto it = m_subCommands.begin(); it != m_subCommands.end(); ++it)
+	for (const auto& subCommand : m_subCommands)
 	{
-		if (subCommandText == (*it)->getCommandName())
+		if (subCommandText == subCommand->getCommandName())
 		{
 			commandExists = true;
 			break;
@@ -84,7 +87,7 @@ void DiagCommand::throwIfInvalidCommand(const CommandArguments& arguments)
 	}
 	if (commandExists == false)
 	{
-		string description = string("Subcommand given for diagnostics command not found.");
+		const auto description = string("Subcommand given for diagnostics command not found."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -94,7 +97,7 @@ void DiagCommand::throwIfInvalidArgumentData(const CommandArguments& arguments)
 {
 	if (arguments[1].isDataTypeString() == false)
 	{
-		string description = string("Invalid argument type given to 'diag' command.  Expected a string.");
+		const auto description = string("Invalid argument type given to 'diag' command.  Expected a string."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -104,7 +107,7 @@ void DiagCommand::throwIfInvalidArgumentCount(const CommandArguments& arguments)
 {
 	if (arguments.size() < 2)
 	{
-		string description = string("Invalid argument count.  Expect >= 2.");
+		const auto description = string("Invalid argument count.  Expect >= 2."s);
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}

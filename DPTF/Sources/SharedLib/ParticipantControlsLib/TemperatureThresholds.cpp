@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,9 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 #include "DptfBufferStream.h"
+
 using namespace StatusFormat;
+using namespace std;
 
 TemperatureThresholds::TemperatureThresholds()
 	: m_aux0(Temperature::createInvalid())
@@ -100,4 +102,15 @@ TemperatureThresholds TemperatureThresholds::createFromDptfBuffer(const DptfBuff
 	newTemperatureThresholds.m_hysteresis = stream.readNextTemperature();
 
 	return newTemperatureThresholds;
+}
+
+std::string TemperatureThresholds::toString() const
+{
+	stringstream stream;
+	stream
+		<< "{"
+		<< m_aux0.toStringAsCelsius(0) << ":"
+		<< m_aux1.toStringAsCelsius(0)
+		<< "}";
+	return stream.str();
 }

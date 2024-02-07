@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -73,8 +73,10 @@ namespace DataVaultPath
 			static const std::string Acpr = DataVaultPathBasePaths::TablesRoot + "/acpr/";
 			static const std::string Psh2 = DataVaultPathBasePaths::TablesRoot + "/psh2/";
 			static const std::string Itmt = DataVaultPathBasePaths::TablesRoot + "/itmt/";
+			static const std::string Itmt3 = DataVaultPathBasePaths::TablesRoot + "/itmt3/";
 			static const std::string Epot = DataVaultPathBasePaths::TablesRoot + "/epot/";
 			static const std::string Tpga = DataVaultPathBasePaths::TablesRoot + "/tpga/";
+			static const std::string Opbt = DataVaultPathBasePaths::TablesRoot + "/opbt/";
 		};
 	};
 
@@ -87,7 +89,10 @@ namespace DataVaultPath
 		static const std::string Psh2ClosedLoopEnabled = DataVaultPathBasePaths::FeaturesRoot + "/psh2_closed_loop_enabled";
 		static const std::string Psh2CPUPerfFloor = DataVaultPathBasePaths::FeaturesRoot + "/psh2_gpu_pl_threshold_ratio";
 		static const std::string Ewp = DataVaultPathBasePaths::FeaturesRoot + "/ewp";
+		static const std::string EwpLegacy = DataVaultPathBasePaths::FeaturesRoot + "/extended_workload_prediction";
 		static const std::string Survivability = DataVaultPathBasePaths::FeaturesRoot + "/survivability";
+		static const std::string OppBoostDcSupportStatus = DataVaultPathBasePaths::FeaturesRoot + "/opp_boost_dc_support";
+		static const std::string CurrentDdrFrequencyFeatureState = DataVaultPathBasePaths::FeaturesRoot + "/current_ddr_frequency_feature_state";
 	};
 
 	namespace NoPersist

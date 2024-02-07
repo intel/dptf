@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 ******************************************************************************/
 #include "ConfigPrintCommand.h"
 #include "DptfManagerInterface.h"
-#include "DataManager.h"
+#include "DttConfiguration.h"
 using namespace std;
 
 ConfigPrintCommand::ConfigPrintCommand(DptfManagerInterface* dptfManager)
@@ -36,7 +36,9 @@ string ConfigPrintCommand::getCommandName() const
 
 string ConfigPrintCommand::getPrintedContent(const shared_ptr<ConfigurationFileContentInterface>& cs) const
 {
-	return cs->toString();
+	const auto dttConfiguration = DttConfiguration(cs);
+	const auto segments = dttConfiguration.getSegmentsWithEnvironmentProfile(m_dptfManager->getEnvironmentProfile());
+	return segments.empty() ? Constants::EmptyString : segments.front().toJsonString();
 }
 
 void ConfigPrintCommand::execute(const CommandArguments& arguments)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,9 @@ typedef union DCfgOptions_u {
 		UInt32 TcsAccessControl : 1;				// 6:6 - 0 = Enable [default], 1 = Disable Telemetry Collection Service App
 		UInt32 CstAccessControl : 1;				// 7:7 - 0 = Enable [default], 1 = Disable Context Sensing Technology App
 		UInt32 DttAccessControl : 1;				// 8:8 - 0 = Enable [default], 1 = Disable Dynamic Tuning Technology App
-		UInt32 Reserved : 23;						// 31:9  Reserved
+		UInt32 ApoAccessControl : 1;				// 9:9 - 0 = Enable [default], 1 = Disable APO Configuration updates
+		UInt32 XtuAccessControl : 1;				// 10:10 - 0 = Enable [default], 1 = Disable XTU Configuration updates
+		UInt32 Reserved : 21;						// 31:10  Reserved
 	} opt;
 	UInt32 asU32;
 } DCfgOptions;

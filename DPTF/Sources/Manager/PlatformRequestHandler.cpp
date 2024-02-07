@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,9 +28,9 @@
 #include "WorkItem.h"
 #include "WIDomainFanOperatingModeChanged.h"
 #include "WorkItemQueueManagerInterface.h"
-#include "PolicyServicesPolicyEventRegistration.h"
 #include "WIAll.h"
 #include "ExtendedWorkloadPredictionEventPayload.h"
+#include "EventPayloadApplicationOptimizationChanged.h"
 using namespace StatusFormat;
 
 #define OSC_REQUEST_FAIL 0xE
@@ -90,8 +90,20 @@ void PlatformRequestHandler::bindRequestHandlers()
 	bindRequestHandler(DptfRequestType::PlatformNotificationFanOperatingModeChanged,
 		[=](const PolicyRequest& policyRequest) { return this->handleFanOperatingModeChanged(policyRequest);
 	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationEnableIpAlignment,
+		[=](const PolicyRequest& policyRequest) { return this->handleEnableIpAlignment(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationDisableIpAlignment,
+		[=](const PolicyRequest& policyRequest) { return this->handleDisableIpAlignment(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationStartIpAlignment,
+		[=](const PolicyRequest& policyRequest) { return this->handleStartIpAlignment(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::PlatformNotificationStopIpAlignment,
+		[=](const PolicyRequest& policyRequest) { return this->handleStopIpAlignment(policyRequest);
+	});
 	bindRequestHandler(DptfRequestType::PublishEvent,
-		[=](const PolicyRequest& policyRequest) { return this->handlePublishEvent(policyRequest); 
+		[=](const PolicyRequest& policyRequest) { return this->handlePublishEvent(policyRequest);
 	});
 }
 
@@ -362,8 +374,8 @@ DptfRequestResult PlatformRequestHandler::handlePublishEvent(const PolicyRequest
 	{
 		auto participantIndex = request.getParticipantIndex();
 		auto domainIndex = request.getDomainIndex();
-		auto data = request.getData();
-		FrameworkEvent::Type frameworkEvent = static_cast<FrameworkEvent::Type>(request.getFirstUInt32Data());
+		const auto data = request.getData();
+		const auto frameworkEvent = static_cast<FrameworkEvent::Type>(request.getFirstUInt32Data());
 		std::shared_ptr<WorkItem> wi;
 
 		switch (frameworkEvent)
@@ -380,6 +392,17 @@ DptfRequestResult PlatformRequestHandler::handlePublishEvent(const PolicyRequest
 					participantIndex,
 					domainIndex,
 					extendedWorkloadPredictionEventPayload->extendedWorkloadPrediction);
+			}
+			break;
+		}
+		case FrameworkEvent::PolicyApplicationOptimizationChanged:
+		{
+			const auto eventPayload = reinterpret_cast<EventPayloadApplicationOptimizationChanged*>(data.get());
+			if (eventPayload)
+			{
+				wi = std::make_shared<WIPolicyApplicationOptimizationChanged>(
+					m_dptfManager,
+					eventPayload->isActive);
 			}
 			break;
 		}
@@ -400,6 +423,74 @@ DptfRequestResult PlatformRequestHandler::handlePublishEvent(const PolicyRequest
 	catch (dptf_exception& ex)
 	{
 		return DptfRequestResult(false, ex.what(), request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handleEnableIpAlignment(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		// Pass in a dummy value (e.g. 1) to prevent nullptr exception for SET primitive
+		getEsifServices()->primitiveExecuteSetAsUInt32(SET_IP_ALIGNMENT_ENABLE, 1);
+		return DptfRequestResult(true, "Successfully enabled IP Alignment", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage = "Failed to enable IP Alignment" + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handleDisableIpAlignment(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		// Pass in a dummy value (e.g. 1) to prevent nullptr exception for SET primitive
+		getEsifServices()->primitiveExecuteSetAsUInt32(SET_IP_ALIGNMENT_DISABLE, 1);
+		return DptfRequestResult(true, "Successfully disabled IP Alignment", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage = "Failed to disable IP Alignment" + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handleStartIpAlignment(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		// Pass in a dummy value (e.g. 1) to prevent nullptr exception for SET primitive
+		getEsifServices()->primitiveExecuteSetAsUInt32(SET_IP_ALIGNMENT_START, 1);
+		return DptfRequestResult(true, "Successfully started IP Alignment", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage = "Failed to start IP Alignment" + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handleStopIpAlignment(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		// Pass in a dummy value (e.g. 1) to prevent nullptr exception for SET primitive
+		getEsifServices()->primitiveExecuteSetAsUInt32(SET_IP_ALIGNMENT_STOP, 1);
+		return DptfRequestResult(true, "Successfully stopped IP Alignment", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage = "Failed to stop IP Alignment" + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
 	}
 }
 

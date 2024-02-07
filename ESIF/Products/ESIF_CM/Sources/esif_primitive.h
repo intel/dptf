@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -60,6 +60,7 @@
 #define ESIF_PRIMITIVE_DOMAIN_D0 '0D'
 #define ESIF_PRIMITIVE_DOMAIN_D1 '1D'
 #define ESIF_PRIMITIVE_DOMAIN_D2 '2D'
+#define ESIF_PRIMITIVE_DO_ALL_ACTIONS ((u16)0xFFFF)
 
 /* Primitive Opcodes */
 enum esif_primitive_opcode {

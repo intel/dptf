@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,13 +17,11 @@
 ******************************************************************************/
 
 #pragma once
-
 #include "Dptf.h"
 #include "PolicyInterface.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "ParticipantTrackerInterface.h"
-#include "PolicyLogger.h"
-#include "StatusFormat.h"
+#include "PolicyLogger.h" // TODO move this to each policy cpp file that actually uses it
 
 class dptf_export PolicyBase : public PolicyInterface
 {
@@ -54,6 +52,8 @@ public:
 	virtual Bool hasActiveControlCapability() const;
 	virtual Bool hasPassiveControlCapability() const;
 	virtual Bool hasCriticalShutdownCapability() const;
+	std::map<std::string, std::string> getPolicyStateLogData() const override;
+	std::string getConfigurationForExport() const override;
 
 	// Optional events
 	virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex);
@@ -99,7 +99,10 @@ public:
 		UIntN domainIndex,
 		SocPowerFloor::Type socPowerFloor);
 	virtual void onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint);
-	virtual void onDomainExtendedWorkloadPredictionChanged(UIntN participantIndex, UIntN domainIndex, ExtendedWorkloadPrediction::Type extendedWorkloadPrediction);
+	virtual void onDomainExtendedWorkloadPredictionChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction);
 	virtual void onDomainFanOperatingModeChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -112,9 +115,11 @@ public:
 	virtual void onThermalRelationshipTableChanged();
 	virtual void onAdaptivePerformanceConditionsTableChanged();
 	virtual void onAdaptivePerformanceActionsTableChanged();
+	virtual void onApplicationOptimizationRequest(Bool isRequested);
 	virtual void onDdrfTableChanged();
 	virtual void onRfimTableChanged();
 	virtual void onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData);
+	virtual void onIaoBroadcastReceived(const DptfBuffer& broadcastNotificationData);
 	virtual void onEnvironmentProfileChanged(const EnvironmentProfile& environmentProfile);
 	virtual void onConnectedStandbyEntry();
 	virtual void onConnectedStandbyExit();
@@ -124,6 +129,7 @@ public:
 	virtual void onResume();
 	virtual void onForegroundApplicationChanged(const std::string& foregroundApplicationName);
 	virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2);
+	virtual void onExtendedWorkloadPredictionEventRegistrationChanged(UInt32 consumerCount);
 	virtual void onOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource);
 	virtual void onOperatingSystemLidStateChanged(OsLidState::Type lidState);
 	virtual void onOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage);
@@ -138,10 +144,12 @@ public:
 	virtual void onOperatingSystemScreenStateChanged(OnOffToggle::Type screenState);
 	virtual void onOperatingSystemBatteryCountChanged(UIntN batteryCount);
 	virtual void onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider);
-	virtual void onProcessLoaded(const std::string& processName);
+	virtual void onProcessLoaded(const std::string& processName, UInt64 processId);
+	virtual void onProcessUnLoaded(UInt64 processId);
 	virtual void onSystemModeChanged(SystemMode::Type systemMode);
 	virtual void onCoolingModePolicyChanged(CoolingMode::Type coolingMode);
 	virtual void onTpgaTableChanged();
+	virtual void onOpbtTableChanged();
 	virtual void onPassiveTableChanged();
 	virtual void onSensorOrientationChanged(SensorOrientation::Type sensorOrientation);
 	virtual void onSensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
@@ -164,6 +172,7 @@ public:
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
 	virtual void onPowerShareAlgorithmTable2Changed();
 	virtual void onIntelligentThermalManagementTableChanged();
+	virtual void onIntelligentThermalManagementTable3Changed();
 	virtual void onEnergyPerformanceOptimizerTableChanged();
 	virtual void onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
@@ -172,6 +181,13 @@ public:
 	virtual void onCollaborationModeChanged(OnOffToggle::Type collaborationModeState);
 	virtual void onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff);
 	virtual void onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP);
+	virtual void onSystemConfigurationFeatureTableChanged();
+	virtual void onSystemInBagChanged(SystemInBag::Type systemInBag);
+	virtual void onThirdPartyGraphicsReservedTgpChanged(Power reservedTgp);
+	virtual void onThirdPartyGraphicsOppBoostModeChanged(OpportunisticBoostMode::Type oppBoostMode);
+	virtual void onScenarioModeChanged(ScenarioMode::Type scenarioMode);
+	virtual void onDttGamingModeChanged(DttGamingMode::Type gamingMode);
+	virtual void onApplicationOptimizationChanged(Bool isActive);
 
 	// Implementation of the Policy Interface
 	void create(
@@ -195,9 +211,8 @@ public:
 	void domainPriorityChanged(UIntN participantIndex) final;
 	void domainDisplayControlCapabilityChanged(UIntN participantIndex) final;
 	void domainDisplayStatusChanged(UIntN participantIndex) final;
-	void domainRadioConnectionStatusChanged(
-		UIntN participantIndex,
-		RadioConnectionStatus::Type radioConnectionStatus) final;
+	void domainRadioConnectionStatusChanged(UIntN participantIndex, RadioConnectionStatus::Type radioConnectionStatus)
+		final;
 	void domainRfProfileChanged(UIntN participantIndex) final;
 	void participantSpecificInfoChanged(UIntN participantIndex) final;
 	void domainVirtualSensorCalibrationTableChanged(UIntN participantIndex) final;
@@ -225,25 +240,18 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) final;
-	void domainSocPowerFloorChanged(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		SocPowerFloor::Type socPowerFloor) final;
-	void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
-		final;
+	void domainSocPowerFloorChanged(UIntN participantIndex, UIntN domainIndex, SocPowerFloor::Type socPowerFloor) final;
+	void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint) final;
 	void domainExtendedWorkloadPredictionChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
-	final;
+		ExtendedWorkloadPrediction::Type extendedWorkloadPrediction) final;
 	void domainFanOperatingModeChanged(
 		UIntN participantIndex,
 		UIntN domainIndex,
 		FanOperatingMode::Type fanOperatingMode) final;
-	void domainPcieThrottleRequested(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		OnOffToggle::Type pcieThrottleRequested) final;
+	void domainPcieThrottleRequested(UIntN participantIndex, UIntN domainIndex, OnOffToggle::Type pcieThrottleRequested)
+		final;
 	void activeRelationshipTableChanged() final;
 	void thermalRelationshipTableChanged() final;
 	void adaptivePerformanceConditionsTableChanged() final;
@@ -251,8 +259,8 @@ public:
 	void rfimTableChanged() final;
 	void adaptivePerformanceActionsTableChanged() final;
 	void connectedStandbyEntry() final;
-	void igccBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) final;
+	void igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) final;
+	void iaoBroadcastReceived(const DptfBuffer& broadcastNotificationData) final;
 	void environmentProfileChanged(const EnvironmentProfile& environmentProfile) final;
 	void connectedStandbyExit() final;
 	void lowPowerModeEntry() final;
@@ -261,30 +269,30 @@ public:
 	void resume() final;
 	void foregroundApplicationChanged(const std::string& foregroundApplicationName) final;
 	void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) final;
+	void extendedWorkloadPredictionEventRegistrationChanged(UInt32 consumerCount) final;
 	void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) final;
 	void operatingSystemLidStateChanged(OsLidState::Type lidState) final;
 	void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) final;
-	void operatingSystemPowerSchemePersonalityChanged(
-		OsPowerSchemePersonality::Type powerSchemePersonality) final;
+	void operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality) final;
 	void operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType) final;
 	void operatingSystemDockModeChanged(OsDockMode::Type dockMode) final;
 	void operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState) final;
-	void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
-		final;
+	void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value) final;
 	void operatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode) final;
 	void operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) final;
 	void operatingSystemSessionStateChanged(OsSessionState::Type sessionState) final;
 	void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) final;
 	void operatingSystemBatteryCountChanged(UIntN batteryCount) final;
 	void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) final;
-	void processLoaded(const std::string& processName) final;
+	void processLoaded(const std::string& processName, UInt64 processId) final;
+	void processUnLoaded(UInt64 processId) final;
 	void systemModeChanged(SystemMode::Type systemMode) final;
 	void coolingModePolicyChanged(CoolingMode::Type coolingMode) final;
 	void passiveTableChanged() final;
 	void tpgaTableChanged() final;
+	void opbtTableChanged() final;
 	void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) final;
-	void sensorSpatialOrientationChanged(
-		SensorSpatialOrientation::Type sensorSpatialOrientation) final;
+	void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) final;
 	void sensorMotionChanged(OnOffToggle::Type sensorMotion) final;
 	void oemVariablesChanged() final;
 	void swOemVariablesChanged() final;
@@ -297,6 +305,7 @@ public:
 	void activeControlPointRelationshipTableChanged() final;
 	void powerShareAlgorithmTableChanged() final;
 	void intelligentThermalManagementTableChanged() final;
+	void intelligentThermalManagementTable3Changed() final;
 	void energyPerformanceOptimizerTableChanged() final;
 	void powerLimitChanged() final;
 	void powerLimitTimeWindowChanged() final;
@@ -311,6 +320,13 @@ public:
 	void collaborationModeChanged(OnOffToggle::Type collaborationModeState) final;
 	void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) final;
 	void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type) final;
+	void systemConfigurationFeatureTableChanged() final;
+	void systemInBagChanged(SystemInBag::Type systemInBag) final;
+	void thirdPartyGraphicsReservedTgpChanged(Power reservedTgp) final;
+	void thirdPartyGraphicsOppBoostModeChanged(OpportunisticBoostMode::Type oppBoostMode) final;
+	void scenarioModeChanged(ScenarioMode::Type scenarioMode) final;
+	void dttGamingModeChanged(DttGamingMode::Type gamingMode) final;
+	void applicationOptimizationChanged(Bool isActive) final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(const std::shared_ptr<TimeInterface>& timeObject);

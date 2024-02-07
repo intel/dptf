@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -254,6 +254,7 @@ public:
 	void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) override;
 	void clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex) override;
 	void clearPowerLimit(UIntN participantIndex, UIntN domainIndex) override;
+	void clearCachedPowerLimits(UIntN participantIndex, UIntN domainIndex) override;
 	void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 	TimeSpan getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex) override;
 

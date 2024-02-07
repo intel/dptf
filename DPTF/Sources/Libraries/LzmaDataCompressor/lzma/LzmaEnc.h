@@ -1,3 +1,4 @@
+// ReSharper disable All
 /*  LzmaEnc.h -- LZMA Encoder
 2019-10-30 : Igor Pavlov : Public domain */
 

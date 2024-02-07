@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@
 
 #define PROGRAM_NAME		"ipfhostd"
 #define PROGRAM_HEADER		PROGRAM_NAME " - Intel(R) Innovation Platform Framework Application Host Daemon, Version " IPF_APP_VERSION
-#define PROGRAM_COPYRIGHT	"Copyright (c) 2013-2023 Intel Corporation All Rights Reserved"
+#define PROGRAM_COPYRIGHT	"Copyright (c) 2013-2024 Intel Corporation All Rights Reserved"
 
 typedef enum startmode {
 	STARTMODE_BACKGROUND_DAEMON,

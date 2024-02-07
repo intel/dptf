@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,10 +23,9 @@
 #include "esif_participant.h"
 #include "esif_dsp.h"
 
-#define ESIF_DATA_RETYPE(name, old_type, new_type, set_flag)	\
+#define ESIF_DATA_RETYPE(name, old_type, new_type)	\
 if (name == old_type) {	\
 	name = new_type;	\
-	set_flag = 1;		\
 }
 
 

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -91,7 +91,6 @@ enum esif_rc esif_ipc_execute(
 	struct esif_ipc *ipc_ptr
 	)
 {
-	ESIF_TRACE_DEBUG("Handle = " OS_HANDLE_FMT ", IPC = %p\n", esif_ccb_os_handle2llu(handle), ipc_ptr);
 	return esif_os_ipc_execute(handle, ipc_ptr);
 }
 
@@ -120,10 +119,11 @@ static struct esif_ipc *esif_ipc_alloc(
 	ipc_ptr->data_len    = data_len;
 	ipc_ptr->return_code = ESIF_OK;
 
-	ESIF_TRACE_DEBUG("IPC = %p, type = %d, size = %d data_len = %d\n",
+	ESIF_TRACE_VERBOSE("IPC = %p, type = %d, size = %d data_len = %d\n",
 		ipc_ptr, type,
 		(int)ipc_size,
 		(int)data_len);
+
 	return ipc_ptr;
 }
 
@@ -222,7 +222,6 @@ struct esif_ipc *esif_ipc_alloc_event(
 /* Free IPC */
 void esif_ipc_free(struct esif_ipc *ipc_ptr)
 {
-	ESIF_TRACE_DEBUG("IPC = %p\n", ipc_ptr);
 	esif_ccb_free(ipc_ptr);
 }
 

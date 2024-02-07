@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,9 @@
 #include "UserInteraction.h"
 #include "IgccBroadcastData.h"
 #include "FanOperatingMode.h"
+#include "SystemInBag.h"
+#include "ScenarioMode.h"
+#include "DttGamingMode.h"
 
 class EventCache
 {
@@ -59,7 +62,7 @@ public:
 	CachedValue<UIntN> batteryCount;
 	CachedValue<OsPowerSlider::Type> powerSlider;
 	CachedValue<SensorUserPresence::Type> platformUserPresence;
-	CachedValue<OnOffToggle::Type> gameMode;
+	CachedValue<OnOffToggle::Type> osGameMode;
 	CachedValue<OsSessionState::Type> sessionState;
 	CachedValue<Bool> externalMonitorState;
 	CachedValue<UserInteraction::Type> userInteraction;
@@ -68,4 +71,8 @@ public:
 	CachedValue<OnOffToggle::Type> collaborationMode;
 	CachedValue<OnOffToggle::Type> tpgPowerState;
 	CachedValue<FanOperatingMode::Type> fanOperatingMode;
+	CachedValue<SystemInBag::Type> systemInBag;
+	CachedValue<ScenarioMode::Type> scenarioMode;
+	CachedValue<DttGamingMode::Type> dttGamingMode;
+	CachedValue<Bool> applicationOptimizationStatus;
 };

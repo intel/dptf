@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -77,17 +77,17 @@ void SystemModeManager::arbitrateSystemMode(
 	{
 		m_arbitratedValue = m_policySystemModeValue;
 	}
-	else if (osPowerSlider != OsPowerSlider::Invalid)
+	else if ((osPowerSlider != OsPowerSlider::Invalid) && (osPowerSchemePersonality == OsPowerSchemePersonality::Balanced))
 	{
 		if (osPowerSlider == OsPowerSlider::BestPerformance)
 		{
 			m_arbitratedValue = SystemMode::Performance;
 		}
-		else if (osPowerSlider == OsPowerSlider::BetterPerformance)
+		else if (osPowerSlider == OsPowerSlider::Balanced)
 		{
 			m_arbitratedValue = SystemMode::Balanced;
 		}
-		else if (osPowerSlider == OsPowerSlider::BetterBattery)
+		else if (osPowerSlider == OsPowerSlider::BestPowerEfficiency)
 		{
 			m_arbitratedValue = SystemMode::Quiet;
 		}

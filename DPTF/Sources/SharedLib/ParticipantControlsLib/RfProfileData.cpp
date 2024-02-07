@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -144,7 +144,7 @@ Bool RfProfileData::operator!=(const RfProfileData& rhs) const
 	return !(*this == rhs);
 }
 
-std::shared_ptr<XmlNode> RfProfileData::getXml(void) const
+std::shared_ptr<XmlNode> RfProfileData::getXml(DomainType::Type domainType) const
 {
 	auto profileData = XmlNode::createWrapperElement("radio_frequency_profile_data");
 	profileData->addChild(XmlNode::createDataElement("is_5G", StatusFormat::friendlyValue(m_is5G)));
@@ -157,8 +157,15 @@ std::shared_ptr<XmlNode> RfProfileData::getXml(void) const
 		XmlNode::createDataElement("right_frequency_spread", getRightFrequencySpread().toStringAsMegahertz()));
 	profileData->addChild(
 		XmlNode::createDataElement("channel_number", StatusFormat::friendlyValue(m_channelNumber)));
-	profileData->addChild(
-		XmlNode::createDataElement("band", DdrfChannelBandPackage::toString(DdrfChannelBandPackage::WifiBand(m_band))));
+	if (domainType == DomainType::Wireless)
+	{
+		profileData->addChild(XmlNode::createDataElement(
+			"band", DdrfChannelBandPackage::toString(DdrfChannelBandPackage::WifiBand(m_band))));
+	}
+	else
+	{
+		profileData->addChild(XmlNode::createDataElement("band", Constants::InvalidString));
+	}
 	profileData->addChild(m_supplementalData.getXml());
 	return profileData;
 }

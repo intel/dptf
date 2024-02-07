@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,10 +25,12 @@
 #include "CommandDispatcher.h"
 #include "FileIo.h"
 #include "ConfigurationFileManager.h"
+#include "DttConfiguration.h"
 #include "FilePathDirectory.h"
 #include "EsifMessageLogger.h"
 #include "ParticipantRequestHandler.h"
 #include "EventNotifierInterface.h"
+#include "PolicyStateLogger.h"
 
 class EnvironmentProfileGenerator;
 class EnvironmentProfileUpdater;
@@ -67,6 +69,7 @@ public:
 	EsifServicesInterface* getEsifServices() const override;
 	std::shared_ptr<EventCache> getEventCache() const override;
 	std::shared_ptr<EventNotifierInterface> getEventNotifier() const override;
+	std::shared_ptr<IPolicyStateLogger> getPolicyStateLogger() const override;
 	std::shared_ptr<UserPreferredCache> getUserPreferredCache() const override;
 	WorkItemQueueManagerInterface* getWorkItemQueueManager() const override;
 	PolicyManagerInterface* getPolicyManager() const override;
@@ -83,6 +86,7 @@ public:
 
 	std::string getDptfPolicyDirectoryPath() const override;
 	std::string getDptfReportDirectoryPath() const override;
+	std::string getDttLogDirectoryPath() const override;
 
 	void bindDomainsToPolicies(UIntN participantIndex) const override;
 	void unbindDomainsFromPolicies(UIntN participantIndex) const override;
@@ -132,6 +136,7 @@ private:
 
 	std::shared_ptr<EventCache> m_eventCache;
 	std::shared_ptr<EnvironmentProfileUpdater> m_environmentProfileUpdater;
+	std::shared_ptr<IPolicyStateLogger> m_policyStateLogger;
 	std::shared_ptr<EnvironmentProfileGenerator> m_environmentProfileGenerator;
 	std::shared_ptr<EventNotifierInterface> m_eventNotifier;
 	std::shared_ptr<UserPreferredCache> m_userPreferredCache;
@@ -139,26 +144,32 @@ private:
 
 	DataManagerInterface* m_dataManager;
 	SystemModeManagerInterface* m_systemModeManager;
-
+	std::shared_ptr<EventObserverInterface> m_scenarioModePublisher;
+	DttConfigurationSegment m_appConfiguration;
 	std::shared_ptr<FilePathDirectory> m_filePathDirectory;
 	std::shared_ptr<LogMessageFilter> m_messageLogFilter;
 	std::shared_ptr<MessageLogger> m_messageLogger;
 	std::shared_ptr<IFileIo> m_fileIo;
+	std::shared_ptr<TimeStampGenerator> m_timeStampGenerator;
+	std::shared_ptr<IApplicationTimerSettings> m_applicationTimerSettings;
 
 	// start up helpers
 	void createBasicObjects(
 		const std::string& dptfHomeDirectoryPath,
 		eLogType currentLogVerbosityLevel,
 		Bool dptfEnabled);
-	void createBasicServices(
+	void createServices(
 		esif_handle_t esifHandle,
 		EsifInterfacePtr esifInterfacePtr,
 		eLogType currentLogVerbosityLevel);
+	DttConfigurationSegment readAppConfiguration() const;
 	std::set<Guid> readDefaultEnabledPolicies() const;
 	void notifyAppsThatDttHasLoaded() const;
 	void createPolicies();
 	void registerForEvents() const;
 	void registerCommands() const;
+	void createEnvironmentProfileUpdaterService();
+	void createPolicyLoggerService();
 	void createCommands();
 	void registerDptfFrameworkEvents() const;
 

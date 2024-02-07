@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,41 +15,24 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
 #pragma once
+#include "DptfExport.h"
+#include "DttGamingMode.h"
+#include "FrameworkEvent.h"
+#include <set>
 #include <string>
 
-namespace TableObjectType
+class dptf_export SupportedGamingModes
 {
-	enum Type
-	{
-		FIRST,
-		Acpr = FIRST,
-		Apat,
-		Apct,
-		Art,
-		Ddrf,
-		Dynamic_Idsp,
-		Epot,
-		Itmt,
-		Odvp,
-		Pbat,
-		Pbct,
-		Pbmt,
-		Pida,
-		Psh2,
-		Psha,
-		Psvt,
-		Rfim,
-		SwOemVariables,
-		Tpga,
-		Trt,
-		Vsct,
-		Vspt,
-		Vtmt,
-		LAST
-	};
+public:
+	SupportedGamingModes() = default;
+	SupportedGamingModes(const std::set<DttGamingMode::Type>& supportedModes);
 
-	std::string ToString(TableObjectType::Type type);
-	TableObjectType::Type ToType(std::string value);
+	size_t count() const;
+	Bool contains(DttGamingMode::Type gameMode) const;
+	std::string toString() const;
+	std::set<FrameworkEvent::Type> getRequiredEvents() const;
+
+private:
+	std::set<DttGamingMode::Type> m_supportedModes;
 };

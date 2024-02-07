@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,7 +41,7 @@ void EsifUfDumpPrimitive(
 	 * This check is placed here so that if tracing isn't active, we don't do all
 	 * the computation below; even though nothing will be output...
 	 */
-	if (!ESIF_TRACEACTIVE(ESIF_TRACEMASK(ESIF_TRACEVERBOSEMODULE(ESIF_TRACE_ID, ESIF_TRACELEVEL_DEBUG)), ESIF_TRACELEVEL_DEBUG)) {
+	if (!ESIF_TRACEACTIVE(ESIF_TRACEVERBOSEMODULEMASK(ESIF_TRACE_ID, ESIF_TRACELEVEL_DEBUG), ESIF_TRACELEVEL_DEBUG)) {
 		return;
 	}
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,5 +35,11 @@ void PolicyServicesPolicyEventRegistration::registerEvent(PolicyEvent::Type poli
 void PolicyServicesPolicyEventRegistration::unregisterEvent(PolicyEvent::Type policyEvent)
 {
 	throwIfNotWorkItemThread();
-	getPolicyManager()->unregisterEvent(getPolicyIndex(), policyEvent);
+	try
+	{
+		getPolicyManager()->unregisterEvent(getPolicyIndex(), policyEvent);
+	}
+	catch (...)
+	{
+	}
 }

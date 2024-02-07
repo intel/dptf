@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* Precomp.h -- StdAfx
 2013-11-12 : Igor Pavlov : Public domain */
 

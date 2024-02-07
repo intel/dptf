@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -911,6 +911,12 @@ void Domain::clearPowerLimit(UIntN policyIndex)
 	powerControlArbitrator->removePowerLimitRequestForPolicy(policyIndex, PowerControlType::PL1);
 	clearDomainCachedDataPowerControl();
 	m_theRealParticipant->clearPowerLimit(m_participantIndex, m_domainIndex);
+}
+
+void Domain::clearCachedPowerLimits(UIntN policyIndex)
+{
+	clearDomainCachedDataPowerControl();
+	m_theRealParticipant->clearCachedPowerLimits(m_participantIndex, m_domainIndex);
 }
 
 void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock) const

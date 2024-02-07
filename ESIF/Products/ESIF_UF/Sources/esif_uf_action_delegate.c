@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,11 +33,17 @@
 #include "esif_uf_sensors.h"
 #include "math.h"
 
-// !!!
-// TODO: Once we move to the DOMAIN MGR some of the interfaces in this file might change!!!
-// Currently we do not get any of the domain/participant information as part of the interface.
-// !!!
 
+
+typedef union esif_memory_qclk_reg_u {
+	u32 asDword;
+	struct {
+		u32 rsvd1 : 2;			/* Bits 1:0 */
+		u32 qclk_ratio : 8;		/* Bits 9:2 */
+		u32 qclk_gear_type : 2;	/* Bits 11:10 */
+		u32 rsvd2 : 20;			/* Bits 31:12 */
+	}u;
+} esif_memory_qclk_reg;
 
 extern char *esif_str_replace(char *orig, char *rep, char *with);
 
@@ -56,6 +62,26 @@ static eEsifError EsifGetActionDelegateTemp(
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	);
+
+static eEsifError EsifGetActionDelegateMtmp(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+);
+
+static eEsifError EsifGetActionDelegateMfrq(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+);
+
+static eEsifError EsifGetActionDelegateMbdw(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+);
+
+static eEsifError EsifGetActionDelegateMgml(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+);
 
 static eEsifError EsifGetActionDelegateVirtualTemperature(
 	const EsifUpDomainPtr domainPtr,
@@ -172,16 +198,25 @@ static esif_error_t EsifGetActionDelegateGael(EsifDataPtr responsePtr);
 static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr);
 
 
-
 #define set_nv_tgp_min_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_tgp_max_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tgp_max_DC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_dynamic_boost_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_action_state_enable() (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_action_state_disable() (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_tpp_limit_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_tpp_limit_DC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_tgp_max_clear(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_tgp_min_clear(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_nv_tpp_limit_clear(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_split_ratio_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_split_ratio_DC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_split_ratio_max_AC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_split_ratio_max_DC(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_gpu_opboost_enable_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_gpu_opboost_enable_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_cpu_opboost_enable_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_nv_cpu_opboost_enable_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_display_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_screen_autolock_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_wake_on_approach_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -192,10 +227,27 @@ static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr);
 #define get_nv_rapl_energy_info(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_tgp_min_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_tgp_max_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_tgp_max_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_temperature(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_dynamic_boost_state(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_power_state(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_nv_tpp_limit_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_tpp_limit_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_split_ratio_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_split_ratio_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_split_ratio_max_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_split_ratio_max_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_split_ratio_active(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_opboost_mode(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_gpu_opboost_enable_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_gpu_opboost_enable_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_cpu_opboost_enable_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_cpu_opboost_enable_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_reserved_tgp(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_rated_power_limit_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_rated_power_limit_DC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_sku_max_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_nv_sku_min_AC(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_last_hid_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -214,6 +266,8 @@ static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr);
 #define EsifSetActionDelegateSpam(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateSadb(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateDadb(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateHiddSet(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifGetActionDelegateHiddGet(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifActDelegateInitOs() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifActDelegateExitOs() (ESIF_E_NOT_IMPLEMENTED)
 
@@ -230,6 +284,12 @@ static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr);
 UInt32 g_cpuEnergyUnit = ESIF_INVALID_DATA;
 UInt32 g_gpuEnergyUnit = ESIF_INVALID_DATA;
 UInt32 g_gpuEnergyCounter = ESIF_INVALID_DATA;
+
+#define ESIF_MEMORY_GEAR_TYPE_MAX 2
+#define ESIF_MEMORY_TEMP_MULT_MASK_DDR4 0x00000003
+#define ESIF_MEMORY_TEMP_MULT_MASK_LPDDR5 0x0000001F
+#define ESIF_MEMORY_TEMP_MULT_MASK_LPDDR4 0x00000007
+
 
 /*
 ** Handle ESIF Action Request
@@ -336,6 +396,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 	case 'AHPN': /* NPHA */
 		rc = get_nv_tgp_max_AC(responsePtr);
 		break;
+		
+	case 'DHPN': /* NPHD */
+		rc = get_nv_tgp_max_DC(responsePtr);
+		break;
 
 	case 'PMTN': /* NTMP */
 		rc = get_nv_temperature(responsePtr);
@@ -351,6 +415,70 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 
 	case 'APTN': /* NTPA */
 		rc = get_nv_tpp_limit_AC(responsePtr);
+		break;
+		
+	case 'DPTN': /* NTPD */
+		rc = get_nv_tpp_limit_DC(responsePtr);
+		break;
+
+	case 'ARSN': /* NSRA */
+		rc = get_nv_split_ratio_AC(responsePtr);
+		break;
+
+	case 'DRSN': /* NSRD */
+		rc = get_nv_split_ratio_DC(responsePtr);
+		break;
+		
+	case 'AMSN': /* NSMA */
+		rc = get_nv_split_ratio_max_AC(responsePtr);
+		break;
+
+	case 'DMSN': /* NSMD */
+		rc = get_nv_split_ratio_max_DC(responsePtr);
+		break;
+
+	case 'CARN': /* NRAC */
+		rc = get_nv_split_ratio_active(responsePtr);
+		break;
+
+	case 'MBON': /* NOBM */
+		rc = get_nv_opboost_mode(responsePtr);
+		break;
+
+	case 'AOCN': /* NCOA */
+		rc = get_nv_cpu_opboost_enable_AC(responsePtr);
+		break;
+
+	case 'DOCN': /* NCOD */
+		rc = get_nv_cpu_opboost_enable_DC(responsePtr);
+		break;
+
+	case 'AOGN': /* NGOA */
+		rc = get_nv_gpu_opboost_enable_AC(responsePtr);
+		break;
+
+	case 'DOGN':/* NGOD */
+		rc = get_nv_gpu_opboost_enable_DC(responsePtr);
+		break;
+
+	case 'GTRN': /* NRTG */
+		rc = get_nv_reserved_tgp(responsePtr);
+		break;
+		
+	case 'APRN': /* NRPA */
+		rc = get_nv_rated_power_limit_AC(responsePtr);
+		break;
+		
+	case 'DPRN': /* NRPD */
+		rc = get_nv_rated_power_limit_DC(responsePtr);
+		break;
+		
+	case 'HSPN': /* NPSH */
+		rc = get_nv_sku_max_AC(responsePtr);
+		break;
+		
+	case 'LSPN': /* NPSL */
+		rc = get_nv_sku_min_AC(responsePtr);
 		break;
 
 	case 'SCIG': /* GICS **/
@@ -395,6 +523,26 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 
 	case 'LHPG': /* GPHL - Get Participant Handle List */
 		rc = EsifGetActionDelegateGphl(responsePtr);
+		break;
+
+	case 'DIHG': /* GHID - Get HID Idle Timeout */
+		rc = EsifGetActionDelegateHiddGet(responsePtr);
+		break;
+
+	case 'PMTM': /* MTMP */
+		rc = EsifGetActionDelegateMtmp(domainPtr, responsePtr);
+		break;
+
+	case 'QRFM': /* MFRQ - Get Memory Frequency */
+		rc = EsifGetActionDelegateMfrq(domainPtr, responsePtr);
+		break;
+
+	case 'WDBM': /* MBDW - Get Memory Bandwidth */
+		rc = EsifGetActionDelegateMbdw(domainPtr, responsePtr);
+		break;
+
+	case 'LMGM': /* MGML - Get Memory Gear Multiplier */
+		rc = EsifGetActionDelegateMgml(domainPtr, responsePtr);
 		break;
 
 	default:
@@ -627,9 +775,17 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 	case 'AHPN': /* NPHA */
 		rc = set_nv_tgp_max_AC(requestPtr);
 		break;
+		
+	case 'DHPN': /* NPHD */
+		rc = set_nv_tgp_max_DC(requestPtr);
+		break;
 
 	case 'APTN': /* NTPA */
 		rc = set_nv_tpp_limit_AC(requestPtr);
+		break;
+
+	case 'DPTN': /* NTPD */
+		rc = set_nv_tpp_limit_DC(requestPtr);
 		break;
 
 	case 'CHPN': /* NPHC */
@@ -642,6 +798,38 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'CPTN': /* NTPC */
 		rc = set_nv_tpp_limit_clear(requestPtr);
+		break;
+		
+	case 'ARSN': /* NSRA */
+		rc = set_nv_split_ratio_AC(requestPtr);
+		break;
+		
+	case 'DRSN': /* NSRD */
+		rc = set_nv_split_ratio_DC(requestPtr);
+		break;
+
+	case 'AMSN': /* NSMA */
+		rc = set_nv_split_ratio_max_AC(requestPtr);
+		break;
+		
+	case 'DMSN': /* NSMD */
+		rc = set_nv_split_ratio_max_DC(requestPtr);
+		break;
+
+	case 'AOCN': /* NCOA */
+		rc = set_nv_cpu_opboost_enable_AC(requestPtr);
+		break;
+
+	case 'DOCN': /* NCOD */
+		rc = set_nv_cpu_opboost_enable_DC(requestPtr);
+		break;
+
+	case 'AOGN': /* NGOA */
+		rc = set_nv_gpu_opboost_enable_AC(requestPtr);
+		break;
+
+	case 'DOGN':/* NGOD */
+		rc = set_nv_gpu_opboost_enable_DC(requestPtr);
 		break;
 
 	case 'EMSS': /* SSME */
@@ -680,6 +868,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateDadb(requestPtr);
 		break;
 
+	case 'DIHS': /* SHID - Set HID Idle Timeout */
+		rc = EsifSetActionDelegateHiddSet(requestPtr);
+		break;
+
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
@@ -703,6 +895,283 @@ static eEsifError EsifGetActionDelegateTemp(
 	tempTuple.domain = domainPtr->domain;
 	return EsifUp_ExecutePrimitive(domainPtr->upPtr, &tempTuple, requestPtr, responsePtr);
 }
+
+static eEsifError InitializeMemoryVariables(
+	EsifUpPtr upPtr,
+	const EsifUpDomainPtr domainPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 value = 0;
+	EsifPrimitiveTuple tuple = { GET_MEMORY_TYPE, 0, 255 };
+	EsifData responseData = { ESIF_DATA_UINT32, NULL, sizeof(value), sizeof(value) };
+
+	ESIF_ASSERT(NULL != upPtr);
+	ESIF_ASSERT(NULL != domainPtr);
+
+	responseData.buf_ptr = &value;
+	tuple.domain = domainPtr->domain;
+	rc = EsifUp_ExecutePrimitive(upPtr, &tuple, NULL, &responseData);
+	if (ESIF_OK == rc) {
+		domainPtr->memoryType = (EsifMemoryType)value;
+
+		switch (value) {
+		case ESIF_MEMORY_TYPE_DDR4:
+		case ESIF_MEMORY_TYPE_DDR5:
+			domainPtr->memoryTempMultMask = ESIF_MEMORY_TEMP_MULT_MASK_DDR4;
+			domainPtr->memoryTempMultMask = ESIF_MEMORY_TEMP_MULT_MASK_DDR4;
+			break;
+		case ESIF_MEMORY_TYPE_LPDDR4:
+			domainPtr->memoryTempMultMask = ESIF_MEMORY_TEMP_MULT_MASK_LPDDR4;
+			break;
+		case ESIF_MEMORY_TYPE_LPDDR5:
+			domainPtr->memoryTempMultMask = ESIF_MEMORY_TEMP_MULT_MASK_LPDDR5;
+			break;
+		default:
+			rc = ESIF_E_UNSUPPORTED_REQUEST_TEMP_TYPE;
+			break;
+		}	
+	}
+	return rc;
+}
+
+
+/* Placeholder code as details to get memory temp have not been worked out */
+static eEsifError EsifGetActionDelegateMtmp(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+	UInt32 temp = 0;
+	EsifPrimitiveTuple tempTuple = { GET_MEMORY_TEMPERATURE_MULTIPLIER, 0, 255 };
+	EsifData tempData = { ESIF_DATA_UINT32, NULL, sizeof(temp), 0 };
+
+	ESIF_ASSERT(NULL != domainPtr);
+	ESIF_ASSERT(NULL != responsePtr);
+	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
+
+	/* Get the TCPU participant to get data */
+	upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+	if (!upPtr) {
+		ESIF_TRACE_DEBUG("CPU not available\n");
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	if (!domainPtr->memoryTempDataInitialized) {
+		rc = InitializeMemoryVariables(upPtr, domainPtr);
+		if (ESIF_OK == rc) {
+			domainPtr->memoryTempDataInitialized = ESIF_TRUE;
+		}
+		else {
+			goto exit;
+		}
+	}
+
+	tempData.buf_ptr = &temp;
+	tempTuple.domain = domainPtr->domain;
+	rc = EsifUp_ExecutePrimitive(upPtr, &tempTuple, NULL, &tempData);
+	if (ESIF_OK == rc) {
+		ESIF_TRACE_DEBUG("Memory temperature = %d\n", temp);
+		*((UInt32 *)responsePtr->buf_ptr) = temp;
+	}
+exit:
+	EsifUp_PutRef(upPtr);
+	return rc;
+}
+
+
+static eEsifError EsifGetActionDelegateMfrq(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+	UInt32 frequency = 0;
+	UInt32 ratio = 0;
+	EsifPrimitiveTuple ratioTuple = { GET_MEMORY_QCLK_RATIO, 0, 255 };
+	EsifData ratioData = { ESIF_DATA_UINT32, NULL, sizeof(ratio), 0 };
+	double reference = 0.0;
+	EsifPrimitiveTuple refTuple = { GET_MEMORY_QCLK_REFERENCE, 0, 255 };
+	EsifData refData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(domainPtr);
+	ESIF_ASSERT(responsePtr);
+	ESIF_ASSERT(responsePtr->buf_ptr);
+
+	responsePtr->data_len = sizeof(frequency);
+	if (responsePtr->buf_len < sizeof(frequency)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	/* Get the TCPU participant to get data */
+	upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+	if (!upPtr) {
+		ESIF_TRACE_DEBUG("CPU not available\n");
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	refTuple.domain = domainPtr->domain;
+	rc = EsifUp_ExecutePrimitive(upPtr, &refTuple, NULL, &refData);
+	/* Spec is to return not supported for surrogate primitive failure */
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	esif_ccb_sscanf(refData.buf_ptr, "%lf", &reference);
+
+	ratioTuple.domain = domainPtr->domain;
+	ratioData.buf_ptr = &ratio;
+	rc = EsifUp_ExecutePrimitive(upPtr, &ratioTuple, NULL, &ratioData);
+	/* Spec is to return not supported for surrogate primitive failure */
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	frequency = (UInt32)(reference * ratio);
+	ESIF_TRACE_DEBUG("Memory frequency = %d\n", frequency);
+	*((UInt32 *)responsePtr->buf_ptr) = frequency;
+exit:
+	EsifUp_PutRef(upPtr);
+	esif_ccb_free(refData.buf_ptr);
+	return rc;
+}
+
+
+static eEsifError EsifGetActionDelegateMbdw(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 bandwidth = 0; /* MT/s */
+	UInt32 frequency = 0;
+	UInt32 multiplier = 0;
+	EsifUpPtr upPtr = NULL;
+	double reference = 0.0;
+	EsifPrimitiveTuple refTuple = { GET_MEMORY_QCLK_REFERENCE, 0, 255 };
+	EsifData refData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
+	esif_memory_qclk_reg qclkReg = { 0 };
+	EsifPrimitiveTuple qclkRegTuple = { GET_MEMORY_QCLK_REG, 0, 255 };
+	EsifData qclkRegData = { ESIF_DATA_UINT32, NULL, sizeof(qclkReg.asDword), 0 };
+
+	ESIF_ASSERT(domainPtr);
+	ESIF_ASSERT(responsePtr);
+	ESIF_ASSERT(responsePtr->buf_ptr);
+
+	responsePtr->data_len = sizeof(bandwidth);
+	if (responsePtr->buf_len < sizeof(bandwidth)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	/* Get the TCPU participant to get data */
+	upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+	if (!upPtr) {
+		ESIF_TRACE_DEBUG("CPU not available\n");
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	refTuple.domain = domainPtr->domain;
+	rc = EsifUp_ExecutePrimitive(upPtr, &refTuple, NULL, &refData);
+	/* Spec is to return not supported for surrogate primitive failure */
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	esif_ccb_sscanf(refData.buf_ptr, "%lf", &reference);
+	ESIF_TRACE_DEBUG("Memory reference value = %lf\n", reference);
+
+	qclkRegTuple.domain = domainPtr->domain;
+	qclkRegData.buf_ptr = &qclkReg.asDword;
+	rc = EsifUp_ExecutePrimitive(upPtr, &qclkRegTuple, NULL, &qclkRegData);
+	/* Spec is to return not supported for surrogate primitive failure */
+	if (rc != ESIF_OK) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("Memory QCLK reg = 0x%08X; ratio = 0x%08X; gear type = 0x%08X\n",
+		qclkReg.asDword,
+		qclkReg.u.qclk_ratio,
+		qclkReg.u.qclk_gear_type);
+
+
+	multiplier = (1 << (qclkReg.u.qclk_gear_type + 1));
+
+	frequency = (UInt32)ceil(reference * qclkReg.u.qclk_ratio);
+
+	bandwidth = (UInt32)(frequency * multiplier);
+	ESIF_TRACE_DEBUG("Memory bandwidth = %d MT/s; where mult = %ld and freq = %ld\n",
+		bandwidth,
+		multiplier,
+		frequency);
+
+	*((UInt32 *)responsePtr->buf_ptr) = bandwidth;
+exit:
+	EsifUp_PutRef(upPtr);
+	esif_ccb_free(refData.buf_ptr);
+	return rc;
+}
+
+
+static eEsifError EsifGetActionDelegateMgml(
+	const EsifUpDomainPtr domainPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+	UInt32 multiplier = 0;
+	UInt32 type = 0;
+	EsifPrimitiveTuple typeTuple = { GET_MEMORY_GEAR_TYPE, 0, 255 };
+	EsifData typeData = { ESIF_DATA_UINT32, NULL, sizeof(type), 0 };
+
+	ESIF_ASSERT(domainPtr);
+	ESIF_ASSERT(responsePtr);
+	ESIF_ASSERT(responsePtr->buf_ptr);
+
+	responsePtr->data_len = sizeof(multiplier);
+	if (responsePtr->buf_len < sizeof(multiplier)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	/* Get the TCPU participant to get data */
+	upPtr = EsifUpPm_GetAvailableParticipantByName(ESIF_PARTICIPANT_CPU_NAME);
+	if (!upPtr) {
+		ESIF_TRACE_DEBUG("CPU not available\n");
+		rc = ESIF_E_NOT_INITIALIZED;
+		goto exit;
+	}
+
+	typeTuple.domain = domainPtr->domain;
+	typeData.buf_ptr = &type;
+	rc = EsifUp_ExecutePrimitive(upPtr, &typeTuple, NULL, &typeData);
+	if (ESIF_OK == rc) {
+		if (type > ESIF_MEMORY_GEAR_TYPE_MAX) {
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		}
+		else {
+			multiplier = 1 << type;
+			ESIF_TRACE_DEBUG("Memory multiplier = %d\n", multiplier);
+			*((UInt32 *)responsePtr->buf_ptr) = multiplier;
+		}
+	}
+exit:
+	EsifUp_PutRef(upPtr);
+	return rc;
+}
+
 
 static eEsifError EsifSetActionDelegateSphb(
 	const EsifUpDomainPtr domainPtr,
@@ -1952,7 +2421,6 @@ static esif_error_t EsifGetActionDelegateGphl(EsifDataPtr responsePtr)
 	}
 	return rc;
 }
-
 
 /*
  *******************************************************************************

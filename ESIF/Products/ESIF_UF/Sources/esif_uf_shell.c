@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -150,19 +150,25 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define DYNAMIC_PARTICIPANT_IVRM_DESCRIPTION "IDG2 VRAM Participant"
 #define DYNAMIC_PARTICIPANT_IVRM_HID "INTDMEM"
 #define DYNAMIC_PARTICIPANT_IVRM_PTYPE "37" // ESIF_DOMAIN_TYPE_DGFXMEM
-#define DYNAMIC_PARTICIPANT_IVRM_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_IVRM_FLAGS "8"  // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_IPU_NAME "IPU"
 #define DYNAMIC_PARTICIPANT_IPU_DESCRIPTION "IPU Participant"
 #define DYNAMIC_PARTICIPANT_IPU_HID "INTIPU"
 #define DYNAMIC_PARTICIPANT_IPU_PTYPE "47" // ESIF_DOMAIN_TYPE_IPU
-#define DYNAMIC_PARTICIPANT_IPU_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_IPU_FLAGS "8"  // ESIF_FLAG_AUTO_ENUMERATED
 
 #define DYNAMIC_PARTICIPANT_AUDIO_NAME "IAUD"
 #define DYNAMIC_PARTICIPANT_AUDIO_DESCRIPTION "Audio Participant"
 #define DYNAMIC_PARTICIPANT_AUDIO_HID "INTAUDIO"
 #define DYNAMIC_PARTICIPANT_AUDIO_PTYPE "13" // ESIF_DOMAIN_TYPE_AUDIO
-#define DYNAMIC_PARTICIPANT_AUDIO_FLAGS "0"
+#define DYNAMIC_PARTICIPANT_AUDIO_FLAGS "8"  // ESIF_FLAG_AUTO_ENUMERATED
+
+#define DYNAMIC_PARTICIPANT_MEMORY_NAME "TMEM"
+#define DYNAMIC_PARTICIPANT_MEMORY_DESCRIPTION "Memory Participant"
+#define DYNAMIC_PARTICIPANT_MEMORY_HID "INT3402"
+#define DYNAMIC_PARTICIPANT_MEMORY_PTYPE "2" // ESIF_DOMAIN_TYPE_MEMORY
+#define DYNAMIC_PARTICIPANT_MEMORY_FLAGS "8" // ESIF_FLAG_AUTO_ENUMERATED
 
 /* Friends */
 extern EsifAppMgr g_appMgr;
@@ -762,13 +768,6 @@ esif_error_t CreateDynamicParticipants()
 	EsifDataPtr value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 	EsifConfigFindContext context = NULL;
 
-	//
-	// Enumerated participants are created during initialization and are not
-	// persisted in a DV. They are not destroyed based on configuration changes.
-	// They are only destroyed at exit; unless, manually destroyed via the shell. 
-	//
-	CreateEnumeratedParticipants();
-
 	// Find all matching JSON strings in Participants DataVault and create them
 	if (nameSpace && key && value && key->buf_ptr && (rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
 		do {
@@ -892,11 +891,17 @@ esif_error_t CreateWifiParticipant()
 {
 	eEsifError rc = ESIF_OK;
 	IStringPtr jsonPart = NULL;
-	Bool autoEnumEnabled = ESIF_FALSE;
+	EsifData listData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
 
-	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_WIRELESS);
-	if (!autoEnumEnabled) {
+	/*
+	* IPFT-6207: Due to issues with 3rd-party WIFI, we need to always create WIFI
+	* part if KPE is present, but also allow creation in UI.  So, code here is
+	* changed to allow creation on any MTL and later platform when KPE is present.
+	*/
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_AUTO_ENUM_LIST, "D0", 255, NULL, &listData);
+	if (ESIF_I_NO_LEGACY_SUPPORT == rc) {
 		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		rc = ESIF_OK;
 		goto exit;
 	}
 
@@ -1051,6 +1056,36 @@ esif_error_t CreateAudioParticipant()
 exit:
 	return rc;
 }
+
+
+esif_error_t CreateMemoryParticipant()
+{
+	eEsifError rc = ESIF_OK;
+	IStringPtr jsonPart = NULL;
+	Bool autoEnumEnabled = ESIF_FALSE;
+
+	autoEnumEnabled = esif_uf_is_auto_enum_allowed(ESIF_DOMAIN_TYPE_MEMORY);
+	if (!autoEnumEnabled) {
+		ESIF_TRACE_DEBUG("Auto-enumeration disabled, participant will not be created.\n");
+		goto exit;
+	}
+
+	jsonPart = CreateJsonFromParticipantData(
+		ESIF_PARTICIPANT_ENUM_ACPI,
+		DYNAMIC_PARTICIPANT_MEMORY_NAME,
+		DYNAMIC_PARTICIPANT_MEMORY_DESCRIPTION,
+		DYNAMIC_PARTICIPANT_MEMORY_HID,
+		DYNAMIC_PARTICIPANT_MEMORY_PTYPE,
+		DYNAMIC_PARTICIPANT_MEMORY_FLAGS);
+
+	rc = CreateParticipantFromJson(IString_GetString(jsonPart));
+
+	IString_Destroy(jsonPart);
+exit:
+	return rc;
+}
+
+
 
 // Destroy all Persisted Dynamic Participants (that have been created)
 esif_error_t DestroyDynamicParticipants()
@@ -7238,10 +7273,10 @@ static char *esif_shell_cmd_test(EsifShellCmdPtr shell)
 		}
 
 		g_errorlevel = 0;
-		// Loop thorugh from start to finish participants
+		// Loop through from start to finish participants
 
 
-		for (i = start_id; i < stop_id; i++) {
+		for (i = start_id; i < stop_id && i < MAX_PARTICIPANT_ENTRY; i++) {
 				#define COMMAND_LEN (32 + 1)
 			char command[COMMAND_LEN];
 			if (data_ptr->participant_info[i].state == ESIF_PM_PARTICIPANT_STATE_CREATED) {
@@ -7428,7 +7463,7 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "\n"
 						 "IPF - Intel(R) Innovation Platform Framework\n"
-						 "Copyright (c) 2013-2023 Intel Corporation All Rights Reserved\n"
+						 "Copyright (c) 2013-2024 Intel Corporation All Rights Reserved\n"
 						 "\n"
 						 "ipf_uf - IPF Upper Framework (UF)\n"
 						 "Version:  %s\n"
@@ -8894,7 +8929,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2023 Intel Corporation All Rights Reserved\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2024 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
 		"Key:  <>-Required parameters\n"
 		"      []-Optional parameters\n"
@@ -10443,13 +10478,13 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 
 				// Set GDDV Override, except for Factory Reset
 				if (filename && esif_ccb_stricmp(filename, factoryReset) != 0) {
-					esif_ccb_sprintf(sizeof(cmdline), cmdline, "setp_bf %d D0 255 \"binary:%s\"", SET_CONFIG_DATAVAULT, filename);
+					esif_ccb_sprintf(sizeof(cmdline), cmdline, "setp_bf 0x%llx %d D0 255 \"binary:%s\"", ESIF_HANDLE_PRIMARY_PARTICIPANT, SET_CONFIG_DATAVAULT, filename);
 					parse_cmd(cmdline, g_isRest, ESIF_TRUE);
 				}
 
 				// Reload GDDV from override.dv or BIOS if Factory Reset
 				if (filename) {
-					esif_ccb_sprintf(sizeof(cmdline), cmdline, "getp %d", GET_CONFIG);
+					esif_ccb_sprintf(sizeof(cmdline), cmdline, "getp 0x%llx %d", ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_CONFIG);
 					parse_cmd(cmdline, g_isRest, ESIF_TRUE);
 
 					// Create New Dynamic Participants
@@ -10588,7 +10623,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		}
 		// config gddv status
 		else if (esif_ccb_stricmp(argv[opt], "status") == 0) {
-			StringPtr GddvOverrideKey = "/participants/IETM.D0/gddv";
+			StringPtr ignoreList[] = { "/participants/IETM.D0/gddv", "/noexport/", "/nopersist/" };
 			StringPtr keyspec = "/*";
 			Bool ismodified = ESIF_FALSE;
 			
@@ -10602,15 +10637,23 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 					if (data_nspace && data_key) {
 						EsifConfigFindContext context = NULL;
 
-						// GDDV Status is Dirty if any Persisted keys exist starting with "/" except for GDDV override
+						// GDDV Status is Dirty if any Persisted keys exist starting with "/" except keys in ignoreList
 						if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
 							do {
 								esif_flags_t flags = 0;
 								DataVaultPtr DB = DataBank_GetDataVault((StringPtr)data_nspace->buf_ptr);
-								if (esif_ccb_stricmp((StringPtr)data_key->buf_ptr, GddvOverrideKey) != 0 &&
-									DataVault_KeyExists(DB, (StringPtr)data_key->buf_ptr, NULL, &flags) &&
-									FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_PERSIST)) {
-									ismodified = ESIF_TRUE;
+								Bool ignoreKey = ESIF_FALSE;
+								for (size_t j = 0; j < ESIF_ARRAY_LEN(ignoreList); j++) {
+									if (esif_ccb_strnicmp((StringPtr)data_key->buf_ptr, ignoreList[j], esif_ccb_strlen(ignoreList[j], MAX_STRINGLEN)) == 0) {
+										ignoreKey = ESIF_TRUE;
+										break;
+									}
+								}
+								if (!ignoreKey) {
+									if (DataVault_KeyExists(DB, (StringPtr)data_key->buf_ptr, NULL, &flags) &&
+										FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_PERSIST)) {
+										ismodified = ESIF_TRUE;
+									}
 								}
 								DataVault_PutRef(DB);
 								EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);

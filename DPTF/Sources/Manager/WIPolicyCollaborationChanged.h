@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,18 +17,15 @@
 ******************************************************************************/
 
 #pragma once
-
-#include "Dptf.h"
 #include "WorkItem.h"
 
 class WIPolicyCollaborationChanged : public WorkItem
 {
 public:
 	WIPolicyCollaborationChanged(DptfManagerInterface* dptfManager, OnOffToggle::Type state);
-	virtual ~WIPolicyCollaborationChanged();
 
-	virtual void onExecute() override final;
+	void onExecute() final;
 
 private:
-	const OnOffToggle::Type m_collaboration_state;
+	OnOffToggle::Type m_collaborationState;
 };

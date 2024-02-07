@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,34 +18,31 @@
 
 #include "WIPolicyCollaborationChanged.h"
 #include "PolicyManagerInterface.h"
-#include "EsifServicesInterface.h"
+#include "EventPayloadOnAndOffToggle.h"
 
 WIPolicyCollaborationChanged::WIPolicyCollaborationChanged(
 	DptfManagerInterface* dptfManager,
 	OnOffToggle::Type state)
 	: WorkItem(dptfManager, FrameworkEvent::PolicyCollaborationChanged)
-	, m_collaboration_state(state)
-{
-}
-
-WIPolicyCollaborationChanged::~WIPolicyCollaborationChanged()
+	, m_collaborationState(state)
 {
 }
 
 void WIPolicyCollaborationChanged::onExecute()
 {
 	writeWorkItemStartingInfoMessage();
+	getDptfManager()->getEventNotifier()->notify(
+		getFrameworkEventType(), EventPayloadOnAndOffToggle(m_collaborationState));
 
-	auto policyManager = getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
-
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+	const auto policyManager = getPolicyManager();
+	const auto policyIndexes = policyManager->getPolicyIndexes();
+	for (const auto policyId : policyIndexes)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->collaborationMode.set(m_collaboration_state);
-			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyCollaborationChanged(m_collaboration_state);
+			getDptfManager()->getEventCache()->collaborationMode.set(m_collaborationState);
+			const auto policy = policyManager->getPolicyPtr(policyId);
+			policy->executePolicyCollaborationChanged(m_collaborationState);
 		}
 		catch (policy_index_invalid&)
 		{
@@ -53,8 +50,7 @@ void WIPolicyCollaborationChanged::onExecute()
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyCollaborationChanged", *i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyCollaborationChanged", policyId);
 		}
 	}
-
 }

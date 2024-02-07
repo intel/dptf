@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "EnvironmentProfile.h"
+#include "TableObjectType.h"
 
 class PlatformConfigurationDataInterface
 {
@@ -29,7 +30,14 @@ public:
 	virtual UInt32 readConfigurationUInt32(const std::string& key) = 0;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) = 0;
 	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) = 0;
-	virtual void writeConfigurationString(const std::string& key, const std::string& data) = 0;
+	virtual void writeConfigurationUInt32(const std::string& nameSpace, const std::string& key, UInt32 data) = 0;
+	virtual void writeConfigurationString(
+		const std::string& nameSpace,
+		const std::string& key,
+		const std::string& data) = 0;
+	virtual void writeConfigurationString(
+		const std::string& key,
+		const std::string& data) = 0;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) = 0;
 	virtual void writeConfigurationBinary(
@@ -45,17 +53,16 @@ public:
 
 	// FIXME:  ESIF Primitives
 	virtual DptfBuffer getActiveRelationshipTable() = 0;
-	virtual void setActiveRelationshipTable(DptfBuffer data) = 0;
+	virtual void setActiveRelationshipTable(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getThermalRelationshipTable() = 0;
-	virtual void setThermalRelationshipTable(DptfBuffer data) = 0;
+	virtual void setThermalRelationshipTable(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getPassiveTable() = 0;
-	virtual void setPassiveTable(DptfBuffer data) = 0;
-	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) = 0;
-	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) = 0;
+	virtual void setPassiveTable(const DptfBuffer& data) = 0;
+	virtual DptfBuffer getAdaptivePerformanceActionsTable(const std::string& uuid) = 0;
+	virtual DptfBuffer getAdaptivePerformanceConditionsTable(const std::string& uuid) = 0;
 	virtual DptfBuffer getOemVariables() = 0;
 	virtual DptfBuffer getSwOemVariables() = 0;
-	virtual void setSwOemVariables(const DptfBuffer& swOemVariablesData) = 0;
-	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setSwOemVariables(const DptfBuffer& data) = 0;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl) = 0;
 	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) = 0;
@@ -74,26 +81,30 @@ public:
 	virtual DptfBuffer getRfimTable() = 0;
 	virtual DptfBuffer getAggregateDisplayInformation() = 0;
 	virtual DptfBuffer getEnergyPerformanceOptimizerTable() = 0;
-	virtual void setEnergyPerformanceOptimizerTable(DptfBuffer data) = 0;
+	virtual void setEnergyPerformanceOptimizerTable(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getTpgaTable() = 0;
-	virtual void setTpgaTable(DptfBuffer data) = 0;
-	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
+	virtual void setTpgaTable(const DptfBuffer& data) = 0;
+	virtual DptfBuffer getOpbtTable() = 0;
+	virtual void setOpbtTable(const DptfBuffer& data) = 0;
+	virtual void setPidAlgorithmTable(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getActiveControlPointRelationshipTable() = 0;
-	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) = 0;
+	virtual void setActiveControlPointRelationshipTable(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getPowerShareAlgorithmTable() = 0;
-	virtual void setPowerShareAlgorithmTable(DptfBuffer data) = 0;
+	virtual void setPowerShareAlgorithmTable(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getPowerShareAlgorithmTable2() = 0;
-	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) = 0;
+	virtual void setPowerShareAlgorithmTable2(const DptfBuffer& data) = 0;
 	virtual DptfBuffer getIntelligentThermalManagementTable() = 0;
-	virtual void setIntelligentThermalManagementTable(DptfBuffer data) = 0;
-	virtual void setPpmPackage(DptfBuffer package) = 0;
-	virtual void setPpmPackageForNonBalancedSchemePersonality(DptfBuffer package) = 0;
-	virtual DptfBuffer getPpmPackage(DptfBuffer package) = 0;
+	virtual void setIntelligentThermalManagementTable(const DptfBuffer& data) = 0;
+	virtual DptfBuffer getIntelligentThermalManagementTable3() = 0;
+	virtual void setIntelligentThermalManagementTable3(const DptfBuffer& data) = 0;
+	virtual void setPpmPackage(const DptfBuffer& data) = 0;
+	virtual void setPpmPackageForNonBalancedSchemePersonality(const DptfBuffer& data) = 0;
+	virtual DptfBuffer getPpmPackage(const DptfBuffer& data) = 0;
 	virtual void setActivePowerScheme() = 0;
 	virtual void setPowerSchemeEpp(UInt32 value) = 0;
 	virtual void setForegroundAppRatioPeriod(UInt32 value) = 0;
 	virtual void setProcessAffinityMask(const std::string& processName, UInt32 maskValue) = 0;
-	virtual void setApplicationCompatibility(const DptfBuffer& processData) = 0;
+	virtual void setApplicationCompatibility(const DptfBuffer& data) = 0;
 	virtual void deleteApplicationCompatibility() = 0;
 	virtual UInt32 getDynamicBoostState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDynamicBoostState(UIntN participantIndex, UIntN domainIndex, UInt32 value) = 0;
@@ -102,4 +113,6 @@ public:
 	virtual void clearPpmPackageSettings() = 0;
 	virtual UInt32 getLogicalProcessorCount(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getPhysicalCoreCount(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual DptfBuffer getSystemConfigurationFeatureTable() = 0;
+	virtual std::string getActiveTableName(TableObjectType::Type tableObjectType) = 0;
 };

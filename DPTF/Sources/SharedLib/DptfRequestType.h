@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,6 +59,10 @@ namespace DptfRequestType
 		ProcessorControlGetMaxTccOffsetTemperature,
 		ProcessorControlGetMinTccOffsetTemperature,
 		ProcessorControlGetPcieThrottleRequestState,
+		ProcessorControlGetSocGear,
+		ProcessorControlSetSocGear,
+		ProcessorControlGetSystemUsageMode,
+		ProcessorControlSetSystemUsageMode,
 
 		// TemperatureControl
 		TemperatureControlGetTemperatureStatus,
@@ -85,6 +89,10 @@ namespace DptfRequestType
 		PlatformNotificationSetPolicySystemMode,
 		PlatformNotificationAppBroadcastSend,
 		PlatformNotificationFanOperatingModeChanged,
+		PlatformNotificationEnableIpAlignment,
+		PlatformNotificationDisableIpAlignment,
+		PlatformNotificationStartIpAlignment,
+		PlatformNotificationStopIpAlignment,
 
 		// Data
 		DataGetConfigurationFileContent,
@@ -95,6 +103,23 @@ namespace DptfRequestType
 		//Participant
 		CreateParticipant,
 		DeleteParticipant,
+
+		// Bias Control
+		BiasControlSetCpuOpboostEnableAC,
+		BiasControlSetCpuOpboostEnableDC,
+		BiasControlSetGpuOpboostEnableAC,
+		BiasControlSetGpuOpboostEnableDC,
+		BiasControlSetSplitRatio,
+		BiasControlSetSplitRatioMax,
+		BiasControlGetCpuOpboostEnableAC,
+		BiasControlGetCpuOpboostEnableDC,
+		BiasControlGetGpuOpboostEnableAC,
+		BiasControlGetGpuOpboostEnableDC,
+		BiasControlGetSplitRatio,
+		BiasControlGetSplitRatioActive,
+		BiasControlGetSplitRatioMax,
+		BiasControlGetReservedTgp,
+		BiasControlGetOppBoostMode,
 
 		// END
 		END

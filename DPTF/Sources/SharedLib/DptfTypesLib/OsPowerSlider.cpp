@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,10 +26,10 @@ namespace OsPowerSlider
 		{
 		case BatterySaver:
 			return "Battery Saver";
-		case BetterBattery:
-			return "Better Battery";
-		case BetterPerformance:
-			return "Better Performance";
+		case BestPowerEfficiency:
+			return "Best Power Efficiency";
+		case Balanced:
+			return "Balanced";
 		case BestPerformance:
 			return "Best Performance";
 		default:
@@ -45,11 +45,11 @@ namespace OsPowerSlider
 		}
 		else if (value == 50)
 		{
-			return OsPowerSlider::BetterBattery;
+			return OsPowerSlider::BestPowerEfficiency;
 		}
 		else if (value == 75)
 		{
-			return OsPowerSlider::BetterPerformance;
+			return OsPowerSlider::Balanced;
 		}
 		else if (value == 100)
 		{

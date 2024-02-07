@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -163,8 +163,12 @@ typedef struct _t_EsifPeakPowerControl {
 
 /* Processor Control Data */
 typedef struct _t_EsifProcessorControlStatus {
+	UInt32 perfPreferenceMax;
+	UInt32 perfPreferenceMin;
 	UInt32 tccOffset;
 	UInt32 uvth;
+	UInt32 socOptimizationSlider;
+	UInt32 socSystemUsageMode;
 } EsifProcessorControlStatus, *EsifProcessorControlStatusPtr;
 
 /* Platform Power Status Data */
@@ -259,6 +263,7 @@ typedef struct _t_EsifManagerStatusData {
 	UInt32 platformUserPresence;
 	UInt32 foregroundBackgroundRatio;
 	UInt32 collaboration;
+	IpAlignmentState ipaState;
 	EsifPpmParamValues ppmParamValues;
 } EsifManagerStatusData, * EsifManagerStatusDataPtr;
 

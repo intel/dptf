@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,8 +21,6 @@
 #include "Dptf.h"
 #include "WorkItemInterface.h"
 #include "EsifSemaphore.h"
-#include "ManagerMessage.h"
-#include "EsifTime.h"
 #include "DptfManagerInterface.h"
 
 class PolicyManagerInterface;
@@ -33,29 +31,32 @@ class WorkItem : public WorkItemInterface
 {
 public:
 	WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType);
-
+	WorkItem(const WorkItem& other) = delete;
+	WorkItem(WorkItem&& other) noexcept = delete;
+	WorkItem& operator=(const WorkItem& other) = delete;
+	WorkItem& operator=(WorkItem&& other) noexcept = delete;
 	// in the destructor we signal the semaphore if provided
-	virtual ~WorkItem(void);
+	~WorkItem() override = default;
 
-	virtual void execute(void) override;
-	virtual void signal(void) override;
+	void execute() override;
+	void signal() override;
 
-	DptfManagerInterface* getDptfManager(void) const;
-	PolicyManagerInterface* getPolicyManager(void) const;
-	ParticipantManagerInterface* getParticipantManager(void) const;
-	EsifServicesInterface* getEsifServices(void) const;
+	DptfManagerInterface* getDptfManager() const;
+	PolicyManagerInterface* getPolicyManager() const;
+	ParticipantManagerInterface* getParticipantManager() const;
+	EsifServicesInterface* getEsifServices() const;
 
 	// the following are implemented in the WorkItem class and *cannot* be overridden
-	virtual UInt64 getUniqueId(void) const override final;
-	virtual FrameworkEvent::Type getFrameworkEventType(void) const override final;
-	virtual const TimeSpan& getWorkItemCreationTime(void) const override final;
-	virtual void setWorkItemExecutionStartTime(void) override final;
-	virtual const TimeSpan& getWorkItemExecutionStartTime(void) const override final;
-	virtual void signalAtCompletion(EsifSemaphore* semaphore) override final;
+	UInt64 getUniqueId() const final;
+	FrameworkEvent::Type getFrameworkEventType() const final;
+	const TimeSpan& getWorkItemCreationTime() const final;
+	void setWorkItemExecutionStartTime() final;
+	const TimeSpan& getWorkItemExecutionStartTime() const final;
+	void signalAtCompletion(EsifSemaphore* semaphore) final;
 
 	// the following are implemented in the WorkItem class and *can* be overridden
-	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
-	virtual std::string toXml(void) const override;
+	Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
+	std::string toXml() const override;
 
 protected:
 	void writeWorkItemStartingInfoMessage() const;
@@ -80,20 +81,16 @@ protected:
 		const std::string& functionName,
 		UIntN participantIndex) const;
 
-	virtual void onExecute(void) = 0;
+	virtual void onExecute() = 0;
 
 private:
-	// hide the copy constructor and assignment operator.
-	WorkItem(const WorkItem& rhs);
-	WorkItem& operator=(const WorkItem& rhs);
-
 	DptfManagerInterface* m_dptfManager;
 	PolicyManagerInterface* m_policyManager;
 	ParticipantManagerInterface* m_participantManager;
 	EsifServicesInterface* m_esifServices;
 
-	const UInt64 m_uniqueId;
-	const FrameworkEvent::Type m_frameworkEventType;
+	UInt64 m_uniqueId;
+	FrameworkEvent::Type m_frameworkEventType;
 	TimeSpan m_workItemCreationTime;
 	TimeSpan m_workItemExecutionStartTime;
 

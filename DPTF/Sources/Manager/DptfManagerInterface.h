@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,6 +37,7 @@ class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DataManagerInterface;
 class SystemModeManagerInterface;
+class IPolicyStateLogger;
 
 class DptfManagerInterface
 {
@@ -54,6 +55,7 @@ public:
 	virtual EsifServicesInterface* getEsifServices() const = 0;
 	virtual std::shared_ptr<EventCache> getEventCache() const = 0;
 	virtual std::shared_ptr<EventNotifierInterface> getEventNotifier() const = 0;
+	virtual std::shared_ptr<IPolicyStateLogger> getPolicyStateLogger() const = 0;
 	virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache() const = 0;
 	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager() const = 0;
 	virtual PolicyManagerInterface* getPolicyManager() const = 0;
@@ -63,6 +65,7 @@ public:
 	virtual DataManagerInterface* getDataManager() const = 0;
 	virtual std::string getDptfPolicyDirectoryPath() const = 0;
 	virtual std::string getDptfReportDirectoryPath() const = 0;
+	virtual std::string getDttLogDirectoryPath() const = 0;
 	virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
 	virtual void unbindDomainsFromPolicies(UIntN participantIndex) const = 0;
 	virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;

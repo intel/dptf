@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1296,6 +1296,7 @@ void UnifiedParticipant::domainRadioConnectionStatusChanged(RadioConnectionStatu
 		{
 			domain->second->getRfProfileStatusControl()->onClearCachedData();
 		}
+		sendActivityLoggingDataIfEnabled(domain->first, ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS);
 	}
 }
 
@@ -1308,6 +1309,7 @@ void UnifiedParticipant::domainRfProfileChanged(void)
 		{
 			domain->second->getRfProfileStatusControl()->onClearCachedData();
 		}
+		sendActivityLoggingDataIfEnabled(domain->first, ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS);
 	}
 }
 
@@ -2326,6 +2328,12 @@ void UnifiedParticipant::clearPowerLimit(UIntN participantIndex, UIntN domainInd
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getPowerControl()->clearPowerLimit(participantIndex, domainIndex);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
+void UnifiedParticipant::clearCachedPowerLimits(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPowerControl()->clearCachedPowerLimits(participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)

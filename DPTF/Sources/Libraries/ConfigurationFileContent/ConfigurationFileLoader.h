@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,6 +28,12 @@
 class ConfigurationFileLoaderInterface
 {
 public:
+	ConfigurationFileLoaderInterface() = default;
+	ConfigurationFileLoaderInterface(const ConfigurationFileLoaderInterface& other) = default;
+	ConfigurationFileLoaderInterface(ConfigurationFileLoaderInterface&& other) noexcept = default;
+	ConfigurationFileLoaderInterface& operator=(const ConfigurationFileLoaderInterface& other) = default;
+	ConfigurationFileLoaderInterface& operator=(ConfigurationFileLoaderInterface&& other) noexcept = default;
+	virtual ~ConfigurationFileLoaderInterface() = default;
 	virtual std::shared_ptr<ConfigurationFileContentInterface> readContentFrom(
 		const std::string& configurationFilePath) const = 0;
 };
@@ -36,7 +42,6 @@ class ConfigurationFileLoader : public ConfigurationFileLoaderInterface
 {
 public:
 	ConfigurationFileLoader(std::shared_ptr<IFileIo> fileIo, std::shared_ptr<IDataDecoder> dataDecoder);	
-	virtual ~ConfigurationFileLoader() = default;
 	
 	std::shared_ptr<ConfigurationFileContentInterface> readContentFrom(
 		const std::string& configurationFilePath) const override;

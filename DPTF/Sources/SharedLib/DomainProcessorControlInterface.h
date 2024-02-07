@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #pragma once
 
 #include "Dptf.h"
+#include "SocGear.h"
+#include "SystemUsageMode.h"
 
 class DomainProcessorControlInterface
 {
@@ -33,4 +35,8 @@ public:
 	virtual void setPerfPreferenceMax(const Percentage& cpuMaxRatio) = 0;
 	virtual void setPerfPreferenceMin(const Percentage& cpuMinRatio) = 0;
 	virtual UInt32 getPcieThrottleRequestState() = 0;
+	virtual SocGear::Type getSocGear() const = 0;
+	virtual void setSocGear(SocGear::Type socGear) = 0;
+	virtual SystemUsageMode::Type getSocSystemUsageMode() = 0;
+	virtual void setSocSystemUsageMode(SystemUsageMode::Type mode) = 0;
 };

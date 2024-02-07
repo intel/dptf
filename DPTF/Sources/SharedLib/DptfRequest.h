@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,6 +29,7 @@ public:
 	DptfRequest(DptfRequestType::Enum requestType, UInt32 participantIndex);
 	DptfRequest(DptfRequestType::Enum requestType, UInt32 participantIndex, UInt32 domainIndex);
 	DptfRequest(DptfRequestType::Enum requestType, const DptfBuffer& data, UInt32 participantIndex, UInt32 domainIndex);
+	DptfRequest(DptfRequestType::Enum requestType, const DptfBuffer& data);
 	virtual ~DptfRequest() = default;
 
 	DptfRequest(const DptfRequest& other) = default;

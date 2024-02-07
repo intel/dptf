@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -101,7 +101,9 @@ namespace ConditionType
 		ExtendedWorkloadPrediction = 78,
 		FanOperatingMode = 79,
 		SocPowerFloor = 80,
-		Max = 81,
+		SocBasePower = 81,
+		SystemInBag = 82,
+		Max = 83,
 		MaxStaticConditionId = 4095,
 		OemConditionBaseId = 4096,
 		SwOemConditionBaseId = 8192,

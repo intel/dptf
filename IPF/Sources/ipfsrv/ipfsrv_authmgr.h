@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,8 +32,9 @@
 #define IPFAUTH_ROLE_ICST			((esif_handle_t)0xA0007)	// Intel Context Sensing Technology Role
 #define IPFAUTH_ROLE_ICSTSVC		((esif_handle_t)0xA0008)	// Intel Context Sensing Technology Service Role (LocalSystem)
 #define IPFAUTH_ROLE_DPTFTCS		((esif_handle_t)0xA0009)	// Dynamic Tuning Technology Telemetry Collection Service (DPTFTCS) Role
+#define IPFAUTH_ROLE_XTU			((esif_handle_t)0xA000A)	// Intel Extreme Tuning Utility(XTU) Role
 
-#define IPFAUTH_MAX_ROLES			10							// Max number of IPFAUTH_ROLEs defined above
+#define IPFAUTH_MAX_ROLES			11							// Max number of IPFAUTH_ROLEs defined above
 
 // Pseudo-Name to identify ACLs that Nobody can access
 #define IPFAUTH_ACL_NOBODY			"---------:nobody:nobody"

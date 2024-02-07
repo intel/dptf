@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,6 +28,7 @@ public:
 	Temperature(UInt32 temperatureInTenthKelvin);
 	static Temperature createInvalid();
 	static Temperature fromCelsius(double temperatureInCelsius);
+	static Temperature fromCelsius(const std::string& temperatureInCelsius);
 	static const UInt32 maxValidTemperature = 4732; // 200C
 	static const UInt32 minValidTemperature = 1372; // -136C
 	static Temperature snapWithinAllowableTripPointRange(Temperature aux);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,17 +25,20 @@
 class dptf_export CaptureCommand : public CommandHandler
 {
 public:
-	CaptureCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIo> fileIo);	
-	virtual ~CaptureCommand() = default;
-	virtual std::string getCommandName() const override;
-	virtual void execute(const CommandArguments& arguments) override;
+	CaptureCommand(
+		DptfManagerInterface* dptfManager,
+		const std::shared_ptr<IFileIo>& fileIo,
+		const std::shared_ptr<TimeStampGenerator>& timeStampGenerator);	
+	std::string getCommandName() const override;
+	void execute(const CommandArguments& arguments) override;
 
 private:
 	std::shared_ptr<IFileIo> m_fileIo;
+	std::shared_ptr<TimeStampGenerator> m_timeStampGenerator;
 	std::list<std::shared_ptr<CaptureDataGenerator>> m_dataGenerators;
 	static Bool exportFileNameProvided(const CommandArguments& arguments);
 	std::string generateExportPath(const CommandArguments& arguments) const;
-	static std::string getExportFileName(const CommandArguments& arguments);
+	std::string getExportFileName(const CommandArguments& arguments) const;
 	std::string generateCaptureData() const;
 	static void throwIfBadArgumentCount(const CommandArguments& arguments);
 	static void throwIfBadFileNameGiven(const CommandArguments& arguments);

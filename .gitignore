@@ -14,7 +14,12 @@
 modules.order
 .tmp_versions
 **/Linux/build
-**/Linux/ipf*
+**/Linux/ipfcore*
+**/Linux/ipfsrv*
+**/Linux/ipfipc*
+**/Linux/ipfcli*
+**/Linux/ipfhostd*
+**/Linux/ipf_ufd*
 **/Linux/sample*
 **/Linux/unit*
 !**/Linux/Makefile
@@ -51,6 +56,9 @@ out
 .vscode
 
 # Product-Specific
+.*.cmd
+.*.sh
+.*.log
 *.laccdb
 *.edp
 *.cpc
@@ -60,13 +68,18 @@ ppm.dv
 esif_ufd
 dsp_compiler
 ppm_compiler
+cpc_windows.h
 /ESIF/Packages/Database/DSP-*.accdb
 /ESIF/Packages/Database/EXPORT
 /DPTF/Sources/Tools/dttui/index.html
+/Build/Chrome/Artifactory
 /Build/Linux/Artifacts
+/Build/Linux/Artifactory
 /Build/Linux/Upstream
 /Build/Windows/Artifacts
+/Build/Windows/Artifactory
 /Build/Windows/Packages
+/Build/Windows/Platform
 /Build/Windows/Klocwork
 /DPTF/Linux/build
 /DPTF/Linux/Tools/ipftcs/build
@@ -85,6 +98,21 @@ ppm_compiler
 /ContextService/**/packages
 /DPTF/Sources/Tools/dttui/Sources/solution/esif_ui_solution/bin/esif_ui_solution.pdb
 /DPTF/Sources/Tools/dttui/Sources/solution/esif_ui_solution/bin/esif_ui_solution.dll
+/DPTF/Sources/Manager/configuration/*.config
+/DPTF/Sources/Policies/**/*.config
 /ESIF/Products/IPF_UI/Sources/solution/ipf_ui_solution/bin
 /ESIF/Products/IPF_UI/index.html
 /DPTF/Windows/Solution/.klocwork/
+
+##### Uncomment these in DTT Repo after Repo separation #####
+#
+### IPF Platform SDK Files:
+#/Common
+#/DPTF/Sources/Tools/dttui/Sources/scripts/src/esif_autogen.js
+#/ESIF
+#/IPF
+### End Platform SDK Files
+
+### Uncomment these in IPF Repo after Repo separation ###
+#
+#/DPTF

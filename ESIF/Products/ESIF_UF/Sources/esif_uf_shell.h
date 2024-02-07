@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -76,6 +76,7 @@ extern esif_error_t CreateMcpParticipant();
 extern esif_error_t CreateIvramParticipant();
 extern esif_error_t CreateIpuParticipant();
 extern esif_error_t CreateAudioParticipant();
+extern esif_error_t CreateMemoryParticipant();
 
 #ifdef __cplusplus
 }

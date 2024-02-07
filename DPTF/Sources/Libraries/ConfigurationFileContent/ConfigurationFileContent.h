@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <regex>
 
 class ConfigurationFileContentMetaData
 {
@@ -43,6 +42,12 @@ public:
 class ConfigurationFileContentInterface
 {
 public:
+	ConfigurationFileContentInterface() = default;
+	ConfigurationFileContentInterface(const ConfigurationFileContentInterface& other) = default;
+	ConfigurationFileContentInterface(ConfigurationFileContentInterface&& other) noexcept = default;
+	ConfigurationFileContentInterface& operator=(const ConfigurationFileContentInterface& other) = default;
+	ConfigurationFileContentInterface& operator=(ConfigurationFileContentInterface&& other) noexcept = default;
+	virtual ~ConfigurationFileContentInterface() = default;
 	virtual const ConfigurationFileContentMetaData& metaData() const = 0;
 	virtual const std::vector<std::vector<unsigned char>>& dataSegments() const = 0;
 	virtual std::string toString() const = 0;
@@ -59,8 +64,12 @@ public:
 		std::string name,
 		std::string sourceFilePath,
 		std::vector<unsigned char> dataSegment);
-	virtual ~ConfigurationFileContent() = default;
+	ConfigurationFileContent(const ConfigurationFileContent& other) = default;
+	ConfigurationFileContent(ConfigurationFileContent&& other) noexcept = default;
+	ConfigurationFileContent& operator=(const ConfigurationFileContent& other) = default;
+	ConfigurationFileContent& operator=(ConfigurationFileContent&& other) noexcept = default;
 	static ConfigurationFileContent deserialize(const std::vector<unsigned char>& serializedContent);
+	~ConfigurationFileContent() override = default;
 
 	bool operator==(const ConfigurationFileContent& other) const;
 

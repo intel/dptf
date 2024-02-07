@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "RfProfileSupplementalData.h"
 #include "XmlNode.h"
+#include "DomainType.h"
 
 class XmlNode;
 
@@ -60,7 +61,7 @@ public:
 	Bool operator==(const RfProfileData& rhs) const;
 	Bool operator!=(const RfProfileData& rhs) const;
 	// Bool operator<(const RfProfileData& rhs) const;
-	std::shared_ptr<XmlNode> getXml(void) const;
+	std::shared_ptr<XmlNode> getXml(DomainType::Type domainType) const;
 
 private:
 	Bool m_is5G;

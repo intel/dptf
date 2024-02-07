@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -133,6 +133,8 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT(DptfEnvironmentProfileChanged, 0);
 	INIT_EVENT_WITH_GUID(DptfSendParticipantCreate, 0, PARTICIPANT_CREATE);
 	INIT_EVENT_WITH_GUID(DptfSendParticipantDelete, 0, PARTICIPANT_UNREGISTER);
+	INIT_EVENT(DptfPolicyStateLogger, 0);
+	INIT_EVENT(DptfExtendedWorkloadPredictionEventRegistrationChanged, 0);
 
 	// Participant and Domain events
 	INIT_EVENT(ParticipantAllocate, 31);
@@ -225,6 +227,13 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DptfAppBroadcastPrivileged, 0, APP_BROADCAST);
 	INIT_EVENT(DomainFanOperatingModeChanged, 0);
 	INIT_EVENT(PolicySwOemVariablesChanged, 0);
+	INIT_EVENT(PolicySystemConfigurationFeatureTableChanged, 0);
+	INIT_EVENT_WITH_GUID(PolicySystemInBagChanged, 0, SYSTEM_IN_BAG);
+	INIT_EVENT_WITH_GUID(PolicyThirdPartyGraphicsReservedTgpChanged, 0, RESERVED_TGP_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyThirdPartyGraphicsOppBoostModeChanged, 0, OPPORTUNISTIC_BOOST_MODE_CHANGED);
+	INIT_EVENT(PolicyScenarioModeChanged, 0);
+	INIT_EVENT(PolicyDttGamingModeChanged, 0);
+	INIT_EVENT(PolicyApplicationOptimizationChanged, 0);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);

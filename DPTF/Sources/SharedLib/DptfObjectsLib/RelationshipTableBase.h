@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,6 +45,8 @@ public:
 	UIntN getNumberOfEntries(void) const override;
 	std::set<UIntN> getAllTargetIndexes() const override;
 	std::set<UIntN> getAllSourceIndexes() const override;
+
+	std::set<UIntN> getAllDomainIndexesAssociatedWithSource(UIntN participantIndex) const;
 
 protected:
 	std::vector<UIntN> findTableRowsWithParticipantScope(const std::string& participantScope) const;

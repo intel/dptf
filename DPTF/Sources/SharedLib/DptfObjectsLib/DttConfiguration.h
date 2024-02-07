@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,6 +35,8 @@ public:
 
 	std::vector<DttConfigurationSegment> getSegmentsWithValue(const std::string& value) const;
 	std::vector<DttConfigurationSegment> getSegmentsWithAllProperties(
+		const std::set<DttConfigurationProperty>& properties) const;
+	std::vector<DttConfigurationSegment> getSegmentsWithAllPropertiesIncludingEmpty(
 		const std::set<DttConfigurationProperty>& properties) const;
 	std::vector<DttConfigurationSegment> getSegmentsWithEnvironmentProfile(
 		const EnvironmentProfile& environmentProfile) const;

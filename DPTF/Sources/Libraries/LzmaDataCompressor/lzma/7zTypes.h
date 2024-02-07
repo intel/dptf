@@ -1,5 +1,6 @@
 /* 7zTypes.h -- Basic types
 2022-04-01 : Igor Pavlov : Public domain */
+// ReSharper disable All
 
 #ifndef __7Z_TYPES_H
 #define __7Z_TYPES_H

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 namespace ExtendedWorkloadPrediction
 {
-	std::string toString(ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
+	std::string toString(Type extendedWorkloadPrediction)
 	{
 		switch (extendedWorkloadPrediction)
 		{
@@ -31,5 +31,20 @@ namespace ExtendedWorkloadPrediction
 		default:
 			return Constants::InvalidString;
 		}
+	}
+
+	Type toType(UIntN value)
+	{
+		if (value == Performance)
+		{
+			return Performance;
+		}
+
+		if (value == Default)
+		{
+			return Default;
+		}
+
+		return Invalid;
 	}
 }

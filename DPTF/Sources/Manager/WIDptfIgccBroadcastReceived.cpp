@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 #include "WIDptfIgccBroadcastReceived.h"
 #include "PolicyManagerInterface.h"
 #include "SystemModeManager.h"
-#include "EsifServicesInterface.h"
 #include "StatusFormat.h"
+#include "EventPayloadEnduranceGamingRequest.h"
 
 WIDptfIgccBroadcastReceived::WIDptfIgccBroadcastReceived(
 	DptfManagerInterface* dptfManager,
@@ -30,26 +30,27 @@ WIDptfIgccBroadcastReceived::WIDptfIgccBroadcastReceived(
 {
 }
 
-WIDptfIgccBroadcastReceived::~WIDptfIgccBroadcastReceived(void)
-{
-}
-
-void WIDptfIgccBroadcastReceived::onExecute(void)
+void WIDptfIgccBroadcastReceived::onExecute()
 {
 	writeWorkItemStartingInfoMessage();
-	Guid broadcastGuid(m_igccNotificationData.uuid);
+	const Guid broadcastGuid(m_igccNotificationData.uuid);
+	
 	if (IGCC_BROADCAST_GUID == broadcastGuid)
 	{
-		auto policyManager = getPolicyManager();
-		auto policyIndexes = policyManager->getPolicyIndexes();
+		getDptfManager()->getEventCache()->igccAppBroadcastNotificationData.set(m_igccNotificationData);
+		getDptfManager()->getEventNotifier()->notify(
+			getFrameworkEventType(), 
+			EventPayloadEnduranceGamingRequest(m_igccNotificationData.enduranceGamingStatus));
 
-		for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+		const auto policyManager = getPolicyManager();
+		const auto policyIndexes = policyManager->getPolicyIndexes();
+		for (const unsigned int policyId : policyIndexes)
 		{
 			try
 			{
-				getDptfManager()->getEventCache()->igccAppBroadcastNotificationData.set(m_igccNotificationData);
-				auto policy = policyManager->getPolicyPtr(*i);
-				policy->executeIgccBroadcastReceived(m_igccNotificationData);
+
+				const auto policy = policyManager->getPolicyPtr(policyId);
+				policy->executePolicyIgccBroadcastReceived(m_igccNotificationData);
 			}
 			catch (policy_index_invalid&)
 			{
@@ -57,8 +58,11 @@ void WIDptfIgccBroadcastReceived::onExecute(void)
 			}
 			catch (std::exception& ex)
 			{
-				writeWorkItemErrorMessagePolicy(ex, "Policy::executeIgccBroadcastReceived", *i);
+				writeWorkItemErrorMessagePolicy(
+					ex, "Policy::executePolicyIgccBroadcastReceived", policyId);
 			}
 		}
 	}
 }
+
+

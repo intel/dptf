@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -124,6 +124,66 @@ Bool ProcessorControlFacade::setUnderVoltageThreshold(const UInt32 voltageThresh
 	auto result = m_policyServices.serviceRequest->submitRequest(request);
 	// do not cache, there is no "get" function
 	return result.isSuccessful();
+}
+
+SocGear::Type ProcessorControlFacade::getSocGear() const
+{
+	if (supportsProcessorControl())
+	{
+		DptfRequest request(
+			DptfRequestType::ProcessorControlGetSocGear, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		if (result.isSuccessful())
+		{
+			return static_cast<SocGear::Type>(result.getDataAsUInt32());
+		}
+	}
+
+	return SocGear::Invalid;
+}
+
+Bool ProcessorControlFacade::setSocGear(SocGear::Type gear)
+{
+	if (supportsProcessorControl())
+	{
+		DptfRequest request(
+			DptfRequestType::ProcessorControlSetSocGear, m_participantIndex, m_domainIndex);
+		request.setDataFromUInt32(gear);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+
+		return result.isSuccessful();		
+	}
+
+	return false;
+}
+
+SystemUsageMode::Type ProcessorControlFacade::getSocSystemUsageMode()
+{
+	if (supportsProcessorControl())
+	{
+		DptfRequest request(DptfRequestType::ProcessorControlGetSystemUsageMode, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		if (result.isSuccessful())
+		{
+			return static_cast<SystemUsageMode::Type>(result.getDataAsUInt32());
+		}
+	}
+
+	return SystemUsageMode::Invalid;
+}
+
+Bool ProcessorControlFacade::setSocSystemUsageMode(SystemUsageMode::Type mode)
+{
+	if (supportsProcessorControl())
+	{
+		DptfRequest request(DptfRequestType::ProcessorControlSetSystemUsageMode, m_participantIndex, m_domainIndex);
+		request.setDataFromUInt32(mode);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+
+		return result.isSuccessful();
+	}
+
+	return false;
 }
 
 void ProcessorControlFacade::throwIfControlNotSupported() const

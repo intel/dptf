@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,10 @@ typedef struct EsifActMgrEntry_s {
 	Bool loadDelayed; /* Indicates that the action will not be loaded until used */
 	EsifString libName; /* The Name Of The Library To Load */
 	esif_lib_t lib; /* Library object */
+
+	UInt32 numWaiters;
+	Bool shouldDelete; /* Indicates a failure during creation and the last waiter should delete */
+	esif_ccb_event_t creationCompleteEvent; /* Event to synchronize threads waiting for creation of same delayed-load action type */
 
 	EsifActPtr actPtr;
 } EsifActMgrEntry, *EsifActMgrEntryPtr;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,6 +27,8 @@
 #include "esif_uf_sensors.h"
 #include "esif_uf_ccb_timedwait.h"
 #include "esif_uf_event_cache.h"
+#include "esif_uf_handlemgr.h"
+
 
 
 #define NUM_EVENT_LISTS 64
@@ -220,7 +222,11 @@ static esif_error_t esif_register_event_soc_power_floor (
 	EventMgrEntryPtr entryPtr
 );
 
-static esif_error_t esif_unregister_event_soc_power_floor (
+static esif_error_t esif_unregister_event_soc_power_floor(
+	EventMgrEntryPtr entryPtr
+);
+
+esif_error_t esif_register_event_socwc(
 	EventMgrEntryPtr entryPtr
 );
 
@@ -634,9 +640,7 @@ static eEsifError EsifEventMgr_ProcessEvent(
 	if (shouldDumpGarbage) {
 		EsifEventMgr_DumpGarbage();
 	}
-
 exit:
-	ESIF_TRACE_DEBUG("Event processing complete = %d\n", rc);
 	return rc;
 }
 
@@ -861,6 +865,11 @@ static eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterApp(
 
 	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 	EsifEventMgr_DumpGarbage();
+	//
+	// Note: The App handle is release back to the manager at this point due to the
+	// issue related to IPFT-5804
+	//
+	EsifHandleMgr_PutHandle((esif_handle_t)context);
 exit:
 	return rc;
 }
@@ -1454,12 +1463,12 @@ eEsifError EsifEventMgr_Init(void)
 		goto exit;
 	}
 
-	g_EsifEventMgr.cacheableEventListPtr = (Bool *)esif_ccb_malloc(MAX_ESIF_EVENT_ENUM_VALUE * sizeof(*g_EsifEventMgr.cacheableEventListPtr));
+	g_EsifEventMgr.cacheableEventListPtr = (Bool *)esif_ccb_malloc((MAX_ESIF_EVENT_ENUM_VALUE + 1) * sizeof(*g_EsifEventMgr.cacheableEventListPtr));
 	if (NULL == g_EsifEventMgr.cacheableEventListPtr) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
-	for (i = 0; i < MAX_ESIF_EVENT_ENUM_VALUE; i++) {
+	for (i = 0; i <= MAX_ESIF_EVENT_ENUM_VALUE; i++) {
 		g_EsifEventMgr.cacheableEventListPtr[i] = EsifEventCache_IsEventCacheable(i);
 	}
 exit:
@@ -1785,7 +1794,7 @@ static Bool EsifEventMgr_IsEventCacheable(
 
 	ESIF_ASSERT(g_EsifEventMgr.cacheableEventListPtr);
 
-	if (eventType < MAX_ESIF_EVENT_ENUM_VALUE) {
+	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
 		isCacheable = g_EsifEventMgr.cacheableEventListPtr[eventType];
 	}
 
@@ -1809,6 +1818,11 @@ static esif_error_t esif_register_code_event(
 	case ESIF_EVENT_SOC_POWER_FLOOR_CHANGED:
 	case ESIF_EVENT_PCIE_THROTTLE_REQUESTED:
 		rc = esif_register_event_soc_power_floor(entryPtr);
+		break;
+
+	case ESIF_EVENT_WORKLOAD_CLASSIFICATION_CHANGED:
+	case ESIF_EVENT_DTT_EPP_SENSITIVITY_HINT_CHANGED:
+		rc = esif_register_event_socwc(entryPtr);
 		break;
 
 	default:
@@ -1872,7 +1886,7 @@ static esif_error_t esif_register_event_soc_workload(
 
 static esif_error_t esif_register_event_soc_power_floor(
 	EventMgrEntryPtr entryPtr
-	)
+)
 {
 	esif_error_t rc = ESIF_E_NOT_FOUND;
 	UInt32 intrState = ESIF_INTR_STATE_ENABLE;
@@ -1921,6 +1935,32 @@ static esif_error_t esif_register_event_soc_power_floor(
 
 	EsifUp_PutRef(upPtr);
 
+	return rc;
+}
+
+
+esif_error_t esif_register_event_socwc(
+	EventMgrEntryPtr entryPtr
+)
+{
+	esif_error_t rc = ESIF_E_NOT_FOUND;
+	UInt32 value = 0;
+	EsifPrimitiveTuple tuple = { GET_SOC_WORKLOAD, ESIF_PRIMITIVE_DOMAIN_D0, 255 };
+	EsifData esifData = { ESIF_DATA_UINT32, &value, sizeof(value), sizeof(value) };
+	EsifUpPtr upPtr = NULL;
+
+	ESIF_ASSERT(entryPtr);
+
+	//
+	// Force load of the SOCWC UPE which will signal the associated events
+	// NOTE: There will not be gratuitous events associated with events enabled in this way
+	//
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(entryPtr->participantId);
+	if (upPtr) {
+		rc = EsifUp_ExecutePrimitive(upPtr, &tuple, NULL, &esifData);
+	}
+
+	EsifUp_PutRef(upPtr);
 	return rc;
 }
 

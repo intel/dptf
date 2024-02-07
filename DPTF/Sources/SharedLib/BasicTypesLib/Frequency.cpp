@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,11 +36,21 @@ Frequency::Frequency(UInt64 frequencyInHertz)
 
 Frequency Frequency::createFromHertz(UInt64 frequencyInHertz)
 {
+	if (frequencyInHertz == Constants::Invalid)
+	{
+		return createInvalid();
+	}
+
 	return Frequency(frequencyInHertz);
 }
 
 Frequency Frequency::createFromMegahertz(UInt64 frequencyInMegahertz)
 {
+	if (frequencyInMegahertz == Constants::Invalid)
+	{
+		return createInvalid();
+	}
+
 	UInt64 frequencyInHertz = frequencyInMegahertz * mhzToHzMultiplierInUint64;
 	return Frequency(frequencyInHertz);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,6 +52,10 @@ private:
 	DptfRequestResult handleSetPerfPreferenceMax(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetPerfPreferenceMin(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetPcieThrottleRequestState(const PolicyRequest& policyRequest);
+	DptfRequestResult handleGetSocGear(const PolicyRequest& policyRequest);
+	DptfRequestResult handleSetSocGear(const PolicyRequest& policyRequest);
+	DptfRequestResult handleGetSocSystemUsageMode(const PolicyRequest& policyRequest);
+	DptfRequestResult handleSetSocSystemUsageMode(const PolicyRequest& policyRequest);
 
 	DptfRequestResult removePolicySetUnderVoltageThresholdRequest(UIntN policyIndex, const DptfRequest& request);
 	DptfRequestResult removePolicySetTccOffsetTemperatureRequest(UIntN policyIndex, const DptfRequest& request);

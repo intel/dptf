@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #pragma once
 #include "DptfBuffer.h"
+#include "Energy.h"
 
 class DptfBufferStream
 {
@@ -32,8 +33,10 @@ public:
 	float readNextFloat();
 	Bool readNextBool();
 	Power readNextPower();
+	Energy readNextEnergy();
 	Temperature readNextTemperature();
 	void resetReadPosition();
+	void movePositionBy(size_t bytes);
 	Bool canReadNext(size_t bytes) const;
 
 	void appendUInt8(UInt8 value) const;

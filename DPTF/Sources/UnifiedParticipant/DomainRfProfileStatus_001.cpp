@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -155,7 +155,7 @@ void DomainRfProfileStatus_001::setProtectRequest(UIntN participantIndex, UIntN 
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({
 			return (
-				"Setting the DVFS Rate Protect Request for the rate: " + StatusFormat::friendlyValue(frequencyRate));
+				"Setting the DVFS RFI Restriction: " + StatusFormat::friendlyValue(frequencyRate));
 		});
 
 		getParticipantServices()->primitiveExecuteSetAsUInt64(
@@ -165,7 +165,7 @@ void DomainRfProfileStatus_001::setProtectRequest(UIntN participantIndex, UIntN 
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({
 			return (
-				"Failed to set the DVFS Rate Protect Request for the rate: "
+				"Failed to set the DVFS RFI Restriction: "
 				+ StatusFormat::friendlyValue(frequencyRate));
 		});
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,6 +59,10 @@ private:
 	DptfRequestResult handleAppBroadcastSend(const PolicyRequest& request);
 	DptfRequestResult handleFanOperatingModeChanged(const PolicyRequest& policyRequest);
 	DptfRequestResult handlePublishEvent(const PolicyRequest& policyRequest);
+	DptfRequestResult handleEnableIpAlignment(const PolicyRequest& policyRequest);
+	DptfRequestResult handleDisableIpAlignment(const PolicyRequest& policyRequest);
+	DptfRequestResult handleStartIpAlignment(const PolicyRequest& policyRequest);
+	DptfRequestResult handleStopIpAlignment(const PolicyRequest& policyRequest);
 
 	void executeOsc(const Guid& guid, UInt32 oscCapabilities);
 	EsifServicesInterface* getEsifServices();

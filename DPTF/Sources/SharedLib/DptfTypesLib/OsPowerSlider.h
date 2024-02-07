@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,8 +26,8 @@ namespace OsPowerSlider
 	{
 		Invalid = 0,
 		BatterySaver = 25,
-		BetterBattery = 50,
-		BetterPerformance = 75,
+		BestPowerEfficiency = 50,
+		Balanced = 75,
 		BestPerformance = 100
 	};
 

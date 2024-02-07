@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "Dptf.h"
 #include "FrameworkEvent.h"
 
-class WorkItemMatchCriteria
+class dptf_export WorkItemMatchCriteria
 {
 public:
 	WorkItemMatchCriteria(void);
@@ -38,6 +38,8 @@ public:
 		UIntN participantIndex = Constants::Invalid,
 		UIntN domainIndex = Constants::Invalid,
 		UIntN policyIndex = Constants::Invalid) const;
+
+	Bool operator==(const WorkItemMatchCriteria& rhs) const;
 
 private:
 	Bool m_matchCriteriaAdded;

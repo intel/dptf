@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -761,6 +761,11 @@ static eEsifError EsifUpDomain_RfProfileStatusDetectInit(
 
 	EsifPrimitiveTuple rfActiveChannelsTuple = { GET_RF_ACTIVE_CHANNELS, 0, 255 };
 	EsifData rfActiveChannelsData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	UInt64 memBdwVaue = 0;
+	EsifPrimitiveTuple memBdwTuple = { GET_MEMORY_SPEED, 0, 255 };
+	EsifData memBdwData = { ESIF_DATA_FREQUENCY, &memBdwVaue, sizeof(memBdwVaue), 0 };
+
 	EsifData listData = { ESIF_DATA_STRING, NULL, ESIF_DATA_ALLOCATE, 0 };
 
 	ESIF_ASSERT(self != NULL);
@@ -774,13 +779,17 @@ static eEsifError EsifUpDomain_RfProfileStatusDetectInit(
 	if (rc == ESIF_OK) {
 		goto exit;
 	}
-	else {
-		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_AUTO_ENUM_LIST, "D0", 255, NULL, &listData);
-				
-		if (ESIF_I_NO_LEGACY_SUPPORT == rc) {
-			ESIF_TRACE_DEBUG("Skipping disabling RFPROFILE Status\n");
-			goto exit;
-		}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS, &memBdwTuple, &memBdwData);
+	if (rc == ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_AUTO_ENUM_LIST, "D0", 255, NULL, &listData);
+	if (ESIF_I_NO_LEGACY_SUPPORT == rc) {
+		ESIF_TRACE_DEBUG("Skipping disabling RFPROFILE Status\n");
+		rc = ESIF_OK;
+		goto exit;
 	}
 
 	rc = ESIF_E_NOT_SUPPORTED;
@@ -1017,7 +1026,7 @@ static eEsifError EsifUpDomain_StateDetectInit(
 {
 	eEsifError rc = ESIF_OK;
 	UInt32 stateValue = ESIF_DOMAIN_STATE_INVALID;
-	EsifPrimitiveTuple stateTuple = {GET_PARTICIPANT_PERF_PRESENT_CAPABILITY, 0, 255};
+	EsifPrimitiveTuple stateTuple = {GET_PERF_PSTATE_DEPTH_LIMIT, 0, 255};
 	EsifData stateData = { ESIF_DATA_UINT32, &stateValue, sizeof(stateValue), 0 };
 
 	ESIF_ASSERT(self != NULL);
@@ -1342,7 +1351,7 @@ eEsifError EsifUpDomain_CheckState(EsifUpDomainPtr self)
 {
 	eEsifError rc = ESIF_OK;
 	UInt32 state = ESIF_DOMAIN_STATE_INVALID;
-	EsifPrimitiveTuple stateTuple = {GET_PARTICIPANT_PERF_PRESENT_CAPABILITY, 0, 255};
+	EsifPrimitiveTuple stateTuple = {GET_PERF_PSTATE_DEPTH_LIMIT, 0, 255};
 	struct esif_data stateResponse = { ESIF_DATA_UINT32, &state, sizeof(state), 0 };
 
 	ESIF_TRACE_DEBUG("%s %s: Polled performance state. \n",
@@ -1357,7 +1366,7 @@ eEsifError EsifUpDomain_CheckState(EsifUpDomainPtr self)
 	
 	if (self->lastState != state && state != ESIF_DOMAIN_STATE_INVALID) {
 		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_PERF_CAPABILITY_CHANGED, NULL);
-		ESIF_TRACE_DEBUG("PERF STATE CHANGED! Participant: %s, Domain: %s, State: %d \n", self->participantName, self->domainName, state);
+		ESIF_TRACE_DEBUG("Performance Capability CHANGED! Participant: %s, Domain: %s, State: %d \n", self->participantName, self->domainName, state);
 		self->lastState = state;
 	}
 exit:

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,6 +42,7 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 	, socWorkloadClassificationVersion(0)
 	, managerControlVersion(0)
 	, dynamicEppVersion(0)
+	, biasControlVersion(0)
 {
 }
 
@@ -69,6 +70,7 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
 	socWorkloadClassificationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION];
 	managerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_MANAGER];
 	dynamicEppVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DYNAMIC_EPP];
+	biasControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_BIAS_CONTROL];
 }
 
 Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& domainFunctionality)
@@ -95,7 +97,8 @@ Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& 
 		&& (batteryStatusVersion == domainFunctionality.batteryStatusVersion)
 		&& (socWorkloadClassificationVersion == domainFunctionality.socWorkloadClassificationVersion)
 		&& (managerControlVersion == domainFunctionality.managerControlVersion)
-		&& (dynamicEppVersion == domainFunctionality.dynamicEppVersion));
+		&& (dynamicEppVersion == domainFunctionality.dynamicEppVersion)
+		&& (biasControlVersion == domainFunctionality.biasControlVersion));
 }
 
 Bool DomainFunctionalityVersions::operator!=(const DomainFunctionalityVersions& domainFunctionality)

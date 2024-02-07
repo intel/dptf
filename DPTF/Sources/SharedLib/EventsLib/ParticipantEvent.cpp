@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -81,6 +81,7 @@ namespace ParticipantEvent
 			CASE(DptfParticipantActivityLoggingDisabled)
 			CASE(DptfParticipantControlAction)
 			CASE(DptfAppBroadcastPrivileged)
+			CASE(DptfExtendedWorkloadPredictionEventRegistrationChanged)
 		default:
 			throw dptf_exception("ParticipantEvent::Type is invalid.");
 		}

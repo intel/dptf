@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,11 +42,20 @@
 #include "ExtendedWorkloadPrediction.h"
 #include "FanOperatingMode.h"
 #include "SocPowerFloor.h"
+#include "SystemInBag.h"
+#include "OpportunisticBoostMode.h"
+#include "ScenarioMode.h"
+#include "DttGamingMode.h"
 
 class dptf_export PolicyInterface
 {
 public:
-	virtual ~PolicyInterface(){};
+	PolicyInterface() = default;
+	PolicyInterface(const PolicyInterface& other) = default;
+	PolicyInterface(PolicyInterface&& other) noexcept = default;
+	PolicyInterface& operator=(const PolicyInterface& other) = default;
+	PolicyInterface& operator=(PolicyInterface&& other) noexcept = default;
+	virtual ~PolicyInterface() = default;
 
 	//
 	// This is the main entry point for bringing up a policy.  If a policy chooses not to load itself,
@@ -62,7 +71,7 @@ public:
 	//
 	// In response to this call, the policy must clean up all of its internal data structures.
 	//
-	virtual void destroy(void) = 0;
+	virtual void destroy() = 0;
 
 	//
 	// This function is called by the DPTF framework whenever it receives a participant
@@ -90,7 +99,7 @@ public:
 	// This function is called if the framework wants to enable this specific policy.  This may
 	// happen for debug and validation purposes.
 	//
-	virtual void enable(void) = 0;
+	virtual void enable() = 0;
 
 	//
 	// This function is called if the framework wants to disable this specific policy.  This may
@@ -99,22 +108,26 @@ public:
 	// When a policy is disabled, it should clear anything that it 'set', for example, the
 	// aux trip points should be cleared and the fan turned off.
 	//
-	virtual void disable(void) = 0;
+	virtual void disable() = 0;
 
-	virtual Guid getGuid(void) const = 0;
-	virtual std::string getName(void) const = 0;
-	virtual std::string getStatusAsXml(void) const = 0;
-	virtual std::string getDiagnosticsAsXml(void) const = 0;
+	virtual Guid getGuid() const = 0;
+	virtual std::string getName() const = 0;
+	virtual std::string getStatusAsXml() const = 0;
+	virtual std::string getDiagnosticsAsXml() const = 0;
+	virtual std::map<std::string, std::string> getPolicyStateLogData() const = 0;
+	virtual std::string getConfigurationForExport() const = 0;
 
 	// DPTF Event handlers
 	virtual void igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
+	virtual void iaoBroadcastReceived(const DptfBuffer& broadcastNotificationData) = 0;
 	virtual void environmentProfileChanged(const EnvironmentProfile& environmentProfile) = 0;
-	virtual void connectedStandbyEntry(void) = 0;
-	virtual void connectedStandbyExit(void) = 0;
-	virtual void lowPowerModeEntry(void) = 0;
-	virtual void lowPowerModeExit(void) = 0;
-	virtual void suspend(void) = 0;
-	virtual void resume(void) = 0;
+	virtual void extendedWorkloadPredictionEventRegistrationChanged(UInt32 consumerCount) = 0;
+	virtual void connectedStandbyEntry() = 0;
+	virtual void connectedStandbyExit() = 0;
+	virtual void lowPowerModeEntry() = 0;
+	virtual void lowPowerModeExit() = 0;
+	virtual void suspend() = 0;
+	virtual void resume() = 0;
 
 	// Participant/Domain Event Handlers
 	virtual void domainCoreControlCapabilityChanged(UIntN participantIndex) = 0;
@@ -171,7 +184,7 @@ public:
 		OnOffToggle::Type pcieThrottleRequested) = 0;
 
 	// Policy Event Handlers
-	virtual void activeRelationshipTableChanged(void) = 0;
+	virtual void activeRelationshipTableChanged() = 0;
 	virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
 	virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
 	virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) = 0;
@@ -190,36 +203,39 @@ public:
 	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
 	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
 	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
-	virtual void processLoaded(const std::string& processName) = 0;
+	virtual void processLoaded(const std::string& processName, UInt64 processId) = 0;
+	virtual void processUnLoaded(UInt64 processId) = 0;
 	virtual void systemModeChanged(SystemMode::Type systemMode) = 0;
-	virtual void passiveTableChanged(void) = 0;
+	virtual void passiveTableChanged() = 0;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) = 0;
 	virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
-	virtual void thermalRelationshipTableChanged(void) = 0;
-	virtual void adaptivePerformanceConditionsTableChanged(void) = 0;
-	virtual void adaptivePerformanceActionsTableChanged(void) = 0;
-	virtual void ddrfTableChanged(void) = 0;
-	virtual void rfimTableChanged(void) = 0;
-	virtual void tpgaTableChanged(void) = 0;
-	virtual void oemVariablesChanged(void) = 0;
-	virtual void swOemVariablesChanged(void) = 0;
-	virtual void powerBossConditionsTableChanged(void) = 0;
-	virtual void powerBossActionsTableChanged(void) = 0;
-	virtual void powerBossMathTableChanged(void) = 0;
-	virtual void voltageThresholdMathTableChanged(void) = 0;
-	virtual void emergencyCallModeTableChanged(void) = 0;
-	virtual void pidAlgorithmTableChanged(void) = 0;
-	virtual void activeControlPointRelationshipTableChanged(void) = 0;
-	virtual void powerShareAlgorithmTableChanged(void) = 0;
-	virtual void intelligentThermalManagementTableChanged(void) = 0;
-	virtual void energyPerformanceOptimizerTableChanged(void) = 0;
-	virtual void powerLimitChanged(void) = 0;
-	virtual void powerLimitTimeWindowChanged(void) = 0;
+	virtual void thermalRelationshipTableChanged() = 0;
+	virtual void adaptivePerformanceConditionsTableChanged() = 0;
+	virtual void adaptivePerformanceActionsTableChanged() = 0;
+	virtual void ddrfTableChanged() = 0;
+	virtual void rfimTableChanged() = 0;
+	virtual void tpgaTableChanged() = 0;
+	virtual void opbtTableChanged() = 0;
+	virtual void oemVariablesChanged() = 0;
+	virtual void swOemVariablesChanged() = 0;
+	virtual void powerBossConditionsTableChanged() = 0;
+	virtual void powerBossActionsTableChanged() = 0;
+	virtual void powerBossMathTableChanged() = 0;
+	virtual void voltageThresholdMathTableChanged() = 0;
+	virtual void emergencyCallModeTableChanged() = 0;
+	virtual void pidAlgorithmTableChanged() = 0;
+	virtual void activeControlPointRelationshipTableChanged() = 0;
+	virtual void powerShareAlgorithmTableChanged() = 0;
+	virtual void intelligentThermalManagementTableChanged() = 0;
+	virtual void intelligentThermalManagementTable3Changed() = 0;
+	virtual void energyPerformanceOptimizerTableChanged() = 0;
+	virtual void powerLimitChanged() = 0;
+	virtual void powerLimitTimeWindowChanged() = 0;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) = 0;
-	virtual void workloadHintConfigurationChanged(void) = 0;
+	virtual void workloadHintConfigurationChanged() = 0;
 	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
-	virtual void powerShareAlgorithmTable2Changed(void) = 0;
+	virtual void powerShareAlgorithmTable2Changed() = 0;
 	virtual void platformUserPresenceChanged(SensorUserPresence::Type userPresence) = 0;
 	virtual void externalMonitorStateChanged(Bool externalMonitorStateChanged) = 0;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) = 0;
@@ -227,6 +243,13 @@ public:
 	virtual void collaborationModeChanged(OnOffToggle::Type collaborationModeState) = 0;
 	virtual void thirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff) = 0;
 	virtual void thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP) = 0;
+	virtual void systemConfigurationFeatureTableChanged() = 0;
+	virtual void systemInBagChanged(SystemInBag::Type systemInBag) = 0;
+	virtual void thirdPartyGraphicsReservedTgpChanged(Power reservedTgp) = 0;
+	virtual void thirdPartyGraphicsOppBoostModeChanged(OpportunisticBoostMode::Type oppBoostMode) = 0;
+	virtual void scenarioModeChanged(ScenarioMode::Type scenarioMode) = 0;
+	virtual void dttGamingModeChanged(DttGamingMode::Type dttGamingMode) = 0;
+	virtual void applicationOptimizationChanged(Bool isActive) = 0;
 };
 
 //
@@ -234,11 +257,11 @@ public:
 //
 extern "C"
 {
-	typedef UInt64 (*GetAppVersionFuncPtr)(void);
-	dptf_public_export UInt64 GetAppVersion(void);
+	typedef UInt64 (*GetAppVersionFuncPtr)();
+	dptf_public_export UInt64 GetAppVersion();
 
-	typedef PolicyInterface* (*CreatePolicyInstanceFuncPtr)(void);
-	dptf_public_export PolicyInterface* CreatePolicyInstance(void);
+	typedef PolicyInterface* (*CreatePolicyInstanceFuncPtr)();
+	dptf_public_export PolicyInterface* CreatePolicyInstance();
 
 	typedef void (*DestroyPolicyInstanceFuncPtr)(PolicyInterface* policyInterface);
 	dptf_public_export void DestroyPolicyInstance(PolicyInterface* policyInterface);

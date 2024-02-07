@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ## use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 PLAT      := x64
 BUILD     := Release
 OS        := Linux
-OPT_CAP   := 0
+OPT_CAP   := 1
 # Default compiler = gcc
 ifneq ($(filter default undefined,$(origin CC)),)
 CC=gcc
@@ -51,7 +51,7 @@ CFLAGS += -Wno-typedef-redefinition
 # Compile Flags added for security purposes
 CFLAGS  += -fPIE
 CFLAGS  += -fPIC
-CFLAGS  += -O2 -D_FORTIFY_SOURCE=2
+CFLAGS  += -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3
 CFLAGS  += -Wformat -Wformat-security -Werror
 
 # Some flags are not directly compatible with Clang, but work out okay if the following flags are added

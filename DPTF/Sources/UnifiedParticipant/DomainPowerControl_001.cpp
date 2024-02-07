@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -338,8 +338,6 @@ void DomainPowerControl_001::setPowerLimitDutyCycle(
 	throwIfDutyCycleIsOutsideCapabilityRange(controlType, dutyCycle);
 	getParticipantServices()->primitiveExecuteSetAsPercentage(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, static_cast<UInt8>(controlType));
-	setAndUpdateEnabled(controlType);
-	throwIfLimitNotEnabled(controlType);
 }
 
 void DomainPowerControl_001::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
@@ -360,6 +358,13 @@ void DomainPowerControl_001::clearPowerLimit(UIntN participantIndex, UIntN domai
 	constexpr UInt32 unusedValue = 0;
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_CLEAR, unusedValue, domainIndex);
+}
+
+void DomainPowerControl_001::clearCachedPowerLimits(UIntN participantIndex, UIntN domainIndex)
+{
+	// do nothing
+	UNREFERENCED_PARAMETER(participantIndex);
+	UNREFERENCED_PARAMETER(domainIndex);
 }
 
 void DomainPowerControl_001::setAndUpdateEnabled(PowerControlType::Type controlType)

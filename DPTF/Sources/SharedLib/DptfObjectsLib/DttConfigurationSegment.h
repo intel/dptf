@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -46,6 +46,7 @@ public:
 	std::string getValueAsString(const std::string& key) const;
 	bool hasValue(const std::string& value) const;
 	bool hasProperties(const std::set<DttConfigurationProperty>& properties) const;
+	bool hasPropertiesIncludingEmptyValue(const std::set<DttConfigurationProperty>& properties) const;
 	bool matchesEnvironmentProfile(const EnvironmentProfile& environmentProfile) const;
 	bool matchesCpuIdInEpoSegment(const std::string& environmentProfile) const;
 	bool matchesEnvironmentProfileIncludingEmptyValue(const EnvironmentProfile& environmentProfile) const;
@@ -54,11 +55,11 @@ public:
 	bool empty() const;
 	void keepOnlyKeysThatMatch(const DttConfigurationQuery& query);
 	void keepOnlyKeysThatMatch(const std::set<DttConfigurationQuery>& regexPatterns);
-	std::string toString() const;
+	std::string toKeyValueString() const;
+	std::string toJsonString() const;
 
 private:
 
 	std::map<std::string, std::string> m_keyValues;
 	void throwIfKeyDoesNotExist(const std::string& key) const;
-	bool hasPropertiesIncludingEmptyValue(const std::set<DttConfigurationProperty>& properties) const;
 };

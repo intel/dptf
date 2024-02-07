@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #include "PolicyBase.h"
 #include "DptfTime.h"
 #include "ParticipantTracker.h"
+#include "PolicyLogger.h"
+#include "StatusFormat.h"
 
 using namespace std;
 
@@ -627,6 +629,13 @@ void PolicyBase::tpgaTableChanged()
 	onTpgaTableChanged();
 }
 
+void PolicyBase::opbtTableChanged()
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": OPBT Table changed."; });
+	onOpbtTableChanged();
+}
+
 void PolicyBase::adaptivePerformanceActionsTableChanged()
 {
 	throwIfPolicyIsDisabled();
@@ -642,6 +651,13 @@ void PolicyBase::intelligentThermalManagementTableChanged()
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Intelligent Thermal Management Table changed."; });
 	onIntelligentThermalManagementTableChanged();
+}
+
+void PolicyBase::intelligentThermalManagementTable3Changed()
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Intelligent Thermal Management Table 3 changed."; });
+	onIntelligentThermalManagementTable3Changed();
 }
 
 void PolicyBase::energyPerformanceOptimizerTableChanged()
@@ -706,6 +722,14 @@ void PolicyBase::igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationP
 	onIgccBroadcastReceived(broadcastNotificationData);
 }
 
+void PolicyBase::iaoBroadcastReceived(
+	const DptfBuffer& broadcastNotificationData)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy IAO Broadcast event received."; });
+	onIaoBroadcastReceived(broadcastNotificationData);
+}
+
 void PolicyBase::environmentProfileChanged(const EnvironmentProfile& environmentProfile)
 {
 	throwIfPolicyIsDisabled();
@@ -716,6 +740,16 @@ void PolicyBase::environmentProfileChanged(const EnvironmentProfile& environment
 Bool PolicyBase::hasCriticalShutdownCapability() const
 {
 	return false;
+}
+
+std::map<std::string, std::string> PolicyBase::getPolicyStateLogData() const
+{
+	throw not_implemented();
+}
+
+std::string PolicyBase::getConfigurationForExport() const
+{
+	throw not_implemented();
 }
 
 void PolicyBase::connectedStandbyEntry()
@@ -795,8 +829,17 @@ void PolicyBase::foregroundApplicationChanged(const string& foregroundApplicatio
 void PolicyBase::policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2)
 {
 	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy Initiated Callback."; });
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Policy Initiated Callback.";
+	});
 	onPolicyInitiatedCallback(policyDefinedEventCode, param1, param2);
+}
+
+void PolicyBase::extendedWorkloadPredictionEventRegistrationChanged(UInt32 consumerCount)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Extended Workload Prediction Event Registration Changed."; });
+	onExtendedWorkloadPredictionEventRegistrationChanged(consumerCount);
 }
 
 void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
@@ -807,12 +850,19 @@ void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSour
 	onOperatingSystemPowerSourceChanged(powerSource);
 }
 
-void PolicyBase::processLoaded(const std::string& processName)
+void PolicyBase::processLoaded(const std::string& processName, UInt64 processId)
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO(
-		{ return getName() + ": Process loaded " + processName + "."; });
-	onProcessLoaded(processName);
+		{ return getName() + ": Process loaded " + processName + " with ID: " + std::to_string(processId) + "."; });
+	onProcessLoaded(processName, processId);
+}
+
+void PolicyBase::processUnLoaded(UInt64 processId)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Process unloaded with ID: " + std::to_string(processId) + "."; });
+	onProcessUnLoaded(processId);
 }
 
 void PolicyBase::operatingSystemLidStateChanged(OsLidState::Type lidState)
@@ -1115,6 +1165,60 @@ void PolicyBase::thirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSour
 	onThirdPartyGraphicsTPPLimitChanged(powerSourceForTPP);
 }
 
+void PolicyBase::systemConfigurationFeatureTableChanged()
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": System Configuration Feature Table Changed"s; });
+	onSystemConfigurationFeatureTableChanged();
+}
+
+void PolicyBase::systemInBagChanged(SystemInBag::Type systemInBag)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": System In Bag changed to " + SystemInBag::toString(systemInBag) + "."; });
+	onSystemInBagChanged(systemInBag);
+}
+
+void PolicyBase::thirdPartyGraphicsReservedTgpChanged(Power reservedTgp)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Third Party Graphics Reserved TGP Changed to: " + reservedTgp.toString() + " mW."; });
+	onThirdPartyGraphicsReservedTgpChanged(reservedTgp);
+}
+
+void PolicyBase::thirdPartyGraphicsOppBoostModeChanged(OpportunisticBoostMode::Type oppBoostMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Third Party Graphics Opportunistic Boost Mode changed to: " + toString(oppBoostMode) + "."; });
+	onThirdPartyGraphicsOppBoostModeChanged(oppBoostMode);
+}
+
+void PolicyBase::scenarioModeChanged(ScenarioMode::Type scenarioMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Scenario Mode changed to " + ScenarioMode::toString(scenarioMode) + "."; });
+	onScenarioModeChanged(scenarioMode);
+}
+
+void PolicyBase::dttGamingModeChanged(DttGamingMode::Type gamingMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": DTT Gaming Mode changed to " + DttGamingMode::toString(gamingMode) + "."; });
+	onDttGamingModeChanged(gamingMode);
+}
+
+void PolicyBase::applicationOptimizationChanged(Bool isActive)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Application Optimization request with active status changed to " + std::to_string(isActive) + "."; });
+	onApplicationOptimizationChanged(isActive);
+}
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 {
 	throw not_implemented();
@@ -1324,6 +1428,11 @@ void PolicyBase::onThermalRelationshipTableChanged()
 	throw not_implemented();
 }
 
+void PolicyBase::onApplicationOptimizationRequest(Bool isRequested)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onAdaptivePerformanceConditionsTableChanged()
 {
 	throw not_implemented();
@@ -1349,12 +1458,23 @@ void PolicyBase::onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificatio
 	throw not_implemented();
 }
 
+void PolicyBase::onIaoBroadcastReceived(
+	const DptfBuffer& broadcastNotificationData)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onEnvironmentProfileChanged(const EnvironmentProfile& environmentProfile)
 {
 	throw not_implemented();
 }
 
 void PolicyBase::onTpgaTableChanged()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onOpbtTableChanged()
 {
 	throw not_implemented();
 }
@@ -1395,6 +1515,11 @@ void PolicyBase::onForegroundApplicationChanged(const string& foregroundApplicat
 }
 
 void PolicyBase::onPolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onExtendedWorkloadPredictionEventRegistrationChanged(UInt32 consumerCount)
 {
 	throw not_implemented();
 }
@@ -1484,7 +1609,12 @@ void PolicyBase::onPassiveTableChanged()
 	throw not_implemented();
 }
 
-void PolicyBase::onProcessLoaded(const std::string& processName)
+void PolicyBase::onProcessLoaded(const std::string& processName, UInt64 processId)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onProcessUnLoaded(UInt64 processId)
 {
 	throw not_implemented();
 }
@@ -1555,6 +1685,11 @@ void PolicyBase::onPowerShareAlgorithmTableChanged()
 }
 
 void PolicyBase::onIntelligentThermalManagementTableChanged()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onIntelligentThermalManagementTable3Changed()
 {
 	throw not_implemented();
 }
@@ -1751,6 +1886,41 @@ void PolicyBase::onThirdPartyGraphicsPowerStateChanged(UInt32 tpgPowerStateOff)
 }
 
 void PolicyBase::onThirdPartyGraphicsTPPLimitChanged(OsPowerSource::Type powerSourceForTPP)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onSystemConfigurationFeatureTableChanged()
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onSystemInBagChanged(SystemInBag::Type systemInBag)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onThirdPartyGraphicsReservedTgpChanged(Power reservedTgp)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onThirdPartyGraphicsOppBoostModeChanged(OpportunisticBoostMode::Type oppBoostMode)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onScenarioModeChanged(ScenarioMode::Type scenarioMode)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDttGamingModeChanged(DttGamingMode::Type gamingMode)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onApplicationOptimizationChanged(Bool isActive)
 {
 	throw not_implemented();
 }

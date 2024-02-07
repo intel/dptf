@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,25 +19,32 @@
 #include "WIDomainExtendedWorkloadPredictionChanged.h"
 #include "PolicyManagerInterface.h"
 #include "Participant.h"
-#include "EsifServicesInterface.h"
+#include "EventPayloadExtendedWorkloadPredictionType.h"
+
+using namespace std;
 
 WIDomainExtendedWorkloadPredictionChanged::WIDomainExtendedWorkloadPredictionChanged(
 	DptfManagerInterface* dptfManager,
 	UIntN participantIndex,
 	UIntN domainIndex,
 	ExtendedWorkloadPrediction::Type extendedWorkloadPrediction)
-	: DomainWorkItem(dptfManager, FrameworkEvent::DomainExtendedWorkloadPredictionChanged, participantIndex, domainIndex)
+	: DomainWorkItem(
+		dptfManager, 
+		FrameworkEvent::DomainExtendedWorkloadPredictionChanged, 
+		participantIndex, 
+		domainIndex)
 	, m_extendedWorkloadPrediction(extendedWorkloadPrediction)
 {
 }
 
-WIDomainExtendedWorkloadPredictionChanged::~WIDomainExtendedWorkloadPredictionChanged(void)
-{
-}
-
-void WIDomainExtendedWorkloadPredictionChanged::onExecute(void)
+void WIDomainExtendedWorkloadPredictionChanged::onExecute()
 {
 	writeDomainWorkItemStartingInfoMessage();
+
+	getDptfManager()->getEventNotifier()->notify(
+		getFrameworkEventType(),
+		EventPayloadExtendedWorkloadPredictionType{m_extendedWorkloadPrediction}
+	); 
 
 	try
 	{
@@ -45,22 +52,24 @@ void WIDomainExtendedWorkloadPredictionChanged::onExecute(void)
 	}
 	catch (participant_index_invalid& ex)
 	{
-		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
+		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr"s);
 	}
 	catch (std::exception& ex)
 	{
-		writeDomainWorkItemErrorMessage(ex, "Participant::domainExtendedWorkloadPredictionChanged");
+		writeDomainWorkItemErrorMessage(ex, "Participant::domainExtendedWorkloadPredictionChanged"s);
 	}
 
-	auto policyManager = getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
-
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+	const auto policyManager = getPolicyManager();
+	const auto policyIndexes = policyManager->getPolicyIndexes();
+	for (const auto policyId : policyIndexes)
 	{
 		try
 		{
-			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executeDomainExtendedWorkloadPredictionChanged(getParticipantIndex(), getDomainIndex(), m_extendedWorkloadPrediction);
+			const auto policy = policyManager->getPolicyPtr(policyId);
+			policy->executeDomainExtendedWorkloadPredictionChanged(
+				getParticipantIndex(), 
+				getDomainIndex(), 
+				m_extendedWorkloadPrediction);
 		}
 		catch (policy_index_invalid&)
 		{
@@ -68,7 +77,8 @@ void WIDomainExtendedWorkloadPredictionChanged::onExecute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainExtendedWorkloadPredictionChanged", *i);
+			writeDomainWorkItemErrorMessagePolicy(
+				ex, "Policy::executeDomainExtendedWorkloadPredictionChanged"s, policyId);
 		}
 	}
 }

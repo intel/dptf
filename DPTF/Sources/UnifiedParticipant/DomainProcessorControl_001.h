@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,6 +48,10 @@ public:
 	virtual void setPerfPreferenceMax(const Percentage& cpuMaxRatio) override;
 	virtual void setPerfPreferenceMin(const Percentage& cpuMinRatio) override;
 	virtual UInt32 getPcieThrottleRequestState() override;
+	virtual SocGear::Type getSocGear() const override;
+	virtual void setSocGear(SocGear::Type socGear) override;
+	virtual SystemUsageMode::Type getSocSystemUsageMode() override;
+	virtual void setSocSystemUsageMode(SystemUsageMode::Type mode) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

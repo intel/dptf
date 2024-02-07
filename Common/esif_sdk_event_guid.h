@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -1064,24 +1064,6 @@
 	0x92, 0xCA, 0x40, 0x37, 0x9F, 0xB2, 0x22, 0x57 }
 
 /*
- * Event Name:  NUM_FACES_ENROLLED_CHANGED
- * Event GUID:  60656876-38D6-4471-903D-B1A430271E9B
- * Event Desc:  Number of Faces Enrolled Changed
- */
-#define NUM_FACES_ENROLLED_CHANGED { \
-	0x60, 0x65, 0x68, 0x76, 0x38, 0xD6, 0x44, 0x71, \
-	0x90, 0x3D, 0xB1, 0xA4, 0x30, 0x27, 0x1E, 0x9B }
-
-/*
- * Event Name:  FACE_ID_CAPABILITY_SUPPORT_CHANGED
- * Event GUID:  70ED77E2-0D42-4B59-B388-9F9623B875BA
- * Event Desc:  Face ID Capability Support Changed
- */
-#define FACE_ID_CAPABILITY_SUPPORT_CHANGED { \
-	0x70, 0xED, 0x77, 0xE2, 0x0D, 0x42, 0x4B, 0x59, \
-	0xB3, 0x88, 0x9F, 0x96, 0x23, 0xB8, 0x75, 0xBA }
-
-/*
  * Event Name:  FAN_SPEED_THRESHOLD_CROSSED
  * Event GUID:  DFAB16DB-3E0B-4505-9D30-38BDEA71E102
  * Event Desc:  Fan Speed Threshold Crossed
@@ -1152,4 +1134,76 @@
 #define IP_ALIGNMENT_STATE_CHANGED { \
 	0xC1, 0xD9, 0x64, 0x43, 0x38, 0xE9, 0x47, 0x90, \
 	0x81, 0x34, 0x8B, 0x38, 0xE9, 0x9D, 0x91, 0x9E }
+
+/*
+ * Event Name:  SENSOR_USER_PRESENCE_WITH_ENROLLMENT_CHANGED
+ * Event GUID:  596AD5BF-1835-40DE-8AB5-A7F0F89653D4
+ * Event Desc:  Sensor User Presence with Enrollment Changed
+ */
+#define SENSOR_USER_PRESENCE_WITH_ENROLLMENT_CHANGED { \
+	0x59, 0x6A, 0xD5, 0xBF, 0x18, 0x35, 0x40, 0xDE, \
+	0x8A, 0xB5, 0xA7, 0xF0, 0xF8, 0x96, 0x53, 0xD4 }
+
+/*
+ * Event Name:  PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_CHANGED
+ * Event GUID:  B37F5E84-0184-43BD-BA33-B2919FD29287
+ * Event Desc:  Platform User Presence with Enrollment Changed
+ */
+#define PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_CHANGED { \
+	0xB3, 0x7F, 0x5E, 0x84, 0x01, 0x84, 0x43, 0xBD, \
+	0xBA, 0x33, 0xB2, 0x91, 0x9F, 0xD2, 0x92, 0x87 }
+
+/*
+ * Event Name:  FACE_ID_CAPABILITY_CHANGED
+ * Event GUID:  22744273-61AE-401A-A438-A6EECC0B6EC9
+ * Event Desc:  Face ID Capability Changed
+ */
+#define FACE_ID_CAPABILITY_CHANGED { \
+	0x22, 0x74, 0x42, 0x73, 0x61, 0xAE, 0x40, 0x1A, \
+	0xA4, 0x38, 0xA6, 0xEE, 0xCC, 0x0B, 0x6E, 0xC9 }
+
+/*
+ * Event Name:  IP_ALIGNMENT_STATUS
+ * Event GUID:  68CC085D-80FD-4100-8212-78EAB2C631C0
+ * Event Desc:  IP Alignment Status Changed
+ */
+#define IP_ALIGNMENT_STATUS { \
+	0x68, 0xCC, 0x08, 0x5D, 0x80, 0xFD, 0x41, 0x00, \
+	0x82, 0x12, 0x78, 0xEA, 0xB2, 0xC6, 0x31, 0xC0 }
+
+/*
+ * Event Name:  SPLIT_RATIO_CHANGED
+ * Event GUID:  34D10A7A-FD6E-4CFE-8E75-702C342C0D97
+ * Event Desc:  Split Ratio Changed
+ */
+#define SPLIT_RATIO_CHANGED { \
+	0x34, 0xD1, 0x0A, 0x7A, 0xFD, 0x6E, 0x4C, 0xFE, \
+	0x8E, 0x75, 0x70, 0x2C, 0x34, 0x2C, 0x0D, 0x97 }
+
+/*
+ * Event Name:  RESERVED_TGP_CHANGED
+ * Event GUID:  35F4FAB1-C035-45E7-9D02-50A9D5442DB0
+ * Event Desc:  Reserved TGP Changed
+ */
+#define RESERVED_TGP_CHANGED { \
+	0x35, 0xF4, 0xFA, 0xB1, 0xC0, 0x35, 0x45, 0xE7, \
+	0x9D, 0x02, 0x50, 0xA9, 0xD5, 0x44, 0x2D, 0xB0 }
+
+/*
+ * Event Name:  OPPORTUNISTIC_BOOST_MODE_CHANGED
+ * Event GUID:  3809C871-E4B8-4CBC-96B8-395074B044BA
+ * Event Desc:  Opportunistic Boost Mode Changed
+ */
+#define OPPORTUNISTIC_BOOST_MODE_CHANGED { \
+	0x38, 0x09, 0xC8, 0x71, 0xE4, 0xB8, 0x4C, 0xBC, \
+	0x96, 0xB8, 0x39, 0x50, 0x74, 0xB0, 0x44, 0xBA }
+
+/*
+ * Event Name:  LAST_HID_SOURCE_LOCATION_CHANGED
+ * Event GUID:  E57D1875-B534-4EE9-8DDD-8270AFEBF9EE
+ * Event Desc:  Last HID Source Location Changed
+ */
+#define LAST_HID_SOURCE_LOCATION_CHANGED { \
+	0xE5, 0x7D, 0x18, 0x75, 0xB5, 0x34, 0x4E, 0xE9, \
+	0x8D, 0xDD, 0x82, 0x70, 0xAF, 0xEB, 0xF9, 0xEE }
 

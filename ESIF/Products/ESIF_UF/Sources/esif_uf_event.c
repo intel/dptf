@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -75,7 +75,7 @@ void EsifEvent_GetAndSignalIpcEvent()
 
 	// Have Event?
 	if (r_bytes > 0) {
-		ESIF_TRACE_DEBUG("IPC version=%d, type=%d, len = %d, data_len=%d\n",
+		ESIF_TRACE_VERBOSE("IPC version=%d, type=%d, len = %d, data_len=%d\n",
 			ipc_ptr->version,
 			ipc_ptr->type,
 			r_bytes,

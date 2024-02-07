@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,64 +23,79 @@ PolicyServicesPlatformState::PolicyServicesPlatformState(DptfManagerInterface* d
 {
 }
 
-OnOffToggle::Type PolicyServicesPlatformState::getMotion(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getMotion() const
 {
 	return getDptfManager()->getEventCache()->sensorMotion.get();
 }
 
-SensorOrientation::Type PolicyServicesPlatformState::getOrientation(void) const
+SensorOrientation::Type PolicyServicesPlatformState::getOrientation() const
 {
 	return getDptfManager()->getEventCache()->sensorOrientation.get();
 }
 
-SensorSpatialOrientation::Type PolicyServicesPlatformState::getSpatialOrientation(void) const
+SensorSpatialOrientation::Type PolicyServicesPlatformState::getSpatialOrientation() const
 {
 	return getDptfManager()->getEventCache()->sensorSpatialOrientation.get();
 }
 
-OsLidState::Type PolicyServicesPlatformState::getLidState(void) const
+OsLidState::Type PolicyServicesPlatformState::getLidState() const
 {
 	return getDptfManager()->getEventCache()->lidState.get();
 }
 
-OsPowerSource::Type PolicyServicesPlatformState::getPowerSource(void) const
+OsPowerSource::Type PolicyServicesPlatformState::getPowerSource() const
 {
 	return getDptfManager()->getEventCache()->powerSource.get();
 }
 
-const std::string& PolicyServicesPlatformState::getForegroundApplicationName(void) const
+const std::string& PolicyServicesPlatformState::getForegroundApplicationName() const
 {
 	return getDptfManager()->getEventCache()->foregroundApplication.get();
 }
 
-CoolingMode::Type PolicyServicesPlatformState::getCoolingMode(void) const
+CoolingMode::Type PolicyServicesPlatformState::getCoolingMode() const
 {
 	return getDptfManager()->getEventCache()->coolingMode.get();
 }
 
-UIntN PolicyServicesPlatformState::getBatteryPercentage(void) const
+UIntN PolicyServicesPlatformState::getBatteryPercentage() const
 {
 	return getDptfManager()->getEventCache()->batteryPercentage.get();
 }
 
-OsPlatformType::Type PolicyServicesPlatformState::getPlatformType(void) const
+OsPlatformType::Type PolicyServicesPlatformState::getPlatformType() const
 {
 	return getDptfManager()->getEventCache()->platformType.get();
 }
 
-OsDockMode::Type PolicyServicesPlatformState::getDockMode(void) const
+OsDockMode::Type PolicyServicesPlatformState::getDockMode() const
 {
 	return getDptfManager()->getEventCache()->dockMode.get();
 }
 
-OsPowerSchemePersonality::Type PolicyServicesPlatformState::getPowerSchemePersonality(void) const
+OsPowerSchemePersonality::Type PolicyServicesPlatformState::getPowerSchemePersonality() const
 {
 	return getDptfManager()->getEventCache()->powerSchemePersonality.get();
 }
 
-SystemMode::Type PolicyServicesPlatformState::getSystemMode(void) const
+SystemMode::Type PolicyServicesPlatformState::getSystemMode() const
 {
 	return getDptfManager()->getEventCache()->systemMode.get();
+}
+
+ScenarioMode::Type PolicyServicesPlatformState::getScenarioMode() const
+{
+	return getDptfManager()->getEventCache()->scenarioMode.get();
+}
+
+DttGamingMode::Type PolicyServicesPlatformState::getDttGamingMode() const
+{
+	return getDptfManager()->getEventCache()->dttGamingMode.get();
+}
+
+Bool PolicyServicesPlatformState::getApplicationOptimizationStatus() const
+{
+	return getDptfManager()->getEventCache()->applicationOptimizationStatus.get();
 }
 
 UIntN PolicyServicesPlatformState::getMobileNotification(OsMobileNotificationType::Type notificationType) const
@@ -100,57 +115,62 @@ UIntN PolicyServicesPlatformState::getMobileNotification(OsMobileNotificationTyp
 	}
 }
 
-OnOffToggle::Type PolicyServicesPlatformState::getMixedRealityMode(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getMixedRealityMode() const
 {
 	return getDptfManager()->getEventCache()->mixedRealityMode.get();
 }
 
-OnOffToggle::Type PolicyServicesPlatformState::getGameMode(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getOsGameMode() const
 {
-	return getDptfManager()->getEventCache()->gameMode.get();
+	return getDptfManager()->getEventCache()->osGameMode.get();
 }
 
-OsUserPresence::Type PolicyServicesPlatformState::getOsUserPresence(void) const
+OsUserPresence::Type PolicyServicesPlatformState::getOsUserPresence() const
 {
 	return getDptfManager()->getEventCache()->osUserPresence.get();
 }
 
-OsSessionState::Type PolicyServicesPlatformState::getSessionState(void) const
+OsSessionState::Type PolicyServicesPlatformState::getSessionState() const
 {
 	return getDptfManager()->getEventCache()->sessionState.get();
 }
 
-OnOffToggle::Type PolicyServicesPlatformState::getScreenState(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getScreenState() const
 {
 	return getDptfManager()->getEventCache()->screenState.get();
 }
 
-UIntN PolicyServicesPlatformState::getBatteryCount(void) const
+UIntN PolicyServicesPlatformState::getBatteryCount() const
 {
 	return getDptfManager()->getEventCache()->batteryCount.get();
 }
 
-UIntN PolicyServicesPlatformState::getPowerSlider(void) const
+UIntN PolicyServicesPlatformState::getPowerSlider() const
 {
 	return getDptfManager()->getEventCache()->powerSlider.get();
 }
 
-SensorUserPresence::Type PolicyServicesPlatformState::getPlatformUserPresence(void) const
+SensorUserPresence::Type PolicyServicesPlatformState::getPlatformUserPresence() const
 {
 	return getDptfManager()->getEventCache()->platformUserPresence.get();
 }
 
-UserInteraction::Type PolicyServicesPlatformState::getUserInteraction(void) const
+UserInteraction::Type PolicyServicesPlatformState::getUserInteraction() const
 {
 	return getDptfManager()->getEventCache()->userInteraction.get();
 }
 
-OnOffToggle::Type PolicyServicesPlatformState::getTpgPowerState(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getTpgPowerState() const
 {
 	return getDptfManager()->getEventCache()->tpgPowerState.get();
 }
 
-OnOffToggle::Type PolicyServicesPlatformState::getCollaborationMode(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getCollaborationMode() const
 {
 	return getDptfManager()->getEventCache()->collaborationMode.get();
+}
+
+SystemInBag::Type PolicyServicesPlatformState::getSystemInBag() const
+{
+	return getDptfManager()->getEventCache()->systemInBag.get();
 }

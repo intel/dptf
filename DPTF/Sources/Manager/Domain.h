@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -146,6 +146,7 @@ public:
 	void setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState) const;
 	void clearPowerLimitMin() const;
 	void clearPowerLimit(UIntN policyIndex);
+	void clearCachedPowerLimits(UIntN policyIndex);
 	void setPowerCapsLock(UIntN policyIndex, Bool lock) const;
 	TimeSpan getPowerSharePowerLimitTimeWindow() const;
 	Bool isPowerShareControl();

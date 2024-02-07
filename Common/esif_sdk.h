@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -73,9 +73,11 @@
 #define ESIF_VERSION_LEN	20	/* Maximum Version String Length */
 #define ESIF_MAX_PATH		260 /* Maximum Filename Length */
 
+/* Core SDK Types */
+typedef u8  esif_guid_t[ESIF_GUID_LEN];     /* GUID         */
+
 /* Opaque Types */
 typedef u32 esif_flags_t;                   /* FLAGS        */
-typedef u8  esif_guid_t[ESIF_GUID_LEN];     /* GUID         */
 typedef u8  esif_ver_t;                     /* Version      */
 
 /* Temperature Thresholds */

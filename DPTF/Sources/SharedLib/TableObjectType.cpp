@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,8 +39,12 @@ std::string TableObjectType::ToString(TableObjectType::Type type)
 		return "epot";
 	case Itmt:
 		return "itmt";
+	case Itmt3:
+		return "itmt3";
 	case Odvp:
 		return "odvp";
+	case Opbt:
+		return "opbt";
 	case Pbat:
 		return "pbat";
 	case Pbct:
@@ -57,6 +61,8 @@ std::string TableObjectType::ToString(TableObjectType::Type type)
 		return "psvt";
 	case Rfim:
 		return "rfim";
+	case Scft:
+		return "scft";
 	case SwOemVariables:
 		return "sw-oem-variables";
 	case Tpga:
@@ -108,9 +114,17 @@ TableObjectType::Type TableObjectType::ToType(std::string value)
 	{
 		return TableObjectType::Itmt;
 	}
+	else if (value == "itmt3")
+	{
+		return TableObjectType::Itmt3;
+	}
 	else if (value == "odvp")
 	{
 		return TableObjectType::Odvp;
+	}
+	else if (value == "opbt")
+	{
+		return TableObjectType::Opbt;
 	}
 	else if (value == "pbat")
 	{
@@ -143,6 +157,10 @@ TableObjectType::Type TableObjectType::ToType(std::string value)
 	else if (value == "rfim")
 	{
 		return TableObjectType::Rfim;
+	}
+	else if (value == "scft")
+	{
+		return TableObjectType::Scft;
 	}
 	else if (value == "sw-oem-variables")
 	{

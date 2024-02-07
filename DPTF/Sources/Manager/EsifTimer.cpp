@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #define ESIF_CCB_LINK_LIST_MAIN
 #define ESIF_CCB_TIMER_MAIN
 #include "EsifTimer.h"
+#include "EsifTime.h"
 
 EsifTimer::EsifTimer(esif_ccb_timer_cb callbackFunction, void* contextPtr)
 	: m_callbackFunction(callbackFunction)
@@ -58,7 +59,7 @@ void EsifTimer::esifTimerInit()
 {
 	if (m_timerInitialized == false)
 	{
-		eEsifError rc = esif_ccb_timer_init(&m_timer, m_callbackFunction, m_contextPtr);
+		const eEsifError rc = esif_ccb_timer_init(&m_timer, m_callbackFunction, m_contextPtr);
 		if (rc != ESIF_OK)
 		{
 			esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
@@ -87,7 +88,7 @@ void EsifTimer::esifTimerSet(const TimeSpan& expirationTime)
 {
 	esifTimerInit();
 
-	eEsifError rc = esif_ccb_timer_set_msec(&m_timer, calculateMilliSecondsUntilTimerExpires(expirationTime));
+	const eEsifError rc = esif_ccb_timer_set_msec(&m_timer, calculateMillisecondsUntilTimerExpires(expirationTime));
 	if (rc != ESIF_OK)
 	{
 		throw dptf_exception("Failed to start timer.");
@@ -96,10 +97,10 @@ void EsifTimer::esifTimerSet(const TimeSpan& expirationTime)
 	m_expirationTime = expirationTime;
 }
 
-UInt64 EsifTimer::calculateMilliSecondsUntilTimerExpires(const TimeSpan& expirationTime)
+UInt64 EsifTimer::calculateMillisecondsUntilTimerExpires(const TimeSpan& expirationTime)
 {
-	auto currentTime = EsifTime().getTimeStamp();
-	auto numMilliSeconds =
+	const auto currentTime = EsifTime().getTimeStamp();
+	const auto numMilliseconds =
 		(expirationTime > currentTime) ? (expirationTime - currentTime) : TimeSpan::createFromMilliseconds(1);
-	return numMilliSeconds.asMillisecondsUInt();
+	return numMilliseconds.asMillisecondsUInt();
 }

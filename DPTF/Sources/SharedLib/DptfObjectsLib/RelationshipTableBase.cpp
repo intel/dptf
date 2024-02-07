@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -157,4 +157,17 @@ std::set<UIntN> RelationshipTableBase::getAllSourceIndexes() const
 		}
 	}
 	return sourceIndexes;
+}
+
+std::set<UIntN> RelationshipTableBase::getAllDomainIndexesAssociatedWithSource(UIntN participantIndex) const
+{
+	std::set<UIntN> domainIndexes;
+	for (auto entry = m_entries.begin(); entry < m_entries.end(); ++entry)
+	{
+		if ((*entry)->sourceDeviceIndexValid() && (*entry)->getSourceDeviceIndex() == participantIndex && domainIndexes.find(participantIndex) == domainIndexes.end())
+		{
+			domainIndexes.insert((*entry)->getSourceDomainIndex());
+		}
+	}
+	return domainIndexes;
 }

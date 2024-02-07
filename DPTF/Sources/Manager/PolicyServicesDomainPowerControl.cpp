@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -233,6 +233,14 @@ void PolicyServicesDomainPowerControl::clearPowerLimit(UIntN participantIndex, U
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->clearPowerLimit(domainIndex, getPolicyIndex());
+}
+
+void PolicyServicesDomainPowerControl::clearCachedPowerLimits(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->clearCachedPowerLimits(domainIndex, getPolicyIndex());
 }
 
 void PolicyServicesDomainPowerControl::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)

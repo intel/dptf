@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,11 +18,11 @@
 
 #include "WorkItem.h"
 #include "DptfManager.h"
-#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
 #include "UniqueIdGenerator.h"
 #include "EsifServicesInterface.h"
 #include "ManagerLogger.h"
+#include "ManagerMessage.h"
 
 WorkItem::WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType)
 	: m_dptfManager(dptfManager)
@@ -34,10 +34,6 @@ WorkItem::WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frame
 	, m_workItemCreationTime(EsifTime().getTimeStamp())
 	, m_workItemExecutionStartTime(TimeSpan::createFromMilliseconds(0))
 	, m_completionSemaphore(nullptr)
-{
-}
-
-WorkItem::~WorkItem(void)
 {
 }
 

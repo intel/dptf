@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,8 +33,14 @@
 #include <unistd.h>
 #include <math.h>
 #include <linux/perf_event.h>
- #include <sys/syscall.h> 
- 
+#include <sys/syscall.h> 
+
+// Feature Flag to enable dynamic capability feature
+#ifdef ESIF_FEAT_OPT_DYNAMIC_CAPABILITY 
+
+#include <sys/capability.h>
+#endif 
+
 #define ESIF_FIVR_PF_MULT                   128
 #define ESIF_XTAL_CLOCK_FREQ_38_4	    38400000 // Hz
 #define ESIF_FREQ_ADJ_STEP_15		    150000   // Hz
@@ -426,6 +432,7 @@ static eEsifError GetProcessorSignature(UInt32 *cpuSign)
 exit :
         return rc;
 }
+
 /*
  * Inline function: GetUIntFromActionContext
  * -----------------------------------------
@@ -2851,6 +2858,12 @@ exit:
 	return rc;
 }
 
+static int OdvpFilter(const struct dirent *entry)
+{
+	if (esif_ccb_strstr(entry->d_name, SYSFS_OEM_VARIABLE)) return 1;
+	else return 0;
+};
+
 static eEsifError GetOemVariables(char *table_str)
 {
 	eEsifError rc = ESIF_OK;
@@ -2868,24 +2881,25 @@ static eEsifError GetOemVariables(char *table_str)
 		goto exit;
 	}
 
-	numberOfFiles = scandir(g_ManagerSysfsPath, &namelist, 0, alphasort);
+	numberOfFiles = scandir(g_ManagerSysfsPath, &namelist, OdvpFilter, alphasort);
 	if (numberOfFiles < 0) {
 		ESIF_TRACE_DEBUG("No files to scan\n");
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
+	ESIF_TRACE_DEBUG("\n Number of ODVP entries : %d", numberOfFiles);
 
 	while (fileIndex < numberOfFiles) {
 		Int32 oemVariable = 0;
 		esif_ccb_sprintf(sizeof(cur_oem_file), cur_oem_file, "%s%d", SYSFS_OEM_VARIABLE, variableIndex);
-		if (esif_ccb_strstr(namelist[fileIndex]->d_name, cur_oem_file) != NULL) {
-			SysfsGetInt(g_ManagerSysfsPath, cur_oem_file, &oemVariable);
-			esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d!",oemVariable);
-			variableIndex++;
-			ESIF_TRACE_INFO("OEM Variable %d : %d ", variableIndex , oemVariable);
-		}
+		SysfsGetInt(g_ManagerSysfsPath, cur_oem_file, &oemVariable);
+		ESIF_TRACE_INFO("OEM Variable %d : %d ", variableIndex , oemVariable);
+
+		esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d!",oemVariable);
+
 		esif_ccb_free(namelist[fileIndex]);
 		fileIndex++;
+		variableIndex++;
 	}
 	esif_ccb_free(namelist);
 
@@ -3403,7 +3417,7 @@ static eEsifError GetRaplEnergyUnit(char *path, char *node, UInt32 msrAddr, Esif
 		ESIF_TRACE_DEBUG("RAPL_ENERGY_UNIT Value= %u\n", *(UInt64 *) responsePtr->buf_ptr);
 	}
 	else {
-		ESIF_TRACE_ERROR("Error retrieving MSR value for RAPL_ENERGY_UNIT\n");
+		ESIF_TRACE_WARN("Error retrieving MSR value for RAPL_ENERGY_UNIT\n");
 	}
 
 	return rc;
@@ -3943,10 +3957,12 @@ enum esif_rc EsifActSysfsInit()
 void EsifActSysfsExit()
 {
 	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_sysfs);
-	if (actionHashTablePtr)
+	if (actionHashTablePtr) {
 		esif_ht_destroy(actionHashTablePtr, ActionContextCleanUp);
-	if(cpufreq)
+	}
+	if(cpufreq) {
 		esif_ccb_free(cpufreq);
+	}
 	ResetThermalZonePolicy();
 	DeAllocateThermalZones();
 	ESIF_TRACE_EXIT_INFO();
@@ -3970,6 +3986,8 @@ static eEsifError PerfControl(Int32 *fd, UInt64 event, Int32 type)
 	perf_attr.config = event;
 	perf_attr.size = sizeof(struct perf_event_attr);
 
+	// Enable perfmon capability before invoking perf_event_open
+	enable_capability(CAP_PERFMON);
 	*fd = perf_event_open(&perf_attr, -1, 0, -1, 0);
 	if (*fd < 0) {
 		ESIF_TRACE_ERROR("\n perf event error %d\n", errno);
@@ -3977,10 +3995,10 @@ static eEsifError PerfControl(Int32 *fd, UInt64 event, Int32 type)
 		goto exit;
 
 	}
-
 	ESIF_TRACE_DEBUG("\n perf event open successful for event : %lu type : %d\n", event, type);
 
 exit:
+	disable_capability(CAP_PERFMON);
 	return rc;
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -330,6 +330,17 @@ std::shared_ptr<DomainDynamicEppBase> UnifiedDomain::getDynamicEppControl()
 {
 	throwIfDomainNotEnabled();
 	std::shared_ptr<DomainDynamicEppBase> ptr = m_domainControls->getDynamicEppControl();
+	if (!ptr)
+	{
+		throw domain_control_nullptr();
+	}
+	return ptr;
+}
+
+std::shared_ptr<DomainBiasControlBase> UnifiedDomain::getBiasControl()
+{
+	throwIfDomainNotEnabled();
+	std::shared_ptr<DomainBiasControlBase> ptr = m_domainControls->getBiasControl();
 	if (!ptr)
 	{
 		throw domain_control_nullptr();

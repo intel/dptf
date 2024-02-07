@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "ConfigListCommand.h"
 #include "ConfigPrintCommand.h"
 #include "ConfigPrintDbCommand.h"
+#include "ConfigPrintAllCommand.h"
 #include "ConfigReloadCommand.h"
 using namespace std;
 
@@ -43,6 +44,7 @@ void ConfigCommand::createSubCommands()
 	m_subCommands.push_back(make_shared<ConfigListCommand>(m_dptfManager));
 	m_subCommands.push_back(make_shared<ConfigPrintCommand>(m_dptfManager));
 	m_subCommands.push_back(make_shared<ConfigPrintDbCommand>(m_dptfManager));
+	m_subCommands.push_back(make_shared<ConfigPrintAllCommand>(m_dptfManager));
 	m_subCommands.push_back(make_shared<ConfigFilterDbCommand>(m_dptfManager));
 	m_subCommands.push_back(make_shared<ConfigReloadCommand>(m_dptfManager));
 }

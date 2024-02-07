@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,10 +22,12 @@
 template <typename K, typename V> class MapOps
 {
 public:
-	static std::set<K> getKeys(std::map<K, V> aMap);
+	static std::set<K> getKeys(const std::map<K, V>& aMap);
+	static std::list<std::pair<K, V>> getAsList(const std::map<K, V>& aMap);
 };
 
-template <typename K, typename V> std::set<K> MapOps<K, V>::getKeys(std::map<K, V> aMap)
+template <typename K, typename V>
+std::set<K> MapOps<K, V>::getKeys(const std::map<K, V>& aMap)
 {
 	std::set<K> keys;
 	for (auto aPair = aMap.begin(); aPair != aMap.end(); ++aPair)
@@ -33,4 +35,15 @@ template <typename K, typename V> std::set<K> MapOps<K, V>::getKeys(std::map<K, 
 		keys.insert(aPair->first);
 	}
 	return keys;
+}
+
+template <typename K, typename V>
+std::list<std::pair<K, V>> MapOps<K, V>::getAsList(const std::map<K, V>& aMap)
+{
+	std::list<std::pair<K, V>> result;
+	for (const auto& item : aMap)
+	{
+		result.emplace_back(item);
+	}
+	return result;
 }

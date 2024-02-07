@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,6 +45,7 @@ esif_error_t ESIF_CALLCONV IpfCoreLib_GetInterface(IpfCoreLib* self)
 #define APP_RESTART_DELAY_MSEC		1000			// Reconnect Timeout (ms)
 #define APP_SUSPENDED_DELAY_MSEC	(60*60*1000)	// Signal Timeout (ms) for AppWorkerThread Suspended due to Unauthorized Pipe Access or Disabled App
 #define APP_SUSPENDED_PAUSE_MSEC	5000			// Signal Timeout (ms) for AppWorkerThread Paused due to Unauthorized Pipe Access or Disabled App (Initial Failure Only)
+#define APP_LOADLIB_RETRY_MSEC		1000			// LoadLibraries Retry Delay (ms)
 
 typedef void (ESIF_CALLCONV* SetIpfLibraryFuncPtr)(const char* libname);
 typedef void (ESIF_CALLCONV* SetAppLibraryFuncPtr)(const char* libname);
@@ -89,41 +90,44 @@ static esif_error_t ESIF_CALLCONV LoadLibraries(AppLoader* self)
 		goto exit;
 	}
 
-	IPF_TRACE_INFO("Try loading the app library: %s", self->applibpath);
-
-	// Load the app dll using the full path
-	self->appLibObj = esif_ccb_library_load(self->applibpath);
-
+	// Only load the App DLL if it's not already loaded to avoid resource leaks
 	if (!esif_ccb_library_isloaded(self->appLibObj)) {
-		IPF_TRACE_ERROR("Error loading library (%d): %s\n", esif_ccb_library_error(self->appLibObj), esif_ccb_library_errormsg(self->appLibObj));
-		rc = ESIF_E_NO_CREATE;
-		goto exit;
-	}
+		IPF_TRACE_INFO("Try loading the app library: %s", self->applibpath);
 
-	// Try to get the IPF and ESIF interface functions
-	getIpfIfaceFP = (GetIpfInterfaceFuncPtr)esif_ccb_library_get_func(self->appLibObj, GET_IPF_INTERFACE_FUNCTION);
-	getEsifIfaceFP = (GetAppInterfaceV2FuncPtr)esif_ccb_library_get_func(self->appLibObj, GET_APPLICATION_INTERFACE_FUNCTION);
+		// Load the app dll using the full path
+		self->appLibObj = esif_ccb_library_load(self->applibpath);
 
-	if (NULL != getIpfIfaceFP) {
-		// It's an IPF core app
-		IPF_TRACE_INFO("IPF core app found : %s", self->applibpath);
-		self->coreObj.libModule = self->appLibObj;
-		rc = IpfCoreLib_GetInterface(&self->coreObj);
-	}
-	else if (NULL != getEsifIfaceFP) {
-		// It's an ESIF app
-		IPF_TRACE_INFO("ESIF core app found : %s", self->applibpath);
-		self->esifObj.libModule = self->appLibObj;
-		rc = EsifAppLib_GetInterface(&self->esifObj);
-	}
-	else {
-		// No interface found
-		rc = ESIF_E_NO_CREATE;
-		IPF_TRACE_ERROR("No app interface found: %s", self->applibpath);
-	}
+		if (!esif_ccb_library_isloaded(self->appLibObj)) {
+			IPF_TRACE_ERROR("Error loading library (%d): %s\n", esif_ccb_library_error(self->appLibObj), esif_ccb_library_errormsg(self->appLibObj));
+			rc = ESIF_E_NO_CREATE;
+			goto exit;
+		}
 
-	if (rc != ESIF_OK) {
-		goto exit;
+		// Try to get the IPF and ESIF interface functions
+		getIpfIfaceFP = (GetIpfInterfaceFuncPtr)esif_ccb_library_get_func(self->appLibObj, GET_IPF_INTERFACE_FUNCTION);
+		getEsifIfaceFP = (GetAppInterfaceV2FuncPtr)esif_ccb_library_get_func(self->appLibObj, GET_APPLICATION_INTERFACE_FUNCTION);
+
+		if (NULL != getIpfIfaceFP) {
+			// It's an IPF core app
+			IPF_TRACE_INFO("IPF core app found : %s", self->applibpath);
+			self->coreObj.libModule = self->appLibObj;
+			rc = IpfCoreLib_GetInterface(&self->coreObj);
+		}
+		else if (NULL != getEsifIfaceFP) {
+			// It's an ESIF app
+			IPF_TRACE_INFO("ESIF core app found : %s", self->applibpath);
+			self->esifObj.libModule = self->appLibObj;
+			rc = EsifAppLib_GetInterface(&self->esifObj);
+		}
+		else {
+			// No interface found
+			rc = ESIF_E_NO_CREATE;
+			IPF_TRACE_ERROR("No app interface found: %s", self->applibpath);
+		}
+
+		if (rc != ESIF_OK) {
+			goto exit;
+		}
 	}
 
 	// Load IPC Dynamic Library
@@ -139,6 +143,8 @@ static void* ESIF_CALLCONV AppWorkerThread(void* ctx)
 {
 	esif_error_t rc = ESIF_OK;
 	AppLoader* self = (AppLoader*)ctx;
+
+	IPF_TRACE_DEBUG("AppWorkerThread Starting\n");
 
 	if (self == NULL) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -244,6 +250,7 @@ static void* ESIF_CALLCONV AppWorkerThread(void* ctx)
 	}
 
 exit:
+	IPF_TRACE_DEBUG("Exiting AppWorkerThread\n");
 	return NULL;
 }
 
@@ -255,6 +262,8 @@ static void* ESIF_CALLCONV AppManagerThread(void* ctx)
 	RunState_t runstate = STOPPED;
 
 	esif_wthread_t appThread;
+
+	IPF_TRACE_DEBUG("AppManagerThread Starting\n");
 
 	if (self == NULL) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -273,6 +282,18 @@ static void* ESIF_CALLCONV AppManagerThread(void* ctx)
 			break;
 		}
 
+		// Try to Load Libraries and retry after a short nap if unsuccessful.
+		// This is necessary since the IPF drivers may not be fully loaded and exposing the interface
+		// used to lookup the DriverStore folder so we keep trying until the driver is fully loaded.
+		if (!esif_ccb_library_isloaded(self->ipcObj.libModule)) {
+			rc = LoadLibraries(self);
+			IPF_TRACE_DEBUG("LoadLibraries = %s\n", esif_rc_str(rc));
+			if (ESIF_OK != rc) {
+				esif_ccb_sleep_msec(APP_LOADLIB_RETRY_MSEC);
+				continue;
+			}
+		}
+		
 		esif_ccb_wthread_init(&appThread);
 		rc = esif_ccb_wthread_create(&appThread, AppWorkerThread, self);
 
@@ -368,14 +389,9 @@ esif_error_t ESIF_CALLCONV AppLoader_Start(AppLoader* self)
 	if (self) {
 		self->runState = RUNNING;
 
-		// Load DLLs for the app configuration
-		rc = LoadLibraries(self);
-
 		// Init and create the app manager thread that will start the application
-		if (ESIF_OK == rc) {
-			esif_ccb_wthread_init(&self->appMgrThread);
-			rc = esif_ccb_wthread_create(&self->appMgrThread, AppManagerThread, self);
-		}
+		esif_ccb_wthread_init(&self->appMgrThread);
+		rc = esif_ccb_wthread_create(&self->appMgrThread, AppManagerThread, self);
 	}
 	return rc;
 }
@@ -408,14 +424,14 @@ void ESIF_CALLCONV AppLoader_Stop(AppLoader* self)
 			esif_ccb_wthread_join(&self->appMgrThread);
 			esif_ccb_wthread_uninit(&self->appMgrThread);
 		}
-		else if (
-			esif_ccb_library_isloaded(self->ipcObj.libModule) &&
-			esif_ccb_library_isloaded(self->esifObj.libModule)) {
+		else if (esif_ccb_library_isloaded(self->esifObj.libModule)) {
 			// Disconnect and close session
 			// Synchronize calls to IPF functions using a lock to avoid a known race condition on disconnect
 			esif_ccb_write_lock(&self->lock);
 			self->runState = STOPPED;
-			(self->ipcObj.iface.IpcSession_Disconnect ? self->ipcObj.iface.IpcSession_Disconnect(self->client) : VOIDRESULT);
+			if (esif_ccb_library_isloaded(self->ipcObj.libModule)) {
+				(self->ipcObj.iface.IpcSession_Disconnect ? self->ipcObj.iface.IpcSession_Disconnect(self->client) : VOIDRESULT);
+			}
 			esif_ccb_write_unlock(&self->lock);
 
 			// Wait for app manager thread to exit and uninit

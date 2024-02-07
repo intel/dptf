@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 ******************************************************************************/
 
 #pragma once
-
-#include "Dptf.h"
 #include "OnOffToggle.h"
 #include "SensorOrientation.h"
 #include "SensorSpatialOrientation.h"
@@ -34,6 +32,9 @@
 #include "OsSessionState.h"
 #include "UserInteraction.h"
 #include "SystemMode.h"
+#include "SystemInBag.h"
+#include "ScenarioMode.h"
+#include "DttGamingMode.h"
 
 class PlatformStateInterface
 {
@@ -59,9 +60,13 @@ public:
 	virtual UIntN getBatteryCount(void) const = 0;
 	virtual UIntN getPowerSlider(void) const = 0;
 	virtual SensorUserPresence::Type getPlatformUserPresence(void) const = 0;
-	virtual OnOffToggle::Type getGameMode(void) const = 0;
+	virtual OnOffToggle::Type getOsGameMode(void) const = 0;
 	virtual UserInteraction::Type getUserInteraction(void) const = 0;
 	virtual SystemMode::Type getSystemMode(void) const = 0;
 	virtual OnOffToggle::Type getTpgPowerState(void) const = 0;
 	virtual OnOffToggle::Type getCollaborationMode(void) const = 0;
+	virtual SystemInBag::Type getSystemInBag(void) const = 0;
+	virtual ScenarioMode::Type getScenarioMode(void) const = 0;
+	virtual DttGamingMode::Type getDttGamingMode(void) const = 0;
+	virtual Bool getApplicationOptimizationStatus(void) const = 0;
 };

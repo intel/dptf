@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -123,13 +123,13 @@ RfProfileData RfProfileDataSet::operator[](UIntN index) const
 	return m_rfProfileDataSet.at(index);
 }
 
-std::shared_ptr<XmlNode> RfProfileDataSet::getXml()
+std::shared_ptr<XmlNode> RfProfileDataSet::getXml(DomainType::Type domainType)
 {
 	auto root = XmlNode::createWrapperElement("radio_profile_data_set");
 
 	for (UIntN i = 0; i < m_rfProfileDataSet.size(); i++)
 	{
-		root->addChild(m_rfProfileDataSet[i].getXml());
+		root->addChild(m_rfProfileDataSet[i].getXml(domainType));
 	}
 
 	return root;

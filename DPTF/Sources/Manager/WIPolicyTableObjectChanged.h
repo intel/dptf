@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 ******************************************************************************/
 
 #pragma once
-
-#include "Dptf.h"
 #include "WorkItem.h"
 #include "TableObjectType.h"
 
@@ -28,14 +26,16 @@ public:
 	WIPolicyTableObjectChanged(
 		DptfManagerInterface* dptfManager,
 		TableObjectType::Type tableType,
-		std::string uuid,
+		const std::string& uuid,
 		UIntN participantIndex);
-	virtual ~WIPolicyTableObjectChanged(void);
 
-	virtual void onExecute(void) override final;
+	void onExecute() final;
 
 private:
 	TableObjectType::Type m_tableType;
 	std::string m_uuid;
 	UIntN m_participantIndex;
+
+	bool tableIsForAllPolicies() const;
+	bool tableIsForThisPolicyOnly(const std::string& policyGuid) const;
 };

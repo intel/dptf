@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,9 +63,10 @@ public:
 	virtual void deleteConfigKey(DataVaultType::Type dvType, std::string key) = 0;
 
 	virtual Bool isParticipantTable(TableObjectType::Type tableType) = 0;
+	virtual std::string getActiveTableName(TableObjectType::Type tableObjectType) = 0;
 };
 
-class DataManager : public DataManagerInterface
+class dptf_export DataManager : public DataManagerInterface
 {
 public:
 	DataManager(DptfManagerInterface* dptfManager);
@@ -99,6 +100,7 @@ public:
 	virtual void deleteConfigKey(DataVaultType::Type dvType, std::string key) override;
 
 	virtual Bool isParticipantTable(TableObjectType::Type tableType) override;
+	virtual std::string getActiveTableName(TableObjectType::Type tableObjectType) override;
 
 private:
 	DptfManagerInterface* m_dptfManager;
@@ -115,7 +117,9 @@ private:
 	void loadDdrfTableObject();
 	void loadEpotTableObject();
 	void loadItmtTableObject();
+	void loadItmt3TableObject();
 	void loadOdvpTableObject();
+	void loadOpbtTableObject();
 	void loadPbatTableObject();
 	void loadPbctTableObject();
 	void loadPbmtTableObject();
@@ -130,4 +134,5 @@ private:
 	void loadVsctTableObject();
 	void loadVsptTableObject();
 	void loadVtmtTableObject();
+	void loadScftTableObject();
 };

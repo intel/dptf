@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -176,6 +176,16 @@ string Power::toStringAsWatts(int precision) const
 	return Constants::InvalidString;
 }
 
+string Power::toStringAsMilliWatts(int precision) const
+{
+	if (isValid())
+	{
+		return StatusFormat::friendlyValueWithPrecision(asMilliwatts(), precision);
+	}
+
+	return Constants::InvalidString;
+}
+
 void Power::throwIfInvalid(const Power& power)
 {
 	if (power.isValid() == false)
@@ -218,5 +228,6 @@ double Power::asWatts() const
 
 double Power::asMilliwatts() const
 {
+	throwIfInvalid(*this);
 	return static_cast<double>(m_power);
 }

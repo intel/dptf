@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,12 +59,14 @@ static EsifEventCacheEntry g_CachedEvents[] = {
 	{ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED,		ESIF_TRUE, {0}},
 	{ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED,ESIF_TRUE, {0}},
 	{ESIF_EVENT_COLLABORATION_CHANGED,              ESIF_TRUE, {0}},
+	{ESIF_EVENT_IP_ALIGNMENT_STATUS,				ESIF_TRUE, {0}},
 	{ESIF_EVENT_OS_USER_PRESENCE_CHANGED,           ESIF_FALSE, {0}},
 	{ESIF_EVENT_DEVICE_ORIENTATION_CHANGED,         ESIF_FALSE, {0}},
 	{ESIF_EVENT_MOTION_CHANGED,						ESIF_FALSE, {0}},
 	{ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED,        ESIF_FALSE, {0}},
 	{ESIF_EVENT_OS_USER_INTERACTION_CHANGED,        ESIF_FALSE, {0}},
 	{ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED,     ESIF_FALSE, {0}},
+	{ESIF_EVENT_PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_CHANGED,     ESIF_FALSE, {0}},
 };
 
 #define ESIF_EVENT_CACHE_NUM_ENTRIES (sizeof(g_CachedEvents) / sizeof(*g_CachedEvents))

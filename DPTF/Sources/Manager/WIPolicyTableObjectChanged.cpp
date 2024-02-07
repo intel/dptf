@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,13 +18,12 @@
 
 #include "WIPolicyTableObjectChanged.h"
 #include "PolicyManagerInterface.h"
-#include "EsifServicesInterface.h"
 #include "StringConverter.h"
 
 WIPolicyTableObjectChanged::WIPolicyTableObjectChanged(
 	DptfManagerInterface* dptfManager,
 	TableObjectType::Type tableType,
-	std::string uuid,
+	const std::string& uuid,
 	UIntN participantIndex)
 	: WorkItem(dptfManager, FrameworkEvent::PolicyTableObjectChanged)
 	, m_tableType(tableType)
@@ -33,97 +32,103 @@ WIPolicyTableObjectChanged::WIPolicyTableObjectChanged(
 {
 }
 
-WIPolicyTableObjectChanged::~WIPolicyTableObjectChanged(void)
-{
-}
-
-void WIPolicyTableObjectChanged::onExecute(void)
+void WIPolicyTableObjectChanged::onExecute()
 {
 	writeWorkItemStartingInfoMessage();
 
-	auto policyManager = getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
+	const auto policyManager = getPolicyManager();
+	const auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+	for (const unsigned int policyIndex : policyIndexes)
 	{
 		try
 		{
-			auto policy = policyManager->getPolicyPtr(*i);
-			if (policy->getDynamicPolicyUuidString() != StringConverter::toLower(m_uuid))
-			{
-				continue;
-			}
+			const auto policy = policyManager->getPolicyPtr(policyIndex);
 
-			switch (m_tableType)
+			if (tableIsForAllPolicies() ||
+			    tableIsForThisPolicyOnly(policy->getDynamicPolicyUuidString()))
 			{
-			case TableObjectType::Acpr:
-				policy->executePolicyActiveControlPointRelationshipTableChanged();
-				break;
-			case TableObjectType::Apat:
-				policy->executePolicyAdaptivePerformanceActionsTableChanged();
-				break;
-			case TableObjectType::Apct:
-				policy->executePolicyAdaptivePerformanceConditionsTableChanged();
-				break;
-			case TableObjectType::Art:
-				policy->executePolicyActiveRelationshipTableChanged();
-				break;
-			case TableObjectType::Ddrf:
-				policy->executePolicyDdrfTableChanged();
-				break;
-			case TableObjectType::Epot:
-				policy->executePolicyEnergyPerformanceOptimizerTableChanged();
-				break;
-			case TableObjectType::Itmt:
-				policy->executePolicyIntelligentThermalManagementTableChanged();
-				break;
-			case TableObjectType::Odvp:
-				policy->executePolicyOemVariablesChanged();
-				break;
-			case TableObjectType::Pbat:
-				policy->executePolicyPowerBossActionsTableChanged();
-				break;
-			case TableObjectType::Pbct:
-				policy->executePolicyPowerBossConditionsTableChanged();
-				break;
-			case TableObjectType::Pbmt:
-				policy->executePolicyPowerBossMathTableChanged();
-				break;
-			case TableObjectType::Pida:
-				policy->executePolicyPidAlgorithmTableChanged();
-				break;
-			case TableObjectType::Psh2:
-				policy->executePolicyPowerShareAlgorithmTable2Changed();
-				break;
-			case TableObjectType::Psha:
-				policy->executePolicyPowerShareAlgorithmTableChanged();
-				break;
-			case TableObjectType::Psvt:
-				policy->executePolicyPassiveTableChanged();
-				break;
-			case TableObjectType::Rfim:
-				policy->executePolicyRfimTableChanged();
-				break;
-			case TableObjectType::Tpga:
-				policy->executePolicyTpgaTableChanged();
-				break;
-			case TableObjectType::Trt:
-				policy->executePolicyThermalRelationshipTableChanged();
-				break;
-			case TableObjectType::Vsct:
-				policy->executeDomainVirtualSensorCalibrationTableChanged(m_participantIndex);
-				break;
-			case TableObjectType::Vspt:
-				policy->executeDomainVirtualSensorPollingTableChanged(m_participantIndex);
-				break;
-			case TableObjectType::Vtmt:
-				policy->executePolicyVoltageThresholdMathTableChanged();
-				break;
-			case TableObjectType::SwOemVariables:
-				policy->executeSwOemVariablesChanged();
-				break;
-			default:
-				break;
+				switch (m_tableType)
+				{
+				case TableObjectType::Acpr:
+					policy->executePolicyActiveControlPointRelationshipTableChanged();
+					break;
+				case TableObjectType::Apat:
+					policy->executePolicyAdaptivePerformanceActionsTableChanged();
+					break;
+				case TableObjectType::Apct:
+					policy->executePolicyAdaptivePerformanceConditionsTableChanged();
+					break;
+				case TableObjectType::Art:
+					policy->executePolicyActiveRelationshipTableChanged();
+					break;
+				case TableObjectType::Ddrf:
+					policy->executePolicyDdrfTableChanged();
+					break;
+				case TableObjectType::Epot:
+					policy->executePolicyEnergyPerformanceOptimizerTableChanged();
+					break;
+				case TableObjectType::Itmt:
+					policy->executePolicyIntelligentThermalManagementTableChanged();
+					break;
+				case TableObjectType::Itmt3:
+					policy->executePolicyIntelligentThermalManagementTable3Changed();
+					break;
+				case TableObjectType::Odvp:
+					policy->executePolicyOemVariablesChanged();
+					break;
+				case TableObjectType::Pbat:
+					policy->executePolicyPowerBossActionsTableChanged();
+					break;
+				case TableObjectType::Pbct:
+					policy->executePolicyPowerBossConditionsTableChanged();
+					break;
+				case TableObjectType::Pbmt:
+					policy->executePolicyPowerBossMathTableChanged();
+					break;
+				case TableObjectType::Pida:
+					policy->executePolicyPidAlgorithmTableChanged();
+					break;
+				case TableObjectType::Psh2:
+					policy->executePolicyPowerShareAlgorithmTable2Changed();
+					break;
+				case TableObjectType::Psha:
+					policy->executePolicyPowerShareAlgorithmTableChanged();
+					break;
+				case TableObjectType::Psvt:
+					policy->executePolicyPassiveTableChanged();
+					break;
+				case TableObjectType::Rfim:
+					policy->executePolicyRfimTableChanged();
+					break;
+				case TableObjectType::Tpga:
+					policy->executePolicyTpgaTableChanged();
+					break;
+				case TableObjectType::Opbt:
+					policy->executePolicyOpbtTableChanged();
+					break;
+				case TableObjectType::Trt:
+					policy->executePolicyThermalRelationshipTableChanged();
+					break;
+				case TableObjectType::Vsct:
+					policy->executeDomainVirtualSensorCalibrationTableChanged(m_participantIndex);
+					break;
+				case TableObjectType::Vspt:
+					policy->executeDomainVirtualSensorPollingTableChanged(m_participantIndex);
+					break;
+				case TableObjectType::Vtmt:
+					policy->executePolicyVoltageThresholdMathTableChanged();
+					break;
+				case TableObjectType::SwOemVariables:
+					policy->executeSwOemVariablesChanged();
+					break;
+				case TableObjectType::Scft:
+					policy->executePolicySystemConfigurationFeatureTableChanged();
+					break;
+				case TableObjectType::Dynamic_Idsp:
+				default:
+					break;
+				}
 			}
 		}
 		catch (policy_index_invalid&)
@@ -132,7 +137,17 @@ void WIPolicyTableObjectChanged::onExecute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyTableChanged", *i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyTableChanged", policyIndex);
 		}
 	}
+}
+
+bool WIPolicyTableObjectChanged::tableIsForAllPolicies() const
+{
+	return m_uuid.empty();
+}
+
+bool WIPolicyTableObjectChanged::tableIsForThisPolicyOnly(const std::string& policyGuid) const
+{
+	return policyGuid == StringConverter::toLower(m_uuid);
 }

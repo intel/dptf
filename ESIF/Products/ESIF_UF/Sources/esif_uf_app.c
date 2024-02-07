@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -243,7 +243,6 @@ void EsifApp_Destroy(
 	esif_ccb_event_uninit(&self->accessCompleteEvent);
 	esif_ccb_event_uninit(&self->deleteEvent);
 	esif_ccb_lock_uninit(&self->objLock);
-	EsifHandleMgr_PutHandle(self->fHandle);
 	esif_ccb_free(self);
 exit:
 	return;

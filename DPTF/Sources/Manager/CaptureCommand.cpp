@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,14 +21,18 @@
 #include "ParticipantListCaptureDataGenerator.h"
 #include "PolicyListCaptureDataGenerator.h"
 #include "WorkItemQueueManagerInterface.h"
-#include "TimeOps.h"
+#include "RealTimeStampGenerator.h"
 #include "PolicyTablesCaptureDataGenerator.h"
 
 using namespace std;
 
-CaptureCommand::CaptureCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIo> fileIo)
+CaptureCommand::CaptureCommand(
+	DptfManagerInterface* dptfManager,
+	const shared_ptr<IFileIo>& fileIo,
+	const shared_ptr<TimeStampGenerator>& timeStampGenerator)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
+	, m_timeStampGenerator(timeStampGenerator)
 {
 	m_dataGenerators.emplace_back(make_shared<PolicyListCaptureDataGenerator>(dptfManager));
 	m_dataGenerators.emplace_back(make_shared<ParticipantListCaptureDataGenerator>(dptfManager));
@@ -62,7 +66,7 @@ void CaptureCommand::execute(const CommandArguments& arguments)
 
 string CaptureCommand::generateExportPath(const CommandArguments& arguments) const
 {
-	const auto exportPath = m_dptfManager->getDptfReportDirectoryPath();
+	const auto exportPath = m_dptfManager->getDttLogDirectoryPath();
 	const auto exportFileName = getExportFileName(arguments);
 	return FileIo::generatePathWithTrailingSeparator(exportPath) + exportFileName;
 }
@@ -72,7 +76,7 @@ Bool CaptureCommand::exportFileNameProvided(const CommandArguments& arguments)
 	return (arguments.size() > 1) && (arguments[1].isDataTypeString());
 }
 
-string CaptureCommand::getExportFileName(const CommandArguments& arguments)
+string CaptureCommand::getExportFileName(const CommandArguments& arguments) const
 {
 	string exportFileName = Constants::EmptyString;
 
@@ -82,7 +86,7 @@ string CaptureCommand::getExportFileName(const CommandArguments& arguments)
 	}
 	else
 	{
-		exportFileName = TimeOps::generateTimestampNowAsString() + ".txt";
+		exportFileName = m_timeStampGenerator->generateAsString() + ".txt";
 	}
 
 	return exportFileName;

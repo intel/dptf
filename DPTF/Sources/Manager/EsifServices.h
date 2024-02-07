@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,8 +38,20 @@ public:
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) override;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual Power readConfigurationPower(const std::string& nameSpace, const std::string& elementPath) override;
-	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) override;
-	virtual void writeConfigurationString(const std::string& elementPath, const std::string& elementValue) override;
+	virtual void writeConfigurationUInt32(
+		const std::string& elementPath,
+		UInt32 elementValue) override;
+	virtual void writeConfigurationString(
+		const std::string& elementPath,
+		const std::string& elementValue) override;
+	virtual void writeConfigurationUInt32(
+		const std::string& nameSpace,
+		const std::string& elementPath,
+		UInt32 elementValue) override;
+	virtual void writeConfigurationString(
+		const std::string& nameSpace,
+		const std::string& elementPath,
+		const std::string& elementValue) override;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual void writeConfigurationBinary(

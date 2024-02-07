@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,7 +31,14 @@ const map<UInt64, string> platformGenerations
 	{0xB06F, "RPL"s},
 	{0xA06A, "MTL"s},
 	{0xA06C, "MTL"s},
+	{0xB06D, "LNL"s},
+	{0xB065, "ARL"s},
+	{0xC065, "ARL"s},
+	{0xC066, "ARL"s},
 	{0xC06C, "PTL"s},
+	{0xC06D, "PTL"s},
+	{0xB06E, "TWL"s},
+	{0xD065, "WCL"s},
 };
 
 EnvironmentProfile::EnvironmentProfile()

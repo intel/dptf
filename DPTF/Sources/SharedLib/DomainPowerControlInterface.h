@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -80,6 +80,7 @@ public:
 		const TimeSpan& timeWindow) = 0;
 	virtual void clearPowerLimitMin(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void clearPowerLimit(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void clearCachedPowerLimits(UIntN participantIndex, UIntN domainIndex) = 0;
 
 	virtual Percentage getPowerLimitDutyCycle(
 		UIntN participantIndex,

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,10 +24,19 @@
 class IFileIo
 {
 public:
+	IFileIo() = default;
+	IFileIo(const IFileIo& other) = default;
+	IFileIo(IFileIo&& other) noexcept = default;
+	IFileIo& operator=(const IFileIo& other) = default;
+	IFileIo& operator=(IFileIo&& other) noexcept = default;
 	virtual ~IFileIo() = default;
+
 	virtual std::vector<unsigned char> read(const std::string& filePath) const = 0;
 	virtual void write(const std::string& filePath, const std::vector<unsigned char>& data) const = 0;
 	virtual void write(const std::string& filePath, const std::string& data) const = 0;
+	virtual void append(const std::string& filePath, const std::string& data) const = 0;
+	virtual void createDirectoryPath(const std::string& filePath) const = 0;
+	virtual bool pathExists(const std::string& path) const = 0;
 	virtual std::list<std::string> enumerateFiles(const std::string& filePath, const std::string& filter) const = 0;
 
 	static bool fileNameContainsIllegalCharacters(const std::string& fileName);
@@ -42,7 +51,7 @@ private:
 	static bool filePathContainsIllegalCharacterOutsideOfDriveSection(const std::string& filePath);
 	static bool filePathEndsWithOtherwiseAllowedCharacter(const std::string& filePath);
 	static bool filePathContainsDoubleSlashes(const std::string& filePath);
-	static bool isControlCharacter(const char c);
+	static bool isControlCharacter(char c);
 	static bool filePathContainsControlCharacters(const std::string& filePath);
 	static std::string getCommonSeparator(const std::string& folderPath);
 	static bool hasEndingPathSeparator(const std::string& folderPath);
@@ -55,12 +64,14 @@ public:
 	std::vector<unsigned char> read(const std::string& filePath) const override;
 	void write(const std::string& filePath, const std::vector<unsigned char>& data) const override;
 	void write(const std::string& filePath, const std::string& data) const override;
+	void append(const std::string& filePath, const std::string& data) const override;
+	bool pathExists(const std::string& path) const override;
+	void createDirectoryPath(const std::string& filePath) const override;
 	std::list<std::string> enumerateFiles(const std::string& filePath, const std::string& filter) const override;
 
 private:
 	static unsigned int getFileLength(std::ifstream& fileStream);
 	static void throwIfFileCannotBeOpened(const std::ios& fileStream);
-	static void throwIfFileNotOpened(const std::fstream& fp, const std::string& filePath);
 	static void throwIfFilePathHasIllegalCharacters(const std::string& filePath);
 	static void throwIfFilePathIsSymbolicLink(const std::string& filePath);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,13 +19,17 @@
 #pragma once
 #include <vector>
 #include <memory>
-#include <stdexcept>
 #include "DataCompressor.h"
 #include "DataFormat.h"
 
 class IDataDecoder
 {
 public:
+	IDataDecoder() = default;
+	IDataDecoder(const IDataDecoder& other) = default;
+	IDataDecoder(IDataDecoder&& other) noexcept = default;
+	IDataDecoder& operator=(const IDataDecoder& other) = default;
+	IDataDecoder& operator=(IDataDecoder&& other) noexcept = default;
 	virtual ~IDataDecoder() = default;
 	virtual std::vector<std::vector<unsigned char>> decode(const std::vector<unsigned char>& data) const = 0;
 };

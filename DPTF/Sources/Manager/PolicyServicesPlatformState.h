@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,9 +45,13 @@ public:
 	virtual UIntN getBatteryCount(void) const override;
 	virtual UIntN getPowerSlider(void) const override;
 	virtual SensorUserPresence::Type getPlatformUserPresence(void) const override;
-	virtual OnOffToggle::Type getGameMode(void) const override;
+	virtual OnOffToggle::Type getOsGameMode(void) const override;
 	virtual UserInteraction::Type getUserInteraction(void) const override;
 	virtual SystemMode::Type getSystemMode(void) const override;
 	virtual OnOffToggle::Type getTpgPowerState(void) const override;
 	virtual OnOffToggle::Type getCollaborationMode(void) const override;
+	virtual SystemInBag::Type getSystemInBag(void) const override;
+	virtual ScenarioMode::Type getScenarioMode(void) const override;
+	virtual DttGamingMode::Type getDttGamingMode(void) const override;
+	virtual Bool getApplicationOptimizationStatus(void) const override;
 };

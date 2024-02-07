@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 ******************************************************************************/
 
 #include "DataDecoder.h"
+#include <stdexcept>
 using namespace std;
 
 DataDecoder::DataDecoder(shared_ptr<DataCompressor> compressor)
-	: m_compressor(compressor)
+	: m_compressor(move(compressor))
 {
 }
 
@@ -36,8 +37,8 @@ vector<vector<unsigned char>> DataDecoder::decode(const vector<unsigned char>& d
 		dataSegments.push_back(decompressedPayload);
 
 		const auto newBegin = remainingRawData.begin() + header.payload_offset + header.payload_size;
-		remainingRawData = vector<unsigned char>(newBegin, remainingRawData.end());
-	} while (remainingRawData.size() > 0);
+		remainingRawData = vector(newBegin, remainingRawData.end());
+	} while (!remainingRawData.empty());
 
 	return dataSegments;
 }
@@ -45,7 +46,7 @@ vector<vector<unsigned char>> DataDecoder::decode(const vector<unsigned char>& d
 DttConfigurationHeaderV0 DataDecoder::extractFirstHeader(const vector<unsigned char>& rawData)
 {
 	throwIfDataSmallerThanHeader(rawData);
-	const auto header = (const DttConfigurationHeaderV0*)rawData.data();
+	const auto header = reinterpret_cast<const DttConfigurationHeaderV0*>(rawData.data());
 	throwIfInvalidHeader(header);
 	throwIfInvalidHeaderSignature(*header);
 	throwIfInvalidHeaderVersion(*header);

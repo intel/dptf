@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,6 +35,8 @@ namespace PolicyEvent
 		DptfLowPowerModeExit,
 		DptfSuspend,
 		DptfResume,
+		DptfPolicyStateLogger,
+		DptfExtendedWorkloadPredictionEventRegistrationChanged,
 		ParticipantSpecificInfoChanged,
 		DomainCoreControlCapabilityChanged,
 		DomainDisplayControlCapabilityChanged,
@@ -100,6 +102,7 @@ namespace PolicyEvent
 		PolicyOperatingSystemBatteryCountChanged,
 		PolicyOperatingSystemPowerSliderChanged,
 		PolicyOemVariablesChanged,
+		PolicyOpbtTableChanged,
 		PolicyPowerBossConditionsTableChanged,
 		PolicyPowerBossActionsTableChanged,
 		PolicyPowerBossMathTableChanged,
@@ -113,6 +116,7 @@ namespace PolicyEvent
 		PolicyEmergencyCallModeTableChanged,
 		PolicyPidAlgorithmTableChanged,
 		PolicyIntelligentThermalManagementTableChanged,
+		PolicyIntelligentThermalManagementTable3Changed,
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PolicyEnergyPerformanceOptimizerTableChanged,
@@ -133,6 +137,13 @@ namespace PolicyEvent
 		DptfAppBroadcastPrivileged,
 		PolicySwOemVariablesChanged,
 		PolicyThirdPartyGraphicsTPPLimitChanged,
+		PolicySystemConfigurationFeatureTableChanged,
+		PolicySystemInBagChanged,
+		PolicyThirdPartyGraphicsReservedTgpChanged,
+		PolicyThirdPartyGraphicsOppBoostModeChanged,
+		PolicyScenarioModeChanged,
+		PolicyDttGamingModeChanged,
+		PolicyApplicationOptimizationChanged,
 		Max
 	};
 

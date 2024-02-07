@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "RfProfileSupplementalData.h"
+#include "DomainType.h"
 #include "XmlNode.h"
 #include "RfProfileData.h"
 
@@ -34,7 +34,7 @@ public:
 	static RfProfileDataSet createActiveRfProfileDataFromEmptyData();
 	std::vector<RfProfileData> getRfProfileData() const;
 	Bool operator==(const RfProfileDataSet& rhs) const;
-	std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getXml(DomainType::Type domainType);
 	RfProfileData operator[](UIntN index) const;
 
 private:

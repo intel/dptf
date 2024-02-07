@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -127,12 +127,22 @@ Power EsifServices::readConfigurationPower(const string& nameSpace, const string
 	return Power::createFromMilliwatts(esifResult);
 }
 
-void EsifServices::writeConfigurationUInt32(const string& elementPath, UInt32 elementValue)
+void EsifServices::writeConfigurationUInt32(
+	const string& elementPath,
+	UInt32 elementValue)
+{
+	writeConfigurationUInt32("dptf", elementPath, elementValue);
+}
+
+void EsifServices::writeConfigurationUInt32(
+	const string& nameSpace,
+	const string& elementPath,
+	UInt32 elementValue)
 {
 	const auto rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
 		reinterpret_cast<const esif_handle_t>(m_dptfManager),
-		EsifDataString("dptf"),
+		EsifDataString(nameSpace),
 		EsifDataString(elementPath),
 		EsifDataUInt32(elementValue),
 		ESIF_SERVICE_CONFIG_PERSIST);
@@ -151,12 +161,22 @@ void EsifServices::writeConfigurationUInt32(const string& elementPath, UInt32 el
 	}
 }
 
-void EsifServices::writeConfigurationString(const string& elementPath, const string& elementValue)
+void EsifServices::writeConfigurationString(
+	const string& elementPath,
+	const string& elementValue)
+{
+	writeConfigurationString("dptf", elementPath, elementValue);
+}
+
+void EsifServices::writeConfigurationString(
+	const string& nameSpace,
+	const string& elementPath,
+	const string& elementValue)
 {
 	const auto rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
 		reinterpret_cast<const esif_handle_t>(m_dptfManager),
-		EsifDataString("dptf"),
+		EsifDataString(nameSpace),
 		EsifDataString(elementPath),
 		EsifDataString(elementValue),
 		ESIF_SERVICE_CONFIG_PERSIST);

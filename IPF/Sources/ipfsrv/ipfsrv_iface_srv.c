@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@
 #include "ipfsrv_ws_server.h"
 
 
-#define IPFSRV_COPYRIGHT	"Copyright (c) 2013-2023 Intel Corporation All Rights Reserved"
+#define IPFSRV_COPYRIGHT	"Copyright (c) 2013-2024 Intel Corporation All Rights Reserved"
 
 // IPF Server LifeCycle Initializiation Table
 static LifecycleTableEntry g_lifecycleTableSrv[] = {

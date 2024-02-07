@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,7 +32,7 @@ void enumerate_available_uf_participants(EnumerableUFParticipants typeOfUFPartic
 void register_events_for_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate);
 esif_error_t CreateEnumeratedParticipants();
 esif_error_t CreateActionAssociatedParticipants(esif_action_type_t actionType);
-
+enum esif_rc esif_ccb_cpu_arrival_init();
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 
@@ -55,11 +55,6 @@ static ESIF_INLINE void esif_ccb_imp_spec_actions_exit()
 	EsifActSysfsExit();
 }
 
-static ESIF_INLINE enum esif_rc esif_ccb_participants_ready_init(void)
-{
-	return ESIF_OK;
-}
-
 #else
 
 enum esif_rc sync_lf_participants();
@@ -72,14 +67,6 @@ static ESIF_INLINE enum esif_rc esif_ccb_participants_initialize(void)
 }
 
 extern enum esif_rc esif_uf_create_device_nodes(void);
-
-static ESIF_INLINE enum esif_rc esif_ccb_participants_ready_init(void)
-{
-#ifdef ESIF_FEAT_OPT_RUN_AS_BUS_DRIVER
-	esif_uf_create_device_nodes();
-#endif /*run as bus driver*/
-	return ESIF_OK;
-}
 
 
 #define esif_ccb_imp_spec_actions_init()

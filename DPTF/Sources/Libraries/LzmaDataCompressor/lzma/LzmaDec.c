@@ -1,3 +1,4 @@
+// ReSharper disable All
 /* LzmaDec.c -- LZMA Decoder
 2021-04-01 : Igor Pavlov : Public domain */
 

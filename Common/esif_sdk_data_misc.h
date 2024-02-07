@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -145,14 +145,14 @@ struct loadable_action_devices {
 struct ocmb_affinity_data {
 	u16 group;
 	u64 affinity_mask; /* 0 indicates no affinity required */
-	u32 data; /* Only used for SETs.  GET data returned in response */
+	u32 data; /* Only used for SETs.  GET data returned in the response buffer (See ocmb_get_response_data)*/
 	/*
 	* Notes:
 	* 1) If the affinity_mask is 0, only a single data element is accessed on
 	* current core without affinity change.
 	* 2) For GET's, if the affinity_mask is not all F's, only the data elements
 	* corresponding to the bitmask position are valid upon return.
-	* 3) For GET's, a response buffer large enough to hold 64 * sizeof(u32) is
+	* 3) For GET's, a response buffer large enough to hold 64 * sizeof(ocmb_get_response_data) is
 	* still required, but only the first item is valid.
 	*/
 };
@@ -168,6 +168,41 @@ struct ocmb_request {
 	u32 count; /* Number of ocmb_affinity_data structures; must be non-0 */
 	/* Array of ocmb_affinity_data structure follow here. See ocmb_affinity_data */
 };
+
+/* Used for OCMB GETs which return an array of the defined structures.*/
+struct ocmb_get_response_data {
+	u32 data; 
+	u32 status; /* OCMB command completion code (0 - success), not IPF status */
+};
+
+
+/*
+* Request structure for Affinitized MSR primitives
+*/
+#define AMSR_REQUEST_VERSION_1 1 /* Start at 1, so cleared structure isn't valid */
+#define AMSR_REQUEST_VERSION AMSR_REQUEST_VERSION_1
+
+struct amsr_affinity_data {
+	u16 group;
+	u64 affinity_mask; /* 0 indicates no affinity required */
+	u64 data; /* Only used for SETs.  GET data returned in the response buffer as a u64 array */
+	/*
+	* Notes:
+	* 1) If the affinity_mask is 0, only a single data element is accessed on
+	* current core without affinity change.
+	* 2) For GET's, if the affinity_mask is not all F's, only the data elements
+	* corresponding to the bitmask position are valid upon return.
+	* 3) For GET's, a response buffer large enough to hold 64 * sizeof(u64) is
+	* still required, but only the first item is valid.
+	*/
+};
+
+struct amsr_request {
+	u32 version;
+	u32 count; /* Number of amsr_affinity_data structures; must be non-0 */
+	/* Array of amsr_affinity_data structure follow here. See amsr_affinity_data */
+};
+
 
 /* Process Notification Event Data */
 #define PROCESS_NOTIFICATION_REVISION 1
@@ -341,4 +376,66 @@ typedef struct AppCompatDeleteCommand_s {
 	UInt32 version; // must be APP_COMPAT_DELETE_CMD_VERSION
 	esif_guid_t app_compat_guid;
 } AppCompatDeleteCommand;
+
+
+// Event data for ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED
+enum sensor_user_presence_state_e {
+	SENSOR_USER_PRESENCE_STATE_NOT_PRESENT = 0,
+	SENSOR_USER_PRESENCE_STATE_DISENGAGED = 1,
+	SENSOR_USER_PRESENCE_STATE_ENGAGED = 2,
+	SENSOR_USER_PRESENCE_STATE_INVALID = 99
+};
+
+// Event data for ESIF_EVENT_SENSOR_USER_PRESENCE_WITH_ENROLLMENT_CHANGED
+enum sensor_user_presence_with_enrollment_state_e {
+	SENSOR_USER_PRESENCE_WITH_ENROLLMENT_STATE_NOT_PRESENT = 0,
+	SENSOR_USER_PRESENCE_WITH_ENROLLMENT_STATE_DISENGAGED = 1,
+	SENSOR_USER_PRESENCE_WITH_ENROLLMENT_STATE_ENGAGED = 2,
+	SENSOR_USER_PRESENCE_WITH_ENROLLMENT_STATE_DISENGAGED_WITH_FACEID = 3,
+	SENSOR_USER_PRESENCE_WITH_ENROLLMENT_STATE_ENGAGED_WITH_FACEID = 4,
+	SENSOR_USER_PRESENCE_WITH_ENROLLMENT_STATE_INVALID = 99
+};
+
+// Event data for ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED
+enum platform_user_presence_state_e {
+	PLATFORM_USER_PRESENCE_STATE_NOT_PRESENT = 0,
+	PLATFORM_USER_PRESENCE_STATE_DISENGAGED = 1,
+	PLATFORM_USER_PRESENCE_STATE_ENGAGED = 2,
+	PLATFORM_USER_PRESENCE_STATE_FACE_ENGAGED = 3,
+	PLATFORM_USER_PRESENCE_STATE_INVALID = 99
+};
+
+// Event data for ESIF_EVENT_PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_CHANGED
+enum platform_user_presence_with_enrollment_state_e {
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_NOT_PRESENT = 0,
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_DISENGAGED = 1,
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_ENGAGED = 2,
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_FACE_ENGAGED = 3,
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_DISENGAGED_WITH_FACEID = 4,
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_ENGAGED_WITH_FACEID = 5,
+	PLATFORM_USER_PRESENCE_WITH_ENROLLMENT_STATE_INVALID = 99
+};
+
+
+// For use with ESIF_EVENT_FACE_ID_CAPABILITY_CHANGED
+enum face_id_capability_state_e {
+	FACE_ID_CAPABILITY_STATE_NOT_SUPPORTED = 0,
+	FACE_ID_CAPABILITY_STATE_NOT_ENROLLED = 1,
+	FACE_ID_CAPABILITY_STATE_ENROLLED = 2
+};
+
+// For use with ESIF_EVENT_IP_ALIGNMENT_STATUS
+enum ip_alignment_state_e {
+	IP_ALIGNMENT_STATUS_INVALID = -1,
+	IP_ALIGNMENT_STATUS_INACTIVE = 0,
+	IP_ALIGNMENT_STATUS_ACTIVE = 1
+};
+
+
+typedef enum sensor_user_presence_state_e SensorUserPresenceState;
+typedef enum sensor_user_presence_with_enrollment_state_e SensorUserPresenceWithEnrollmentState;
+typedef enum platform_user_presence_state_e PlatformUserPresenceState;
+typedef enum platform_user_presence_with_enrollment_state_e PlatformUserPresenceWithEnrollmentState;
+typedef enum face_id_capability_state_e FaceIdCapabilityState;
+typedef enum ip_alignment_state_e IpAlignmentState;
 

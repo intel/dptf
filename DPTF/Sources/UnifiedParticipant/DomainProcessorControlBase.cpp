@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,6 +60,18 @@ void DomainProcessorControlBase::bindRequestHandlers()
 	bindRequestHandler(
 		DptfRequestType::ProcessorControlGetPcieThrottleRequestState,
 		[=](const PolicyRequest& policyRequest) { return this->handleGetPcieThrottleRequestState(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlGetSocGear,
+		[=](const PolicyRequest& policyRequest) { return this->handleGetSocGear(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlSetSocGear,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetSocGear(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlGetSystemUsageMode,
+		[=](const PolicyRequest& policyRequest) { return this->handleGetSocSystemUsageMode(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::ProcessorControlSetSystemUsageMode,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetSocSystemUsageMode(policyRequest); });
 }
 
 DptfRequestResult DomainProcessorControlBase::handleClearCachedData(const PolicyRequest& policyRequest)
@@ -289,4 +301,83 @@ DptfRequestResult DomainProcessorControlBase::handleGetMinTccOffsetTemperature(c
 			false, "Failed to retrieve Min TCC offset temperature: " + ex.getDescription(), request);
 		return failureResult;
 	}
+}
+
+DptfRequestResult DomainProcessorControlBase::handleGetSocGear(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		auto gear = getSocGear();
+		DptfRequestResult result(true, "Successfully retrieved Soc gear", request);
+		result.setDataFromUInt32(gear);
+		return result;
+	}
+	catch (dptf_exception& ex)
+	{
+		DptfRequestResult failureResult(
+			false, "Failed to get Soc gear: " + ex.getDescription(), request);
+		return failureResult;
+	}
+}
+
+DptfRequestResult DomainProcessorControlBase::handleSetSocGear(const PolicyRequest& policyRequest)
+{
+
+	auto& request = policyRequest.getRequest();
+	try
+	{
+		SocGear::Type gear = static_cast<SocGear::Type>(request.getDataAsUInt32());
+		setSocGear(gear);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Unable to set Soc gear: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
+
+	std::stringstream message;
+	message << "Successfully set Soc gear!";
+	return DptfRequestResult(true, message.str(), request);		
+}
+
+DptfRequestResult DomainProcessorControlBase::handleGetSocSystemUsageMode(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		auto mode = getSocSystemUsageMode();
+		DptfRequestResult result(true, "Successfully retrieved Soc system usage mode", request);
+		result.setDataFromUInt32(mode);
+		return result;
+	}
+	catch (dptf_exception& ex)
+	{
+		DptfRequestResult failureResult(false, "Failed to get Soc system usage mode: " + ex.getDescription(), request);
+		return failureResult;
+	}
+}
+
+DptfRequestResult DomainProcessorControlBase::handleSetSocSystemUsageMode(const PolicyRequest& policyRequest)
+{
+
+	auto& request = policyRequest.getRequest();
+	try
+	{
+		SystemUsageMode::Type mode = static_cast<SystemUsageMode::Type>(request.getDataAsUInt32());
+		setSocSystemUsageMode(mode);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Unable to set Soc system usage mode: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
+
+	std::stringstream message;
+	message << "Successfully set Soc system usage mode!";
+	return DptfRequestResult(true, message.str(), request);
 }

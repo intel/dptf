@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,17 @@
 
 #include "ParticipantProperties.h"
 #include "XmlNode.h"
+using namespace std;
+
+ParticipantProperties::ParticipantProperties()
+	: m_guid(Guid())
+	, m_name(""s)
+	, m_description(""s)
+	, m_busType(BusType::Acpi)
+	, m_pciInfo(PciInfo())
+	, m_acpiInfo(AcpiInfo())
+{
+}
 
 ParticipantProperties::ParticipantProperties(
 	const Guid& guid,

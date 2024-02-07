@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -712,7 +712,6 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ EsifArbMgr_Start,					EsifArbMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ EsifAppMgr_Start,					EsifAppMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE },
-	{ esif_ccb_participants_ready_init,	NULL,								ESIF_INIT_FLAG_NONE },
 	{ EsifEventCache_Init,				EsifEventCache_Exit,				ESIF_INIT_FLAG_NONE },
 	{ EsifEventCache_Start,				EsifEventCache_Stop,				ESIF_INIT_FLAG_NONE },
 	{ EsifEventMgr_Start,				NULL,								ESIF_INIT_FLAG_IGNORE_ERROR },
@@ -978,12 +977,6 @@ Bool esif_uf_is_auto_enum_allowed(esif_domain_type_t partType)
 		goto exit;
 	}
 	listLen = esif_ccb_strlen(listData.buf_ptr, listData.data_len);
-	if (listLen < 1) {
-		ESIF_TRACE_DEBUG("Empty list present, enumeration disallowed\n");
-		autoEnumAllowed = ESIF_FALSE;
-		goto exit;
-	}
-
 	token = esif_ccb_strtok(listData.buf_ptr, ESIF_AUTO_ENUM_LIST_SEPERATOR, &tokenContext);
 	while (token) {
 		curPtr = token;

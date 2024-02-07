@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "DomainRfProfileStatus_000.h"
 #include "DomainRfProfileStatus_001.h"
 #include "DomainRfProfileStatus_002.h"
+#include "DomainRfProfileStatus_003.h"
 
 ControlBase* DomainRfProfileStatusFactory::make(
 	UIntN participantIndex,
@@ -37,6 +38,9 @@ ControlBase* DomainRfProfileStatusFactory::make(
 		break;
 	case 2: // wireless
 		return new DomainRfProfileStatus_002(participantIndex, domainIndex, participantServicesInterface);
+		break;
+	case 3: // memory
+		return new DomainRfProfileStatus_003(participantIndex, domainIndex, participantServicesInterface);
 		break;
 	default:
 		std::stringstream message;

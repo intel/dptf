@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1190,7 +1190,6 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 	EsifFpcActionPtr fpcActionPtr = NULL;
 	UInt16 kernAct;
 	UInt32 i;
-	UInt32 reqAuto = ESIF_FALSE;
 	UInt32 rspAuto = ESIF_FALSE;
 	Bool tryAll = ESIF_FALSE;
 	Bool isTargetAction = ESIF_FALSE;
@@ -1264,14 +1263,12 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 	if (requestPtr != NULL) {
 		ESIF_DATA_RETYPE(requestPtr->type,
 			ESIF_DATA_AUTO,
-			(enum esif_data_type)primitivePtr->request_type,
-			reqAuto);
+			(enum esif_data_type)primitivePtr->request_type);
 	}
 	if (responsePtr != NULL) {
 		ESIF_DATA_RETYPE(responsePtr->type,
 			ESIF_DATA_AUTO,
-			(enum esif_data_type)primitivePtr->result_type,
-			rspAuto);
+			(enum esif_data_type)primitivePtr->result_type);
 
 		/* Work around for now */
 		if (ESIF_DATA_UINT8 == responsePtr->type ||
@@ -1284,6 +1281,8 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 
 		if ((responsePtr->buf_ptr == NULL) && (ESIF_DATA_ALLOCATE == responsePtr->buf_len)) {
 			int size = 4;
+
+			rspAuto = ESIF_TRUE;
 
 			if (ESIF_DATA_UINT64 == responsePtr->type ||
 				ESIF_DATA_FREQUENCY == responsePtr->type) {
@@ -1463,7 +1462,7 @@ static eEsifError EsifUp_ExecuteAction(
 				requestPtr,
 				responsePtr);
 		}
-		ESIF_TRACE_DEBUG("Used ESIF LF for kernel action %d; rc = %s\n",
+		ESIF_TRACE_VERBOSE("Used ESIF LF for kernel action %d; rc = %s\n",
 			kernelActNum,
 			esif_rc_str(rc));
 #endif
@@ -1481,7 +1480,7 @@ static eEsifError EsifUp_ExecuteAction(
 				fpcActionPtr,
 				requestPtr);
 		}
-		ESIF_TRACE_DEBUG("Used User-Level service for action %u; rc = %s\n", kernelActNum, esif_rc_str(rc));
+		ESIF_TRACE_VERBOSE("Used User-Level service for action %u; rc = %s\n", kernelActNum, esif_rc_str(rc));
 	}
 	return rc;
 }
@@ -1524,7 +1523,7 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 		goto exit;
 	}
 	/* Have Action So Execute */
-	ESIF_TRACE_DEBUG("Have Action %s(%d)\n",
+	ESIF_TRACE_VERBOSE("Have Action %s(%d)\n",
 		esif_action_type_str(actionType),
 		actionType);
 
@@ -1553,7 +1552,7 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 			ESIF_TRACE_DEBUG("Transformation error %s\n", esif_rc_str(rc));
 		}
 	}
-	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_VERBOSE("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),
 		responsePtr->buf_len,
 		responsePtr->data_len);
@@ -1653,11 +1652,9 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	}
 
 	/* Have Action So Execute */
-	ESIF_TRACE_DEBUG("Have Action %s(%d)\n",
+	ESIF_TRACE_VERBOSE("Have Action %s(%d); Buffer Len %d; Data Len %d\n",
 		esif_action_type_str(actionType),
-		actionType);
-
-	ESIF_TRACE_DEBUG("Buffer Len %d, Data Len %d\n",
+		actionType,
 		requestPtr->buf_len,
 		requestPtr->data_len);
 
@@ -1713,7 +1710,7 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 		fpcActionPtr,
 		setDataPtr);
 
-	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_VERBOSE("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),
 		requestPtr->buf_len,
 		requestPtr->data_len);
@@ -1799,7 +1796,7 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 	ESIF_ASSERT(primitivePtr != NULL);
 	ESIF_ASSERT(fpcActionPtr != NULL);
 
-	ESIF_TRACE_DEBUG("Send To LOWER_FRAMEWORK/KERNEL\n");
+	ESIF_TRACE_VERBOSE("Send To LOWER_FRAMEWORK/KERNEL\n");
 
 	if (NULL == responsePtr) {
 		ESIF_TRACE_ERROR("Response pointer is NULL\n");
@@ -1848,7 +1845,7 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 	}
 
 	responsePtr->data_len = ipcPrimPtr->rsp_data_len;
-	ESIF_TRACE_DEBUG("IPC rc %s, Primitive rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_VERBOSE("IPC rc %s, Primitive rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(ipcPtr->return_code),
 		esif_rc_str(ipcPrimPtr->return_code),
 		responsePtr->buf_len,

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -127,22 +127,22 @@ vector<DynamicIdspTableEntry> SupportedDynamicPolicyList::parseBufferForDynamicP
 	vector<DynamicIdspTableEntry> entries;
 	for (UIntN i = 0; i < rowCount; i++)
 	{
-		string uuid(
+		auto uuid = StringParser::trimNulls(string(
 			reinterpret_cast<const char*>(&(currentRow->uuid)) + sizeof(union esif_data_variant),
-			currentRow->uuid.string.length);
+			currentRow->uuid.string.length));
 
 		data += currentRow->uuid.string.length;
 		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
-		string uuidTemplate(
+		auto uuidTemplate = StringParser::trimNulls(string(
 			reinterpret_cast<const char*>(&(currentRow->templateGuid)) + sizeof(union esif_data_variant),
-			currentRow->templateGuid.string.length);
+			currentRow->templateGuid.string.length));
 
 		data += currentRow->templateGuid.string.length;
 		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);
 
 		const char* nameAddress = reinterpret_cast<const char*>(&currentRow->name) + sizeof(union esif_data_variant);
-		string name(nameAddress, currentRow->name.string.length);
+		auto name = StringParser::trimNulls(string(nameAddress, currentRow->name.string.length));
 
 		data += currentRow->name.string.length;
 		currentRow = reinterpret_cast<EsifDataBinarySupportedDynamicPolicyListPackage*>(data);

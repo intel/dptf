@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -72,26 +72,28 @@ UInt8* DptfBuffer::get() const
 
 UInt8 DptfBuffer::get(UInt32 byteNumber) const
 {
-	if (byteNumber >= size())
+	throwIfOutsideBuffer(byteNumber);
+	return m_buffer.at(byteNumber);
+}
+
+DptfBuffer DptfBuffer::get(UInt32 offset, UInt32 numberOfBytes) const
+{
+	throwIfOutsideBuffer(offset);
+	auto copyBuffer = m_buffer;
+	copyBuffer.erase(copyBuffer.begin(), copyBuffer.begin() + offset);
+	auto buffer = fromExistingByteVector(copyBuffer);
+	if (buffer.size() < numberOfBytes)
 	{
-		throw dptf_exception("Requested byte number from DPTF Buffer is outside of the valid range.");
+		throw dptf_exception("Not enough bytes!");
 	}
-	else
-	{
-		return m_buffer.at(byteNumber);
-	}
+	buffer.trim(numberOfBytes);
+	return buffer;
 }
 
 void DptfBuffer::set(UInt32 byteNumber, UInt8 byteValue)
 {
-	if (byteNumber >= size())
-	{
-		throw dptf_exception("Requested byte number from DPTF Buffer is outside of the valid range.");
-	}
-	else
-	{
-		m_buffer.at(byteNumber) = byteValue;
-	}
+	throwIfOutsideBuffer(byteNumber);
+	m_buffer.at(byteNumber) = byteValue;
 }
 
 UInt32 DptfBuffer::size() const
@@ -127,14 +129,8 @@ Bool DptfBuffer::operator==(const DptfBuffer& rhs) const
 
 UInt8 DptfBuffer::operator[](UInt32 byteNumber) const
 {
-	if (byteNumber < size())
-	{
-		return m_buffer[byteNumber];
-	}
-	else
-	{
-		throw dptf_out_of_range("Byte offset out of range in buffer");
-	}
+	throwIfOutsideBuffer(byteNumber);
+	return m_buffer[byteNumber];
 }
 
 DptfBuffer::operator const std::vector<UInt8>&() const
@@ -205,3 +201,12 @@ std::ostream& operator<<(std::ostream& os, const DptfBuffer& buffer)
 	}
 	return os;
 }
+
+void DptfBuffer::throwIfOutsideBuffer(UInt32 byteNumber) const
+{
+	if (byteNumber >= size())
+	{
+		throw dptf_exception("Requested byte number from DPTF Buffer is outside of the valid range.");
+	}
+}
+

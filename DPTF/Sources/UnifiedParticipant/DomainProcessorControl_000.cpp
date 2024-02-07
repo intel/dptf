@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,6 +48,26 @@ void DomainProcessorControl_000::setPerfPreferenceMax(const Percentage& cpuMaxRa
 }
 
 void DomainProcessorControl_000::setPerfPreferenceMin(const Percentage& cpuMinRatio)
+{
+	throw not_implemented();
+}
+
+SocGear::Type DomainProcessorControl_000::getSocGear() const
+{
+	throw not_implemented();
+}
+
+void DomainProcessorControl_000::setSocGear(SocGear::Type gear)
+{
+	throw not_implemented();
+}
+
+SystemUsageMode::Type DomainProcessorControl_000::getSocSystemUsageMode()
+{
+	throw not_implemented();
+}
+
+void DomainProcessorControl_000::setSocSystemUsageMode(SystemUsageMode::Type mode)
 {
 	throw not_implemented();
 }

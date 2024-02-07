@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -145,6 +145,7 @@ static const InclinometerMinMaxConfig gInclinMinMaxConfig= {
 	INCLIN_Y_ORIENT_FLAT_MAX,
 };
 
+static InclinometerMinMaxConfig currentInclinMinMaxConfig;
 // Global sensors array
 static Sensor *gSensors;
 static int gSensorsNum;
@@ -196,6 +197,26 @@ static int IioDeviceFilter(const struct dirent *entry)
 	else return 0;
 };
 
+static void DumpInclionmeterValues(const InclinometerMinMaxConfig *data)
+{
+	if (data == NULL) {
+		return;
+	}
+	ESIF_TRACE_DEBUG("\n xFlatUpMin : %f, xFlatUpMax : %f, xFlatDownMin : %f, xFlatDownMax : %f,\n \
+	 xUprightMin : %f, xUprightMax : %f, xUprightInvMin : %f, xUprightInvMax :%f, \n \
+	 yFlatMax : %f\n", 
+	 data->xFlatUpMin, 
+	 data->xFlatUpMax,
+	 data->xFlatDownMin,
+	 data->xFlatDownMax,
+	 data->xUprightMin,
+	 data->xUprightMax,
+	 data->xUprightInvMin,
+	 data->xUprightInvMax,
+	 data->xFlatUpMin
+	 );
+}
+
 static eEsifError AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
 {
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
@@ -210,7 +231,16 @@ static eEsifError AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
 			if (NULL == gAccelBase) gAccelBase = sensorPtr;
 		} else {
 			sensorPtr->base.loc = SENSOR_LOC_LID;
-			if (NULL == gAccelLid) gAccelLid = sensorPtr;
+			if (NULL == gAccelLid) {
+				gAccelLid = sensorPtr;
+			}
+			// dump the initial global values
+			DumpInclionmeterValues(&gInclinMinMaxConfig);
+
+			currentInclinMinMaxConfig = gInclinMinMaxConfig;
+			// Get the angle values from DV overrides if available
+			EsifAccelerometer_GetAngleValues(&currentInclinMinMaxConfig);
+			DumpInclionmeterValues(&currentInclinMinMaxConfig);
 		}
 	}
 	else {
@@ -405,7 +435,7 @@ static AccelerometerData NormalizeAccelRawData(SensorPtr sensorPtr)
 	data.zVal = sensorPtr->data.accel.zRaw * sensorPtr->data.accel.scale / MAX_GFORCE;
 
 	return data;
-};
+}
 
 static void CheckDispPlatOrientation(SensorPtr sensorPtr)
 {
@@ -417,8 +447,9 @@ static void CheckDispPlatOrientation(SensorPtr sensorPtr)
 		return;
 
 	AccelerometerData data = NormalizeAccelRawData(sensorPtr);
+
 	EsifAccelerometer_GetOrientations(
-			gInclinMinMaxConfig,
+			currentInclinMinMaxConfig,
 			&data,
 			gDispOrientation,
 			gPlatOrientation,

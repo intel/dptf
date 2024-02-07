@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2023 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2024 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -2222,12 +2222,13 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		esif_ccb_sprintf_concat(dataLength, logString, "AC Peak Power,DC Peak Power,");
 		break;
 	case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_TCC Offset(C),%s_D%d_Under Voltage Threshold (mV),", participantName, domainId, participantName, domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, "%s_D%d_TCC Offset(C),%s_D%d_Under Voltage Threshold (mV),%s_D%d_Perf Preference Min (%%),%s_D%d_Perf Preference Max (%%),Soc Optimization Slider(Gear),Soc System Usage Mode,",
+			participantName, domainId, participantName, domainId, participantName, domainId, participantName, domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_MANAGER:
 		esif_ccb_sprintf_concat(dataLength, logString, "OS Power Source,OS Battery Percent,OS Dock Mode,OS Game Mode,OS Lid State,OS Power Slider,OS User Interaction,"
 			"OS User Presence,OS Screen State,Device Orientation,In Motion,System Cooling Mode,OS Platform Type,"
-			"Display Orientation,OS Power Scheme Personality,OS Mixed Reality Mode,Platform User Presence,Foreground Background Ratio,Collaboration State,");
+			"Display Orientation,OS Power Scheme Personality,OS Mixed Reality Mode,Platform User Presence,Foreground Background Ratio,Collaboration State,IP Alignment State,");
 		break;
 	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
 		esif_ccb_sprintf_concat(dataLength, logString, "SOC Workload,SOC Workload Classification Source,");
@@ -2489,16 +2490,22 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			int temp = (int)capabilityPtr->data.processorControlStatus.tccOffset;
 			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&temp);
 
-			esif_ccb_sprintf_concat(dataLength, logString, "%.1f,%u,", temp / 10.0, capabilityPtr->data.processorControlStatus.uvth);
+			esif_ccb_sprintf_concat(dataLength, logString, "%.1f,%u,%u,%u,%u,%u,",
+				temp / 10.0, capabilityPtr->data.processorControlStatus.uvth,
+				capabilityPtr->data.processorControlStatus.perfPreferenceMin,
+				capabilityPtr->data.processorControlStatus.perfPreferenceMax,
+				capabilityPtr->data.processorControlStatus.socOptimizationSlider,
+				capabilityPtr->data.processorControlStatus.socSystemUsageMode
+			);
 			break;
 		}
 		case ESIF_CAPABILITY_TYPE_MANAGER:
 		{
 			if (capabilityPtr->data.managerStatus.osPowerSource == ESIF_INVALID_DATA) {
-				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+				esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			}
 			else {
-				esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,",
+				esif_ccb_sprintf_concat(dataLength, logString, "%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,%u,",
 					capabilityPtr->data.managerStatus.osPowerSource,
 					capabilityPtr->data.managerStatus.batteryPercent,
 					capabilityPtr->data.managerStatus.dockMode,
@@ -2517,7 +2524,8 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 					capabilityPtr->data.managerStatus.mixedRealityMode,
 					capabilityPtr->data.managerStatus.platformUserPresence,
 					capabilityPtr->data.managerStatus.foregroundBackgroundRatio,
-					capabilityPtr->data.managerStatus.collaboration
+					capabilityPtr->data.managerStatus.collaboration,
+					capabilityPtr->data.managerStatus.ipaState
 				);
 			}
 			break;
@@ -2538,11 +2546,13 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY:
 		case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 		case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
-		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,");
 			break;
-		case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
+		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+		case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
+		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+		case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_CORE_CONTROL:
 		case ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL:
@@ -2551,19 +2561,18 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
 			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,");
 			break;
+		case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
 		case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
 			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
-		case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
-		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
-			break;
-		case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
 			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,");
+			break;
+		case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_POWER_CONTROL:
 		{
@@ -2592,11 +2601,8 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			}
 			break;
 		}
-		case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,X,");
-			break;
 		case ESIF_CAPABILITY_TYPE_MANAGER:
-			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+			esif_ccb_sprintf_concat(dataLength, logString, "X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			break;
 		default:
 			rc = ESIF_E_UNSPECIFIED;
@@ -2816,6 +2822,12 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 	{
 		UInt32 temp = 0;
 		struct esif_data temp_response = { ESIF_DATA_TEMPERATURE, &temp, sizeof(temp), sizeof(temp) };
+		UInt32 perfPreference = 0;
+		struct esif_data perf_response = { ESIF_DATA_PERCENT, &perfPreference, sizeof(perfPreference), sizeof(perfPreference) };
+		UInt32 socOptimizationSlider = ESIF_INVALID_DATA;
+		struct esif_data socOptimizationSlider_response = { ESIF_DATA_UINT32, &socOptimizationSlider, sizeof(socOptimizationSlider), sizeof(socOptimizationSlider) };
+		UInt32 socSystemUsageModeHint = ESIF_INVALID_DATA;
+		struct esif_data socSystemUsageModeHint_response = { ESIF_DATA_UINT32, &socSystemUsageModeHint, sizeof(socSystemUsageModeHint), sizeof(socSystemUsageModeHint) };
 
 		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_TCC_OFFSET, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &temp_response);
 		if (ESIF_OK != rc) {
@@ -2823,11 +2835,37 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			temp = 0;
 		}
 		dataNodePtr->capabilityData.data.processorControlStatus.tccOffset = temp;
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_PERF_PREFERENCE_MAX, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &perf_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_PERF_PREFERENCE_MAX primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			perfPreference = 0;
+		}
+		dataNodePtr->capabilityData.data.processorControlStatus.perfPreferenceMax = perfPreference / 100;
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_PERF_PREFERENCE_MIN, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &perf_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_PERF_PREFERENCE_MIN primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			perfPreference = 0;
+		}
+		dataNodePtr->capabilityData.data.processorControlStatus.perfPreferenceMin = perfPreference / 100;
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_OPTIMIZATION_SLIDER, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socOptimizationSlider_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_OPTIMIZATION_SLIDER primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+		}
+		dataNodePtr->capabilityData.data.processorControlStatus.socOptimizationSlider = socOptimizationSlider;
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_SOC_SYSTEM_USAGE_MODE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socSystemUsageModeHint_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_SOC_SYSTEM_USAGE_MODE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+		}
+		dataNodePtr->capabilityData.data.processorControlStatus.socSystemUsageMode = socSystemUsageModeHint;
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_MANAGER:
 	{
-		UInt32 eventData = ESIF_INVALID_DATA;
+		IpAlignmentState eventData = IP_ALIGNMENT_STATUS_INVALID;
 		esif_guid_t  eventGuidData = { 0 };
 		struct esif_data capabilityEventData = { ESIF_DATA_UINT32, &eventData, sizeof(eventData), sizeof(eventData) };
 		struct esif_data capabilityEventGuidData = { ESIF_DATA_GUID, &eventGuidData, sizeof(eventGuidData), sizeof(eventGuidData) };
@@ -2964,6 +3002,13 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			ESIF_TRACE_INFO("Failed to retrieve collaboration event cache data \n");
 		}
 		dataNodePtr->capabilityData.data.managerStatus.collaboration = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_IP_ALIGNMENT_STATUS, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve IPA state event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.ipaState = eventData;
 
 		break;
 	}
