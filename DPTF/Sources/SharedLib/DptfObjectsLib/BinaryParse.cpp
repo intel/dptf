@@ -27,7 +27,7 @@ UInt64 BinaryParse::extractBits(UInt16 startBit, UInt16 stopBit, UInt64 data)
 	}
 
 	UInt64 bitCount = (startBit - stopBit) + 1;
-	UInt64 mask = (1 << bitCount) - 1;
+	UInt64 mask = ((UInt64)1 << bitCount) - 1;
 
 	return (data >> stopBit) & mask;
 }

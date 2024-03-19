@@ -32,7 +32,7 @@ public:
 
 	virtual UInt32 readConfigurationUInt32(const std::string& key) override final;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) override final;
-	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) override final;
+	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data, UInt32 flags) override final;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) override final;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) override final;
 	virtual void writeConfigurationBinary(
@@ -40,7 +40,8 @@ public:
 		UInt32 bufferLength,
 		UInt32 dataLength,
 		const std::string& nameSpace,
-		const std::string& key) override final;
+		const std::string& key,
+		UInt32 flags) override final;
 	virtual void deleteConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override final;
 	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) override final;
 

@@ -112,9 +112,6 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 
 UIntN PowerControlDynamicCapsSet::getPpccDataRows(const DptfBuffer& buffer)
 {
-	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-	data += sizeof(esif_data_variant); // Ignore revision field
-
 	if (buffer.size() == 0)
 	{
 		throw dptf_exception("Received empty PPCC buffer.");

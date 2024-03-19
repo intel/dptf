@@ -39,7 +39,14 @@ DomainPowerControl_001::DomainPowerControl_001(
 
 DomainPowerControl_001::~DomainPowerControl_001(void)
 {
-	restore();
+	try
+	{
+		restore();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 PowerControlDynamicCapsSet DomainPowerControl_001::getPowerControlDynamicCapsSet(

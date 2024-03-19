@@ -493,6 +493,8 @@ esif_error_t IpcSession_Connect(IpcSession_t handle)
 			// Send websocket upgrade request, using Server Address (minus protocol) as the Host/Origin
 			char scheme[] = IPC_PROTO_SCHEME;
 			const char *srvhost = esif_ccb_strstr(self->serverAddr, scheme);
+			ssize_t ret = 0;
+
 			srvhost = (srvhost ? srvhost + sizeof(scheme) - 1 : self->serverAddr);
 			esif_ccb_sprintf(self->maxRecvBuf, self->recvBuf,
 				upgradeHeader,
@@ -500,7 +502,12 @@ esif_error_t IpcSession_Connect(IpcSession_t handle)
 				srvhost,
 				request_key
 			);
-			send(self->socket, self->recvBuf, (int)esif_ccb_strlen(self->recvBuf, self->maxRecvBuf), 0);
+			ret = send(self->socket, self->recvBuf, (int)esif_ccb_strlen(self->recvBuf, self->maxRecvBuf), 0);
+
+			if (ret == SOCKET_ERROR) {
+				DEBUGMSG("send error = %d\n", esif_ccb_socket_error());
+			}
+
 			esif_ccb_memset(self->recvBuf, 0, self->maxRecvBuf);
 
 			// Generate expected Response Key
@@ -564,7 +571,12 @@ void IpcSession_Disconnect(IpcSession_t handle)
 		// Stop I/O Worker Thread
 		if (atomic_read(&self->numThreads) && self->doorbell[DOORBELL_BUTTON] != INVALID_SOCKET) {
 			u8 opcode = WS_OPCODE_QUIT;
-			send(self->doorbell[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0);
+			ssize_t ret = 0;
+
+			ret = send(self->doorbell[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0);
+			if (ret == SOCKET_ERROR) {
+				DEBUGMSG("send error = %d\n", esif_ccb_socket_error());
+			}
 			esif_ccb_wthread_join(&self->ioThread);
 			atomic_dec(&self->numThreads);
 		}

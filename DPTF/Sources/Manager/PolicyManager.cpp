@@ -42,7 +42,14 @@ PolicyManager::PolicyManager(DptfManagerInterface* dptfManager, const set<Guid>&
 
 PolicyManager::~PolicyManager(void)
 {
-	destroyAllPolicies();
+	try
+	{
+		destroyAllPolicies();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 void PolicyManager::createAllPolicies(const string& dptfPolicyDirectoryPath)

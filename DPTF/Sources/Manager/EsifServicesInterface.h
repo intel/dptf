@@ -47,7 +47,7 @@ public:
 
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) = 0;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) = 0;
-	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) = 0;
+	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue, UInt32 flags) = 0;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual void writeConfigurationBinary(
@@ -55,7 +55,8 @@ public:
 		UInt32 bufferLength,
 		UInt32 dataLength,
 		const std::string& nameSpace,
-		const std::string& elementPath) = 0;
+		const std::string& elementPath,
+		UInt32 flags) = 0;
 	virtual void deleteConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) = 0;
 
 	// Primitives

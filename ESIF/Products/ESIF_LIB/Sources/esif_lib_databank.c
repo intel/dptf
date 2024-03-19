@@ -388,11 +388,13 @@ static esif_error_t DataBank_RollbackRepos(DataBankPtr self)
 	int err = 0;
 
 	UNREFERENCED_PARAMETER(self);
-	UNREFERENCED_PARAMETER(err);
 
 	// Create DataVault Directory if it doesn't exit
 	esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_DV, NULL, NULL);
-	esif_ccb_makepath(file_path);
+	if ((err = esif_ccb_makepath(file_path)) != 0) {
+		rc = ESIF_E_API_ERROR;
+		goto exit;
+	}
 
 	// Find all matching *.dv.tmp and *.dvx.tmp files and Rollback
 	for (extid = 0; extid < sizeof(extensions) / sizeof(extensions[0]); extid++) {
@@ -491,12 +493,16 @@ static esif_error_t DataBank_LoadFileRepos(DataBankPtr self)
 	char file_path[MAX_PATH] = {0};
 	char file_pattern[MAX_PATH] = {0};
 	int extid = 0;
+	int err = 0;
 	
 	UNREFERENCED_PARAMETER(self);
 
 	// Create DataVault Directory if it doesn't exit
 	esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_DV, NULL, NULL);
-	esif_ccb_makepath(file_path);
+	if ((err = esif_ccb_makepath(file_path)) != 0) {
+		rc = ESIF_E_API_ERROR;
+		goto exit;
+	}
 
 	// Import all matching *.dv and *.dvx files into ReadWrite DataVaults
 	for (extid = 0; extid < sizeof(extensions) / sizeof(extensions[0]); extid++) {

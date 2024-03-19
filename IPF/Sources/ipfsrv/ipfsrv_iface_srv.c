@@ -727,7 +727,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppCommand(
 		else if (esif_ccb_stricmp(opcode, "queue") == 0) {
 			// ipfsrv queue <limit>
 			if (optarg) {
-				size_t maxQueue = (size_t)(optarg ? atoi(optarg) : 0);
+				size_t maxQueue = (size_t)atoi(optarg);
 				if (maxQueue) {
 					WebServer_SetRpcQueueMax(g_WebServer, maxQueue);
 				}
@@ -739,7 +739,7 @@ esif_error_t ESIF_CALLCONV IpfSrv_AppCommand(
 		else if (esif_ccb_stricmp(opcode, "timeout") == 0) {
 			// ipfsrv timeout <seconds>
 			if (optarg) {
-				size_t timeout = (size_t)(optarg ? atoi(optarg) : 0);
+				size_t timeout = (size_t)atoi(optarg);
 				AppSessionMgr_SetTimeout(timeout);
 			}
 			responsePtr->data_len = (u32)esif_ccb_sprintf(responsePtr->buf_len, responsePtr->buf_ptr, "%zd\n", AppSessionMgr_GetTimeout()) + 1;

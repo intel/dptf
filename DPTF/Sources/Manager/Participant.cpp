@@ -41,7 +41,14 @@ Participant::Participant(DptfManagerInterface* dptfManager)
 
 Participant::~Participant(void)
 {
-	destroyParticipant();
+	try
+	{
+		destroyParticipant();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 void Participant::createParticipant(

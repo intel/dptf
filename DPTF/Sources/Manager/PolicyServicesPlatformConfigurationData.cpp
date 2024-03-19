@@ -48,10 +48,10 @@ UInt32 PolicyServicesPlatformConfigurationData::readConfigurationUInt32(
 	return value;
 }
 
-void PolicyServicesPlatformConfigurationData::writeConfigurationUInt32(const std::string& key, UInt32 data)
+void PolicyServicesPlatformConfigurationData::writeConfigurationUInt32(const std::string& key, UInt32 data, UInt32 flags)
 {
 	throwIfNotWorkItemThread();
-	getEsifServices()->writeConfigurationUInt32(key, data);
+	getEsifServices()->writeConfigurationUInt32(key, data, flags);
 }
 
 std::string PolicyServicesPlatformConfigurationData::readConfigurationString(
@@ -76,10 +76,11 @@ void PolicyServicesPlatformConfigurationData::writeConfigurationBinary(
 	UInt32 bufferLength,
 	UInt32 dataLength,
 	const std::string& nameSpace,
-	const std::string& key)
+	const std::string& key,
+	UInt32 flags)
 {
 	throwIfNotWorkItemThread();
-	return getEsifServices()->writeConfigurationBinary(bufferPtr, bufferLength, dataLength, nameSpace, key);
+	return getEsifServices()->writeConfigurationBinary(bufferPtr, bufferLength, dataLength, nameSpace, key, flags);
 }
 
 void PolicyServicesPlatformConfigurationData::deleteConfigurationBinary(

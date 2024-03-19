@@ -312,7 +312,6 @@ static int replace_str(char *str, char *old, char *new, char *rpl_buff, int rpl_
 static int get_key_value_pair_from_str(const char *str, char *key, char *value);
 static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *table_str);
 static void get_full_scope_str(char *orig, char *new);
-static void replace_cpu_id(char *str);
 static u64 GetCpuFreqPdl(void);
 static void GetNumberOfCpuCores();
 static enum esif_rc get_supported_policies(char *table_str, int idspNum, char *sysfs_str);
@@ -1771,19 +1770,6 @@ exit:
 	return rc;
 }
 
-
-static void replace_cpu_id(char *str)
-{
-	char cpu_path[MAX_SYSFS_PATH] = { 0 };
-	char *cpu_target_loc = "/sys/devices/pci0000:00/0000:00:04.0/firmware_node";
-	char *cpu_target_node = "path";
-	SysfsGetString(cpu_target_loc, cpu_target_node, cpu_path, sizeof(cpu_path));
-	if (esif_ccb_stricmp(str, "B0D4") == 0 ||    // Haswell & BroadwelL
-		esif_ccb_stricmp(str, "B0DB") == 0) {    // Cherry TraiL
-		esif_ccb_strcpy(str, "TCPU", 5);
-	}
-}
-
 static u64 GetCpuFreqPdl(void)
 {
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
@@ -2544,9 +2530,6 @@ static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *t
 		char full_acpi_scope[MAX_ACPI_SCOPE_LEN] = "";
 
 		if (ART == type) {
-			// If target device is CPU, make sure that it is named TCPU (TCPU cannot be source in ART)
-			//replace_cpu_id(art_entry->target_device);
-
 			// Format ART strings
 			get_participant_scope(art_entry->art_source_device, full_acpi_scope);
 			len += esif_ccb_snprintf(table_str + len, MAX_ACPI_SCOPE_LEN, "%s", full_acpi_scope);
@@ -2568,10 +2551,6 @@ static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *t
 			len += esif_ccb_snprintf(table_str + len, 8, "%lld,", (long long) art_entry->art_ac8_max_level);
 			len += esif_ccb_snprintf(table_str + len, 8, "%lld", (long long) art_entry->art_ac9_max_level);
 		} else {
-			// If device is CPU, make sure that it is named TCPU
-			//replace_cpu_id(trt_entry->source_device);
-			//replace_cpu_id(trt_entry->target_device);
-
 			// Format TRT strings
 			get_participant_scope(trt_entry->trt_source_device, full_acpi_scope);
 			len += esif_ccb_snprintf(table_str + len, MAX_ACPI_SCOPE_LEN, "%s", full_acpi_scope);

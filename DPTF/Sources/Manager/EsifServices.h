@@ -36,7 +36,7 @@ public:
 
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) override;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) override;
-	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) override;
+	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue, UInt32 flags) override;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual void writeConfigurationBinary(
@@ -44,7 +44,8 @@ public:
 		UInt32 bufferLength,
 		UInt32 dataLength,
 		const std::string& nameSpace,
-		const std::string& elementPath) override;
+		const std::string& elementPath,
+		UInt32 flags) override;
 	virtual void deleteConfigurationBinary(
 		const std::string& nameSpace,
 		const std::string& elementPath) override;

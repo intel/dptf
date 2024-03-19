@@ -28,7 +28,7 @@ public:
 
 	virtual UInt32 readConfigurationUInt32(const std::string& key) = 0;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) = 0;
-	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) = 0;
+	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data, UInt32 flags) = 0;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) = 0;
 	virtual void writeConfigurationBinary(
@@ -36,7 +36,8 @@ public:
 		UInt32 bufferLength,
 		UInt32 dataLength,
 		const std::string&,
-		const std::string&) = 0;
+		const std::string&,
+		UInt32 flags) = 0;
 	virtual void deleteConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) = 0;
 

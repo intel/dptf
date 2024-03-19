@@ -411,10 +411,8 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 
 	UNREFERENCED_PARAMETER(initialAppState);
 
-	if (!self) {
-		return rc;
-	}
-	else if (esifHandle == ESIF_INVALID_HANDLE) {
+	// g_esifApp can't be null so no need to check if self is null
+	if (esifHandle == ESIF_INVALID_HANDLE) {
 		rc = ESIF_E_INVALID_HANDLE;
 	}
 	else if (self->appHandle != ESIF_INVALID_HANDLE || self->esifHandle != ESIF_INVALID_HANDLE) {
@@ -616,10 +614,8 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	EsifAppInstance *self = &g_esifApp;
 
-	if (!self) {
-		return rc;
-	}
-	else if (appHandle == ESIF_INVALID_HANDLE || appHandle != self->appHandle) {
+	// g_esifApp can't be null so no need to check if self is null
+	if (appHandle == ESIF_INVALID_HANDLE || appHandle != self->appHandle) {
 		rc = ESIF_E_INVALID_HANDLE;
 	}
 	else if (argc && argv && argv[0].buf_ptr && argv[0].data_len && response) {
@@ -844,10 +840,8 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppGetStatus(
 	UNREFERENCED_PARAMETER(command);
 	UNREFERENCED_PARAMETER(appStatusIn);
 
-	if (!self) {
-		return rc;
-	}
-	else if (appHandle == ESIF_INVALID_HANDLE || appHandle != self->appHandle) {
+	// g_esifApp can't be null so no need to check if self is null
+	if (appHandle == ESIF_INVALID_HANDLE || appHandle != self->appHandle) {
 		rc = ESIF_E_INVALID_HANDLE;
 	}
 	else if (appStatusOut->buf_ptr && appStatusOut->buf_len) {

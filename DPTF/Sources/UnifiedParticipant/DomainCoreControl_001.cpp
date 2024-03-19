@@ -31,7 +31,14 @@ DomainCoreControl_001::DomainCoreControl_001(
 
 DomainCoreControl_001::~DomainCoreControl_001(void)
 {
-	restore();
+	try
+	{
+		restore();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 CoreControlStaticCaps DomainCoreControl_001::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)

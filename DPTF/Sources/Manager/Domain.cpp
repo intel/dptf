@@ -74,7 +74,14 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 
 Domain::~Domain(void)
 {
-	destroyDomain();
+	try
+	{
+		destroyDomain();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 void Domain::createDomain(

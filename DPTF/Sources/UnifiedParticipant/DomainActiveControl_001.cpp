@@ -34,7 +34,14 @@ DomainActiveControl_001::DomainActiveControl_001(
 
 DomainActiveControl_001::~DomainActiveControl_001(void)
 {
-	restore();
+	try
+	{
+		restore();
+	}
+	catch(const std::exception& e)
+	{
+
+	}
 }
 
 DptfBuffer DomainActiveControl_001::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)

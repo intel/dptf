@@ -32,7 +32,14 @@ ParticipantManager::ParticipantManager(DptfManagerInterface* dptfManager)
 
 ParticipantManager::~ParticipantManager(void)
 {
-	destroyAllParticipants();
+	try
+	{
+		destroyAllParticipants();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 UIntN ParticipantManager::allocateNextParticipantIndex()

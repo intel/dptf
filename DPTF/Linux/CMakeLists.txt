@@ -1,13 +1,13 @@
 project(DPTF)
-
+cmake_minimum_required(VERSION 3.9)
 cmake_minimum_required(VERSION 2.8.6)
 
 message ("CXX Flags (initial) : " ${CMAKE_CXX_FLAGS}) 
 message ("C Flags (initial) : " ${CMAKE_C_FLAGS})
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-unqualified-std-cast-call -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-unqualified-std-cast-call -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden -Wl,--no-undefined ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden")
 
 if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0") 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
@@ -41,6 +41,12 @@ if (CHROMIUM_BUILD MATCHES YES)
         set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x64)
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/x64)
 	endif()
+	# Add below WA for Chrome builds with latest CROS SDK
+	set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+	set(CMAKE_HAVE_THREADS_LIBRARY 1)
+	set(CMAKE_USE_WIN32_THREADS_INIT 0)
+	set(CMAKE_USE_PTHREADS_INIT 1)
+	set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 else()
 	message("Building for Linux...")

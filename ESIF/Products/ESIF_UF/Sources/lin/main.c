@@ -380,8 +380,6 @@ static int check_for_uevent(int fd) {
 	while (i < len) {
 
 		buf_ptr = buffer + i;
-		if (!buf_ptr)
-			break;
 
 		if (esif_ccb_strlen(buf_ptr, sizeof(dev_path)) > dev_path_len
 				&& esif_ccb_strncmp(buf_ptr, dev_path, dev_path_len) == 0) {
@@ -916,7 +914,7 @@ int SysfsSetStringWithError(const char *path, const char *filename, char *buffer
 
 	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
 
-	if (length && ((fd = open(filepath, O_WRONLY)) == -1)) {
+	if (!length || ((fd = open(filepath, O_WRONLY)) == -1)) {
 		goto exit;
 	}
 
@@ -1244,7 +1242,9 @@ static void *esif_udev_listen(void *ptr)
 	sock_addr_src.nl_pid = getpid();
 	sock_addr_src.nl_groups = -1;
 
-	bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src));
+	if ( bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src)) != ESIF_OK) {
+		goto exit;
+	}
 
 	esif_ccb_memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
 	sock_addr_dest.nl_family = AF_NETLINK;

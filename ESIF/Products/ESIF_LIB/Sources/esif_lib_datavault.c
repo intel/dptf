@@ -1108,7 +1108,9 @@ static esif_error_t DataVault_ReadPayload(
 						(stream->memory.buffer + stream->memory.offset),
 						payload_size);
 
-					IOStream_Seek(stream, payload_size, SEEK_CUR);
+					if (IOStream_Seek(stream, payload_size, SEEK_CUR) != EOK) {
+						rc = ESIF_E_IO_ERROR;
+					}
 				}
 			}
 			// Load Payload into Memory if stream is a File Stream
@@ -1205,8 +1207,12 @@ static esif_error_t DataVault_ReadKeyValuePair(
 
 		// If Header Signature found, Rewind to Item Start so next DV can be read
 		if (thisSignature == headerSignature) {
-			IOStream_Seek(stream, rewind_pos, SEEK_SET);
-			rc = ESIF_E_ITERATION_DONE;
+			if (IOStream_Seek(stream, rewind_pos, SEEK_SET) != EOK) {
+				rc = ESIF_E_IO_ERROR;
+			}
+			else {
+				rc = ESIF_E_ITERATION_DONE;
+			}
 			goto exit;
 		}
 
@@ -1228,8 +1234,12 @@ static esif_error_t DataVault_ReadKeyValuePair(
 	// For v2, unknown Item Flags are allowed since they may be used by future minor versions or revisions
 	if (major_version == ESIFDV_V1) {
 		if ((UInt16)(*flagsPtr) == headerSignature) {
-			IOStream_Seek(stream, rewind_pos, SEEK_SET);
-			rc = ESIF_E_ITERATION_DONE;
+			if (IOStream_Seek(stream, rewind_pos, SEEK_SET) != EOK) {			
+				rc = ESIF_E_IO_ERROR;
+			}
+			else {
+				rc = ESIF_E_ITERATION_DONE;
+			}
 			goto exit;
 		}
 		// Fail v1 DV Read if any unknkown Item Flags are detected, since this most likely indicates corrupted/invalid data
@@ -1893,7 +1903,9 @@ esif_error_t DataRepo_ReadHeader(
 			rc = (bytes_read == 0 ? ESIF_E_ITERATION_DONE : ESIF_E_IO_ERROR);
 		}
 		if (rc == ESIF_OK) {
-			IOStream_Seek(self->stream, current_pos, SEEK_SET);
+			if (IOStream_Seek(self->stream, current_pos, SEEK_SET) != EOK) {
+				rc = ESIF_E_IO_ERROR;
+			}
 		}
 	}
 
@@ -2018,7 +2030,9 @@ esif_error_t DataRepo_GetInfo(
 				esif_hash_tostring(header.v2.payload_hash, sizeof(header.v2.payload_hash), info->payload_hash, sizeof(info->payload_hash));
 			}
 		}
-		IOStream_Seek(self->stream, rewind_pos, SEEK_SET);
+		if (IOStream_Seek(self->stream, rewind_pos, SEEK_SET) != EOK) {
+			rc = ESIF_E_IO_ERROR;
+		}
 	}
 	return rc;
 }
@@ -2052,7 +2066,9 @@ esif_error_t DataRepo_SetComment(
 				rc = ESIF_E_NOT_SUPPORTED;
 			}
 		}
-		IOStream_Seek(self->stream, rewind_pos, SEEK_SET);
+		if (IOStream_Seek(self->stream, rewind_pos, SEEK_SET) != EOK){
+			rc = ESIF_E_IO_ERROR;
+		}
 	}
 	return rc;
 }
@@ -2189,7 +2205,9 @@ esif_error_t DataRepo_ValidateSegment(DataRepoPtr self)
 			}
 			esif_ccb_free(buffer);
 		}
-		IOStream_Seek(self->stream, rewind_pos, SEEK_SET);
+		if (IOStream_Seek(self->stream, rewind_pos, SEEK_SET) != EOK) {
+			rc = ESIF_E_IO_ERROR;
+		}
 	}
 	return rc;
 }

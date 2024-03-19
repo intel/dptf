@@ -7262,11 +7262,6 @@ static char *esif_shell_cmd_tableobject(EsifShellCmdPtr shell)
 	}
 	// tableobject delete <tablename> <participant> <domain>
 	else if (esif_ccb_stricmp(action, "delete") == 0  && argc >= opt) {
-		if (argc < opt) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "Too few parameters \n");
-			goto exit;
-		}
-		
 		rc = TableObject_Delete(&tableObject);
 		
 		if (rc != ESIF_OK) {
@@ -12892,7 +12887,7 @@ static char *esif_shell_cmd_capture(EsifShellCmdPtr shell)
 	FILE *configFp = NULL;
 	FILE *fp = NULL;
 	int arg = 1;
-
+	char datetime[MAX_FILENAME] = { 0 };
 	/*
 	Create filename to write to.
 	If filename provided, use filename. Otherwise format filename with
@@ -12912,7 +12907,6 @@ static char *esif_shell_cmd_capture(EsifShellCmdPtr shell)
 	}
 
 	if (!useGivenFileName) {
-		char datetime[MAX_FILENAME] = { 0 };
 		time_t now = time(NULL);
 		struct tm time = { 0 };
 		overwriteIfExists = ESIF_TRUE;

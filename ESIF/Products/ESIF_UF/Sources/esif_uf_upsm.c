@@ -695,6 +695,9 @@ esif_error_t EsifUpsm_Enable(void)
 		EsifUpsm_GetEventFilteringSettings_SmLocked();
 		if (g_upsm.negativeEventFilteringEnabled || g_upsm.positiveEventFilteringEnabled) {
 			rc = EsifUpsm_EnableEventFiltering_SmLocked();
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to enable event filtering.");
+			}
 		}
 
 		rc = EsifUpsm_RegisterEvents();

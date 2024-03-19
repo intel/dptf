@@ -106,7 +106,7 @@ UInt32 EsifServices::readConfigurationUInt32(const string& nameSpace, const stri
 	return esifResult;
 }
 
-void EsifServices::writeConfigurationUInt32(const string& elementPath, UInt32 elementValue)
+void EsifServices::writeConfigurationUInt32(const string& elementPath, UInt32 elementValue, UInt32 flags)
 {
 	eEsifError rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
@@ -114,7 +114,7 @@ void EsifServices::writeConfigurationUInt32(const string& elementPath, UInt32 el
 		EsifDataString("dptf"),
 		EsifDataString(elementPath),
 		EsifDataUInt32(elementValue),
-		ESIF_SERVICE_CONFIG_PERSIST);
+		flags);
 
 	if (rc != ESIF_OK)
 	{
@@ -189,7 +189,8 @@ void EsifServices::writeConfigurationBinary(
 	UInt32 bufferLength,
 	UInt32 dataLength,
 	const string& nameSpace,
-	const string& key)
+	const string& key,
+	UInt32 flags)
 {
 	eEsifError rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
@@ -197,7 +198,7 @@ void EsifServices::writeConfigurationBinary(
 		EsifDataString(nameSpace),
 		EsifDataString(key),
 		EsifDataContainer(ESIF_DATA_BINARY, bufferPtr, bufferLength, dataLength),
-		ESIF_SERVICE_CONFIG_PERSIST);
+		flags);
 
 	if (rc != ESIF_OK)
 	{

@@ -136,37 +136,39 @@ int IOStream_SetMemory(
 
 	self->type = StreamMemory;
 	self->memory.store = store;
-	if (buffer) {
-		switch (self->memory.store) {
-		case StoreStatic:
+	
+	switch (self->memory.store) {
+	case StoreStatic:
+		if (buffer) {
 			self->memory.buffer = buffer;
 			self->memory.data_len = size;
 			self->memory.buf_len = size;
-			break;
-
-		case StoreReadOnly:
-		case StoreReadWrite:
-			if (buffer || size) {
-				bufSize = ((size / IOSTREAM_MEMORY_STREAM_BLOCK_SIZE) + 1) * IOSTREAM_MEMORY_STREAM_BLOCK_SIZE;
-				self->memory.buffer = esif_ccb_malloc(bufSize);
-				if (NULL == self->memory.buffer) {
-					rc = ENOMEM;
-				}
-				else {
-					if (buffer && size) {
-						esif_ccb_memcpy(self->memory.buffer, buffer, size);
-					}
-					self->memory.data_len = size;
-					self->memory.buf_len = bufSize;
-				}
-			}
-			break;
-
-		default:
-			rc = EINVAL;
-			break;
 		}
+		break;
+
+	case StoreReadOnly:
+	case StoreReadWrite:
+		if (buffer || size) {
+			bufSize = ((size / IOSTREAM_MEMORY_STREAM_BLOCK_SIZE) + 1) * IOSTREAM_MEMORY_STREAM_BLOCK_SIZE;
+			self->memory.buffer = esif_ccb_malloc(bufSize);
+			if (NULL == self->memory.buffer) {
+				rc = ENOMEM;
+			}
+			else {
+				if (buffer && size) {
+					esif_ccb_memcpy(self->memory.buffer, buffer, size);
+				}
+				self->memory.data_len = size;
+				self->memory.buf_len = bufSize;
+			}
+		}
+		break;
+
+	default:
+		rc = EINVAL;
+		break;
 	}
+
 	self->memory.offset = 0;
 	return rc;
 }

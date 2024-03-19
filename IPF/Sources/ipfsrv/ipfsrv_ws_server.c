@@ -1063,30 +1063,31 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 		}
 
 		// Create Listener Socket(s)
-		int running = 0;
-		esif_error_t last_error = ESIF_OK;
-		for (j = 0; j < IPF_WS_MAX_LISTENERS; j++) {
-			if (self->listeners[j].serverAddr[0]) {
-				rc = WebListener_Open(&self->listeners[j]);
+		if (ESIF_OK == rc) {
+			int running = 0;
+			esif_error_t last_error = ESIF_OK;
+			for (j = 0; j < IPF_WS_MAX_LISTENERS; j++) {
+				if (self->listeners[j].serverAddr[0]) {
+					rc = WebListener_Open(&self->listeners[j]);
 				
-				if (rc == ESIF_OK) {
-					running++;
-					WebServer_SetListenerMask(self, ((size_t)1 << j));
-					WS_TRACE_INFO("\nIPF Server Listening [%s]\n", self->listeners[j].serverAddr);
-				}
-				else {
-					last_error = rc;
-					WS_TRACE_ERROR("\nUnable to start IPF Server Listener [%s]\n", self->listeners[j].serverAddr);
+					if (rc == ESIF_OK) {
+						running++;
+						WebServer_SetListenerMask(self, ((size_t)1 << j));
+						WS_TRACE_INFO("\nIPF Server Listening [%s]\n", self->listeners[j].serverAddr);
+					}
+					else {
+						last_error = rc;
+						WS_TRACE_ERROR("\nUnable to start IPF Server Listener [%s]\n", self->listeners[j].serverAddr);
+					}
 				}
 			}
+			if (running) {
+				rc = ESIF_OK;
+			}
+			else {
+				rc = last_error;
+			}
 		}
-		if (running) {
-			rc = ESIF_OK;
-		}
-		else {
-			rc = last_error;
-		}
-
 		//// MAIN LOOP ////
 		
 		// Process all active sockets and accept new connections until Quit signaled

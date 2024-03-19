@@ -24,7 +24,7 @@
 #include <stdlib.h>
 
 // Current IPF SDK Version: Major.Minor.Revision where same Major.Minor compatible with other Revisions, but not newer Major.Minor
-#define IPF_SDK_VERSION		"1.0.11363"
+#define IPF_SDK_VERSION		"1.0.11364"
 
 typedef u64 ipfsdk_version_t;	// IPF SDK Encoded Version Number
 

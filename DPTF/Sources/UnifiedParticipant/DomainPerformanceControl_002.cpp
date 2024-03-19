@@ -35,7 +35,14 @@ DomainPerformanceControl_002::DomainPerformanceControl_002(
 
 DomainPerformanceControl_002::~DomainPerformanceControl_002(void)
 {
-	restore();
+	try
+	{
+		restore();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_002::getPerformanceControlStaticCaps(

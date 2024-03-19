@@ -35,7 +35,14 @@ DomainDisplayControl_001::DomainDisplayControl_001(
 
 DomainDisplayControl_001::~DomainDisplayControl_001(void)
 {
-	restore();
+	try
+	{
+		restore();
+	}
+	catch(...)
+	{
+
+	}
 }
 
 DisplayControlDynamicCaps DomainDisplayControl_001::getDisplayControlDynamicCaps(

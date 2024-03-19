@@ -129,7 +129,7 @@ void DataManager::setTableObject(
 		if (tableData.notEmpty())
 		{
 			m_dptfManager->getEsifServices()->writeConfigurationBinary(
-				tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath);
+				tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath, ESIF_SERVICE_CONFIG_PERSIST);
 		}
 		else
 		{
@@ -274,7 +274,7 @@ void DataManager::setTableObjectBasedOnAlternativeDataSourceAndKey(
 		if (tableData.notEmpty())
 		{
 			m_dptfManager->getEsifServices()->writeConfigurationBinary(
-				tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath);
+				tableData.get(), tableData.size(), tableData.size(), nameSpace, elementPath, ESIF_SERVICE_CONFIG_PERSIST);
 		}
 		else
 		{
@@ -301,7 +301,7 @@ void DataManager::setTableObjectForNoPersist(DptfBuffer tableData, TableObjectTy
 	auto dvType = DataVaultType::Override;
 
 	m_dptfManager->getEsifServices()->writeConfigurationBinary(
-		tableData.get(), tableData.size(), tableData.size(), DataVaultType::ToString(dvType), elementPath);
+		tableData.get(), tableData.size(), tableData.size(), DataVaultType::ToString(dvType), elementPath, 0);
 	sendTableChangedEvent(tableType, Constants::EmptyString, Constants::Esif::NoParticipant);
 }
 
@@ -357,7 +357,7 @@ void DataManager::writeEmptyTable(string nameSpace, string elementPath)
 	u8 dummyBuffer = 0;
 
 	m_dptfManager->getEsifServices()->writeConfigurationBinary(
-		&dummyBuffer, sizeof(dummyBuffer), 0, nameSpace, elementPath);
+		&dummyBuffer, sizeof(dummyBuffer), 0, nameSpace, elementPath, ESIF_SERVICE_CONFIG_PERSIST);
 }
 
 void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, string uuid, UIntN participantIndex)
