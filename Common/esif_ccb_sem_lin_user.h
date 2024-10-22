@@ -28,8 +28,16 @@ typedef sem_t esif_ccb_sem_t;
 #define esif_ccb_sem_init(semPtr) sem_init(semPtr, 0, 0)
 #define esif_ccb_sem_uninit(semPtr) sem_destroy(semPtr)
 #define esif_ccb_sem_up(semPtr) sem_post(semPtr)
-#define esif_ccb_sem_down(semPtr) sem_wait(semPtr)
 
+static ESIF_INLINE int esif_ccb_sem_down(sem_t *sem) {
+    int result;
+    while (((result = sem_wait(sem)) == -1) &&
+			(errno == EINTR)) {
+        // Retry if interrupted by a signal
+        continue;
+    }
+    return result;
+}
 /*
  * Returns ESIF_OK on success, ESIF_E_TIMEOUT if the timer expired, else
  * ESIF_E_UNSPECIFIED.
