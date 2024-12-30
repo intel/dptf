@@ -71,148 +71,141 @@ OEMs separately and are not available to end users.
 -------------------------------------------------------------------------------
 MANUALLY INSTALL DPTF ON UBUNTU LINUX
 -------------------------------------------------------------------------------
-Even though DPTF is not yet officially supported on Linux, users who wish to
-try it on Linux can follow steps below. Please note that these steps apply to
-Ubuntu Linux only, and may vary if your Linux distro is different.
+Although DPTF is not officially supported on Linux, users who wish to
+experiment with it can follow the steps below. These steps are tailored for
+Ubuntu Linux and may require adjustments for other distributions.
 
-Requirement: DPTF requires corresponding ACPI support in BIOS. Not all
-Intel based platforms support DPTF in BIOS. Please contact your BIOS vendor
-to see if DPTF is enabled in your system.
-DPTF requires pm-utils to support some of the dptf functionalities.
+Requirements:
+1. DPTF requires corresponding ACPI support in the BIOS. Not all Intel-based
+   platforms support DPTF in BIOS. Contact your BIOS vendor to confirm if
+   DPTF is enabled on your system.
+2. Install pm-utils for certain DPTF functionalities.
+3. For DPTF version 9.x, a kernel version 4.0-rc7 or later is required.
+4. GCC version 4.8 or later is needed to compile the source code.
 
-The 9.x version of DPTF also requires 4.0-rc7 kernel or later in order to
-run properly. To compile the DPTF source code, you need GCC version 4.8 or
-later.
+Dependencies:
+Install the following packages to set up DPTF on Ubuntu:
 
-Step 1 - Install CMake tool if you have not installed it on your Linux system:
+- cmake
+- libedit-dev
+- pm-utils
 
-	sudo apt-get install cmake
+Recommended Utilities:
+Install lm-sensors to monitor thermal and power-related data.
 
-Step 2 - Go to the Linux subdirectory of DPTF (<DPTF root>/DPTF/Linux/build)
-and run the command:
+ Step-by-Step Installation
 
-	cmake ..
+Step 1 - Install CMake
+Ensure CMake is installed on your system:
 
-This command will invoke cmake and generate all the GNU make files for each
-sub-modules of DPTF user space libraries. By default this command will
-generate the make files for 64-bit release version. If you want to build a
-different flavor, please examine the <DPTF root>/DPTF/Linux/CMakeLists.txt
-to find out what environment variables that you may need to pass to cmake.
+sudo apt install cmake libedit-dev pm-utils (lm-sensors) - Note: apt-get for versions prior to Ubuntu 16.04 LTS
 
-Step 3 - Run make to build all DPTF shared libraries.
 
-	make -j`nproc`
+Step 2 - Configure the Build System
+Set up an environment variable for the DPTF root directory:
 
-The generated shared libraries will be located under
-<DPTF root>/DPTF/Linux/build/x64/release directory. Users can disregard
-the static .a libraries as these static libraries are only used to build the
-shared library. Here is the break down of the generated shared libraries that
-are needed to run DPTF on Linux:
+export DPTF=/path/to/dptf
 
-	* Dptf.so
-	* DptfPolicyActive.so
-	* DptfPolicyCritical.so
-	* DptfPolicyPassive.so
+Navigate to the Linux build directory and generate makefiles:
 
-Step 4 - Copy the above shared libraries and other DPTF configuration files
-to proper locations on your system (assuming that you are running on a 64-bit
-system, otherwise replace "64" below with "32" if you are building and
-running on 32-bit Linux).
+cd $DPTF/DPTF/Linux/build
+cmake ..
 
-	sudo mkdir -p /usr/share/dptf/ufx64
-	sudo cp Dptf*.so /usr/share/dptf/ufx64
-	sudo mkdir -p /etc/dptf
-	sudo cp <DPTF root>/ESIF/Packages/DSP/dsp.dv /etc/dptf
+By default, this generates makefiles for a 64-bit release build. To build other variants, refer to $DPTF/DPTF/Linux/CMakeLists.txt to determine the appropriate environment variables for cmake.
 
-Step 5 - Run make under <DPTF root>/ESIF/Products/ESIF_UF/Linux to build
-the ipf_ufd executable and <DPTF root>/ESIF/Products/IPF/Linux to build
-the ipfhostd executable. These are the main components of DPTF service
-executables that load the DPTF policies that you have built in Step 3.
-After the build is complete, you will find the ipf_ufd and ipfhostd
-executable generated under the corresponding directories.
+Step 3 - Build DPTF Shared Libraries
+Compile the DPTF shared libraries:
 
-Please note that the default make target is a 64-bit release version. If you
-want to build a different flavor, please examine the Makefile under this
-directory to find out what environment variable you want to pass to Gnu make.
-Please do not alter the default settings for OS, OPT_GMIN and OPT_DBUS
-environment variables - they are for Chromium OS builds only, and for Linux
-builds, please use the default values.
+make -j$(nproc)
 
-After the ipf_ufd and ipfhostd builds are done, copy the executables to the
-proper location on your system (using /usr/bin as an example, but any system
-path should work):
-	sudo cp <DPTF root>/ESIF/Products/ESIF_UF/Linux/ipf_ufd /usr/bin
-	sudo cp <DPTF root>/ESIF/Products/IPF/Linux/ipfhostd /usr/bin
+The shared libraries will be created in $DPTF/DPTF/Linux/build/x64/release.
 
-Step 6 - Install other shared libraries
-Additional ESIF libraries will be required to work with the newer format of
-DPTF data vault files. Run make under the following directories:
-    <DPTF root>/ESIF/Products/ESIF_CMP/Linux
-    <DPTF root>/ESIF/Products/ESIF_WS/Linux
+Generated shared libraries:
+- Dptf.so
+- DptfPolicyActive.so
+- DptfPolicyCritical.so
+- DptfPolicyPassive.so
 
-Copy the generated library files to /usr/share/dptf/ufx64
+Step 4 - Deploy Shared Libraries and Configuration Files
+Copy the shared libraries to the appropriate system directory:
 
-    cp <DPTF root>/ESIF/Products/ESIF_CMP/Linux/ipf_cmp.so \
-        /usr/share/dptf/ufx64
+sudo mkdir -p /usr/share/dptf/ufx64
+sudo cp $DPTF/DPTF/Linux/build/x64/release/Dptf*.so /usr/share/dptf/ufx64
 
-    cp <DPTF root>/ESIF/Products/ESIF_WS/Linux/ipf_ws.so \
-        /usr/share/dptf/ufx64
+Copy configuration files:
 
-    cp <DPTF root>/ESIF/Products/IPF/Linux/ipfsrv.so \
-        /usr/share/dptf/ufx64
+sudo mkdir -p /etc/dptf
+sudo cp $DPTF/ESIF/Packages/DSP/dsp.dv /etc/dptf
 
-    cp <DPTF root>/ESIF/Products/IPF/Linux/ipfipc.so \
-        /usr/share/dptf/ufx64
 
-Step 7 - Start DPTF. Simply run:
-	sudo /usr/bin/ipf_ufd
+Step 5 - Build DPTF Executables
+Build the main service executables:
 
-This executable will run in daemon mode, and DPTF policies will automatically
-be loaded by this executable. You can check the status of the DPTF service
-by running this command:
+make -C $DPTF/ESIF/Products/ESIF_UF/Linux
+make -C $DPTF/IPF/Linux
 
-	pgrep -l ipf_ufd
+Copy the executables to a system directory (e.g., /usr/bin):
 
-This command will show the active DPTF process ID.
+sudo cp $DPTF/ESIF/Products/ESIF_UF/Linux/ipf_ufd /usr/bin
+sudo cp $DPTF/IPF/Linux/ipfhostd /usr/bin
+
+
+Step 6 - Build and Deploy Additional Libraries
+Compile the necessary ESIF libraries:
+
+make -C $DPTF/ESIF/Products/ESIF_CMP/Linux
+make -C $DPTF/ESIF/Products/ESIF_WS/Linux
+
+Copy the generated libraries:
+
+sudo cp $DPTF/ESIF/Products/ESIF_CMP/Linux/ipf_cmp.so /usr/share/dptf/ufx64
+sudo cp $DPTF/ESIF/Products/ESIF_WS/Linux/ipf_ws.so /usr/share/dptf/ufx64
+sudo cp $DPTF/IPF/Linux/ipfsrv.so /usr/share/dptf/ufx64
+sudo cp $DPTF/IPF/Linux/ipfipc.so /usr/share/dptf/ufx64
+
+
+Step 7 - Start DPTF
+Start the DPTF service manually:
+
+sudo /usr/bin/ipf_ufd
+
+Verify the service status:
+
+pgrep -l ipf_ufd
+
 
 -------------------------------------------------------------------------------
-INSTALL DPTF SERVICE
+CONFIGURE DPTF SERVICE
 -------------------------------------------------------------------------------
-For Ubuntu 15.04 and later:
-Starting with Ubuntu 15.04 the default init system has switched to systemd.
-If this is the system that you use, then to auto start DPTF service, copy
-the ipf.service script to /lib/systemd/system:
 
-	sudo cp <DPTF root>/ESIF/Packages/Installers/linux/ipf.service \
-	/lib/systemd/system
+Enable Auto-Start with Systemd
+For Ubuntu 15.04 and later (using systemd):
+1. Copy the ipf.service file:
+   
+   sudo cp $DPTF/ESIF/Packages/Installers/linux/ipf.service /lib/systemd/system
+   
+2. Enable the service:
+   
+   sudo systemctl enable ipf.service
+   
+3. Optionally, manage the service:
+   
+   sudo systemctl start ipf.service   Start the service
+   sudo systemctl stop ipf.service    Stop the service
+   sudo systemctl restart ipf.service Restart the service
 
-You will then need to enable the DPTF service to auto load upon startup:
 
-	sudo systemctl enable ipf.service
+Enable DTT Service
+Similarly, copy and enable the dtt.service file:
 
-DPTF(ipf_ufd) service will automatically start the next time the system
-boots. You can also manually start and stop DPTF service anytime by doing:
+sudo cp $DPTF/ESIF/Packages/Installers/linux/dtt.service /lib/systemd/system
+sudo systemctl enable dtt.service
 
-	systemctl start ipf.service   # To start the service
-	systemctl stop ipf.service    # To stop the service
-	systemctl restart ipf.service # To restart the service
+You can manage the DTT service as needed:
 
-To auto start the DTT service, copy the dtt.service script to
-/lib/systemd/system:
-
-	sudo cp <DPTF root>/ESIF/Packages/Installers/linux/dtt.service \
-	/lib/systemd/system
-
-You will then need to enable the DTT service to auto load upon startup:
-
-	sudo systemctl enable dtt.service
-
-DTT service will automatically start the next time the system boots.
-You can also manually start and stop DTT service anytime by doing:
-
-	systemctl start dtt.service   # To start the service
-	systemctl stop dtt.service    # To stop the service
-	systemctl restart dtt.service # To restart the service
+sudo systemctl start dtt.service
+sudo systemctl stop dtt.service
+sudo systemctl restart dtt.service
 
 -------------------------------------------------------------------------------
 KNOWN ISSUES / LIMITATIONS
