@@ -32,6 +32,9 @@ public:
 		const std::vector<UInt32>& acEntries);
 	~ActiveRelationshipTableEntry();
 
+	// Use the base class operator
+	using RelationshipTableEntryBase::operator==;
+
 	const UInt32& ac(UIntN acLevel) const;
 	UInt32 getWeight() const;
 

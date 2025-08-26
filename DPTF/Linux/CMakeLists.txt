@@ -6,7 +6,7 @@ message ("CXX Flags (initial) : " ${CMAKE_CXX_FLAGS})
 message ("C Flags (initial) : " ${CMAKE_C_FLAGS})
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-unqualified-std-cast-call -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden -Wl,--no-undefined ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden -Wl,--no-undefined ")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unused-value -Wno-unused-variable -Wno-missing-braces -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden")
 
 if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0") 

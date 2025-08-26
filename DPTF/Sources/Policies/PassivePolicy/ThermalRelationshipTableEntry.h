@@ -31,6 +31,9 @@ public:
 		UInt32 thermalInfluence,
 		const TimeSpan& thermalSamplingPeriod);
 
+	// Use the base class operator
+	using RelationshipTableEntryBase::operator==;
+
 	const UInt32& thermalInfluence() const;
 	const TimeSpan& thermalSamplingPeriod() const;
 
