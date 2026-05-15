@@ -117,7 +117,7 @@ esif_error_t IpfIpc_ParseServerAddress(
 		if (esif_ccb_stricmp(proto, IPC_PROTO_WEBSOCKET) == 0) {
 			char host[ESIF_IPADDR_LEN] = { 0 };
 			unsigned short port = IPC_DEFAULT_PORT;
-			char *portsep = esif_ccb_strpbrk(addr, ":/?");
+			const char *portsep = esif_ccb_strpbrk(addr, ":/?");
 			if (portsep) {
 				int portnum = (*portsep == ':' ? atoi(portsep + 1) : port);
 				port = (unsigned short)(portnum > 0 && portnum <= 0xffff ? portnum : 0);
