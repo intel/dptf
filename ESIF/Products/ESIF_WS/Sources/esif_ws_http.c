@@ -183,7 +183,7 @@ const char *Http_GetMimeType(const char *resource)
 		{ "txt",  "text/plain" MIME_TYPE_ENCODING },
 		{ NULL,   NULL }
 	};
-	char *extension = NULL;
+	const char *extension = NULL;
 
 	if (resource && ((extension = esif_ccb_strrchr(resource, '.')) != NULL)) {
 		size_t j = 0;
