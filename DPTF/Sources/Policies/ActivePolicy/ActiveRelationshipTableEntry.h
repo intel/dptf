@@ -25,6 +25,7 @@
 class dptf_export ActiveRelationshipTableEntry : public RelationshipTableEntryBase
 {
 public:
+	using RelationshipTableEntryBase::operator==;
 	ActiveRelationshipTableEntry(
 		const std::string& sourceDeviceScope,
 		const std::string& targetDeviceScope,

@@ -25,6 +25,7 @@
 class dptf_export ThermalRelationshipTableEntry : public RelationshipTableEntryBase
 {
 public:
+	using RelationshipTableEntryBase::operator==;
 	ThermalRelationshipTableEntry(
 		const std::string& sourceDeviceScope,
 		const std::string& targetDeviceScope,
